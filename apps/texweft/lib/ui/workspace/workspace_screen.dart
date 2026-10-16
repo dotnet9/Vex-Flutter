@@ -264,31 +264,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   }
 
   Future<void> _export() async {
-    // Implemented by the native export service in the next verified unit.
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AppDialog(
-        title: '导出与分享',
-        child: Column(
-          children: [
-            const Text(
-              'Markdown 使用标准 UTF-8 格式，便于继续编辑。',
-              style: TextStyle(fontSize: 12),
-            ),
-            const SizedBox(height: 16),
-            AppButton(
-              label: '另存为 Markdown',
-              icon: 'save',
-              primary: true,
-              onPressed: () {
-                Navigator.pop(context);
-                _action('save-as');
-              },
-            ),
-          ],
-        ),
-      ),
-    );
+    await showExportDialog(context, vm);
   }
 
   @override
@@ -565,7 +541,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       padding: const EdgeInsets.only(left: 16),
       child: Row(
         children: [
-          SvgPicture.asset('../../logo.svg', width: 22, height: 22),
+          SvgPicture.asset('assets/brand/logo.svg', width: 22, height: 22),
           const SizedBox(width: 7),
           const Text(
             'Texweft',

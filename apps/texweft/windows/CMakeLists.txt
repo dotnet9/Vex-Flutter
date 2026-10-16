@@ -6,6 +6,12 @@ project(texweft LANGUAGES CXX)
 # the on-disk name of your application.
 set(BINARY_NAME "texweft")
 
+# Current PDFium, pinned for reproducible native printing builds.
+set(PDFIUM_VERSION "8100" CACHE STRING "PDFium Chromium build" FORCE)
+if(MSVC)
+  add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:/utf-8>")
+endif()
+
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
 cmake_policy(VERSION 3.14...3.25)
@@ -65,9 +71,7 @@ include(flutter/generated_plugins.cmake)
 set(BUILD_BUNDLE_DIR "$<TARGET_FILE_DIR:${BINARY_NAME}>")
 # Make the "install" step default, as it's required to run.
 set(CMAKE_VS_INCLUDE_INSTALL_TO_DEFAULT_BUILD 1)
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  set(CMAKE_INSTALL_PREFIX "${BUILD_BUNDLE_DIR}" CACHE PATH "..." FORCE)
-endif()
+set(CMAKE_INSTALL_PREFIX "${BUILD_BUNDLE_DIR}" CACHE PATH "Runnable Flutter bundle" FORCE)
 
 set(INSTALL_BUNDLE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/data")
 set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}")

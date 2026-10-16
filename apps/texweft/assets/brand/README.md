@@ -1,0 +1,3 @@
+这里的 Logo 由仓库根目录生成，请勿手工修改。
+
+修改根目录 `logo.svg / logo.png / logo.ico` 后，运行 `python scripts/sync_brand_assets.py` 同步 Flutter 打包资源。构建检查使用 `--check` 验证两处一致。原型直接引用根目录 SVG。

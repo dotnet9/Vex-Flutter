@@ -1,15 +1,175 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:texweft_editor/texweft_editor.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:printing/printing.dart';
 
 import '../../domain/workspace.dart';
+import '../../data/services/export_service.dart';
 import '../core/app_widgets.dart';
 import '../core/palette_tokens.dart';
 import 'workspace_view_model.dart';
+
+Future<void> showExportDialog(BuildContext context, WorkspaceViewModel vm) =>
+    showDialog<void>(
+      context: context,
+      builder: (context) => _ExportDialog(vm: vm),
+    );
+
+class _ExportDialog extends StatefulWidget {
+  const _ExportDialog({required this.vm});
+  final WorkspaceViewModel vm;
+  @override
+  State<_ExportDialog> createState() => _ExportDialogState();
+}
+
+class _ExportDialogState extends State<_ExportDialog> {
+  final _service = DocumentExportService();
+  bool _busy = false;
+  String _message = '';
+  Future<void> _export(String type) async {
+    final vm = widget.vm, source = widget.vm.editor.session.text;
+    final colors = Theme.of(context).colorScheme,
+        typography = vm.typography,
+        compact = vm.compact;
+    final stem = vm.current.name.replaceFirst(
+      RegExp(r'\.(md|markdown|txt)$', caseSensitive: false),
+      '',
+    );
+    setState(() {
+      _busy = true;
+      _message = '正在生成…';
+    });
+    try {
+      Uint8List bytes;
+      switch (type) {
+        case 'md':
+          bytes = Uint8List.fromList(utf8.encode(source));
+        case 'html':
+          bytes = Uint8List.fromList(
+            utf8.encode(
+              _service.html(
+                source: source,
+                title: stem,
+                colors: colors,
+                typography: typography,
+                compact: compact,
+              ),
+            ),
+          );
+        case 'docx':
+          bytes = _service.docx(source: source, title: stem);
+        case 'png':
+          bytes = await _service.mindMapPng(vm.map.root, colors);
+        default:
+          bytes = await _service.pdf(
+            source: source,
+            title: stem,
+            colors: colors,
+            typography: typography,
+            compact: compact,
+          );
+      }
+      if (type == 'print') {
+        final printed = await Printing.layoutPdf(
+          name: stem,
+          onLayout: (_) async => bytes,
+        );
+        if (mounted) {
+          setState(() => _message = printed ? '已发送到系统打印窗口。' : '已取消打印。');
+        }
+      } else {
+        final path = await vm.files.saveAs('$stem.$type', bytes);
+        if (mounted) {
+          setState(
+            () => _message = path == null ? '已取消导出。' : '已导出 $stem.$type',
+          );
+        }
+      }
+    } catch (error) {
+      if (mounted) setState(() => _message = '导出失败：$error');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AppDialog(
+    title: '导出与分享',
+    width: 540,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '将当前内容保存为独立文件。HTML 保留所选配色与排版，导图图片包含完整结构。',
+          style: TextStyle(fontSize: 12, height: 1.9),
+        ),
+        const SizedBox(height: 18),
+        Wrap(
+          spacing: 8,
+          runSpacing: 10,
+          children: [
+            for (final entry in [
+              ('md', 'Markdown', 'file'),
+              ('html', 'HTML 页面', 'code'),
+              ('pdf', 'PDF 文档', 'file'),
+              ('docx', 'Word 文档', 'file'),
+              ('png', '导图 PNG', 'map'),
+              ('print', '系统打印', 'print'),
+            ])
+              AppButton(
+                label: entry.$2,
+                icon: entry.$3,
+                bordered: true,
+                height: 36,
+                onPressed: _busy ? null : () => _export(entry.$1),
+              ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        AppButton(
+          label: '复制 HTML 源码',
+          icon: 'copy',
+          onPressed: _busy
+              ? null
+              : () async {
+                  final vm = widget.vm;
+                  await Clipboard.setData(
+                    ClipboardData(
+                      text: _service.html(
+                        source: vm.editor.session.text,
+                        title: vm.current.name,
+                        colors: Theme.of(context).colorScheme,
+                        typography: vm.typography,
+                        compact: vm.compact,
+                      ),
+                    ),
+                  );
+                  if (mounted) setState(() => _message = '已复制 HTML 源码。');
+                },
+        ),
+        if (_busy)
+          const Padding(
+            padding: EdgeInsets.only(top: 16),
+            child: LinearProgressIndicator(),
+          ),
+        if (_message.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: SelectableText(
+              _message,
+              style: const TextStyle(fontSize: 12, height: 1.8),
+            ),
+          ),
+      ],
+    ),
+  );
+}
 
 Future<void> showLayouts(BuildContext context, WorkspaceViewModel vm) =>
     showDialog<void>(
@@ -467,7 +627,7 @@ class _AboutDialogState extends State<_AboutDialog> {
       children: [
         Row(
           children: [
-            SvgPicture.asset('../../logo.svg', width: 72, height: 72),
+            SvgPicture.asset('assets/brand/logo.svg', width: 72, height: 72),
             const SizedBox(width: 20),
             const Expanded(
               child: Column(
