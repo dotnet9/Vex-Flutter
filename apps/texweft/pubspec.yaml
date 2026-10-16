@@ -1,0 +1,40 @@
+name: texweft
+description: 笺纬 Texweft · 落笔成文，思路成形。
+publish_to: none
+version: 0.1.0+1
+resolution: workspace
+environment:
+  sdk: ^3.13.0
+  flutter: '>=3.47.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  texweft_markdown_core: ^0.1.0
+  texweft_editor: ^0.1.0
+  texweft_mindmap: ^0.1.0
+  provider: ^6.1.5
+  file_selector: ^1.0.4
+  path_provider: ^2.1.5
+  shared_preferences: ^2.5.3
+  url_launcher: ^6.3.2
+  flutter_svg: ^2.2.0
+  path: ^1.9.1
+  markdown: ^7.3.1
+  pdf: ^3.11.3
+  printing: ^5.14.2
+  archive: ^4.0.7
+  window_manager: ^0.5.1
+  desktop_drop: ^0.6.1
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+flutter:
+  uses-material-design: true
+  assets:
+    - ../../logo.svg
+    - ../../logo.png

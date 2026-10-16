@@ -1,0 +1,9 @@
+name: texweft_markdown_core
+description: Source-preserving Markdown documents, chapter commands and shared editing history in pure Dart.
+version: 0.1.0
+repository: https://github.com/dotnet9/texweft/tree/main/packages/texweft_markdown_core
+resolution: workspace
+environment:
+  sdk: ^3.13.0
+dev_dependencies:
+  test: ^1.26.0
