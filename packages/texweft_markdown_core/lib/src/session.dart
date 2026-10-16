@@ -56,8 +56,8 @@ final class MarkdownSession {
     }
   }
 
-  void markSaved() {
-    _saved = text;
+  void markSaved({String? savedText}) {
+    _saved = savedText ?? text;
     _emit();
   }
 
