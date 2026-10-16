@@ -37,6 +37,10 @@
       return value;
     }
     function markdown() {
+      if (active.fence) {
+        var code = active.element.querySelector('pre');
+        return active.fence.write(code.innerText, active.element.querySelector('.md-code-language').value);
+      }
       var element = active.element, hasStructure = element.querySelector('h1,h2,h3,h4,h5,h6,p,ul,ol,blockquote,table,.md-code-block,div');
       var value = Array.from(element.childNodes).map(serializeNode).join('').replace(/\n+$/, '');
       if (active.block.kind !== 'code') value = value.replace(/\n{3,}/g, '\n\n');
@@ -100,7 +104,11 @@
         element.contentEditable = 'true'; element.spellcheck = false; element.setAttribute('role', 'textbox'); element.setAttribute('aria-multiline', 'true');
         element.setAttribute('aria-label', '编辑第 ' + block.line + ' 行：' + block.text.slice(0, 20));
         element.innerHTML = options.renderBlock(block);
-        element.querySelectorAll('.md-code-header,.md-code-lines').forEach(function (item) { item.contentEditable = 'false'; });
+        if (block.kind === 'code') {
+          element.contentEditable = 'false';
+          var pre = element.querySelector('pre'); pre.contentEditable = 'plaintext-only'; pre.tabIndex = 0;
+          pre.setAttribute('role', 'textbox'); pre.setAttribute('aria-label', '代码正文'); pre.setAttribute('aria-multiline', 'true');
+        }
         host.appendChild(element);
       });
       if (!options.blocks().length) {
@@ -113,6 +121,10 @@
       if (active) finish();
       var block = options.blocks()[Number(element.dataset.blockIndex)] || { kind: 'paragraph', raw: '', line: 1, endLine: 1 }, span = range(block);
       active = { element: element, block: block, start: span.start, end: span.end, original: block.raw, value: block.raw, before: options.input.value.slice(0, span.start), after: options.input.value.slice(span.end), changed: false };
+      if (block.kind === 'code') {
+        active.fence = TexweftCodeFence.parse(block.raw);
+        element.append(TexweftCodeFence.footer(active.fence?.language || block.language || ''));
+      }
       element.classList.add('instant-input', 'is-editing');
     }
     function finish(cancel) {
@@ -123,28 +135,30 @@
         else if (previous.original !== previous.value) options.remember(previous.before + previous.original + previous.after);
       }
       active = null; previous.element.classList.remove('instant-input', 'is-editing');
-      if (document.activeElement === previous.element) previous.element.blur();
+      previous.element.querySelector('.md-code-footer')?.remove();
+      if (previous.element.contains(document.activeElement)) document.activeElement.blur();
       if (previous.changed) { options.refresh(); render(); }
       return start;
     }
     host.addEventListener('pointerdown', function (event) {
-      if (event.button !== 0 || event.target.closest('button,a,[contenteditable="false"]')) return;
+      if (event.button !== 0 || event.target.closest('button,a,.md-code-footer')) return;
       var element = event.target.closest('.instant-block'); if (!element || !active || element === active.element) return;
       if (!active.changed) return;
       var offset = Number(element.dataset.start); if (offset >= active.end) offset += active.value.length - active.original.length;
       event.preventDefault(); finish();
       var index = options.blocks().findIndex(function (block) { var span = range(block); return offset >= span.start && offset <= span.end; });
       var next = host.querySelector('[data-block-index="' + index + '"]');
-      if (next) { next.focus({ preventScroll: true }); var caret = document.caretRangeFromPoint(event.clientX, event.clientY); if (caret && next.contains(caret.startContainer)) { getSelection().removeAllRanges(); getSelection().addRange(caret); } }
+      if (next) { (next.querySelector('pre[contenteditable]') || next).focus({ preventScroll: true }); var caret = document.caretRangeFromPoint(event.clientX, event.clientY); if (caret && next.contains(caret.startContainer)) { getSelection().removeAllRanges(); getSelection().addRange(caret); } }
     });
-    host.addEventListener('focusin', function (event) { var element = event.target.closest('.instant-block'); if (element && !event.target.closest('[contenteditable="false"]')) begin(element); });
+    host.addEventListener('focusin', function (event) { var element = event.target.closest('.instant-block'); if (element && !event.target.closest('.md-code-footer')) begin(element); });
     host.addEventListener('focusout', function (event) { if (active && !active.element.contains(event.relatedTarget)) finish(); });
     host.addEventListener('input', function (event) { if (active) { if (!event.isComposing) normalizeInline(); sync(); } });
     host.addEventListener('compositionstart', function () { composing = true; });
     host.addEventListener('compositionend', function () { composing = false; normalizeInline(); sync(); });
-    host.addEventListener('paste', function (event) { if (!active) return; event.preventDefault(); document.execCommand('insertText', false, event.clipboardData.getData('text/plain')); normalizeInline(); sync(); });
+    host.addEventListener('paste', function (event) { if (!active || event.target.matches('input')) return; event.preventDefault(); document.execCommand('insertText', false, event.clipboardData.getData('text/plain')); normalizeInline(); sync(); });
     host.addEventListener('keydown', function (event) {
       if (!active || event.isComposing || composing) return;
+      if (event.target.matches('.md-code-language') && event.key === 'Enter') { event.preventDefault(); active.element.querySelector('pre').focus(); return; }
       var selection = getSelection(), anchor = selection.anchorNode?.parentElement, heading = anchor?.closest('h1,h2,h3,h4,h5,h6');
       if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.metaKey && heading && active.element.contains(heading)) {
         event.preventDefault();
@@ -160,9 +174,9 @@
       render: render, finish: finish, editing: function () { return !!active; },
       focusAt: function (line) {
         finish(); var index = options.blocks().findIndex(function (block) { return line >= block.line && line <= block.endLine; }); if (index < 0) index = Math.max(0, options.blocks().length - 1);
-        var element = host.querySelector('[data-block-index="' + index + '"]'); if (element) { element.focus({ preventScroll: true }); begin(element); setCaret(text(element).length); element.scrollIntoView({ block: 'nearest' }); }
+        var element = host.querySelector('[data-block-index="' + index + '"]'); if (element) { (element.querySelector('pre[contenteditable]') || element).focus({ preventScroll: true }); begin(element); setCaret(text(element).length); element.scrollIntoView({ block: 'nearest' }); }
       },
-      insert: function (value) { if (!active) return false; active.element.focus({ preventScroll: true }); document.execCommand('insertText', false, value); normalizeInline(); sync(); return true; },
+      insert: function (value) { if (!active) return false; (active.element.querySelector('pre[contenteditable]') || active.element).focus({ preventScroll: true }); document.execCommand('insertText', false, value); normalizeInline(); sync(); return true; },
       format: function (kind) {
         if (!active || !['bold', 'italic', 'heading1', 'heading2', 'heading3', 'heading4', 'heading5', 'heading6', 'quote', 'list', 'ordered'].includes(kind)) return false;
         active.element.focus({ preventScroll: true });

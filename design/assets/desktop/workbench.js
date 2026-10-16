@@ -139,11 +139,7 @@
       closeList();
       if (block.kind === 'heading') html += '<h' + block.level + attr + '>' + inline(block.text) + '</h' + block.level + '>';
       else if (block.kind === 'code') {
-        var numbers = block.text.replace(/\n$/, '').split('\n').map(function (_, index) { return index + 1; }).join('\n');
-        html += '<section class="md-code-block"' + attr + '><div class="md-code-header"><span>' + escape(block.language || 'text')
-          + '</span><button class="md-code-copy" type="button" aria-label="复制代码">复制</button></div>'
-          + '<div class="md-code-scroll"><span class="md-code-lines" aria-hidden="true">' + numbers + '</span>'
-          + '<pre><code>' + escape(block.text) + '</code></pre></div></section>';
+        html += '<section class="md-code-block"' + attr + '><pre><code>' + escape(block.text) + '</code></pre></section>';
       }
       else if (block.kind === 'quote') html += '<blockquote' + attr + '>' + inline(block.text) + '</blockquote>';
       else if (block.kind === 'table') {
@@ -728,14 +724,6 @@
       : action === 'toggle-status' ? !document.querySelector('.statusbar').hidden : false;
   };
   document.addEventListener('click', function (event) {
-    var copyCode = event.target.closest('.md-code-copy');
-    if (copyCode) {
-      event.stopPropagation();
-      var code = copyCode.closest('.md-code-block').querySelector('code').textContent;
-      if (navigator.clipboard) navigator.clipboard.writeText(code).then(function () { TexweftProto.toast('代码已复制'); }, function () { TexweftProto.toast('无法访问剪贴板，请选择代码后复制'); });
-      else TexweftProto.toast('无法访问剪贴板，请选择代码后复制');
-      return;
-    }
     var button = event.target.closest('[data-action]'); if (button) { event.stopPropagation(); TexweftProto.handleAction(button.dataset.action); }
     else if (!$('map-settings').contains(event.target)) { $('map-settings').hidden = true; $('map-settings-button').setAttribute('aria-expanded', 'false'); }
   });

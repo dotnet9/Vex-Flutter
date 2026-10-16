@@ -72,16 +72,15 @@
 .content-area .md-body h2 { font-size: 21px; }
 .content-area .md-body h3 { font-size: 17px; }
 
-/* 与原生代码块一致：紧凑操作栏、行号及可横向滚动的代码正文。 */
-.md-code-block { margin: 8px 0 12px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--code-bg); }
-.md-code-header { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 4px; color: var(--muted); font: 12px/24px "Cascadia Code", Consolas, monospace; }
-.md-code-copy { min-width: 54px; height: 24px; padding: 0 10px; border: none; border-radius: 5px; color: var(--fg); background: transparent; font-family: inherit; font-size: 12px; line-height: 24px; cursor: pointer; }
-.md-code-copy:hover { background: var(--hover); }
-.md-code-copy:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
-.md-code-scroll { display: flex; min-width: 0; overflow-x: auto; }
-.md-code-lines { flex: none; padding-right: 14px; color: var(--muted); text-align: right; white-space: pre; user-select: none; font: 14px/22px "Cascadia Code", Consolas, monospace; }
-.content-area .md-body .md-code-block pre { flex: 1; min-width: max-content; margin: 0; padding: 0; border: none; border-radius: 0; overflow: visible; background: transparent; }
-:root[data-compact="true"] .md-code-lines, :root[data-compact="true"] .content-area .md-body .md-code-block pre code { font-size: 13px; line-height: 20px; }
+/* 代码正文保持安静；语言输入只在即时编辑块下方出现。 */
+.md-code-block { margin: 8px 0 12px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 3px; background: var(--code-bg); }
+.content-area .md-body .md-code-block pre { margin: 0; padding: 0; border: none; border-radius: 0; overflow-x: auto; background: transparent; outline: none; min-height: 22px; color: var(--fg); font: 14px/22px "Cascadia Code", Consolas, monospace; }
+.content-area .md-body .md-code-block pre code { display: block; min-height: 22px; padding: 0; color: var(--fg); background: transparent; outline: none; font: 14px/22px "Cascadia Code", Consolas, monospace; }
+.md-code-footer { display: flex; justify-content: flex-end; margin: -8px 0 12px; }
+.md-code-language { box-sizing: border-box; width: 180px; max-width: 100%; height: 26px; padding: 3px 8px; border: 1px solid var(--border); border-radius: 3px; color: var(--fg); background: var(--code-bg); text-align: center; font: 12px/18px "Cascadia Code", Consolas, monospace; }
+.md-code-language::placeholder { color: var(--muted); }
+.md-code-language:focus { outline: none; border-color: var(--accent); }
+:root[data-compact="true"] .content-area .md-body .md-code-block pre code { font-size: 13px; line-height: 20px; }
 
 .format-toolbar { display:flex; align-items:center; gap:2px; min-width:0; margin-left:4px; }
 .format-button { width:28px; height:28px; display:grid; place-items:center; padding:5px; border:0; border-radius:5px; background:transparent; color:var(--fg); cursor:pointer; font-size:11px; }

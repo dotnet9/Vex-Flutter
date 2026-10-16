@@ -4,6 +4,104 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:texweft_editor/texweft_editor.dart';
 
 void main() {
+  testWidgets(
+    'code language appears below the active block and never in reading',
+    (tester) async {
+      final controller = MarkdownEditorController(
+        text: '```markdown\n# 这是代码\n```\n\n正文\n',
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MarkdownInstantEditor(
+              controller: controller,
+              padding: const EdgeInsets.all(20),
+            ),
+          ),
+        ),
+      );
+      final body = find.byKey(const ValueKey('instant-active-input'));
+      final language = find.byKey(const ValueKey('instant-code-language'));
+      expect(language, findsNothing);
+      expect(find.text('markdown'), findsNothing);
+      expect(find.text('复制'), findsNothing);
+      await tester.tap(find.text('# 这是代码'));
+      await tester.pump();
+      expect(language, findsOneWidget);
+      expect(
+        tester.getTopLeft(language).dy,
+        greaterThan(tester.getBottomLeft(body).dy),
+      );
+      expect(tester.widget<TextField>(body).controller!.text, '# 这是代码');
+      await tester.tap(language);
+      await tester.enterText(language, 'dart');
+      await tester.pump();
+      expect(body, findsOneWidget);
+      expect(controller.text, '```dart\n# 这是代码\n```\n\n正文\n');
+      await tester.enterText(body, 'print("你好");');
+      await tester.pump();
+      expect(controller.text, '```dart\nprint("你好");\n```\n\n正文\n');
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+      expect(controller.text, '```markdown\n# 这是代码\n```\n\n正文\n');
+      expect(controller.session.canUndo, isFalse);
+      expect(language, findsNothing);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: MarkdownReader(data: controller.text)),
+        ),
+      );
+      expect(find.byType(SelectableText), findsWidgets);
+      expect(find.byType(TextField), findsNothing);
+      expect(find.text('markdown'), findsNothing);
+      expect(find.text('复制'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      controller.dispose();
+    },
+  );
+
+  testWidgets(
+    'code composition, completion and undo preserve the shared document',
+    (tester) async {
+      const original = '~~~text\r\nold\r\n~~~\r\n';
+      final controller = MarkdownEditorController(text: original);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: MarkdownInstantEditor(controller: controller)),
+        ),
+      );
+      await tester.tap(find.text('old'));
+      await tester.pump();
+      final body = find.byKey(const ValueKey('instant-active-input'));
+      final field = tester.widget<TextField>(body).controller!;
+      field.value = const TextEditingValue(
+        text: 'ni',
+        selection: TextSelection.collapsed(offset: 2),
+        composing: TextRange(start: 0, end: 2),
+      );
+      await tester.pump();
+      expect(controller.text, original);
+      field.value = const TextEditingValue(
+        text: '你\n好',
+        selection: TextSelection.collapsed(offset: 3),
+      );
+      await tester.pump();
+      expect(controller.text, '~~~text\r\n你\r\n好\r\n~~~\r\n');
+      expect(controller.selection.extentOffset, '~~~text\r\n你\r\n好'.length);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pump();
+      expect(find.byKey(const ValueKey('instant-code-language')), findsNothing);
+      controller.session.undo();
+      await tester.pump();
+      expect(controller.text, original);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      controller.dispose();
+    },
+  );
+
   test(
     'Chinese composition commits once, with shared history and selection',
     () {

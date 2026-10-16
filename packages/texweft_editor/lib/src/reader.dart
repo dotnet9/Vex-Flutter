@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:markdown/markdown.dart' as md;
 
+import 'code_block.dart';
+
 enum MarkdownTypography {
   simple('简约', '日常写作 · 清爽留白'),
   document('文档', '知识整理 · 清晰分节'),
@@ -104,12 +106,8 @@ class MarkdownReader extends StatelessWidget {
         color: accent,
         backgroundColor: colors.surfaceContainerLow,
       ),
-      codeblockPadding: const EdgeInsets.all(18),
-      codeblockDecoration: BoxDecoration(
-        color: colors.surfaceContainerLow,
-        border: Border.all(color: colors.outlineVariant),
-        borderRadius: BorderRadius.circular(6),
-      ),
+      codeblockPadding: EdgeInsets.zero,
+      codeblockDecoration: const BoxDecoration(),
       a: TextStyle(color: colors.primary, decoration: TextDecoration.underline),
       tableBorder: TableBorder.all(color: colors.outlineVariant),
       tableCellsPadding: const EdgeInsets.symmetric(
@@ -130,6 +128,7 @@ class MarkdownReader extends StatelessWidget {
       styleSheet: sheet,
       onTapLink: onTapLink,
       builders: {
+        'pre': _CodeBlockBuilder(selectable, compact ? 13 : 14),
         if (typography != MarkdownTypography.simple &&
             typography != MarkdownTypography.book)
           'h2': _SectionBuilder(
@@ -141,6 +140,27 @@ class MarkdownReader extends StatelessWidget {
       },
     );
   }
+}
+
+class _CodeBlockBuilder extends MarkdownElementBuilder {
+  _CodeBlockBuilder(this.selectable, this.fontSize);
+  final bool selectable;
+  final double fontSize;
+
+  @override
+  bool isBlockElement() => true;
+
+  @override
+  Widget visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) => MarkdownCodeBlock(
+    code: element.textContent.replaceFirst(RegExp(r'\n$'), ''),
+    selectable: selectable,
+    fontSize: fontSize,
+  );
 }
 
 class _SectionBuilder extends MarkdownElementBuilder {

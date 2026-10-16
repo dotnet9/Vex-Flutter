@@ -29,9 +29,10 @@
         const level = match[1].length, title = match[2];
         add('heading', i, ++i, `<h${level}>${inline(title)}</h${level}>`, { level, title, id: `heading-${start}` }); continue;
       }
-      if ((match = /^(```|~~~)(.*)/.exec(line))) {
+      if ((match = /^ {0,3}(`{3,}|~{3,})(.*)/.exec(line))) {
         const marker = match[1], language = match[2].trim(); i++;
-        while (i < lines.length && !lines[i].startsWith(marker)) i++;
+        const closing = new RegExp('^ {0,3}' + marker[0] + '{' + marker.length + ',}\\s*$');
+        while (i < lines.length && !closing.test(lines[i])) i++;
         const code = lines.slice(start + 1, i).join('\n'); if (i < lines.length) i++;
         add('code', start, i, `<pre data-language="${esc(language)}"><code>${esc(code)}</code></pre>`, { language }); continue;
       }
@@ -62,11 +63,12 @@
   }
   function render(text, editable = false) {
     const data = parse(text);
-    return data.blocks.map((b, n) => `<div class="md-block" data-block="${n}" data-line="${b.line}" ${b.id ? `id="${editable ? 'edit-' : 'read-'}${b.id}"` : ''} ${editable && !['hr'].includes(b.type) ? 'contenteditable="true" spellcheck="false"' : ''}>${editable?b.html:b.html.replace(/<input /g,'<input disabled ')}</div>`).join('') || (editable ? '<div class="md-block" data-block="0" contenteditable="true"><p><br></p></div>' : '<p class="muted">空白的一页，等待你的想法。</p>');
+    return data.blocks.map((b, n) => `<div class="md-block" data-block="${n}" data-line="${b.line}" ${b.id ? `id="${editable ? 'edit-' : 'read-'}${b.id}"` : ''} ${editable && !['hr', 'code'].includes(b.type) ? 'contenteditable="true" spellcheck="false"' : ''}>${editable && b.type === 'code' ? b.html.replace('<pre ', '<pre contenteditable="plaintext-only" spellcheck="false" role="textbox" aria-label="代码正文" ') : editable ? b.html : b.html.replace(/<input /g,'<input disabled ')}</div>`).join('') || (editable ? '<div class="md-block" data-block="0" contenteditable="true"><p><br></p></div>' : '<p class="muted">空白的一页，等待你的想法。</p>');
   }
   function toMarkdown(node) {
     if (node.nodeType === Node.TEXT_NODE) return node.nodeValue.replace(/\u00a0/g,' ');
     if (node.nodeType !== Node.ELEMENT_NODE) return '';
+    if (node.classList.contains('md-code-footer')) return '';
     const tag = node.tagName.toLowerCase(), inner = () => [...node.childNodes].map(toMarkdown).join('');
     if (/^h[1-6]$/.test(tag)) return '#'.repeat(Number(tag[1])) + ' ' + inner() + '\n\n';
     if (tag === 'br') return '\n';
@@ -91,15 +93,29 @@
   }
   function mount(host, options) {
     let active = null, composing = false;
+    const clearActive = () => {
+      if (!active) return;
+      active.element.classList.remove('is-editing');
+      active.element.querySelector('.md-code-footer')?.remove();
+      active = null;
+    };
     const repaint = () => { active = null; host.innerHTML = render(options.getText(), true); };
     const begin = el => {
       if (active?.element === el) return;
+      clearActive();
       const block = parse(options.getText()).blocks[Number(el.dataset.block)] || { start: 0, end: 0, raw: '' };
       active = { element: el, before: options.getText().slice(0, block.start), after: options.getText().slice(block.end), raw: block.raw, changed: false };
+      el.classList.add('is-editing');
+      if (block.type === 'code') {
+        active.fence = TexweftCodeFence.parse(block.raw);
+        el.append(TexweftCodeFence.footer(active.fence?.language || block.language || ''));
+      }
     };
     const sync = () => {
       if (!active || composing) return;
-      const raw = toMarkdown(active.element).trimEnd();
+      const raw = active.fence
+        ? active.fence.write(active.element.querySelector('pre').innerText, active.element.querySelector('.md-code-language').value)
+        : toMarkdown(active.element).trimEnd();
       active.changed = true;
       options.onChange(active.before + raw + active.after, true);
     };
@@ -107,8 +123,8 @@
     host.addEventListener('compositionstart', () => { composing = true; });
     host.addEventListener('compositionend', () => { composing = false; sync(); });
     host.addEventListener('input', () => { if (!composing) sync(); });
-    host.addEventListener('focusout', () => setTimeout(() => { if (!host.contains(document.activeElement) && active) { if (active.changed) repaint(); else active = null; } }, 0));
-    host.addEventListener('paste', event => { event.preventDefault(); document.execCommand('insertText', false, event.clipboardData.getData('text/plain')); });
+    host.addEventListener('focusout', () => setTimeout(() => { if (active && !active.element.contains(document.activeElement)) { if (active.changed) repaint(); else clearActive(); } }, 0));
+    host.addEventListener('paste', event => { if (event.target.matches('input')) return; event.preventDefault(); document.execCommand('insertText', false, event.clipboardData.getData('text/plain')); });
     host.addEventListener('change', event => {
       if (!event.target.matches('[data-task-line]')) return;
       const lines = options.getText().split('\n'), n = Number(event.target.dataset.taskLine);
@@ -117,11 +133,12 @@
     });
     host.addEventListener('keydown', event => {
       if (composing || event.isComposing) return;
+      if (active && event.target.matches('.md-code-language') && event.key === 'Enter') { event.preventDefault(); active.element.querySelector('pre').focus(); return; }
       if (event.key === 'Escape' && active) { const original = active.before + active.raw + active.after; active = null; options.onChange(original); repaint(); }
       if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); sync(); document.activeElement.blur(); }
     });
     repaint();
-    return { repaint, flush: () => { if (active?.changed) sync(); active = null; }, format(command) { document.execCommand(command, false); sync(); }, get active() { return active; } };
+    return { repaint, flush: () => { if (active?.changed) sync(); clearActive(); }, format(command) { document.execCommand(command, false); sync(); }, get active() { return active; } };
   }
   window.TexEditor = { esc, inline, parse, render, mount, toMarkdown, safeURL };
 })();
