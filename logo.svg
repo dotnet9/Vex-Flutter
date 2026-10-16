@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">笺纬 Texweft</title>
+  <desc id="desc">品牌墨青渐变圆角方块，圆头白色 T 与横向纬线交织。</desc>
+  <defs>
+    <linearGradient id="texweft-gradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#24766B"/>
+      <stop offset="1" stop-color="#54A78D"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#texweft-gradient)"/>
+  <path d="M68 137H188" fill="none" stroke="#AFE5D0" stroke-width="18" stroke-linecap="round"/>
+  <path d="M65 74H191M128 74V191" fill="none" stroke="#FFF" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
