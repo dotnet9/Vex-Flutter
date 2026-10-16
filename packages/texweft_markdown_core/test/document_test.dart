@@ -2,6 +2,30 @@ import 'package:test/test.dart';
 import 'package:texweft_markdown_core/texweft_markdown_core.dart';
 
 void main() {
+  test('unclosed metadata remains ordinary Markdown', () {
+    expect(MarkdownDocument.parse('---\n# 正文\n').headings.single.title, '正文');
+  });
+  test(
+    'checkpoint restores content, saved state and both history branches',
+    () {
+      final session = MarkdownSession('原文');
+      session.replace('第一版');
+      session.markSaved();
+      session.replace('第二版');
+      session.undo();
+      final snapshot = session.snapshot();
+      session.replace('临时演练');
+      session.restore(snapshot);
+      expect(session.text, '第一版');
+      expect(session.isDirty, isFalse);
+      session.redo();
+      expect(session.text, '第二版');
+      session.undo();
+      session.undo();
+      expect(session.text, '原文');
+      expect(() => MarkdownSession().restore(snapshot), throwsArgumentError);
+    },
+  );
   test('ignores headings in fenced code and metadata; preserves CRLF offsets', () {
     const text =
         '---\r\nname: 测试\r\n---\r\n# 标题 🧵\r\n\r\n```md\r\n## 代码\r\n```\r\n\r\n## 正文\r\n内容';

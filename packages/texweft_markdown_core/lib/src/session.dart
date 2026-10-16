@@ -17,6 +17,20 @@ final class _Edit {
   final DateTime time;
 }
 
+/// Opaque checkpoint for temporary editing and reversible guided exercises.
+final class MarkdownSnapshot {
+  MarkdownSnapshot._(
+    this._owner,
+    this._text,
+    this._saved,
+    this._undo,
+    this._redo,
+  );
+  final MarkdownSession _owner;
+  final String _text, _saved;
+  final List<_Edit> _undo, _redo;
+}
+
 /// Shared command/history boundary for source, rich editing and chapter actions.
 final class MarkdownSession {
   MarkdownSession([String source = ''])
@@ -27,7 +41,8 @@ final class MarkdownSession {
   final _undo = <_Edit>[];
   final _redo = <_Edit>[];
   final _listeners = <void Function()>[];
-  int revision = 0;
+  int _revision = 0;
+  int get revision => _revision;
   MarkdownDocument get document => _document;
   String get text => _document.source;
   bool get isDirty => text != _saved;
@@ -44,6 +59,23 @@ final class MarkdownSession {
   void markSaved() {
     _saved = text;
     _emit();
+  }
+
+  MarkdownSnapshot snapshot() =>
+      MarkdownSnapshot._(this, text, _saved, List.of(_undo), List.of(_redo));
+
+  void restore(MarkdownSnapshot snapshot) {
+    if (!identical(snapshot._owner, this)) {
+      throw ArgumentError('检查点属于另一个文档会话');
+    }
+    _saved = snapshot._saved;
+    _undo
+      ..clear()
+      ..addAll(snapshot._undo);
+    _redo
+      ..clear()
+      ..addAll(snapshot._redo);
+    _set(snapshot._text);
   }
 
   void replace(String value, {String label = '编辑正文', String? mergeKey}) {
@@ -66,7 +98,7 @@ final class MarkdownSession {
       replace(edit.apply(text), label: label, mergeKey: mergeKey);
   void _set(String value) {
     _document = MarkdownDocument.parse(value);
-    revision++;
+    _revision++;
     _emit();
   }
 

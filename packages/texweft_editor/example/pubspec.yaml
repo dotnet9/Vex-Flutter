@@ -1,0 +1,11 @@
+name: texweft_editor_example
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.13.0
+dependencies:
+  flutter:
+    sdk: flutter
+  texweft_editor: ^0.1.0
+flutter:
+  uses-material-design: true

@@ -7,5 +7,7 @@ workspace:
   - packages/texweft_markdown_core
   - packages/texweft_editor
   - packages/texweft_mindmap
+  - packages/texweft_editor/example
+  - packages/texweft_mindmap/example
 dev_dependencies:
   lints: ^6.0.0

@@ -86,7 +86,10 @@ final class MarkdownDocument {
     var fenceLength = 0;
     var codeStart = 0;
     var codeLine = 1;
-    var frontmatter = lines.isNotEmpty && lines.first.text == '---';
+    var frontmatter =
+        lines.isNotEmpty &&
+        lines.first.text == '---' &&
+        lines.skip(1).any((line) => line.text == '---' || line.text == '...');
     for (var i = 0; i < lines.length; i++) {
       final line = lines[i];
       final text = line.text;
