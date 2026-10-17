@@ -73,6 +73,7 @@ jobs:
           python -m pip install --require-hashes -r scripts/macos-dmg-requirements.txt
           bash scripts/package_macos.sh "$APP_VERSION"
       - name: 验证安装包与校验文件
+        shell: bash
         env:
           TARGET: ${{ matrix.target }}
         run: |

@@ -14,7 +14,7 @@ class InstallerContractTest(unittest.TestCase):
         spec.loader.exec_module(module)
         layout = module.layout_settings(Path('/temporary/Vex.app'))
         self.assertEqual(layout['symlinks'], {'Applications': '/Applications'})
-        self.assertEqual(layout['hide_extensions'], ['Vex.app'])
+        self.assertEqual(layout['hide_extensions'], [])
         self.assertFalse(layout['show_toolbar'])
         self.assertFalse(layout['show_sidebar'])
         self.assertEqual(layout['arrange_by'], None)

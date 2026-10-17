@@ -15,7 +15,9 @@ def layout_settings(app, background=BACKGROUND):
         'filesystem': 'HFS+',
         'files': [(str(app), 'Vex.app')],
         'symlinks': {'Applications': '/Applications'},
-        'hide_extensions': ['Vex.app'],
+        # SetFile -a E adds FinderInfo to the signed bundle; strict codesign
+        # rejects that attribute. Leave bundle display to Finder's conventions.
+        'hide_extensions': [],
         'background': str(background),
         'window_rect': ((100, 100), WINDOW_SIZE),
         'default_view': 'icon-view',
