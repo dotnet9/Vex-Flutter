@@ -6,6 +6,7 @@ import 'package:texweft_markdown_core/texweft_markdown_core.dart';
 import 'code_block.dart';
 import 'controller.dart';
 import 'font_families.dart';
+import 'labels.dart';
 import 'reader.dart';
 import 'typing_formatter.dart';
 
@@ -141,7 +142,9 @@ class MarkdownInstantEditor extends StatefulWidget {
     this.compact = false,
     this.fontSize = 15,
     this.padding = const EdgeInsets.fromLTRB(56, 36, 56, 70),
+    this.labels = const MarkdownEditorLabels(),
   });
+  final MarkdownEditorLabels labels;
   final MarkdownEditorController controller;
   final MarkdownTypography typography;
   final bool compact;
@@ -443,7 +446,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
                     child: SizedBox(
                       width: 180,
                       child: Semantics(
-                        label: '代码语言',
+                        label: widget.labels.codeLanguage,
                         child: TextField(
                           key: const ValueKey('instant-code-language'),
                           groupId: this,
@@ -543,7 +546,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
               color: colors.onSurface,
             ),
       decoration: InputDecoration(
-        hintText: _codeFence == null ? '从第一句话开始…' : null,
+        hintText: _codeFence == null ? widget.labels.placeholder : null,
         border: InputBorder.none,
         enabledBorder: InputBorder.none,
         focusedBorder: InputBorder.none,
@@ -618,7 +621,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
                           !current.endsWith('$newline$newline')) {
                         widget.controller.session.replace(
                           '$current${current.endsWith(newline) ? '' : newline}$newline',
-                          label: '新增段落',
+                          label: widget.labels.newParagraph,
                         );
                       }
                       _begin(null);
@@ -626,7 +629,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 24),
                       child: Text(
-                        blocks.isEmpty ? '从第一句话开始…' : '',
+                        blocks.isEmpty ? widget.labels.placeholder : '',
                         style: TextStyle(color: colors.onSurfaceVariant),
                       ),
                     ),

@@ -16,10 +16,6 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
-    buildFeatures {
-        resValues = true
-    }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -37,7 +33,6 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        resValue("string", "app_name", "笺纬 Texweft")
     }
 
     signingConfigs {
@@ -57,7 +52,6 @@ android {
             dimension = "distribution"
             applicationIdSuffix = ".preview"
             versionNameSuffix = "-preview"
-            resValue("string", "app_name", "笺纬 Texweft 预览")
             signingConfig = signingConfigs.getByName("debug")
         }
         create("production") {

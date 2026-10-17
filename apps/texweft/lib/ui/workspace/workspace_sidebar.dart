@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
+import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
 import 'workspace_view_model.dart';
 
@@ -28,26 +29,31 @@ class WorkspaceSidebar extends StatelessWidget {
               children: [
                 const SizedBox(width: 12),
                 for (final entry in [
-                  (false, '文件', 'folder'),
-                  (true, '大纲', 'list'),
+                  (false, context.l10n.files, 'folder'),
+                  (true, context.l10n.outline, 'list'),
                 ])
-                  Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        border: vm.outline == entry.$1
-                            ? Border(
-                                bottom: BorderSide(color: c.primary, width: 2),
-                              )
-                            : null,
-                      ),
-                      child: AppButton(
-                        label: entry.$2,
-                        icon: entry.$3,
-                        selected: vm.outline == entry.$1,
-                        onPressed: () => vm.setOutline(entry.$1),
-                        height: 42,
-                        padding: 4,
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: vm.outline == entry.$1
+                              ? Border(
+                                  bottom: BorderSide(
+                                    color: c.primary,
+                                    width: 2,
+                                  ),
+                                )
+                              : null,
+                        ),
+                        child: AppButton(
+                          label: entry.$2,
+                          icon: entry.$3,
+                          selected: vm.outline == entry.$1,
+                          onPressed: () => vm.setOutline(entry.$1),
+                          height: 42,
+                          padding: 4,
+                        ),
                       ),
                     ),
                   ),
@@ -60,7 +66,7 @@ class WorkspaceSidebar extends StatelessWidget {
               child: Row(
                 children: [
                   Text(
-                    '文档结构',
+                    context.l10n.documentStructure,
                     style: TextStyle(fontSize: 10, color: c.onSurfaceVariant),
                   ),
                   const Spacer(),
@@ -105,11 +111,11 @@ class WorkspaceSidebar extends StatelessWidget {
                       ),
                     ),
                   if (vm.editor.document.headings.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(12),
+                    Padding(
+                      padding: const EdgeInsets.all(12),
                       child: Text(
-                        '使用 # 标题来组织内容。',
-                        style: TextStyle(fontSize: 11),
+                        context.l10n.outlineHint,
+                        style: const TextStyle(fontSize: 11),
                       ),
                     ),
                 ],
@@ -123,14 +129,14 @@ class WorkspaceSidebar extends StatelessWidget {
                 child: TextField(
                   onChanged: vm.setFilter,
                   style: const TextStyle(fontSize: 11),
-                  decoration: const InputDecoration(
-                    hintText: '搜索文档…',
-                    prefixIcon: Padding(
+                  decoration: InputDecoration(
+                    hintText: context.l10n.searchDocuments,
+                    prefixIcon: const Padding(
                       padding: EdgeInsets.all(8),
                       child: AppGlyph('search', size: 13),
                     ),
-                    prefixIconConstraints: BoxConstraints(maxWidth: 28),
-                    contentPadding: EdgeInsets.symmetric(
+                    prefixIconConstraints: const BoxConstraints(maxWidth: 28),
+                    contentPadding: const EdgeInsets.symmetric(
                       horizontal: 8,
                       vertical: 6,
                     ),
@@ -146,7 +152,7 @@ class WorkspaceSidebar extends StatelessWidget {
                   const SizedBox(width: 7),
                   Expanded(
                     child: Text(
-                      vm.folderName ?? '笔记',
+                      vm.folderName ?? context.l10n.notes,
                       style: TextStyle(fontSize: 12, color: c.onSurfaceVariant),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -154,7 +160,7 @@ class WorkspaceSidebar extends StatelessWidget {
                   ),
                   AppButton(
                     icon: 'folder',
-                    tooltip: '打开 Markdown 文件夹',
+                    tooltip: context.l10n.openMarkdownFolder,
                     onPressed: onFolder,
                     height: 26,
                     padding: 6,
@@ -191,7 +197,7 @@ class WorkspaceSidebar extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(10, 24, 10, 9),
                       child: Text(
-                        '最近打开',
+                        context.l10n.recentlyOpened,
                         style: TextStyle(
                           fontSize: 10,
                           color: c.onSurfaceVariant,

@@ -37,7 +37,11 @@ final class MemoryFiles implements DocumentFileService {
   Future<OpenedDocument> read(String path) async =>
       OpenedDocument(path.split('/').last, content[path]!, path);
   @override
-  Future<String?> saveAs(String name, Uint8List bytes) async {
+  Future<String?> saveAs(
+    String name,
+    Uint8List bytes, {
+    String? dialogTitle,
+  }) async {
     if (nextSave != null) content[nextSave!] = String.fromCharCodes(bytes);
     return nextSave;
   }

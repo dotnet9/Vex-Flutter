@@ -2,5 +2,6 @@
 library;
 
 export 'src/controller.dart';
+export 'src/labels.dart';
 export 'src/layout.dart';
 export 'src/view.dart';

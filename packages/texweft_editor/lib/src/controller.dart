@@ -88,7 +88,11 @@ final class MarkdownEditorController extends ChangeNotifier {
   }
 
   /// Inserts a Markdown table; [rows] includes the header row.
-  void insertTable({required int rows, required int columns}) {
+  void insertTable({
+    required int rows,
+    required int columns,
+    String Function(int column)? columnLabel,
+  }) {
     RangeError.checkValueInInterval(rows, 1, 100, 'rows');
     RangeError.checkValueInInterval(columns, 1, 20, 'columns');
     final start = selection.isValid ? selection.start : text.length;
@@ -106,13 +110,20 @@ final class MarkdownEditorController extends ChangeNotifier {
         ? newline
         : '$newline$newline';
     String row(List<String> cells) => '| ${cells.join(' | ')} |';
+    final headers = List.generate(
+      columns,
+      (index) => columnLabel?.call(index + 1) ?? '标题${index + 1}',
+    );
     final table = [
-      row(List.generate(columns, (index) => '标题${index + 1}')),
+      row(headers),
       row(List.filled(columns, '---')),
       for (var index = 1; index < rows; index++) row(List.filled(columns, '')),
     ].join(newline);
     replaceSelection('$prefix$table$suffix', label: '插入表格');
-    select(start + prefix.length + 2, start + prefix.length + 5);
+    select(
+      start + prefix.length + 2,
+      start + prefix.length + 2 + headers.first.length,
+    );
   }
 
   List<SourceRange> find(

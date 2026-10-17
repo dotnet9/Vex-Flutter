@@ -9,6 +9,7 @@ import 'app.dart';
 import 'data/repositories/recovery_repository.dart';
 import 'data/repositories/settings_repository.dart';
 import 'data/services/file_service.dart';
+import 'l10n/l10n.dart';
 import 'ui/workspace/workspace_view_model.dart';
 
 Future<void> main(List<String> arguments) async {
@@ -43,6 +44,9 @@ Future<void> main(List<String> arguments) async {
     files: NativeDocumentFileService(),
     settings: NativeSettingsRepository(),
     recovery: NativeRecoveryRepository(),
+    initialLanguage: languageForLocales(
+      WidgetsBinding.instance.platformDispatcher.locales,
+    ),
   );
   await vm.initialize();
   for (final path in arguments.where((a) => !a.startsWith('-'))) {

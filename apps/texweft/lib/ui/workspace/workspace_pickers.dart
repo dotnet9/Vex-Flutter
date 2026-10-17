@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:texweft_editor/texweft_editor.dart';
 
 import '../../domain/workspace.dart';
+import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
 import 'workspace_view_model.dart';
 
@@ -59,8 +60,8 @@ class WorkspacePickerAnchor extends StatelessWidget {
                         Expanded(
                           child: Text(
                             picker == WorkspacePicker.layout
-                                ? '工作区布局'
-                                : 'Markdown 排版',
+                                ? context.l10n.workspaceLayout
+                                : context.l10n.markdownTypography,
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -69,7 +70,7 @@ class WorkspacePickerAnchor extends StatelessWidget {
                         ),
                         AppButton(
                           icon: 'x',
-                          tooltip: '关闭选择面板',
+                          tooltip: context.l10n.closePicker,
                           height: 24,
                           onPressed: controller.close,
                         ),
@@ -78,8 +79,8 @@ class WorkspacePickerAnchor extends StatelessWidget {
                     const SizedBox(height: 5),
                     Text(
                       picker == WorkspacePicker.layout
-                          ? '选择后立即切换，所有视图共享同一份内容'
-                          : '六种阅读结构 · 与界面配色分别设置',
+                          ? context.l10n.layoutHint
+                          : context.l10n.typographyHint,
                       style: TextStyle(
                         fontSize: 10,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -95,9 +96,9 @@ class WorkspacePickerAnchor extends StatelessWidget {
                       SwitchListTile.adaptive(
                         contentPadding: EdgeInsets.zero,
                         dense: true,
-                        title: const Text(
-                          '紧凑间距',
-                          style: TextStyle(fontSize: 11),
+                        title: Text(
+                          context.l10n.compactSpacing,
+                          style: const TextStyle(fontSize: 11),
                         ),
                         value: vm.compact,
                         onChanged: (value) =>
@@ -134,7 +135,7 @@ class LayoutChoices extends StatelessWidget {
             width: (width - (columns - 1) * 8) / columns,
             height: 92,
             selected: vm.layout == layout,
-            label: layout.label,
+            label: context.l10n.layoutName(layout),
             onTap: () => vm.setLayout(layout),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,7 +143,7 @@ class LayoutChoices extends StatelessWidget {
                 Expanded(child: LayoutMiniature(layout)),
                 const SizedBox(height: 8),
                 Text(
-                  layout.label,
+                  context.l10n.layoutName(layout),
                   maxLines: 1,
                   style: const TextStyle(fontSize: 10.5),
                 ),
@@ -172,7 +173,7 @@ class TypographyChoices extends StatelessWidget {
             width: (width - (columns - 1) * 8) / columns,
             height: 112,
             selected: vm.typography == type,
-            label: type.label,
+            label: context.l10n.typographyName(type),
             onTap: () => vm.updateAppearance(typography: type),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,14 +181,14 @@ class TypographyChoices extends StatelessWidget {
                 Expanded(child: _TypographySample(type)),
                 const SizedBox(height: 8),
                 Text(
-                  type.label,
+                  context.l10n.typographyName(type),
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
-                  type.description,
+                  context.l10n.typographyDescription(type),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -327,7 +328,7 @@ class _TypographySample extends StatelessWidget {
               },
             ),
             child: Text(
-              '落笔成文',
+              context.l10n.sampleHeading,
               textAlign: type == MarkdownTypography.editorial
                   ? TextAlign.center
                   : TextAlign.start,

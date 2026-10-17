@@ -263,6 +263,9 @@
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				"zh-Hans",
+				"zh-Hant",
+				ja,
 				en,
 				Base,
 			);

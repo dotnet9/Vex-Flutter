@@ -4,6 +4,59 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:texweft_editor/texweft_editor.dart';
 
 void main() {
+  test('localized table header selects its full text and undoes once', () {
+    final controller = MarkdownEditorController(text: '既存の文章');
+    controller.select(controller.text.length);
+    controller.insertTable(
+      rows: 1,
+      columns: 2,
+      columnLabel: (number) => 'Column $number',
+    );
+    expect(controller.selection.textInside(controller.text), 'Column 1');
+    expect(controller.text, contains('| Column 1 | Column 2 |'));
+    controller.session.undo();
+    expect(controller.text, '既存の文章');
+    expect(controller.session.canUndo, isFalse);
+    controller.dispose();
+  });
+
+  testWidgets(
+    'host labels change during editing without resetting input or selection',
+    (tester) async {
+      final controller = MarkdownEditorController(
+        text: '```dart\nprint("hello");\n```',
+      );
+      var labels = const MarkdownEditorLabels(codeLanguage: 'コードの言語');
+      Widget app() => MaterialApp(
+        home: Scaffold(
+          body: MarkdownInstantEditor(controller: controller, labels: labels),
+        ),
+      );
+      await tester.pumpWidget(app());
+      await tester.tap(find.text('print("hello");'));
+      await tester.pump();
+      final field = find.byKey(const ValueKey('instant-active-input'));
+      await tester.enterText(field, 'print("こんにちは");');
+      await tester.pump();
+      final input = tester.widget<TextField>(field).controller!;
+      input.selection = const TextSelection(baseOffset: 7, extentOffset: 12);
+      final selection = input.selection;
+      labels = const MarkdownEditorLabels(codeLanguage: '程式碼語言');
+      await tester.pumpWidget(app());
+      await tester.pump();
+      expect(tester.widget<TextField>(field).controller, same(input));
+      expect(input.selection, selection);
+      expect(input.text, 'print("こんにちは");');
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is Semantics && widget.properties.label == '程式碼語言',
+        ),
+        findsOneWidget,
+      );
+      await tester.pumpWidget(const SizedBox());
+      controller.dispose();
+    },
+  );
   test(
     'table insertion preserves CRLF and replaces a selection in one undo',
     () {
@@ -281,7 +334,7 @@ void main() {
           home: Scaffold(body: MarkdownInstantEditor(controller: controller)),
         ),
       );
-      await tester.tap(find.text('从第一句话开始…'));
+      await tester.tap(find.text('Start with your first sentence…'));
       await tester.pump();
       final field = find.byKey(const ValueKey('instant-active-input'));
       await tester.enterText(field, '你');

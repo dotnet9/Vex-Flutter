@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
 
 Future<({int rows, int columns})?> showInsertTableDialog(
@@ -44,11 +45,19 @@ class _InsertTableDialogState extends State<_InsertTableDialog> {
 
   @override
   Widget build(BuildContext context) => AppDialog(
-    title: '插入表格',
+    title: context.l10n.insertTable,
     width: 380,
     actions: [
-      AppButton(label: '取消', onPressed: () => Navigator.pop(context)),
-      AppButton(label: '插入', icon: 'grid', primary: true, onPressed: _insert),
+      AppButton(
+        label: context.l10n.cancel,
+        onPressed: () => Navigator.pop(context),
+      ),
+      AppButton(
+        label: context.l10n.insert,
+        icon: 'grid',
+        primary: true,
+        onPressed: _insert,
+      ),
     ],
     child: Form(
       key: _form,
@@ -56,11 +65,14 @@ class _InsertTableDialogState extends State<_InsertTableDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('设置表格大小，第一行为表头。', style: TextStyle(fontSize: 12)),
+          Text(
+            context.l10n.tableSizeHint,
+            style: const TextStyle(fontSize: 12),
+          ),
           const SizedBox(height: 20),
           for (final item in [
-            (_rows, '行数', 'table-rows', 100),
-            (_columns, '列数', 'table-columns', 20),
+            (_rows, context.l10n.rows, 'table-rows', 100),
+            (_columns, context.l10n.columns, 'table-columns', 20),
           ]) ...[
             TextFormField(
               key: ValueKey(item.$3),
@@ -73,12 +85,14 @@ class _InsertTableDialogState extends State<_InsertTableDialog> {
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: InputDecoration(
                 labelText: item.$2,
-                helperText: item.$1 == _rows ? '1–100 行，包含表头' : '1–20 列',
+                helperText: item.$1 == _rows
+                    ? context.l10n.tableRowsHint
+                    : context.l10n.tableColumnsHint,
               ),
               validator: (text) {
                 final count = int.tryParse(text ?? '');
                 return count == null || count < 1 || count > item.$4
-                    ? '请输入 1–${item.$4} 之间的整数'
+                    ? context.l10n.integerRange(item.$4)
                     : null;
               },
               onFieldSubmitted: (_) {

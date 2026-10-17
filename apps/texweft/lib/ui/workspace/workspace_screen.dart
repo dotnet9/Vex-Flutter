@@ -8,11 +8,13 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../../data/services/file_service.dart';
 import '../../domain/workspace.dart';
+import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
 import '../core/palette_tokens.dart';
-import 'workspace_dialogs.dart';
 import 'insert_table_dialog.dart';
+import 'workspace_dialogs.dart';
 import 'workspace_panes.dart';
 import 'workspace_pickers.dart';
 import 'workspace_sidebar.dart';
@@ -67,11 +69,24 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   void onWindowClose() => unawaited(_close());
   @override
   void onWindowFocus() => unawaited(vm.checkExternal());
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final title = context.l10n.appTitle;
+    if (widget.windowIntegration && _desktop) {
+      unawaited(windowManager.setTitle(title));
+    }
+  }
+
   void _error(Object error) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(error.toString()),
+        content: Text(
+          error is FileConflict
+              ? context.l10n.fileConflict
+              : context.l10n.operationFailed(error.toString()),
+        ),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -94,22 +109,25 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       final decision = await showDialog<String>(
         context: context,
         builder: (context) => AppDialog(
-          title: '还有未保存的内容',
+          title: context.l10n.unsavedContent,
           width: 460,
           actions: [
-            AppButton(label: '取消', onPressed: () => Navigator.pop(context)),
             AppButton(
-              label: '保留草稿并关闭',
+              label: context.l10n.cancel,
+              onPressed: () => Navigator.pop(context),
+            ),
+            AppButton(
+              label: context.l10n.keepDraftClose,
               onPressed: () => Navigator.pop(context, 'draft'),
             ),
             AppButton(
-              label: '全部保存',
+              label: context.l10n.saveAll,
               primary: true,
               onPressed: () => Navigator.pop(context, 'save'),
             ),
           ],
           child: Text(
-            '${dirty.length} 篇文档尚未保存。可以保存到文件，或保留恢复草稿后关闭。',
+            context.l10n.unsavedDocuments(dirty.length),
             style: const TextStyle(fontSize: 13, height: 1.8),
           ),
         ),
@@ -165,7 +183,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       case 'link':
         e.surround('[', '](https://)');
       case 'image':
-        e.replaceSelection('![图片说明](图片路径)');
+        e.replaceSelection(context.l10n.imageMarkdown);
       case 'inline-code':
         e.surround('`');
       case 'code':
@@ -184,11 +202,15 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     if (!mounted || dimensions == null || !vm.documents.contains(document)) {
       return;
     }
-    if (editor.text != source) throw StateError('文档已变化，请重新选择表格插入位置。');
+    if (editor.text != source) throw StateError(context.l10n.documentChanged);
     if (selection.isValid) {
       editor.select(selection.baseOffset, selection.extentOffset);
     }
-    editor.insertTable(rows: dimensions.rows, columns: dimensions.columns);
+    editor.insertTable(
+      rows: dimensions.rows,
+      columns: dimensions.columns,
+      columnLabel: vm.strings.tableColumn,
+    );
   }
 
   void _action(String action) {
@@ -385,41 +407,46 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                           if (!state.presentation)
                             _workbar(state, phone, constraints.maxWidth),
                           if (state.recoverable.isNotEmpty)
-                            _banner('发现 ${state.recoverable.length} 篇恢复草稿', [
-                              AppButton(
-                                label: '恢复',
-                                onPressed: state.restoreDrafts,
+                            _banner(
+                              context.l10n.recoveryDraftCount(
+                                state.recoverable.length,
                               ),
-                              AppButton(
-                                label: '丢弃',
-                                onPressed: () =>
-                                    unawaited(_run(state.discardDrafts)),
-                              ),
-                            ]),
+                              [
+                                AppButton(
+                                  label: context.l10n.restore,
+                                  onPressed: state.restoreDrafts,
+                                ),
+                                AppButton(
+                                  label: context.l10n.discard,
+                                  onPressed: () =>
+                                      unawaited(_run(state.discardDrafts)),
+                                ),
+                              ],
+                            ),
                           if (state.externalChange != null)
-                            _banner('原文件已被其他程序修改', [
+                            _banner(context.l10n.externalChange, [
                               AppButton(
-                                label: '重新载入',
+                                label: context.l10n.reload,
                                 onPressed: () async {
                                   if (state.editor.session.isDirty) {
                                     final yes = await showDialog<bool>(
                                       context: context,
                                       builder: (context) => AppDialog(
-                                        title: '载入外部修改',
+                                        title: context.l10n.loadExternalChanges,
                                         actions: [
                                           AppButton(
-                                            label: '取消',
+                                            label: context.l10n.cancel,
                                             onPressed: () =>
                                                 Navigator.pop(context, false),
                                           ),
                                           AppButton(
-                                            label: '载入',
+                                            label: context.l10n.load,
                                             onPressed: () =>
                                                 Navigator.pop(context, true),
                                           ),
                                         ],
-                                        child: const Text(
-                                          '当前改动可以通过撤销恢复。确认载入外部文件的内容？',
+                                        child: Text(
+                                          context.l10n.loadExternalHint,
                                         ),
                                       ),
                                     );
@@ -429,7 +456,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                 },
                               ),
                               AppButton(
-                                label: '另存当前内容',
+                                label: context.l10n.saveCurrentAs,
                                 onPressed: () => _action('save-as'),
                               ),
                             ]),
@@ -503,7 +530,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                           right: 16,
                           top: 16,
                           child: AppButton(
-                            label: '退出演示',
+                            label: context.l10n.exitPresentation,
                             icon: 'x',
                             bordered: true,
                             onPressed: state.togglePresentation,
@@ -516,7 +543,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                               color: c.primary.withValues(alpha: .15),
                               child: Center(
                                 child: Text(
-                                  '放开以打开 Markdown 文件',
+                                  context.l10n.dropMarkdown,
                                   style: TextStyle(
                                     color: c.primary,
                                     fontSize: 22,
@@ -571,47 +598,50 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             ),
           ),
           const SizedBox(width: 14),
-          _menu('文件(F)', [
-            ('新建文档', 'new', 'Ctrl+N'),
-            ('打开…', 'open', 'Ctrl+O'),
-            ('打开文件夹…', 'folder', ''),
-            ('保存', 'save', 'Ctrl+S'),
-            ('另存为…', 'save-as', 'Ctrl+Shift+S'),
-            ('导出与分享…', 'export', ''),
-            ('退出', 'exit', ''),
+          _menu(context.l10n.menuFile, [
+            (context.l10n.newDocument, 'new', 'Ctrl+N'),
+            (context.l10n.open, 'open', 'Ctrl+O'),
+            (context.l10n.openFolder, 'folder', ''),
+            (context.l10n.save, 'save', 'Ctrl+S'),
+            (context.l10n.saveAs, 'save-as', 'Ctrl+Shift+S'),
+            (context.l10n.exportShareMenu, 'export', ''),
+            (context.l10n.exit, 'exit', ''),
           ]),
-          _menu('编辑(E)', [
-            ('撤销', 'undo', 'Ctrl+Z'),
-            ('重做', 'redo', 'Ctrl+Y'),
-            ('剪切', 'cut', 'Ctrl+X'),
-            ('复制', 'copy', 'Ctrl+C'),
-            ('粘贴', 'paste', 'Ctrl+V'),
-            ('全选', 'select-all', 'Ctrl+A'),
-            ('查找', 'find', 'Ctrl+F'),
-            ('替换', 'replace', 'Ctrl+H'),
+          _menu(context.l10n.menuEdit, [
+            (context.l10n.undo, 'undo', 'Ctrl+Z'),
+            (context.l10n.redo, 'redo', 'Ctrl+Y'),
+            (context.l10n.cut, 'cut', 'Ctrl+X'),
+            (context.l10n.copy, 'copy', 'Ctrl+C'),
+            (context.l10n.paste, 'paste', 'Ctrl+V'),
+            (context.l10n.selectAll, 'select-all', 'Ctrl+A'),
+            (context.l10n.find, 'find', 'Ctrl+F'),
+            (context.l10n.replace, 'replace', 'Ctrl+H'),
           ]),
-          _menu('插入(I)', [
-            ('标题', 'format:heading', ''),
-            ('引用', 'format:quote', ''),
-            ('链接', 'format:link', ''),
-            ('图片', 'format:image', ''),
-            ('代码块', 'format:code', ''),
-            ('表格', 'format:table', ''),
-            ('分隔线', 'format:rule', ''),
+          _menu(context.l10n.menuInsert, [
+            (context.l10n.heading, 'format:heading', ''),
+            (context.l10n.quote, 'format:quote', ''),
+            (context.l10n.link, 'format:link', ''),
+            (context.l10n.image, 'format:image', ''),
+            (context.l10n.codeBlock, 'format:code', ''),
+            (context.l10n.table, 'format:table', ''),
+            (context.l10n.horizontalRule, 'format:rule', ''),
           ]),
-          _menu('视图(V)', [
-            ('工作区布局…', 'layouts', ''),
-            ('显示/隐藏侧栏', 'sidebar', ''),
-            ('专注模式', 'focus', ''),
-            ('演示模式', 'presentation', ''),
-            ('外观与排版…', 'appearance', ''),
+          _menu(context.l10n.menuView, [
+            (context.l10n.workspaceLayoutMenu, 'layouts', ''),
+            (context.l10n.toggleSidebar, 'sidebar', ''),
+            (context.l10n.focusMode, 'focus', ''),
+            (context.l10n.presentationMode, 'presentation', ''),
+            (context.l10n.appearanceMenu, 'appearance', ''),
           ]),
-          _menu('工具(T)', [
-            ('导图摘要设置', 'summary', ''),
-            ('导出与分享', 'export', ''),
-            ('设置', 'settings', ''),
+          _menu(context.l10n.menuTools, [
+            (context.l10n.summarySettings, 'summary', ''),
+            (context.l10n.exportShare, 'export', ''),
+            (context.l10n.settings, 'settings', ''),
           ]),
-          _menu('帮助(H)', [('快速上手', 'guide', ''), ('关于笺纬 / 检查更新', 'about', '')]),
+          _menu(context.l10n.menuHelp, [
+            (context.l10n.quickStart, 'guide', ''),
+            (context.l10n.aboutUpdates, 'about', ''),
+          ]),
           Expanded(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -635,7 +665,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
               label: Theme.of(context).brightness == Brightness.light
                   ? '☀'
                   : '☾',
-              tooltip: '切换明暗模式',
+              tooltip: context.l10n.toggleTheme,
               padding: 7,
               onPressed: () => state.updateAppearance(
                 mode: Theme.of(context).brightness == Brightness.light
@@ -645,7 +675,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             ),
             for (final palette in paletteNames.entries)
               Tooltip(
-                message: palette.value,
+                message: context.l10n.paletteName(palette.key),
                 child: InkWell(
                   onTap: () => state.updateAppearance(palette: palette.key),
                   borderRadius: BorderRadius.circular(12),
@@ -670,14 +700,14 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           if (widget.windowIntegration) ...[
             AppButton(
               icon: 'min',
-              tooltip: '最小化',
+              tooltip: context.l10n.minimize,
               onPressed: () => windowManager.minimize(),
               height: 39,
               padding: 14,
             ),
             AppButton(
               icon: 'max',
-              tooltip: '最大化 / 还原',
+              tooltip: context.l10n.maximizeRestore,
               onPressed: () async {
                 if (await windowManager.isMaximized()) {
                   await windowManager.unmaximize();
@@ -691,7 +721,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           ],
           AppButton(
             icon: 'x',
-            tooltip: '关闭',
+            tooltip: context.l10n.close,
             onPressed: () => unawaited(_close()),
             height: 39,
             padding: 14,
@@ -749,7 +779,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           AppButton(
             icon: 'sidebar',
             selected: state.sidebar,
-            tooltip: '文件与大纲',
+            tooltip: context.l10n.filesOutline,
             onPressed: () {
               if (phone) {
                 _scaffold.currentState?.openDrawer();
@@ -772,16 +802,19 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             const SizedBox(width: 14),
             const Spacer(),
             if (width >= 1100)
-              AppButton(label: '• 快速上手', onPressed: () => _action('guide')),
+              AppButton(
+                label: context.l10n.quickStartBadge,
+                onPressed: () => _action('guide'),
+              ),
           ],
           WorkspacePickerAnchor(
             vm: state,
             picker: WorkspacePicker.layout,
             controller: _layoutsMenu,
             child: AppButton(
-              label: phone ? null : '布局 ⌄',
+              label: phone ? null : context.l10n.layoutDropdown,
               icon: 'columns',
-              tooltip: '工作区布局',
+              tooltip: context.l10n.workspaceLayout,
               bordered: !phone,
               onPressed: () => _action('layouts'),
             ),
@@ -790,27 +823,27 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             _typographyPicker(state, iconOnly: phone),
           AppButton(
             icon: 'search',
-            tooltip: '查找 · Ctrl+F',
+            tooltip: context.l10n.findTooltip,
             onPressed: () => _action('find'),
           ),
           const SizedBox(width: 6),
           AppButton(
             icon: 'save',
-            label: phone ? null : '保存',
+            label: phone ? null : context.l10n.save,
             bordered: true,
-            tooltip: '保存 · Ctrl+S',
+            tooltip: context.l10n.saveTooltip,
             onPressed: () => _action('save'),
           ),
           if (phone)
             _menu('•••', [
-              ('新建', 'new', ''),
-              ('打开…', 'open', ''),
-              ('导出与分享', 'export', ''),
-              ('外观与排版', 'appearance', ''),
-              ('布局', 'layouts', ''),
-              ('设置', 'settings', ''),
-              ('快速上手', 'guide', ''),
-              ('关于笺纬', 'about', ''),
+              (context.l10n.newAction, 'new', ''),
+              (context.l10n.open, 'open', ''),
+              (context.l10n.exportShare, 'export', ''),
+              (context.l10n.appearance, 'appearance', ''),
+              (context.l10n.layout, 'layouts', ''),
+              (context.l10n.settings, 'settings', ''),
+              (context.l10n.quickStart, 'guide', ''),
+              (context.l10n.about, 'about', ''),
             ]),
         ],
       ),
@@ -829,9 +862,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       child: Row(
         children: [
           for (final item in [
-            (WorkspaceLayout.instant, '编辑', 'edit'),
-            (WorkspaceLayout.read, '阅读', 'eye'),
-            (WorkspaceLayout.map, '导图', 'map'),
+            (WorkspaceLayout.instant, context.l10n.edit, 'edit'),
+            (WorkspaceLayout.read, context.l10n.read, 'eye'),
+            (WorkspaceLayout.map, context.l10n.map, 'map'),
           ])
             SizedBox(
               width: 80,
@@ -864,7 +897,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         children: [
           if (!phone) ...[
             AppButton(
-              label: '即时渲染',
+              label: context.l10n.instantRendering,
               selected: state.layout.panes.contains('instant'),
               height: 26,
               onPressed: () => state.setLayout(
@@ -874,7 +907,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
               ),
             ),
             AppButton(
-              label: '源码',
+              label: context.l10n.source,
               selected: state.layout.panes.contains('source'),
               height: 26,
               onPressed: () => state.setLayout(
@@ -892,18 +925,18 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
               child: Row(
                 children: [
                   for (final item in [
-                    ('bold', '加粗', 'bold'),
-                    ('italic', '斜体', 'italic'),
-                    ('heading', '标题', 'heading'),
-                    ('quote', '引用', 'quote'),
-                    ('list', '无序列表', 'list'),
-                    ('ordered', '有序列表', 'list-number'),
-                    ('task', '任务列表', 'check'),
-                    ('link', '链接', 'link'),
-                    ('image', '图片', 'image'),
-                    ('inline-code', '行内代码', 'inline-code'),
-                    ('code', '代码块', 'code-block'),
-                    ('table', '表格', 'grid'),
+                    ('bold', context.l10n.bold, 'bold'),
+                    ('italic', context.l10n.italic, 'italic'),
+                    ('heading', context.l10n.heading, 'heading'),
+                    ('quote', context.l10n.quote, 'quote'),
+                    ('list', context.l10n.unorderedList, 'list'),
+                    ('ordered', context.l10n.orderedList, 'list-number'),
+                    ('task', context.l10n.taskList, 'check'),
+                    ('link', context.l10n.link, 'link'),
+                    ('image', context.l10n.image, 'image'),
+                    ('inline-code', context.l10n.inlineCode, 'inline-code'),
+                    ('code', context.l10n.codeBlock, 'code-block'),
+                    ('table', context.l10n.table, 'grid'),
                   ])
                     AppButton(
                       icon: item.$3,
@@ -914,7 +947,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                     ),
                   AppButton(
                     icon: 'more',
-                    tooltip: '更多格式',
+                    tooltip: context.l10n.moreFormatting,
                     onPressed: () => _action('format:rule'),
                     padding: 7,
                     height: 28,
@@ -936,9 +969,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         picker: WorkspacePicker.typography,
         controller: _typographyMenu,
         child: AppButton(
-          label: iconOnly ? null : '排版 ${state.typography.label} ⌄',
+          label: iconOnly
+              ? null
+              : context.l10n.typographyDropdown(
+                  context.l10n.typographyName(state.typography),
+                ),
           icon: iconOnly ? 'heading' : null,
-          tooltip: 'Markdown 排版',
+          tooltip: context.l10n.markdownTypography,
           height: 28,
           onPressed: () => _action('typography'),
         ),
@@ -965,41 +1002,45 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                   onChanged: state.search,
                   onSubmitted: (_) => state.nextMatch(),
                   style: const TextStyle(fontSize: 11),
-                  decoration: const InputDecoration(hintText: '查找文本'),
+                  decoration: InputDecoration(hintText: context.l10n.findText),
                 ),
               ),
             ),
             const SizedBox(width: 5),
             AppButton(
               label: 'Aa',
-              tooltip: '区分大小写',
+              tooltip: context.l10n.matchCase,
               selected: state.matchCase,
               onPressed: () =>
                   state.search(_find.text, matchCase: !state.matchCase),
             ),
             AppButton(
               label: '.*',
-              tooltip: '正则表达式',
+              tooltip: context.l10n.regularExpression,
               selected: state.regex,
               onPressed: () => state.search(_find.text, regex: !state.regex),
             ),
             if (!phone)
               AppButton(
-                label: '整词',
+                label: context.l10n.wholeWord,
                 selected: state.wholeWord,
                 onPressed: () =>
                     state.search(_find.text, wholeWord: !state.wholeWord),
               ),
             AppButton(
               icon: 'chevron',
-              tooltip: '下一个',
+              tooltip: context.l10n.nextMatch,
               onPressed: () => state.nextMatch(),
             ),
             AppButton(
-              label: '替换',
+              label: context.l10n.replace,
               onPressed: () => state.showFind(replace: !state.replaceVisible),
             ),
-            AppButton(icon: 'x', tooltip: '关闭查找', onPressed: state.closeFind),
+            AppButton(
+              icon: 'x',
+              tooltip: context.l10n.closeFind,
+              onPressed: state.closeFind,
+            ),
           ],
         ),
         if (state.replaceVisible)
@@ -1013,16 +1054,18 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                     child: TextField(
                       controller: _replace,
                       style: const TextStyle(fontSize: 11),
-                      decoration: const InputDecoration(hintText: '替换为'),
+                      decoration: InputDecoration(
+                        hintText: context.l10n.replaceWith,
+                      ),
                     ),
                   ),
                 ),
                 AppButton(
-                  label: '替换',
+                  label: context.l10n.replace,
                   onPressed: () => state.replaceCurrent(_replace.text),
                 ),
                 AppButton(
-                  label: '全部替换',
+                  label: context.l10n.replaceAll,
                   onPressed: () => state.replaceMatches(_replace.text),
                 ),
               ],
@@ -1034,7 +1077,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             child: Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                state.findError ?? '${state.matches.length} 处匹配',
+                state.findError ??
+                    context.l10n.matchCount(state.matches.length),
                 style: const TextStyle(fontSize: 10),
               ),
             ),
@@ -1064,9 +1108,16 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
               color: c.primary,
             ),
             const SizedBox(width: 6),
-            Text(state.editor.session.isDirty ? '未保存' : '未修改'),
+            Text(
+              state.editor.session.isDirty
+                  ? context.l10n.unsaved
+                  : context.l10n.unmodified,
+            ),
             const SizedBox(width: 16),
-            Text(state.layout.label, style: TextStyle(color: c.primary)),
+            Text(
+              context.l10n.layoutName(state.layout),
+              style: TextStyle(color: c.primary),
+            ),
             if (state.status.isNotEmpty && width > 1200)
               Expanded(
                 child: Padding(
@@ -1080,9 +1131,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
               )
             else
               const Spacer(),
-            Text('行 ${position.line}，列 ${position.column}'),
+            Text(context.l10n.cursorPosition(position.line, position.column)),
             const SizedBox(width: 16),
-            Text('${state.editor.session.text.characters.length} 字符'),
+            Text(
+              context.l10n.characterCount(
+                state.editor.session.text.characters.length,
+              ),
+            ),
             const SizedBox(width: 16),
             Text(
               'UTF-8 · ${state.editor.document.newline == '\r\n' ? 'CRLF' : 'LF'}',
@@ -1090,7 +1145,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             const SizedBox(width: 10),
             AppButton(
               icon: 'palette',
-              tooltip: '外观与排版',
+              tooltip: context.l10n.appearance,
               height: 25,
               padding: 2,
               onPressed: () => _action('appearance'),
@@ -1113,9 +1168,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         for (final item in [
-          (WorkspaceLayout.instant, '写作', 'edit'),
-          (WorkspaceLayout.read, '阅读', 'eye'),
-          (WorkspaceLayout.map, '导图', 'map'),
+          (WorkspaceLayout.instant, context.l10n.writing, 'edit'),
+          (WorkspaceLayout.read, context.l10n.read, 'eye'),
+          (WorkspaceLayout.map, context.l10n.map, 'map'),
         ])
           AppButton(
             label: item.$2,
@@ -1129,21 +1184,30 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     ),
   );
   Widget _guide(WorkspaceViewModel state) {
-    const steps = [
-      ('写下第一句话', '点击正文，直接修改内容。即时编辑和源码使用同一份 Markdown。'),
-      ('两个视角，同一份内容', '左侧编辑源码，右侧立即查看正文。试着添加一个标题。'),
-      ('看见文章的脉络', '导图显示章节与正文摘要。拖动画布、折叠分支，试试双击章节。'),
-      ('直接整理章节', '使用新增章节和编排工具，修改标题、正文、顺序或层级。所有改动都可以撤销。'),
-      ('找到适合文字的排版', '打开排版，比较六种正文样式。配色与排版不会改变原文。'),
-      ('开始自己的写作', '完成后恢复进入引导前的内容和撤销历史，再打开或新建自己的文档。'),
+    final steps = [
+      (context.l10n.guideWriteTitle, context.l10n.guideWriteBody),
+      (context.l10n.guideViewsTitle, context.l10n.guideViewsBody),
+      (context.l10n.guideMapTitle, context.l10n.guideMapBody),
+      (context.l10n.guideArrangeTitle, context.l10n.guideArrangeBody),
+      (context.l10n.guideTypographyTitle, context.l10n.guideTypographyBody),
+      (context.l10n.guideFinishTitle, context.l10n.guideFinishBody),
     ];
+    final narrow = MediaQuery.sizeOf(context).width < 700;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       color: Theme.of(context).colorScheme.primaryContainer,
-      child: Row(
+      child: Flex(
+        direction: narrow ? Axis.vertical : Axis.horizontal,
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: narrow
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.center,
         children: [
-          Expanded(
+          Flexible(
+            fit: narrow ? FlexFit.loose : FlexFit.tight,
+            flex: narrow ? 0 : 1,
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -1161,18 +1225,23 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: narrow ? 0 : 10, height: narrow ? 10 : 0),
           Wrap(
             spacing: 6,
             children: [
-              AppButton(label: '结束', onPressed: state.endGuide),
+              AppButton(
+                label: context.l10n.endGuide,
+                onPressed: state.endGuide,
+              ),
               if (state.guideStep > 0)
                 AppButton(
-                  label: '上一步',
+                  label: context.l10n.previous,
                   onPressed: () => state.advanceGuide(state.guideStep - 1),
                 ),
               AppButton(
-                label: state.guideStep == 5 ? '完成' : '下一步',
+                label: state.guideStep == 5
+                    ? context.l10n.done
+                    : context.l10n.next,
                 primary: true,
                 onPressed: () {
                   if (state.guideStep == 5) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'controller.dart';
+import 'labels.dart';
 import 'layout.dart';
 
 typedef MindMapNodeBuilder = Widget Function(
@@ -19,7 +20,9 @@ class MindMapView extends StatelessWidget {
     this.onMove,
     this.nodeBuilder,
     this.showControls = true,
+    this.labels = const MindMapLabels(),
   });
+  final MindMapLabels labels;
   final MindMapController controller;
   final ValueChanged<MindMapNode>? onSelect, onActivate;
   final void Function(String sourceId, String targetId)? onMove;
@@ -119,7 +122,7 @@ class MindMapView extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            tooltip: '缩小',
+                            tooltip: labels.zoomOut,
                             visualDensity: VisualDensity.compact,
                             onPressed: () =>
                                 controller.zoom(1 / 1.15, viewport),
@@ -134,13 +137,13 @@ class MindMapView extends StatelessWidget {
                             ),
                           ),
                           IconButton(
-                            tooltip: '放大',
+                            tooltip: labels.zoomIn,
                             visualDensity: VisualDensity.compact,
                             onPressed: () => controller.zoom(1.15, viewport),
                             icon: const Icon(Icons.add, size: 16),
                           ),
                           IconButton(
-                            tooltip: '适应画布',
+                            tooltip: labels.fitCanvas,
                             visualDensity: VisualDensity.compact,
                             onPressed: () => controller.fit(viewport),
                             icon: const Icon(Icons.fit_screen, size: 16),
@@ -262,8 +265,8 @@ class MindMapView extends StatelessWidget {
                     child: IconButton.filledTonal(
                       padding: EdgeInsets.zero,
                       tooltip: controller.collapsed.contains(node.id)
-                          ? '展开'
-                          : '折叠',
+                          ? labels.expand
+                          : labels.collapse,
                       onPressed: () => controller.toggle(node.id),
                       icon: Icon(
                         controller.collapsed.contains(node.id)

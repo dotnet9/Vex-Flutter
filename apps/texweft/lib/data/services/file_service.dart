@@ -14,14 +14,14 @@ final class OpenedDocument {
 final class FileConflict implements Exception {
   const FileConflict();
   @override
-  String toString() => '文件已被其他程序修改，请重新载入或另存为，避免覆盖外部改动。';
+  String toString() => 'FileConflict: the file was modified externally.';
 }
 
 abstract interface class DocumentFileService {
   Future<OpenedDocument?> pick();
   Future<OpenedDocument> read(String path);
   Future<List<String>?> folder();
-  Future<String?> saveAs(String name, Uint8List bytes);
+  Future<String?> saveAs(String name, Uint8List bytes, {String? dialogTitle});
   Future<void> write(String path, String text, {String? expected});
 }
 
@@ -68,9 +68,13 @@ final class NativeDocumentFileService implements DocumentFileService {
   }
 
   @override
-  Future<String?> saveAs(String name, Uint8List bytes) async {
+  Future<String?> saveAs(
+    String name,
+    Uint8List bytes, {
+    String? dialogTitle,
+  }) async {
     final destination = await FilePicker.saveFile(
-      dialogTitle: '保存 $name',
+      dialogTitle: dialogTitle,
       fileName: name,
       type: FileType.custom,
       allowedExtensions: [p.extension(name).replaceFirst('.', '')],

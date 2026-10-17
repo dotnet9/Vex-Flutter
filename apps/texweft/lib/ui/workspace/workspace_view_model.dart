@@ -13,6 +13,7 @@ import '../../data/repositories/recovery_repository.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../data/services/file_service.dart';
 import '../../domain/workspace.dart';
+import '../../l10n/l10n.dart';
 import '../core/palette_tokens.dart';
 
 final class WorkspaceViewModel extends ChangeNotifier {
@@ -20,8 +21,17 @@ final class WorkspaceViewModel extends ChangeNotifier {
     required this.files,
     required this.settings,
     required this.recovery,
-  }) {
-    for (final entry in exampleDocuments.entries) {
+    String initialLanguage = 'zh',
+  }) : language = languageNames.containsKey(initialLanguage)
+           ? initialLanguage
+           : 'en' {
+    _addSamples();
+    current = documents.first;
+    _map = MindMapController(_tree());
+  }
+
+  void _addSamples() {
+    for (final entry in strings.sampleDocuments.entries) {
       _add(
         WorkspaceDocument(
           id: 'sample-${documents.length}',
@@ -31,16 +41,18 @@ final class WorkspaceViewModel extends ChangeNotifier {
         ),
       );
     }
-    current = documents.first;
-    _map = MindMapController(_tree());
   }
+
+  AppLocalizations get strings => stringsForLanguage(language);
   final DocumentFileService files;
   final SettingsRepository settings;
   final RecoveryRepository recovery;
   final documents = <WorkspaceDocument>[];
   final recent = <String>[];
   final folderPaths = <String>[];
-  String? folderName;
+  String? _folderName;
+  String? get folderName =>
+      _folderName == '' ? strings.emptyFolder : _folderName;
   late WorkspaceDocument current;
   late final MindMapController _map;
   MindMapController get map => _map;
@@ -48,7 +60,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   WorkspaceLayout layout = WorkspaceLayout.instant;
   MarkdownTypography typography = MarkdownTypography.simple;
   ThemeMode themeMode = ThemeMode.light;
-  String palette = 'weft', language = 'zh';
+  String palette = 'weft', language;
   bool sidebar = true, outline = false, compact = false, lineNumbers = true;
   bool findVisible = false,
       replaceVisible = false,
@@ -57,11 +69,15 @@ final class WorkspaceViewModel extends ChangeNotifier {
   bool paragraphs = true, lists = true, blocks = false;
   int summaryLength = 30;
   double sidebarWidth = 226, fontSize = 14;
-  String filter = '', status = '', findQuery = '', replacement = '';
+  String filter = '', findQuery = '', replacement = '';
+  String Function(AppLocalizations)? _statusMessage;
+  String get status => _statusMessage?.call(strings) ?? '';
   bool matchCase = false, regex = false, wholeWord = false;
   int matchIndex = -1;
   List<SourceRange> matches = [];
-  String? findError, selectedHeadingId;
+  bool _invalidRegex = false;
+  String? get findError => _invalidRegex ? strings.invalidRegex : null;
+  String? selectedHeadingId;
   OpenedDocument? externalChange;
   bool ready = false, busy = false, _disposed = false, _checking = false;
   Timer? _autosave, _externalTimer;
@@ -90,9 +106,22 @@ final class WorkspaceViewModel extends ChangeNotifier {
               .where((t) => t.name == preferences['theme'])
               .firstOrNull ??
           themeMode;
-      language = ['zh', 'en', 'ja', 'zh_Hant'].contains(preferences['language'])
+      final previousLanguage = language;
+      language = languageNames.containsKey(preferences['language'])
           ? preferences['language']! as String
-          : 'zh';
+          : language;
+      // Only replace untouched built-in samples during initial preference loading.
+      // Changing the interface language later never rewrites a document.
+      if (language != previousLanguage &&
+          documents.every((d) => d.demo && !d.editor.session.isDirty)) {
+        for (final doc in documents) {
+          doc.editor.removeListener(_changed);
+          doc.dispose();
+        }
+        documents.clear();
+        _addSamples();
+        current = documents.first;
+      }
       compact = preferences['compact'] == true;
       lineNumbers = preferences['lineNumbers'] != false;
       sidebarWidth = (preferences['sidebarWidth'] as num? ?? 226)
@@ -112,7 +141,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
       if (paths is List) recent.addAll(paths.whereType<String>().take(20));
       recoverable = await recovery.load();
     } catch (error) {
-      status = '偏好或恢复草稿读取失败：$error';
+      _statusMessage = (l) => l.preferencesLoadFailed(error.toString());
     }
     ready = true;
     _refreshMap();
@@ -209,8 +238,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
       _headingForNode[heading.id] = heading.id;
       return MindMapNode(
         id: heading.id,
-        title: heading.title.isEmpty ? '无标题' : heading.title,
-        subtitle: 'H${heading.level} · 章节',
+        title: heading.title.isEmpty ? strings.untitled : heading.title,
+        subtitle: strings.sectionLevel(heading.level),
         children: [
           ...content(heading),
           ...doc.headings.where((h) => h.parentId == heading.id).map(node),
@@ -223,7 +252,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
       id: current.id,
       title:
           rootHeading?.title ?? current.name.replaceFirst(RegExp(r'\.md$'), ''),
-      subtitle: 'Markdown 文档',
+      subtitle: strings.markdownDocument,
       children: [
         ...content(rootHeading),
         ...doc.headings
@@ -278,7 +307,12 @@ final class WorkspaceViewModel extends ChangeNotifier {
     themeMode = mode ?? themeMode;
     this.typography = typography ?? this.typography;
     this.compact = compact ?? this.compact;
-    this.language = language ?? this.language;
+    if (language != null &&
+        languageNames.containsKey(language) &&
+        language != this.language) {
+      this.language = language;
+      _refreshMap();
+    }
     this.lineNumbers = lineNumbers ?? this.lineNumbers;
     this.fontSize = fontSize ?? this.fontSize;
     _notify();
@@ -348,9 +382,9 @@ final class WorkspaceViewModel extends ChangeNotifier {
         regularExpression: this.regex,
         wholeWord: this.wholeWord,
       );
-      findError = null;
+      _invalidRegex = false;
     } on FormatException {
-      findError = '正则表达式无效';
+      _invalidRegex = true;
       matches = [];
     }
     if (matchIndex >= matches.length) matchIndex = -1;
@@ -404,7 +438,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
 
   void newDocument() {
     final id = DateTime.now().microsecondsSinceEpoch.toString();
-    final doc = WorkspaceDocument(id: id, name: '未命名.md', text: '');
+    final doc = WorkspaceDocument(id: id, name: strings.untitledFile, text: '');
     _add(doc);
     switchDocument(doc);
   }
@@ -444,7 +478,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     folderPaths
       ..clear()
       ..addAll(paths);
-    folderName = paths.isEmpty ? '空文件夹' : p.basename(p.dirname(paths.first));
+    _folderName = paths.isEmpty ? '' : p.basename(p.dirname(paths.first));
     sidebar = true;
     outline = false;
     _notify();
@@ -452,7 +486,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
 
   Future<bool> save({bool saveAs = false}) async {
     if (_guiding) {
-      status = '请先结束引导演练，再保存自己的文档。';
+      _statusMessage = (l) => l.finishGuideBeforeSaving;
       _notify();
       return false;
     }
@@ -463,6 +497,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
       final path = await files.saveAs(
         doc.name,
         Uint8List.fromList(utf8.encode(text)),
+        dialogTitle: strings.saveNamedFile(doc.name),
       );
       if (path == null) return false;
       if (!Platform.isAndroid && !Platform.isIOS) {
@@ -474,7 +509,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
     doc.persistedText = text;
     doc.editor.session.markSaved(savedText: text);
     externalChange = null;
-    status = '已保存 ${doc.name}';
+    final savedName = doc.name;
+    _statusMessage = (l) => l.savedFile(savedName);
     await flushRecovery();
     _notify();
     return true;
@@ -502,7 +538,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
         }
       }
     } on FileSystemException catch (error) {
-      status = '原文件暂时无法读取：${error.message}';
+      _statusMessage = (l) => l.fileReadFailed(error.message);
       _notify();
     } finally {
       _checking = false;
@@ -535,7 +571,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     try {
       await recovery.save([...recoverable, ...snapshots]);
     } catch (error) {
-      status = '恢复草稿保存失败：$error';
+      _statusMessage = (l) => l.recoverySaveFailed(error.toString());
       _notify();
     }
   }
@@ -545,7 +581,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
       if (draft['text'] is! String) continue;
       final doc = WorkspaceDocument(
         id: 'recovered-${DateTime.now().microsecondsSinceEpoch}-${documents.length}',
-        name: draft['name'] as String? ?? '恢复的草稿.md',
+        name: draft['name'] as String? ?? strings.recoveredDraftFile,
         path: draft['path'] as String?,
         text: draft['saved'] as String? ?? '',
         persistedText: draft['saved'] as String?,
@@ -586,7 +622,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
             'recent': List.of(recent),
           })
           .catchError((Object error) {
-            status = '偏好保存失败：$error';
+            _statusMessage = (l) => l.preferencesSaveFailed(error.toString());
             _notify();
           }),
     );
@@ -603,10 +639,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _guideLayout = layout;
     _guiding = true;
     guideStep = 0;
-    editor.session.replace(
-      '# 欢迎使用笺纬\n\n点击正文，写下第一个想法。\n\n## 从内容到结构\n\n在导图中整理章节，正文会同步变化。\n\n## 分享你的作品\n\n选择排版，把内容导出为文档。',
-      label: '引导演练',
-    );
+    editor.session.replace(strings.guideDocument, label: '引导演练');
     layout = WorkspaceLayout.instant;
     _notify();
   }

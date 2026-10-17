@@ -4,6 +4,7 @@ import 'package:texweft_mindmap/texweft_mindmap.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/workspace.dart';
+import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
 import 'workspace_view_model.dart';
 
@@ -58,10 +59,10 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
   Widget _pane(String pane, bool titled) {
     final c = Theme.of(context).colorScheme;
     final title = switch (pane) {
-      'source' => 'Markdown 源码',
-      'read' => '正文预览',
-      'map' => '思维导图',
-      _ => '即时编辑',
+      'source' => context.l10n.markdownSource,
+      'read' => context.l10n.bodyPreview,
+      'map' => context.l10n.mindMap,
+      _ => context.l10n.instantEditing,
     };
     return ColoredBox(
       key: ValueKey('${vm.current.id}-$pane'),
@@ -78,7 +79,7 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
               },
               trailing: AppButton(
                 icon: 'max',
-                tooltip: '单独显示$title',
+                tooltip: context.l10n.showPaneOnly(title),
                 height: 25,
                 padding: 4,
                 onPressed: () => vm.setLayout(
@@ -99,6 +100,7 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
               'map' => _mapPane(),
               _ => MarkdownInstantEditor(
                 controller: vm.editor,
+                labels: context.l10n.editorLabels,
                 typography: vm.typography,
                 compact: vm.compact,
                 fontSize: vm.fontSize,
@@ -137,28 +139,30 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                   child: Row(
                     children: [
                       AppButton(
-                        label: '新增章节',
+                        label: context.l10n.addSection,
                         icon: 'plus',
                         height: 26,
                         onPressed: () => _command(
                           () => vm.editor.session.addHeading(
                             vm.selectedHeadingId,
                             child: false,
+                            title: context.l10n.newSectionTitle,
                           ),
                         ),
                       ),
                       AppButton(
-                        label: '子章节',
+                        label: context.l10n.childSection,
                         height: 26,
                         onPressed: () => _command(
                           () => vm.editor.session.addHeading(
                             vm.selectedHeadingId,
                             child: true,
+                            title: context.l10n.newSectionTitle,
                           ),
                         ),
                       ),
                       AppButton(
-                        label: '编排',
+                        label: context.l10n.arrange,
                         icon: 'edit',
                         selected: _inspector,
                         height: 26,
@@ -166,13 +170,13 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                             setState(() => _inspector = !_inspector),
                       ),
                       AppButton(
-                        label: '折叠',
+                        label: context.l10n.collapse,
                         icon: 'list',
                         height: 26,
                         onPressed: vm.map.toggleAll,
                       ),
                       AppButton(
-                        label: '摘要设置',
+                        label: context.l10n.summary,
                         icon: 'gear',
                         height: 26,
                         onPressed: () => widget.onAction('summary'),
@@ -192,6 +196,7 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                   key: mapBoundaryKey,
                   child: MindMapView(
                     controller: vm.map,
+                    labels: context.l10n.mapLabels,
                     onSelect: vm.selectNode,
                     onActivate: (node) {
                       vm.selectNode(node);
@@ -264,7 +269,7 @@ class _DocumentReadingState extends State<_DocumentReading> {
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: vm.typography.width),
           child: Padding(
-            padding: EdgeInsets.fromLTRB(44, 34, 44, 70),
+            padding: const EdgeInsets.fromLTRB(44, 34, 44, 70),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -288,7 +293,8 @@ class _DocumentReadingState extends State<_DocumentReading> {
                       },
                     ),
                   ),
-                if (vm.editor.session.text.isEmpty) const Text('这篇文档还是空白。'),
+                if (vm.editor.session.text.isEmpty)
+                  Text(context.l10n.emptyDocument),
               ],
             ),
           ),
@@ -352,7 +358,7 @@ class _ChapterInspectorState extends State<ChapterInspector> {
           mainAxisSize: MainAxisSize.min,
           children: [
             PanelHeader(
-              title: '章节编排',
+              title: context.l10n.sectionArrangement,
               icon: 'edit',
               trailing: AppButton(
                 icon: 'x',
@@ -365,7 +371,10 @@ class _ChapterInspectorState extends State<ChapterInspector> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('章节标题', style: TextStyle(fontSize: 11)),
+                  Text(
+                    context.l10n.sectionTitle,
+                    style: const TextStyle(fontSize: 11),
+                  ),
                   const SizedBox(height: 7),
                   Row(
                     children: [
@@ -388,18 +397,37 @@ class _ChapterInspectorState extends State<ChapterInspector> {
                     runSpacing: 5,
                     children: [
                       for (final entry in <(String, VoidCallback)>[
-                        ('上移', () => vm.editor.session.moveHeading(h.id, -1)),
-                        ('下移', () => vm.editor.session.moveHeading(h.id, 1)),
-                        ('升级', () => vm.editor.session.changeLevel(h.id, -1)),
-                        ('降级', () => vm.editor.session.changeLevel(h.id, 1)),
                         (
-                          '同级',
-                          () =>
-                              vm.editor.session.addHeading(h.id, child: false),
+                          context.l10n.moveUp,
+                          () => vm.editor.session.moveHeading(h.id, -1),
                         ),
                         (
-                          '子级',
-                          () => vm.editor.session.addHeading(h.id, child: true),
+                          context.l10n.moveDown,
+                          () => vm.editor.session.moveHeading(h.id, 1),
+                        ),
+                        (
+                          context.l10n.promote,
+                          () => vm.editor.session.changeLevel(h.id, -1),
+                        ),
+                        (
+                          context.l10n.demote,
+                          () => vm.editor.session.changeLevel(h.id, 1),
+                        ),
+                        (
+                          context.l10n.sibling,
+                          () => vm.editor.session.addHeading(
+                            h.id,
+                            child: false,
+                            title: context.l10n.newSectionTitle,
+                          ),
+                        ),
+                        (
+                          context.l10n.child,
+                          () => vm.editor.session.addHeading(
+                            h.id,
+                            child: true,
+                            title: context.l10n.newSectionTitle,
+                          ),
                         ),
                       ])
                         AppButton(
@@ -411,7 +439,10 @@ class _ChapterInspectorState extends State<ChapterInspector> {
                     ],
                   ),
                   const SizedBox(height: 15),
-                  const Text('本节正文', style: TextStyle(fontSize: 11)),
+                  Text(
+                    context.l10n.sectionBody,
+                    style: const TextStyle(fontSize: 11),
+                  ),
                   const SizedBox(height: 7),
                   TextField(
                     controller: _body,
@@ -421,39 +452,37 @@ class _ChapterInspectorState extends State<ChapterInspector> {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    '只编辑本节正文，子章节会完整保留。',
+                    context.l10n.sectionBodyHint,
                     style: TextStyle(fontSize: 10, color: c.onSurfaceVariant),
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
                       AppButton(
-                        label: '删除章节',
+                        label: context.l10n.deleteSection,
                         onPressed: () async {
                           final mode = await showDialog<String>(
                             context: context,
                             builder: (context) => AppDialog(
-                              title: '删除「${h.title}」',
+                              title: context.l10n.deleteNamedSection(h.title),
                               actions: [
                                 AppButton(
-                                  label: '取消',
+                                  label: context.l10n.cancel,
                                   onPressed: () => Navigator.pop(context),
                                 ),
                                 AppButton(
-                                  label: '保留正文',
+                                  label: context.l10n.keepBody,
                                   onPressed: () =>
                                       Navigator.pop(context, 'keep'),
                                 ),
                                 AppButton(
-                                  label: '删除整节',
+                                  label: context.l10n.deleteWholeSection,
                                   primary: true,
                                   onPressed: () =>
                                       Navigator.pop(context, 'all'),
                                 ),
                               ],
-                              child: const Text(
-                                '可以连同正文和子章节一起删除，或只移除标题。此操作可撤销。',
-                              ),
+                              child: Text(context.l10n.deleteSectionHint),
                             ),
                           );
                           if (mode != null && mounted) {
@@ -468,7 +497,7 @@ class _ChapterInspectorState extends State<ChapterInspector> {
                       ),
                       const Spacer(),
                       AppButton(
-                        label: '应用',
+                        label: context.l10n.apply,
                         primary: true,
                         onPressed: () => _command(() {
                           // Body first: renaming changes the derived heading identity.

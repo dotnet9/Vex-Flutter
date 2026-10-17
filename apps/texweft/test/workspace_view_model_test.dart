@@ -60,7 +60,7 @@ void main() {
     expect(vm.editor.session.text, original);
     expect(vm.layout, WorkspaceLayout.three);
     vm.editor.session.undo();
-    expect(vm.editor.session.text, welcomeMarkdown);
+    expect(vm.editor.session.text, vm.strings.sampleDesign);
   });
   test(
     'recovered drafts preserve the saved comparison and stay dirty',

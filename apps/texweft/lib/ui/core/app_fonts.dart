@@ -19,6 +19,26 @@ abstract final class AppFonts {
     'sans-serif',
   ];
 
+  static List<String> fallbackFor(String language) => switch (language) {
+    'ja' => const [
+      'Yu Gothic UI',
+      'Yu Gothic',
+      'Hiragino Sans',
+      'Noto Sans CJK JP',
+      'Noto Sans JP',
+      'sans-serif',
+    ],
+    'zh_Hant' => const [
+      'Microsoft JhengHei UI',
+      'Microsoft JhengHei',
+      'PingFang TC',
+      'Noto Sans CJK TC',
+      'Noto Sans TC',
+      'sans-serif',
+    ],
+    _ => fallback,
+  };
+
   static MarkdownFontFamilies get markdown => MarkdownFontFamilies(
     serif: switch (defaultTargetPlatform) {
       TargetPlatform.windows => 'SimSun',
@@ -29,4 +49,22 @@ abstract final class AppFonts {
     monospace: 'CascadiaCode',
     monospaceFallback: fallback,
   );
+
+  static MarkdownFontFamilies markdownFor(String language) {
+    final serif = switch ((language, defaultTargetPlatform)) {
+      ('ja', TargetPlatform.windows) => 'Yu Mincho',
+      ('ja', TargetPlatform.iOS || TargetPlatform.macOS) =>
+        'Hiragino Mincho ProN',
+      ('ja', _) => 'Noto Serif CJK JP',
+      ('zh_Hant', TargetPlatform.windows) => 'PMingLiU',
+      ('zh_Hant', TargetPlatform.iOS || TargetPlatform.macOS) => 'Songti TC',
+      ('zh_Hant', _) => 'Noto Serif CJK TC',
+      _ => markdown.serif,
+    };
+    return markdown.copyWith(
+      serif: serif,
+      serifFallback: ['serif', ...fallbackFor(language)],
+      monospaceFallback: fallbackFor(language),
+    );
+  }
 }

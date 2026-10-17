@@ -11,3 +11,5 @@
 即时编辑仍处于完善阶段，跨块拖选、行内语法隐藏、复杂列表与长文档性能尚需继续实现和验证。
 
 组件不携带字体字库。普通正文继承宿主 `TextTheme`；宿主可通过 `ThemeData.extensions` 注入 `MarkdownFontFamilies`，统一书卷衬线、源码及代码字体和各自回退链。例如 `const MarkdownFontFamilies(serif: 'SimSun', monospace: 'MyBundledCodeFont', monospaceFallback: ['Microsoft YaHei UI'])`。字体资源与许可证由宿主负责，默认使用系统 serif／monospace。
+
+国际化由宿主注入 `MarkdownInstantEditor(labels: MarkdownEditorLabels(...))`，包含代码语言的无障碍标签、写作占位提示与新增段落标签；默认使用英语，不依赖 Texweft 的翻译或状态。运行时更换 labels 保留当前输入框、选区与文档历史。`insertTable(columnLabel: (number) => ...)` 支持本地化表头，并选中完整的第一个表头。

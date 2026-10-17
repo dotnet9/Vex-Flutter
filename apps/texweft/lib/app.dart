@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
+import 'l10n/l10n.dart';
 import 'ui/core/app_theme.dart';
 import 'ui/workspace/workspace_screen.dart';
 import 'ui/workspace/workspace_view_model.dart';
@@ -25,24 +25,22 @@ class TexweftApp extends StatelessWidget {
           selector: (_, vm) =>
               (palette: vm.palette, mode: vm.themeMode, language: vm.language),
           builder: (_, value, _) => MaterialApp(
-            title: '笺纬 Texweft',
+            onGenerateTitle: (context) => context.l10n.appTitle,
             debugShowCheckedModeBanner: false,
-            theme: appTheme(value.palette, Brightness.light),
-            darkTheme: appTheme(value.palette, Brightness.dark),
+            theme: appTheme(
+              value.palette,
+              Brightness.light,
+              language: value.language,
+            ),
+            darkTheme: appTheme(
+              value.palette,
+              Brightness.dark,
+              language: value.language,
+            ),
             themeMode: value.mode,
-            locale: value.language == 'zh_Hant'
-                ? const Locale.fromSubtags(
-                    languageCode: 'zh',
-                    scriptCode: 'Hant',
-                  )
-                : Locale(value.language),
-            supportedLocales: const [
-              Locale('zh'),
-              Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
-              Locale('en'),
-              Locale('ja'),
-            ],
-            localizationsDelegates: GlobalMaterialLocalizations.delegates,
+            locale: localeForLanguage(value.language),
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
             home: WorkspaceScreen(windowIntegration: windowIntegration),
           ),
         ),

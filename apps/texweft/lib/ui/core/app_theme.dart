@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
 
-import 'palette_tokens.dart';
 import 'app_fonts.dart';
+import 'palette_tokens.dart';
 
-ThemeData appTheme(String palette, Brightness brightness) {
+ThemeData appTheme(
+  String palette,
+  Brightness brightness, {
+  String language = 'zh',
+}) {
   final c = paletteSchemes['$palette-${brightness.name}']!;
   return ThemeData(
     useMaterial3: true,
     colorScheme: c,
     scaffoldBackgroundColor: c.surface,
     fontFamily: AppFonts.interface,
-    fontFamilyFallback: AppFonts.fallback,
-    extensions: [AppFonts.markdown],
+    fontFamilyFallback: AppFonts.fallbackFor(language),
+    extensions: [AppFonts.markdownFor(language)],
     visualDensity: VisualDensity.compact,
     textTheme: ThemeData(useMaterial3: true).textTheme.apply(
       fontFamily: AppFonts.interface,
-      fontFamilyFallback: AppFonts.fallback,
+      fontFamilyFallback: AppFonts.fallbackFor(language),
       bodyColor: c.onSurface,
       displayColor: c.onSurface,
     ),

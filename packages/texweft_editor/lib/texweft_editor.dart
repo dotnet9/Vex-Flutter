@@ -4,5 +4,6 @@ library;
 export 'src/controller.dart';
 export 'src/editor.dart';
 export 'src/font_families.dart';
+export 'src/labels.dart';
 export 'src/reader.dart';
 export 'src/typing_formatter.dart';

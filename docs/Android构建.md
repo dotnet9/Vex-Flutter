@@ -5,11 +5,12 @@
 ```powershell
 cd apps/texweft
 flutter pub get
-flutter test integration_test/mobile_workspace_test.dart -d <设备编号>
+flutter run --flavor preview -d <设备编号>
+flutter test integration_test/mobile_workspace_test.dart --flavor preview -d <设备编号>
 flutter build apk --release --flavor preview --split-per-abi --target-platform android-arm64,android-x64
 ```
 
-默认 flavor 为 preview，包名 `com.codewf.texweft.preview`，应用名带“预览”，使用开发证书。ARM64 APK 用于通常的 Android 手机；x86_64 APK 用于对应模拟器。它们是可安装的开发预览包，不能作为正式签名发行版本。
+Android 命令显式指定 preview，包名 `com.codewf.texweft.preview`，应用名带“预览”，使用开发证书。应用不设置全局默认 flavor，避免影响桌面构建。ARM64 APK 用于通常的 Android 手机；x86_64 APK 用于对应模拟器。它们是可安装的开发预览包，不能作为正式签名发行版本。
 
 production 使用包名 `com.codewf.texweft`，签名读取本机忽略的 `android/key.properties`：`storeFile`（相对 android 目录）、`storePassword`、`keyAlias`、`keyPassword`。正式构建必须配置发行证书，不回退到开发签名。证书及密码不得提交到仓库。
 

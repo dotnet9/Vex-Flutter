@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../l10n/l10n.dart';
 import 'icon_paths.dart';
 
 class AppGlyph extends StatelessWidget {
@@ -81,7 +82,10 @@ class AppButton extends StatelessWidget {
               size: 14,
             ),
           if (icon != null && label != null) const SizedBox(width: 6),
-          if (label != null) Text(label!, maxLines: 1),
+          if (label != null)
+            Flexible(
+              child: Text(label!, maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
         ],
       ),
     );
@@ -117,11 +121,14 @@ class PanelHeader extends StatelessWidget {
             AppGlyph(icon!, size: 13),
             const SizedBox(width: 7),
           ],
-          Text(
-            title,
-            style: TextStyle(fontSize: 11, color: c.onSurfaceVariant),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 11, color: c.onSurfaceVariant),
+            ),
           ),
-          const Spacer(),
           ?trailing,
         ],
       ),
@@ -167,7 +174,7 @@ class AppDialog extends StatelessWidget {
                 ),
                 AppButton(
                   icon: 'x',
-                  tooltip: '关闭',
+                  tooltip: context.l10n.close,
                   onPressed: () => Navigator.pop(context),
                 ),
               ],

@@ -1,18 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/services.dart';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:printing/printing.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/services/export_service.dart';
+import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
 import '../core/palette_tokens.dart';
-import 'workspace_view_model.dart';
 import 'workspace_pickers.dart';
+import 'workspace_view_model.dart';
 
 Future<void> showExportDialog(BuildContext context, WorkspaceViewModel vm) =>
     showDialog<void>(
@@ -42,7 +42,7 @@ class _ExportDialogState extends State<_ExportDialog> {
     );
     setState(() {
       _busy = true;
-      _message = '正在生成…';
+      _message = context.l10n.generating;
     });
     try {
       Uint8List bytes;
@@ -80,18 +80,30 @@ class _ExportDialogState extends State<_ExportDialog> {
           onLayout: (_) async => bytes,
         );
         if (mounted) {
-          setState(() => _message = printed ? '已发送到系统打印窗口。' : '已取消打印。');
+          setState(
+            () => _message = printed
+                ? context.l10n.sentToPrinter
+                : context.l10n.printCancelled,
+          );
         }
       } else {
-        final path = await vm.files.saveAs('$stem.$type', bytes);
+        final path = await vm.files.saveAs(
+          '$stem.$type',
+          bytes,
+          dialogTitle: vm.strings.saveNamedFile('$stem.$type'),
+        );
         if (mounted) {
           setState(
-            () => _message = path == null ? '已取消导出。' : '已导出 $stem.$type',
+            () => _message = path == null
+                ? context.l10n.exportCancelled
+                : context.l10n.exportedFile('$stem.$type'),
           );
         }
       }
     } catch (error) {
-      if (mounted) setState(() => _message = '导出失败：$error');
+      if (mounted) {
+        setState(() => _message = context.l10n.exportFailed(error.toString()));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -99,14 +111,14 @@ class _ExportDialogState extends State<_ExportDialog> {
 
   @override
   Widget build(BuildContext context) => AppDialog(
-    title: '导出与分享',
+    title: context.l10n.exportShare,
     width: 540,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          '将当前内容保存为独立文件。HTML 保留所选配色与排版，导图图片包含完整结构。',
-          style: TextStyle(fontSize: 12, height: 1.9),
+        Text(
+          context.l10n.exportDescription,
+          style: const TextStyle(fontSize: 12, height: 1.9),
         ),
         const SizedBox(height: 18),
         Wrap(
@@ -115,11 +127,11 @@ class _ExportDialogState extends State<_ExportDialog> {
           children: [
             for (final entry in [
               ('md', 'Markdown', 'file'),
-              ('html', 'HTML 页面', 'code'),
-              ('pdf', 'PDF 文档', 'file'),
-              ('docx', 'Word 文档', 'file'),
-              ('png', '导图 PNG', 'map'),
-              ('print', '系统打印', 'print'),
+              ('html', context.l10n.htmlPage, 'code'),
+              ('pdf', context.l10n.pdfDocument, 'file'),
+              ('docx', context.l10n.wordDocument, 'file'),
+              ('png', context.l10n.mindMapPng, 'map'),
+              ('print', context.l10n.systemPrint, 'print'),
             ])
               AppButton(
                 label: entry.$2,
@@ -132,7 +144,7 @@ class _ExportDialogState extends State<_ExportDialog> {
         ),
         const SizedBox(height: 18),
         AppButton(
-          label: '复制 HTML 源码',
+          label: context.l10n.copyHtml,
           icon: 'copy',
           onPressed: _busy
               ? null
@@ -149,7 +161,9 @@ class _ExportDialogState extends State<_ExportDialog> {
                       ),
                     ),
                   );
-                  if (mounted) setState(() => _message = '已复制 HTML 源码。');
+                  if (mounted) {
+                    setState(() => _message = context.l10n.htmlCopied);
+                  }
                 },
         ),
         if (_busy)
@@ -170,83 +184,88 @@ class _ExportDialogState extends State<_ExportDialog> {
   );
 }
 
-Future<void> showAppearance(BuildContext context, WorkspaceViewModel vm) =>
-    showDialog<void>(
-      context: context,
-      builder: (context) => ListenableBuilder(
-        listenable: vm,
-        builder: (context, _) => AppDialog(
-          title: '外观与排版',
-          width: 720,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+Future<void> showAppearance(
+  BuildContext context,
+  WorkspaceViewModel vm,
+) => showDialog<void>(
+  context: context,
+  builder: (context) => ListenableBuilder(
+    listenable: vm,
+    builder: (context, _) => AppDialog(
+      title: context.l10n.appearance,
+      width: 720,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.l10n.themeMode,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
             children: [
-              const Text(
-                '明暗模式',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                children: [
-                  for (final item in [
-                    (ThemeMode.light, '浅色'),
-                    (ThemeMode.dark, '深色'),
-                    (ThemeMode.system, '跟随系统'),
-                  ])
-                    AppButton(
-                      label: item.$2,
-                      bordered: true,
-                      selected: vm.themeMode == item.$1,
-                      onPressed: () => vm.updateAppearance(mode: item.$1),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 22),
-              const Text(
-                '界面配色',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final entry in paletteNames.entries)
-                    AppButton(
-                      label: entry.value,
-                      selected: vm.palette == entry.key,
-                      bordered: true,
-                      onPressed: () => vm.updateAppearance(palette: entry.key),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                '正文排版',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 12),
-              LayoutBuilder(
-                builder: (context, constraints) =>
-                    TypographyChoices(vm: vm, width: constraints.maxWidth),
-              ),
-              const SizedBox(height: 16),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('紧凑间距', style: TextStyle(fontSize: 12)),
-                subtitle: const Text(
-                  '排版与配色不会改变 Markdown 原文。',
-                  style: TextStyle(fontSize: 11),
+              for (final item in [
+                (ThemeMode.light, context.l10n.light),
+                (ThemeMode.dark, context.l10n.dark),
+                (ThemeMode.system, context.l10n.followSystem),
+              ])
+                AppButton(
+                  label: item.$2,
+                  bordered: true,
+                  selected: vm.themeMode == item.$1,
+                  onPressed: () => vm.updateAppearance(mode: item.$1),
                 ),
-                value: vm.compact,
-                onChanged: (v) => vm.updateAppearance(compact: v),
-              ),
             ],
           ),
-        ),
+          const SizedBox(height: 22),
+          Text(
+            context.l10n.interfaceColors,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final entry in paletteNames.entries)
+                AppButton(
+                  label: context.l10n.paletteName(entry.key),
+                  selected: vm.palette == entry.key,
+                  bordered: true,
+                  onPressed: () => vm.updateAppearance(palette: entry.key),
+                ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Text(
+            context.l10n.bodyTypography,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) =>
+                TypographyChoices(vm: vm, width: constraints.maxWidth),
+          ),
+          const SizedBox(height: 16),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: Text(
+              context.l10n.compactSpacing,
+              style: const TextStyle(fontSize: 12),
+            ),
+            subtitle: Text(
+              context.l10n.appearancePreservesSource,
+              style: const TextStyle(fontSize: 11),
+            ),
+            value: vm.compact,
+            onChanged: (v) => vm.updateAppearance(compact: v),
+          ),
+        ],
       ),
-    );
+    ),
+  ),
+);
 
 Future<void> showSummarySettings(BuildContext context, WorkspaceViewModel vm) =>
     showDialog<void>(
@@ -254,13 +273,13 @@ Future<void> showSummarySettings(BuildContext context, WorkspaceViewModel vm) =>
       builder: (context) => ListenableBuilder(
         listenable: vm,
         builder: (context, _) => AppDialog(
-          title: '导图摘要设置',
+          title: context.l10n.summarySettings,
           width: 380,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '摘要长度：${vm.summaryLength} 字',
+                context.l10n.summaryLength(vm.summaryLength),
                 style: const TextStyle(fontSize: 12),
               ),
               Slider(
@@ -271,9 +290,9 @@ Future<void> showSummarySettings(BuildContext context, WorkspaceViewModel vm) =>
                 onChanged: (v) => vm.setSummary(length: v.round()),
               ),
               for (final item in [
-                (vm.paragraphs, '段落正文', 'p'),
-                (vm.lists, '列表内容', 'l'),
-                (vm.blocks, '引用、代码和表格', 'b'),
+                (vm.paragraphs, context.l10n.paragraphs, 'p'),
+                (vm.lists, context.l10n.lists, 'l'),
+                (vm.blocks, context.l10n.quotesCodeTables, 'b'),
               ])
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
@@ -287,13 +306,13 @@ Future<void> showSummarySettings(BuildContext context, WorkspaceViewModel vm) =>
                   ),
                 ),
               const SizedBox(height: 12),
-              const Text(
-                '摘要只影响导图显示。点击节点可查看并编辑整节正文。',
-                style: TextStyle(fontSize: 11, height: 1.8),
+              Text(
+                context.l10n.summaryDescription,
+                style: const TextStyle(fontSize: 11, height: 1.8),
               ),
               const SizedBox(height: 12),
               AppButton(
-                label: '恢复默认',
+                label: context.l10n.restoreDefaults,
                 onPressed: () => vm.setSummary(
                   length: 30,
                   paragraphs: true,
@@ -313,20 +332,46 @@ Future<void> showSettings(BuildContext context, WorkspaceViewModel vm) =>
       builder: (context) => ListenableBuilder(
         listenable: vm,
         builder: (context, _) => AppDialog(
-          title: '设置',
+          title: context.l10n.settings,
           width: 500,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('编辑器', style: TextStyle(fontWeight: FontWeight.w600)),
+              DropdownButtonFormField<String>(
+                key: const ValueKey('language-setting'),
+                initialValue: vm.language,
+                isExpanded: true,
+                decoration: InputDecoration(labelText: context.l10n.language),
+                items: [
+                  for (final entry in languageNames.entries)
+                    DropdownMenuItem(
+                      value: entry.key,
+                      child: Text(entry.value),
+                    ),
+                ],
+                onChanged: (value) => vm.updateAppearance(language: value),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                context.l10n.languageHint,
+                style: const TextStyle(fontSize: 11, height: 1.7),
+              ),
+              const SizedBox(height: 22),
+              Text(
+                context.l10n.editor,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('源码行号', style: TextStyle(fontSize: 12)),
+                title: Text(
+                  context.l10n.sourceLineNumbers,
+                  style: const TextStyle(fontSize: 12),
+                ),
                 value: vm.lineNumbers,
                 onChanged: (v) => vm.updateAppearance(lineNumbers: v),
               ),
               Text(
-                '正文字号：${vm.fontSize.round()} px',
+                context.l10n.bodyFontSize(vm.fontSize.round()),
                 style: const TextStyle(fontSize: 12),
               ),
               Slider(
@@ -337,20 +382,23 @@ Future<void> showSettings(BuildContext context, WorkspaceViewModel vm) =>
                 onChanged: (v) => vm.updateAppearance(fontSize: v),
               ),
               const SizedBox(height: 12),
-              const Text('本地文件', style: TextStyle(fontWeight: FontWeight.w600)),
+              Text(
+                context.l10n.localFiles,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
               const SizedBox(height: 8),
-              const Text(
-                '编辑时自动保留恢复草稿。保存会写入原文件；检测到其他程序的修改时，会先提示你处理。移动设备通过系统文件选择器保存。',
-                style: TextStyle(fontSize: 12, height: 1.9),
+              Text(
+                context.l10n.localFilesDescription,
+                style: const TextStyle(fontSize: 12, height: 1.9),
               ),
               const SizedBox(height: 18),
               AppButton(
-                label: '开源组件许可',
+                label: context.l10n.openSourceLicenses,
                 icon: 'info',
                 bordered: true,
                 onPressed: () => showLicensePage(
                   context: context,
-                  applicationName: '笺纬 Texweft',
+                  applicationName: context.l10n.appTitle,
                   applicationVersion: '0.1.0',
                 ),
               ),
@@ -377,7 +425,7 @@ class _AboutDialogState extends State<_AboutDialog> {
   Future<void> _check() async {
     setState(() {
       _checking = true;
-      _update = '正在检查…';
+      _update = context.l10n.checking;
     });
     final client = HttpClient()
       ..connectionTimeout = const Duration(seconds: 15);
@@ -395,16 +443,16 @@ class _AboutDialogState extends State<_AboutDialog> {
       if (!mounted) return;
       setState(() {
         if (response.statusCode == 404) {
-          _update = '尚无已发布的正式版本。';
+          _update = context.l10n.noRelease;
         } else if (response.statusCode != 200) {
-          _update = '检查失败（HTTP ${response.statusCode}），可前往发布页查看。';
+          _update = context.l10n.updateHttpError(response.statusCode);
         } else {
           final data = jsonDecode(body) as Map;
-          _update = 'GitHub 最新版本：${data['tag_name']}';
+          _update = context.l10n.latestVersion(data['tag_name'].toString());
         }
       });
     } catch (_) {
-      if (mounted) setState(() => _update = '暂时无法连接 GitHub，可稍后重试。');
+      if (mounted) setState(() => _update = context.l10n.githubUnavailable);
     } finally {
       client.close();
       if (mounted) setState(() => _checking = false);
@@ -413,7 +461,7 @@ class _AboutDialogState extends State<_AboutDialog> {
 
   @override
   Widget build(BuildContext context) => AppDialog(
-    title: '关于笺纬',
+    title: context.l10n.about,
     width: 620,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -422,32 +470,41 @@ class _AboutDialogState extends State<_AboutDialog> {
           children: [
             SvgPicture.asset('assets/brand/logo.svg', width: 72, height: 72),
             const SizedBox(width: 20),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '笺纬 Texweft',
-                    style: TextStyle(fontSize: 25, fontWeight: FontWeight.w700),
+                    context.l10n.appTitle,
+                    style: const TextStyle(
+                      fontSize: 25,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                  SizedBox(height: 5),
-                  Text('落笔成文，思路成形。', style: TextStyle(fontSize: 13)),
-                  SizedBox(height: 5),
-                  Text('0.1.0 · Flutter 原生应用', style: TextStyle(fontSize: 11)),
+                  const SizedBox(height: 5),
+                  Text(
+                    context.l10n.slogan,
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    context.l10n.nativeApplication,
+                    style: const TextStyle(fontSize: 11),
+                  ),
                 ],
               ),
             ),
           ],
         ),
         const SizedBox(height: 24),
-        const Text(
-          '把 Markdown 写作、阅读与思维导图放在同一个工作区。内容保存在本地，使用开放的文件格式。',
-          style: TextStyle(fontSize: 13, height: 1.9),
+        Text(
+          context.l10n.aboutDescription,
+          style: const TextStyle(fontSize: 13, height: 1.9),
         ),
         const SizedBox(height: 20),
-        const Text(
-          '沙漠尽头的狼 / CodeWF',
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        Text(
+          context.l10n.author,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
         ),
         const SizedBox(height: 10),
         Wrap(
@@ -455,7 +512,7 @@ class _AboutDialogState extends State<_AboutDialog> {
           runSpacing: 8,
           children: [
             AppButton(
-              label: '作者网站',
+              label: context.l10n.authorWebsite,
               icon: 'ext',
               bordered: true,
               onPressed: () => launchUrl(
@@ -464,7 +521,7 @@ class _AboutDialogState extends State<_AboutDialog> {
               ),
             ),
             AppButton(
-              label: 'GitHub 源码',
+              label: context.l10n.githubSource,
               icon: 'code',
               bordered: true,
               onPressed: () => launchUrl(
@@ -473,7 +530,7 @@ class _AboutDialogState extends State<_AboutDialog> {
               ),
             ),
             AppButton(
-              label: '发布与下载',
+              label: context.l10n.releasesDownloads,
               icon: 'export',
               bordered: true,
               onPressed: () => launchUrl(
@@ -487,7 +544,7 @@ class _AboutDialogState extends State<_AboutDialog> {
         const Divider(),
         const SizedBox(height: 14),
         AppButton(
-          label: _checking ? '正在检查…' : '检查更新',
+          label: _checking ? context.l10n.checking : context.l10n.checkUpdates,
           icon: 'refresh',
           onPressed: _checking ? null : _check,
         ),
@@ -497,9 +554,9 @@ class _AboutDialogState extends State<_AboutDialog> {
             child: Text(_update, style: const TextStyle(fontSize: 12)),
           ),
         const SizedBox(height: 12),
-        const Text(
-          '开源致谢：Flutter、Dart、Vex 及各开源组件。MIT License。',
-          style: TextStyle(fontSize: 11, height: 1.8),
+        Text(
+          context.l10n.acknowledgements,
+          style: const TextStyle(fontSize: 11, height: 1.8),
         ),
       ],
     ),
