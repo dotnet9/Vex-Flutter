@@ -25,3 +25,17 @@ Automated coverage: `workspace_menu_test.dart`, `formatting_commands_test.dart`,
 and the native Windows integration capture `integration_test/menus_test.dart`.
 The macOS menu structure and shortcuts are widget-tested on this Windows host;
 native macOS appearance still requires a macOS runner/device check.
+
+## Tables
+
+Paragraph > Table and the table-cell context menu share the same commands:
+insert, move and delete rows/columns; set column alignment; copy, format and
+delete the table. Header rows cannot move into the body, and the final column
+cannot be deleted. Every structural change is one undo step and restores the
+selection to the affected cell. Escaped pipes, code spans and CRLF are retained.
+
+Desktop cells use an anchored secondary-click menu. Phone/tablet long-press
+opens the fixed-header touch sheet. Reading mode only permits copying a table.
+Commands captured before a document change or switch cannot modify new content.
+Coverage: `table_commands_test.dart`, `test/table_menu_test.dart`, and native
+Windows screenshots in `integration_test/table_menu_test.dart`.

@@ -2483,6 +2483,102 @@ abstract class AppLocalizations {
   /// **'段落'**
   String get menuParagraph;
 
+  /// No description provided for @tableRowAbove.
+  ///
+  /// In zh, this message translates to:
+  /// **'上方插入行'**
+  String get tableRowAbove;
+
+  /// No description provided for @tableRowBelow.
+  ///
+  /// In zh, this message translates to:
+  /// **'下方插入行'**
+  String get tableRowBelow;
+
+  /// No description provided for @tableColumnBefore.
+  ///
+  /// In zh, this message translates to:
+  /// **'左侧插入列'**
+  String get tableColumnBefore;
+
+  /// No description provided for @tableColumnAfter.
+  ///
+  /// In zh, this message translates to:
+  /// **'右侧插入列'**
+  String get tableColumnAfter;
+
+  /// No description provided for @tableRowUp.
+  ///
+  /// In zh, this message translates to:
+  /// **'上移该行'**
+  String get tableRowUp;
+
+  /// No description provided for @tableRowDown.
+  ///
+  /// In zh, this message translates to:
+  /// **'下移该行'**
+  String get tableRowDown;
+
+  /// No description provided for @tableColumnLeft.
+  ///
+  /// In zh, this message translates to:
+  /// **'左移该列'**
+  String get tableColumnLeft;
+
+  /// No description provided for @tableColumnRight.
+  ///
+  /// In zh, this message translates to:
+  /// **'右移该列'**
+  String get tableColumnRight;
+
+  /// No description provided for @tableAlignLeft.
+  ///
+  /// In zh, this message translates to:
+  /// **'列左对齐'**
+  String get tableAlignLeft;
+
+  /// No description provided for @tableAlignCenter.
+  ///
+  /// In zh, this message translates to:
+  /// **'列居中对齐'**
+  String get tableAlignCenter;
+
+  /// No description provided for @tableAlignRight.
+  ///
+  /// In zh, this message translates to:
+  /// **'列右对齐'**
+  String get tableAlignRight;
+
+  /// No description provided for @tableDeleteRow.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除行'**
+  String get tableDeleteRow;
+
+  /// No description provided for @tableDeleteColumn.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除列'**
+  String get tableDeleteColumn;
+
+  /// No description provided for @tableCopy.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制表格'**
+  String get tableCopy;
+
+  /// No description provided for @tableFormat.
+  ///
+  /// In zh, this message translates to:
+  /// **'格式化表格源码'**
+  String get tableFormat;
+
+  /// No description provided for @tableDelete.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除表格'**
+  String get tableDelete;
+
   /// No description provided for @menuFormat.
   ///
   /// In zh, this message translates to:

@@ -6,6 +6,7 @@ import 'package:super_sliver_list/super_sliver_list.dart';
 import 'package:texweft_markdown_core/texweft_markdown_core.dart';
 
 import 'code_block.dart';
+import 'context_request.dart';
 import 'controller.dart';
 import 'editing_preferences.dart';
 import 'labels.dart';
@@ -31,6 +32,7 @@ class MarkdownInstantEditor extends StatefulWidget {
     this.focusMode = false,
     this.editingPreferences,
     this.preferences = const MarkdownPreferences(),
+    this.onContextMenu,
   });
   final MarkdownEditorLabels labels;
   final MarkdownEditorController controller;
@@ -42,6 +44,7 @@ class MarkdownInstantEditor extends StatefulWidget {
   final bool typewriter, focusMode;
   final MarkdownEditingPreferences? editingPreferences;
   final MarkdownPreferences preferences;
+  final ValueChanged<MarkdownContextRequest>? onContextMenu;
   @override
   State<MarkdownInstantEditor> createState() => _MarkdownInstantEditorState();
 }
@@ -104,6 +107,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
         start: block.range.start,
         end: block.range.end,
         style: _reader.styleSheet(context).p!,
+        onContextMenu: widget.onContextMenu,
       );
     }
     return AnimatedOpacity(

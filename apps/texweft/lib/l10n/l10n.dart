@@ -45,6 +45,24 @@ extension LocalizedContext on BuildContext {
 }
 
 extension LocalizedChoices on AppLocalizations {
+  String tableCommandName(MarkdownTableCommand command) => switch (command) {
+    MarkdownTableCommand.rowAbove => tableRowAbove,
+    MarkdownTableCommand.rowBelow => tableRowBelow,
+    MarkdownTableCommand.columnBefore => tableColumnBefore,
+    MarkdownTableCommand.columnAfter => tableColumnAfter,
+    MarkdownTableCommand.rowUp => tableRowUp,
+    MarkdownTableCommand.rowDown => tableRowDown,
+    MarkdownTableCommand.columnLeft => tableColumnLeft,
+    MarkdownTableCommand.columnRight => tableColumnRight,
+    MarkdownTableCommand.alignLeft => tableAlignLeft,
+    MarkdownTableCommand.alignCenter => tableAlignCenter,
+    MarkdownTableCommand.alignRight => tableAlignRight,
+    MarkdownTableCommand.deleteRow => tableDeleteRow,
+    MarkdownTableCommand.deleteColumn => tableDeleteColumn,
+    MarkdownTableCommand.copy => tableCopy,
+    MarkdownTableCommand.format => tableFormat,
+    MarkdownTableCommand.delete => tableDelete,
+  };
   String mapLayoutName(MindMapLayoutMode mode) => switch (mode) {
     MindMapLayoutMode.right => mapLayoutRight,
     MindMapLayoutMode.balanced => mapLayoutBalanced,

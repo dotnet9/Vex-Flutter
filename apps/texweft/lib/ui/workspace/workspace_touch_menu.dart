@@ -6,19 +6,21 @@ import 'workspace_menu.dart';
 
 Future<String?> showWorkspaceTouchMenu(
   BuildContext context,
-  List<WorkspaceMenuEntry> menus,
-) => showModalBottomSheet<String>(
+  List<WorkspaceMenuEntry> menus, {
+  String? title,
+}) => showModalBottomSheet<String>(
   context: context,
   isScrollControlled: true,
   useSafeArea: true,
   showDragHandle: false,
   constraints: const BoxConstraints(maxWidth: 520),
-  builder: (context) => _TouchMenu(menus: menus),
+  builder: (context) => _TouchMenu(menus: menus, title: title),
 );
 
 class _TouchMenu extends StatefulWidget {
-  const _TouchMenu({required this.menus});
+  const _TouchMenu({required this.menus, this.title});
   final List<WorkspaceMenuEntry> menus;
+  final String? title;
   @override
   State<_TouchMenu> createState() => _TouchMenuState();
 }
@@ -56,7 +58,7 @@ class _TouchMenuState extends State<_TouchMenu> {
                       child: Text(
                         key: const ValueKey('touch-menu-heading'),
                         _path.isEmpty
-                            ? context.l10n.menuMore
+                            ? widget.title ?? context.l10n.menuMore
                             : _path.last.label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

@@ -1353,6 +1353,54 @@ class AppLocalizationsEn extends AppLocalizations {
   String get menuParagraph => 'Paragraph';
 
   @override
+  String get tableRowAbove => 'Insert row above';
+
+  @override
+  String get tableRowBelow => 'Insert row below';
+
+  @override
+  String get tableColumnBefore => 'Insert column left';
+
+  @override
+  String get tableColumnAfter => 'Insert column right';
+
+  @override
+  String get tableRowUp => 'Move row up';
+
+  @override
+  String get tableRowDown => 'Move row down';
+
+  @override
+  String get tableColumnLeft => 'Move column left';
+
+  @override
+  String get tableColumnRight => 'Move column right';
+
+  @override
+  String get tableAlignLeft => 'Align column left';
+
+  @override
+  String get tableAlignCenter => 'Center column';
+
+  @override
+  String get tableAlignRight => 'Align column right';
+
+  @override
+  String get tableDeleteRow => 'Delete row';
+
+  @override
+  String get tableDeleteColumn => 'Delete column';
+
+  @override
+  String get tableCopy => 'Copy table';
+
+  @override
+  String get tableFormat => 'Format table source';
+
+  @override
+  String get tableDelete => 'Delete table';
+
+  @override
   String get menuFormat => 'Format';
 
   @override

@@ -1,6 +1,8 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
 import 'package:texweft_editor/texweft_editor.dart';
+import 'package:texweft_markdown_core/texweft_markdown_core.dart';
 import 'package:texweft_mindmap/texweft_mindmap.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -9,6 +11,7 @@ import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
 import 'document_image.dart';
 import 'document_watermark.dart';
+import 'workspace_element_menu.dart';
 import 'workspace_view_model.dart';
 
 class WorkspacePanes extends StatefulWidget {
@@ -31,6 +34,7 @@ class WorkspacePanes extends StatefulWidget {
 
 class _WorkspacePanesState extends State<WorkspacePanes> {
   bool _inspector = false;
+  ValueChanged<MarkdownContextRequest>? _onContextMenu;
   WorkspaceViewModel get vm => widget.vm;
   void _command(VoidCallback action) {
     try {
@@ -42,6 +46,16 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
 
   @override
   Widget build(BuildContext context) {
+    return WorkspaceElementMenu(
+      vm: vm,
+      onAction: widget.onAction,
+      onError: widget.onError,
+      builder: (onContextMenu) => _panes(onContextMenu),
+    );
+  }
+
+  Widget _panes(ValueChanged<MarkdownContextRequest> onContextMenu) {
+    _onContextMenu = onContextMenu;
     final panes = vm.layout.panes;
     if (panes.length == 1) return _pane(panes.first, false);
     if (vm.layout == WorkspaceLayout.three) {
@@ -106,9 +120,10 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                 fontSize: vm.editingPreferences.codeSize,
                 editingPreferences: vm.editingPreferences,
               ),
-              'read' => _DocumentReading(vm: vm),
+              'read' => _DocumentReading(vm: vm, onContextMenu: _onContextMenu),
               'map' => _mapPane(),
               _ => MarkdownInstantEditor(
+                onContextMenu: _onContextMenu,
                 imageBuilder: (uri, title, alt) => DocumentImage(
                   uri: uri,
                   documentPath: vm.current.path,
@@ -273,8 +288,9 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
 final mapBoundaryKey = GlobalKey();
 
 class _DocumentReading extends StatefulWidget {
-  const _DocumentReading({required this.vm});
+  const _DocumentReading({required this.vm, this.onContextMenu});
   final WorkspaceViewModel vm;
+  final ValueChanged<MarkdownContextRequest>? onContextMenu;
   @override
   State<_DocumentReading> createState() => _DocumentReadingState();
 }
@@ -326,7 +342,7 @@ class _DocumentReadingState extends State<_DocumentReading> {
           itemBuilder: (context, index) {
             if (blocks.isEmpty) return Text(context.l10n.emptyDocument);
             final block = blocks[index];
-            return MarkdownReader(
+            final reader = MarkdownReader(
               imageBuilder: (uri, title, alt) => DocumentImage(
                 uri: uri,
                 documentPath: vm.current.path,
@@ -347,6 +363,21 @@ class _DocumentReadingState extends State<_DocumentReading> {
                   launchUrl(uri, mode: LaunchMode.externalApplication);
                 }
               },
+            );
+            if (block.kind != MarkdownBlockKind.table) return reader;
+            return Listener(
+              onPointerDown: (event) {
+                if (event.buttons == kSecondaryMouseButton) {
+                  widget.onContextMenu?.call(
+                    MarkdownContextRequest(
+                      offset: block.range.start,
+                      position: event.position,
+                      readOnly: true,
+                    ),
+                  );
+                }
+              },
+              child: reader,
             );
           },
         ),

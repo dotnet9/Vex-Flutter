@@ -12,24 +12,25 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../data/services/file_service.dart';
-import '../../domain/workspace.dart';
 import '../../domain/file_preferences.dart';
+import '../../domain/workspace.dart';
 import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
 import '../core/palette_tokens.dart';
+import 'builtin_documents.dart';
 import 'insert_table_dialog.dart';
 import 'mermaid_picker.dart';
 import 'preferences_dialog.dart';
 import 'workspace_dialogs.dart';
 import 'workspace_guide.dart';
-import 'workspace_panes.dart';
 import 'workspace_menu.dart';
-import 'workspace_touch_menu.dart';
+import 'workspace_menu_widgets.dart';
+import 'workspace_panes.dart';
 import 'workspace_pickers.dart';
 import 'workspace_presentation.dart';
 import 'workspace_sidebar.dart';
+import 'workspace_touch_menu.dart';
 import 'workspace_view_model.dart';
-import 'builtin_documents.dart';
 
 class WorkspaceScreen extends StatefulWidget {
   const WorkspaceScreen({super.key, this.windowIntegration = false});
@@ -350,6 +351,27 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   }
 
   void _action(String action) {
+    if (action.startsWith('table:')) {
+      final target = vm.editor.tableTarget();
+      if (target == null) return;
+      final command = MarkdownTableCommand.values.byName(action.substring(6));
+      if (command == MarkdownTableCommand.copy) {
+        unawaited(
+          _run(
+            () => Clipboard.setData(
+              ClipboardData(text: target.block.range.slice(target.source)),
+            ),
+          ),
+        );
+      } else {
+        try {
+          vm.editor.editTable(target, command);
+        } catch (error) {
+          _error(error);
+        }
+      }
+      return;
+    }
     if (action.startsWith('mermaid:')) {
       vm.editor.insertMermaid(
         MermaidTemplate.values.byName(action.substring(8)).source,
@@ -1279,44 +1301,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     ),
   );
 
-  List<Widget> _menuChildren(List<WorkspaceMenuEntry> items) => [
-    for (final item in items)
-      if (item.isSeparator)
-        const Divider(height: 13, indent: 8, endIndent: 8)
-      else if (item.children.isNotEmpty)
-        SubmenuButton(
-          key: ValueKey('menu-${item.id}'),
-          leadingIcon: const SizedBox(width: 16),
-          menuChildren: _menuChildren(item.children),
-          child: Text(item.label),
-        )
-      else
-        MenuItemButton(
-          key: ValueKey('menu-${item.id}'),
-          leadingIcon: SizedBox(
-            width: 16,
-            child: item.checked == true ? const AppGlyph('check') : null,
-          ),
-          onPressed: item.enabled ? () => _action(item.id) : null,
-          trailingIcon: item.shortcut == null
-              ? null
-              : Text(
-                  workspaceShortcutLabel(item.shortcut),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 320),
-            child: Text(
-              item.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ),
-  ];
+  List<Widget> _menuChildren(List<WorkspaceMenuEntry> items) =>
+      workspaceMenuWidgets(context, items, _action);
 
   Future<void> _touchMenu(double width) async {
     final action = await showWorkspaceTouchMenu(context, _menus(width));

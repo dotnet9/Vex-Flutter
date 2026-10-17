@@ -179,7 +179,11 @@ List<WorkspaceMenuEntry> workspaceMenus(
       item('format:task', l.taskList),
       item('format:quote', l.quote),
       divider,
-      item('format:table', l.table),
+      group(
+        'table',
+        l.table,
+        workspaceTableEntries(l, vm.editor.tableTarget()),
+      ),
       item('format:code', l.codeBlock),
       item('format:math', l.mathBlock),
       item('format:rule', l.horizontalRule),
@@ -317,6 +321,45 @@ List<WorkspaceMenuEntry> workspaceMenus(
   ];
   return menus;
 }
+
+List<WorkspaceMenuEntry> workspaceTableEntries(
+  AppLocalizations l,
+  MarkdownTableTarget? target, {
+  bool readOnly = false,
+}) => [
+  if (!readOnly) WorkspaceMenuEntry('format:table', l.insertTable),
+  if (!readOnly) const WorkspaceMenuEntry.separator(),
+  for (final command in MarkdownTableCommand.values) ...[
+    if (const [
+      MarkdownTableCommand.columnBefore,
+      MarkdownTableCommand.rowUp,
+      MarkdownTableCommand.alignLeft,
+      MarkdownTableCommand.deleteRow,
+      MarkdownTableCommand.copy,
+      MarkdownTableCommand.delete,
+    ].contains(command))
+      const WorkspaceMenuEntry.separator(),
+    WorkspaceMenuEntry(
+      'table:${command.name}',
+      l.tableCommandName(command),
+      enabled:
+          target?.can(command) == true &&
+          (!readOnly || command == MarkdownTableCommand.copy),
+      checked: switch (command) {
+        MarkdownTableCommand.alignLeft =>
+          target?.table.alignments[target.column] ==
+              MarkdownTableAlignment.left,
+        MarkdownTableCommand.alignCenter =>
+          target?.table.alignments[target.column] ==
+              MarkdownTableAlignment.center,
+        MarkdownTableCommand.alignRight =>
+          target?.table.alignments[target.column] ==
+              MarkdownTableAlignment.right,
+        _ => null,
+      },
+    ),
+  ],
+];
 
 List<PlatformMenuItem> workspacePlatformItems(
   List<WorkspaceMenuEntry> entries,

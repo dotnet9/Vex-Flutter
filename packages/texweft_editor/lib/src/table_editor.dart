@@ -1,78 +1,11 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:texweft_markdown_core/texweft_markdown_core.dart';
 
+import 'context_request.dart';
 import 'controller.dart';
-
-/// A cell keeps its source range, including escaped pipes and code spans.
-final class TableCellSource {
-  const TableCellSource(this.range, this.text);
-  final SourceRange range;
-  final String text;
-}
-
-List<List<TableCellSource>> parseTableCells(String source, int start, int end) {
-  final rows = <List<TableCellSource>>[];
-  final lines = RegExp(r'[^\r\n]+').allMatches(source.substring(start, end));
-  for (final line in lines) {
-    if (rows.length == 1 &&
-        RegExp(r'^\s*\|?\s*:?-{3,}').hasMatch(line.group(0)!)) {
-      continue;
-    }
-    final value = line.group(0)!;
-    final dividers = <int>[];
-    var escaped = false, ticks = 0;
-    for (var i = 0; i < value.length; i++) {
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-      if (value[i] == r'\') {
-        escaped = true;
-        continue;
-      }
-      if (value[i] == '`') {
-        var count = 1;
-        while (i + count < value.length && value[i + count] == '`') {
-          count++;
-        }
-        ticks = ticks == count
-            ? 0
-            : ticks == 0
-            ? count
-            : ticks;
-        i += count - 1;
-      } else if (value[i] == '|' && ticks == 0) {
-        dividers.add(i);
-      }
-    }
-    final boundaries = [-1, ...dividers, value.length];
-    final row = <TableCellSource>[];
-    for (var i = 0; i + 1 < boundaries.length; i++) {
-      var left = boundaries[i] + 1, right = boundaries[i + 1];
-      if ((i == 0 || i == boundaries.length - 2) &&
-          value.substring(left, right).trim().isEmpty &&
-          dividers.isNotEmpty) {
-        continue;
-      }
-      while (left < right && value[left] == ' ') {
-        left++;
-      }
-      while (right > left && value[right - 1] == ' ') {
-        right--;
-      }
-      final offset = start + line.start;
-      row.add(
-        TableCellSource(
-          SourceRange(offset + left, offset + right),
-          value.substring(left, right).replaceAll(r'\|', '|'),
-        ),
-      );
-    }
-    if (row.isNotEmpty) rows.add(row);
-  }
-  return rows;
-}
+import 'table_model.dart';
 
 class MarkdownTableEditor extends StatefulWidget {
   const MarkdownTableEditor({
@@ -81,10 +14,12 @@ class MarkdownTableEditor extends StatefulWidget {
     required this.start,
     required this.end,
     required this.style,
+    this.onContextMenu,
   });
   final MarkdownEditorController controller;
   final int start, end;
   final TextStyle style;
+  final ValueChanged<MarkdownContextRequest>? onContextMenu;
   @override
   State<MarkdownTableEditor> createState() => _MarkdownTableEditorState();
 }
@@ -99,11 +34,6 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
     widget.end.clamp(widget.start, widget.controller.text.length),
   );
 
-  int _sourceOffset(String text, int offset) => text
-      .substring(0, offset.clamp(0, text.length))
-      .replaceAll('|', r'\|')
-      .length;
-
   void _changed(String key, int row, int column) {
     if (_syncing) return;
     final input = _inputs[key]!;
@@ -113,7 +43,8 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
     final rows = _rows;
     if (row >= rows.length || column >= rows[row].length) return;
     final cell = rows[row][column];
-    final encoded = input.text.replaceAll('|', r'\|');
+    final raw = cell.range.slice(widget.controller.text);
+    final encoded = input.text == cell.text ? raw : encodeTableCell(input.text);
     _writing = true;
     try {
       if (cell.range.slice(widget.controller.text) != encoded) {
@@ -125,9 +56,9 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
       }
       widget.controller.select(
         cell.range.start +
-            _sourceOffset(input.text, input.selection.baseOffset),
+            tableCellSourceOffset(encoded, input.selection.baseOffset),
         cell.range.start +
-            _sourceOffset(input.text, input.selection.extentOffset),
+            tableCellSourceOffset(encoded, input.selection.extentOffset),
       );
     } finally {
       _writing = false;
@@ -150,6 +81,9 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
     final rows = _rows;
     if (rows.isEmpty) return const SizedBox.shrink();
     final colors = Theme.of(context).colorScheme;
+    final alignments = MarkdownTable.parse(
+      widget.controller.text.substring(widget.start, widget.end),
+    )?.alignments;
     final columns = rows.map((r) => r.length).reduce((a, b) => a > b ? a : b);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -179,7 +113,14 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
                           if (col >= rows[row].length)
                             const SizedBox(height: 44)
                           else
-                            _cell(rows[row][col], row, col, columns),
+                            _cell(
+                              rows[row][col],
+                              row,
+                              col,
+                              columns,
+                              alignments?.elementAtOrNull(col) ??
+                                  MarkdownTableAlignment.none,
+                            ),
                       ],
                     ),
                 ],
@@ -191,7 +132,13 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
     );
   }
 
-  Widget _cell(TableCellSource cell, int row, int col, int columns) {
+  Widget _cell(
+    TableCellSource cell,
+    int row,
+    int col,
+    int columns,
+    MarkdownTableAlignment alignment,
+  ) {
     final key = '$row-$col';
     final input = _inputs.putIfAbsent(key, () {
       final input = TextEditingController(text: cell.text);
@@ -209,24 +156,90 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
       _syncing = false;
     }
     final focus = _focus.putIfAbsent(key, FocusNode.new);
+    final selection = widget.controller.selection;
+    if (!_writing &&
+        _focus.values.any((node) => node.hasFocus) &&
+        selection.isValid &&
+        selection.start >= cell.range.start &&
+        selection.end <= cell.range.end) {
+      final raw = cell.range.slice(widget.controller.text);
+      final local = TextSelection(
+        baseOffset: tableCellDisplayOffset(
+          raw,
+          selection.baseOffset - cell.range.start,
+        ),
+        extentOffset: tableCellDisplayOffset(
+          raw,
+          selection.extentOffset - cell.range.start,
+        ),
+      );
+      if (!focus.hasFocus || input.selection != local) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || widget.controller.selection != selection) return;
+          _syncing = true;
+          input.selection = local;
+          focus.requestFocus();
+          _syncing = false;
+        });
+      }
+    }
     return FocusTraversalOrder(
       order: NumericFocusOrder((row * columns + col).toDouble()),
-      child: TextField(
-        key: ValueKey('table-cell-$row-$col'),
-        controller: input,
-        focusNode: focus,
-        style: widget.style.copyWith(
-          fontWeight: row == 0 ? FontWeight.w600 : FontWeight.w400,
-        ),
-        inputFormatters: [FilteringTextInputFormatter.singleLineFormatter],
-        onSubmitted: (_) => focus.nextFocus(),
-        decoration: const InputDecoration(
-          isDense: true,
-          filled: false,
-          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
+      child: Listener(
+        onPointerDown: widget.onContextMenu == null
+            ? null
+            : (event) {
+                if (event.buttons == kSecondaryMouseButton) {
+                  widget.onContextMenu!(
+                    MarkdownContextRequest(
+                      offset: cell.range.start,
+                      position: event.position,
+                      tableRow: row,
+                      tableColumn: col,
+                    ),
+                  );
+                }
+              },
+        child: TextField(
+          key: ValueKey('table-cell-$row-$col'),
+          controller: input,
+          focusNode: focus,
+          style: widget.style.copyWith(
+            fontWeight: row == 0 ? FontWeight.w600 : FontWeight.w400,
+          ),
+          textAlign: switch (alignment) {
+            MarkdownTableAlignment.center => TextAlign.center,
+            MarkdownTableAlignment.right => TextAlign.right,
+            _ => TextAlign.left,
+          },
+          contextMenuBuilder: widget.onContextMenu == null
+              ? null
+              : (context, editable) {
+                  final anchor = editable.contextMenuAnchors.primaryAnchor;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!mounted) return;
+                    editable.hideToolbar();
+                    widget.onContextMenu!(
+                      MarkdownContextRequest(
+                        offset: cell.range.start,
+                        position: anchor,
+                        tableRow: row,
+                        tableColumn: col,
+                      ),
+                    );
+                  });
+                  return const SizedBox.shrink();
+                },
+          inputFormatters: [FilteringTextInputFormatter.singleLineFormatter],
+          onSubmitted: (_) => focus.nextFocus(),
+          decoration: const InputDecoration(
+            isDense: true,
+            filled: false,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+          ),
         ),
       ),
     );

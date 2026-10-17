@@ -1303,6 +1303,54 @@ class AppLocalizationsZh extends AppLocalizations {
   String get menuParagraph => '段落';
 
   @override
+  String get tableRowAbove => '上方插入行';
+
+  @override
+  String get tableRowBelow => '下方插入行';
+
+  @override
+  String get tableColumnBefore => '左侧插入列';
+
+  @override
+  String get tableColumnAfter => '右侧插入列';
+
+  @override
+  String get tableRowUp => '上移该行';
+
+  @override
+  String get tableRowDown => '下移该行';
+
+  @override
+  String get tableColumnLeft => '左移该列';
+
+  @override
+  String get tableColumnRight => '右移该列';
+
+  @override
+  String get tableAlignLeft => '列左对齐';
+
+  @override
+  String get tableAlignCenter => '列居中对齐';
+
+  @override
+  String get tableAlignRight => '列右对齐';
+
+  @override
+  String get tableDeleteRow => '删除行';
+
+  @override
+  String get tableDeleteColumn => '删除列';
+
+  @override
+  String get tableCopy => '复制表格';
+
+  @override
+  String get tableFormat => '格式化表格源码';
+
+  @override
+  String get tableDelete => '删除表格';
+
+  @override
   String get menuFormat => '格式';
 
   @override
@@ -2658,6 +2706,54 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get menuParagraph => '段落';
+
+  @override
+  String get tableRowAbove => '在上方插入列';
+
+  @override
+  String get tableRowBelow => '在下方插入列';
+
+  @override
+  String get tableColumnBefore => '在左側插入欄';
+
+  @override
+  String get tableColumnAfter => '在右側插入欄';
+
+  @override
+  String get tableRowUp => '上移此列';
+
+  @override
+  String get tableRowDown => '下移此列';
+
+  @override
+  String get tableColumnLeft => '左移此欄';
+
+  @override
+  String get tableColumnRight => '右移此欄';
+
+  @override
+  String get tableAlignLeft => '欄靠左對齊';
+
+  @override
+  String get tableAlignCenter => '欄置中對齊';
+
+  @override
+  String get tableAlignRight => '欄靠右對齊';
+
+  @override
+  String get tableDeleteRow => '刪除列';
+
+  @override
+  String get tableDeleteColumn => '刪除欄';
+
+  @override
+  String get tableCopy => '複製表格';
+
+  @override
+  String get tableFormat => '格式化表格原始碼';
+
+  @override
+  String get tableDelete => '刪除表格';
 
   @override
   String get menuFormat => '格式';

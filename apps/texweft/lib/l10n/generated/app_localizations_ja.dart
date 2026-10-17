@@ -1308,6 +1308,54 @@ class AppLocalizationsJa extends AppLocalizations {
   String get menuParagraph => '段落';
 
   @override
+  String get tableRowAbove => '上に行を挿入';
+
+  @override
+  String get tableRowBelow => '下に行を挿入';
+
+  @override
+  String get tableColumnBefore => '左に列を挿入';
+
+  @override
+  String get tableColumnAfter => '右に列を挿入';
+
+  @override
+  String get tableRowUp => '行を上へ移動';
+
+  @override
+  String get tableRowDown => '行を下へ移動';
+
+  @override
+  String get tableColumnLeft => '列を左へ移動';
+
+  @override
+  String get tableColumnRight => '列を右へ移動';
+
+  @override
+  String get tableAlignLeft => '列を左揃え';
+
+  @override
+  String get tableAlignCenter => '列を中央揃え';
+
+  @override
+  String get tableAlignRight => '列を右揃え';
+
+  @override
+  String get tableDeleteRow => '行を削除';
+
+  @override
+  String get tableDeleteColumn => '列を削除';
+
+  @override
+  String get tableCopy => '表をコピー';
+
+  @override
+  String get tableFormat => '表のソースを整形';
+
+  @override
+  String get tableDelete => '表を削除';
+
+  @override
   String get menuFormat => '書式';
 
   @override
