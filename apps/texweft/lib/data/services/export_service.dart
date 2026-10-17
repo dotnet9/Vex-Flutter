@@ -31,6 +31,43 @@ final class DocumentExportService {
       node is md.Element &&
       (node.tag == 'vex-math' || node.tag == 'vex-math-block');
 
+  // CommonMark tight lists contain inline nodes directly; loose lists use <p>.
+  static List<md.Node> _listBlocks(md.Element item) {
+    const tags = {
+      'p',
+      'ul',
+      'ol',
+      'blockquote',
+      'pre',
+      'table',
+      'hr',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'vex-math-block',
+    };
+    final blocks = <md.Node>[], inlines = <md.Node>[];
+    void flush() {
+      if (inlines.isEmpty) return;
+      blocks.add(md.Element('p', List.of(inlines)));
+      inlines.clear();
+    }
+
+    for (final child in item.children ?? <md.Node>[]) {
+      if (child is md.Element && tags.contains(child.tag)) {
+        flush();
+        blocks.add(child);
+      } else {
+        inlines.add(child);
+      }
+    }
+    flush();
+    return blocks;
+  }
+
   Future<Map<md.Node, ({ui.Size size, Uint8List bytes})>> _formulaImages(
     List<md.Node> nodes,
     MarkdownPreferences preferences,
@@ -252,10 +289,37 @@ img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:
         );
     List<pw.Widget> render(
       List<md.Node> nodes, {
-      int depth = 0,
+      double indent = 0,
       bool groupDiagrams = true,
     }) {
       final result = <pw.Widget>[];
+      void add(pw.Widget child) => result.add(
+        indent == 0
+            ? child
+            : pw.Padding(
+                padding: pw.EdgeInsets.only(left: indent),
+                child: child,
+              ),
+      );
+      pw.RichText inlineParagraph(
+        List<md.Node> children, {
+        double markerWidth = 0,
+      }) => pw.RichText(
+        overflow: pw.TextOverflow.span,
+        text: pw.TextSpan(
+          style: base,
+          children: _pdfInline(
+            children,
+            base,
+            accent,
+            formulas: formulas,
+            images: images,
+            imageProviders: imageProviders,
+            imageWidth: math.max(24, contentWidth - indent - markerWidth),
+            imageHeight: imageHeight,
+          ),
+        ),
+      );
       for (var index = 0; index < nodes.length; index++) {
         final node = nodes[index];
         if (groupDiagrams &&
@@ -263,15 +327,11 @@ img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:
             RegExp(r'^h[1-6]$').hasMatch(node.tag) &&
             index + 1 < nodes.length &&
             _mermaid(nodes[index + 1])) {
-          result.add(
+          add(
             pw.Inseparable(
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: render(
-                  [node, nodes[++index]],
-                  depth: depth,
-                  groupDiagrams: false,
-                ),
+                children: render([node, nodes[++index]], groupDiagrams: false),
               ),
             ),
           );
@@ -279,14 +339,14 @@ img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:
         }
         if (node is! md.Element) {
           if (node.textContent.trim().isNotEmpty) {
-            result.add(paragraph(node.textContent));
+            add(paragraph(node.textContent));
           }
           continue;
         }
         final heading = RegExp(r'^h([1-6])$').firstMatch(node.tag);
         if (_formula(node)) {
           final image = formulas[node];
-          result.add(
+          add(
             image == null
                 ? paragraph(node.textContent)
                 : pw.Padding(
@@ -321,7 +381,7 @@ img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:
                 ? accent
                 : PdfColors.grey900,
           );
-          result.add(
+          add(
             pw.Container(
               margin: pw.EdgeInsets.only(top: level == 1 ? 0 : 14, bottom: 8),
               padding: const pw.EdgeInsets.only(bottom: 5),
@@ -342,7 +402,7 @@ img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:
                     formulas: formulas,
                     images: images,
                     imageProviders: imageProviders,
-                    imageWidth: contentWidth,
+                    imageWidth: contentWidth - indent,
                     imageHeight: imageHeight,
                   ),
                   style: headingStyle,
@@ -357,16 +417,14 @@ img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:
                 node.textContent,
                 diagramColors,
               );
-              final availableWidth =
-                  format.width -
-                  2 * preferences.margin.clamp(10, 30) * PdfPageFormat.mm;
+              final availableWidth = contentWidth - indent;
               final height = math.min(
                 format.height -
                     2 * preferences.margin.clamp(10, 30) * PdfPageFormat.mm -
                     120,
                 availableWidth * scene.size.height / scene.size.width,
               );
-              result.add(
+              add(
                 pw.Container(
                   width: availableWidth,
                   height: height,
@@ -386,7 +444,7 @@ img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:
               // Keep the source readable when the engine rejects a diagram.
             }
           }
-          result.add(
+          add(
             pw.Table(
               border: pw.TableBorder(
                 top: pw.BorderSide(color: line),
@@ -426,7 +484,7 @@ img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:
             ),
           );
         } else if (node.tag == 'blockquote') {
-          result.add(
+          add(
             pw.Container(
               padding: const pw.EdgeInsets.only(left: 12),
               margin: const pw.EdgeInsets.symmetric(vertical: 8),
@@ -435,45 +493,51 @@ img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:
               ),
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: render(node.children ?? [], depth: depth),
+                children: render(node.children ?? []),
               ),
             ),
           );
         } else if (node.tag == 'ul' || node.tag == 'ol') {
           var index = int.tryParse(node.attributes['start'] ?? '1') ?? 1;
-          for (final item in (node.children ?? []).whereType<md.Element>()) {
-            result.add(
+          final items = (node.children ?? []).whereType<md.Element>().toList();
+          final markerWidth = node.tag == 'ol'
+              ? math.max(18.0, '${index + items.length - 1}.'.length * 6.0)
+              : 18.0;
+          for (final item in items) {
+            final blocks = _listBlocks(item);
+            final first = blocks.firstOrNull;
+            final hasParagraph = first is md.Element && first.tag == 'p';
+            add(
               pw.Padding(
-                padding: pw.EdgeInsets.only(left: depth * 12, bottom: 5),
-                child: pw.Row(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                padding: const pw.EdgeInsets.only(bottom: 5),
+                child: pw.Partitions(
                   children: [
-                    pw.SizedBox(
-                      width: 18,
-                      child: pw.Text(
-                        node.tag == 'ol' ? '${index++}.' : '•',
-                        style: base.copyWith(color: accent),
+                    pw.Partition(
+                      width: markerWidth,
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            node.tag == 'ol' ? '${index++}.' : '•',
+                            style: base.copyWith(color: accent),
+                          ),
+                        ],
                       ),
                     ),
-                    pw.Expanded(
-                      child: pw.RichText(
-                        text: pw.TextSpan(
-                          style: base,
-                          children: _pdfInline(
-                            item.children ?? [],
-                            base,
-                            accent,
-                            formulas: formulas,
-                            images: images,
-                            imageProviders: imageProviders,
-                            imageWidth: contentWidth - depth * 12 - 18,
-                            imageHeight: imageHeight,
-                          ),
-                        ),
+                    pw.Partition(
+                      child: inlineParagraph(
+                        hasParagraph ? first.children ?? [] : [],
+                        markerWidth: markerWidth,
                       ),
                     ),
                   ],
                 ),
+              ),
+            );
+            result.addAll(
+              render(
+                hasParagraph ? blocks.skip(1).toList() : blocks,
+                indent: indent + markerWidth,
               ),
             );
           }
@@ -492,7 +556,7 @@ img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:
 
           collect(node);
           if (rows.isNotEmpty) {
-            result.add(
+            add(
               pw.Padding(
                 padding: const pw.EdgeInsets.symmetric(vertical: 10),
                 child: pw.Table(
@@ -519,7 +583,9 @@ img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:
                                     images: images,
                                     imageProviders: imageProviders,
                                     imageWidth:
-                                        contentWidth / rows[row].length - 16,
+                                        (contentWidth - indent) /
+                                            rows[row].length -
+                                        16,
                                     imageHeight: math.min(imageHeight, 250),
                                   ),
                                 ),
@@ -533,25 +599,13 @@ img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:
             );
           }
         } else if (node.tag == 'hr') {
-          result.add(pw.Divider(color: line));
+          add(pw.Divider(color: line));
         } else {
-          result.add(
+          add(
             pw.Padding(
               padding: pw.EdgeInsets.only(bottom: compact ? 7 : 12),
-              child: pw.RichText(
-                text: pw.TextSpan(
-                  style: base,
-                  children: _pdfInline(
-                    node.children ?? [md.Text(node.textContent)],
-                    base,
-                    accent,
-                    formulas: formulas,
-                    images: images,
-                    imageProviders: imageProviders,
-                    imageWidth: contentWidth - depth * 12,
-                    imageHeight: imageHeight,
-                  ),
-                ),
+              child: inlineParagraph(
+                node.children ?? [md.Text(node.textContent)],
               ),
             ),
           );
@@ -903,7 +957,9 @@ img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:
     }
 
     final body = StringBuffer();
-    void block(md.Node node) {
+    final numbering = StringBuffer();
+    var nextListId = 0;
+    void block(md.Node node, {int listDepth = 0, String properties = ''}) {
       final diagram = diagrams[node];
       if (diagram != null) {
         final (index, width, height) = diagram;
@@ -957,24 +1013,49 @@ img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:
         return;
       }
       if (node.tag == 'blockquote') {
-        for (final child in node.children ?? <md.Node>[]) {
-          block(child);
+        final children = node.children ?? <md.Node>[];
+        for (var i = 0; i < children.length; i++) {
+          block(
+            children[i],
+            listDepth: listDepth,
+            properties: i == 0 ? properties : '',
+          );
         }
         return;
       }
       if (node.tag == 'ul' || node.tag == 'ol') {
-        var i = 1;
-        for (final child in node.children ?? <md.Node>[]) {
-          body.write(
-            '<w:p><w:pPr><w:ind w:left="360" w:hanging="200"/></w:pPr>${run(node.tag == 'ul' ? '• ' : '${i++}. ')}${inline(child)}</w:p>',
-          );
+        final id = ++nextListId, level = listDepth.clamp(0, 8);
+        final start = int.tryParse(node.attributes['start'] ?? '1') ?? 1;
+        numbering.write(
+          '<w:num w:numId="$id"><w:abstractNumId w:val="${node.tag == 'ol' ? 1 : 2}"/><w:lvlOverride w:ilvl="$level"><w:startOverride w:val="$start"/></w:lvlOverride></w:num>',
+        );
+        for (final child in (node.children ?? []).whereType<md.Element>()) {
+          final blocks = _listBlocks(child);
+          final listProperties =
+              '<w:numPr><w:ilvl w:val="$level"/><w:numId w:val="$id"/></w:numPr>';
+          final first = blocks.firstOrNull;
+          final startsWithText =
+              first is md.Element &&
+              (first.tag == 'p' || RegExp(r'^h[1-6]$').hasMatch(first.tag));
+          if (!startsWithText) {
+            body.write('<w:p><w:pPr>$listProperties</w:pPr></w:p>');
+          }
+          for (var i = 0; i < blocks.length; i++) {
+            block(
+              blocks[i],
+              listDepth: listDepth + 1,
+              properties: i == 0 && startsWithText
+                  ? listProperties
+                  : '<w:ind w:left="${(level + 1) * 360}"/>',
+            );
+          }
         }
         return;
       }
       final heading = RegExp(r'^h([1-6])$').firstMatch(node.tag);
       body.write(
-        '<w:p><w:pPr>${heading != null ? '<w:pStyle w:val="Heading${heading[1]}"/><w:keepNext/>' : ''}'
-        '${node.tag == 'pre' ? '<w:shd w:fill="F3F6F2"/>' : ''}<w:spacing w:after="180" w:line="320" w:lineRule="auto"/></w:pPr>${inline(node)}</w:p>',
+        '<w:p><w:pPr>${heading != null ? '<w:pStyle w:val="Heading${heading[1]}"/><w:keepNext/>' : ''}$properties'
+        '${node.tag == 'pre' ? '<w:shd w:fill="F3F6F2"/>' : ''}<w:spacing w:after="180" w:line="320" w:lineRule="auto"/></w:pPr>${inline(node, imageWidth: math.max(400000, 5600000 - listDepth * 228600))}</w:p>',
       );
     }
 
@@ -983,7 +1064,7 @@ img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:
     }
     add(
       '[Content_Types].xml',
-      '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>',
+      '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>${numbering.isEmpty ? '' : '<Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/>'}</Types>',
     );
     add(
       '_rels/.rels',
@@ -991,8 +1072,21 @@ img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:
     );
     add(
       'word/_rels/document.xml.rels',
-      '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>$imageRelationships</Relationships>',
+      '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>${numbering.isEmpty ? '' : '<Relationship Id="rIdNumbering" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>'}$imageRelationships</Relationships>',
     );
+    if (numbering.isNotEmpty) {
+      add(
+        'word/numbering.xml',
+        '<?xml version="1.0" encoding="UTF-8"?><w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+            '${[
+              for (var type = 1; type <= 2; type++) '<w:abstractNum w:abstractNumId="$type"><w:multiLevelType w:val="multilevel"/>'
+                    '${[for (var level = 0; level < 9; level++) '<w:lvl w:ilvl="$level"><w:start w:val="1"/><w:numFmt w:val="${type == 1 ? 'decimal' : 'bullet'}"/>'
+                          '<w:lvlText w:val="${type == 1 ? '%${level + 1}.' : '•'}"/><w:lvlJc w:val="left"/>'
+                          '<w:pPr><w:tabs><w:tab w:val="num" w:pos="${(level + 1) * 360}"/></w:tabs>'
+                          '<w:ind w:left="${(level + 1) * 360}" w:hanging="240"/></w:pPr></w:lvl>'].join()}</w:abstractNum>',
+            ].join()}$numbering</w:numbering>',
+      );
+    }
     add(
       'word/styles.xml',
       '<?xml version="1.0" encoding="UTF-8"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:eastAsia="Microsoft YaHei"/><w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults>${[for (var i = 1; i <= 6; i++) '<w:style w:type="paragraph" w:styleId="Heading$i"><w:name w:val="heading $i"/><w:pPr><w:outlineLvl w:val="${i - 1}"/></w:pPr><w:rPr><w:b/><w:sz w:val="${i == 1
