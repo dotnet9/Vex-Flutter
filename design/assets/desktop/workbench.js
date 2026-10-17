@@ -1,37 +1,17 @@
 (function () {
   'use strict';
   var $ = function (id) { return document.getElementById(id); }, MM = window.TexweftMindMap;
-  var sample = [
-    '# 主题设计笔记', '',
-    '让写作、阅读与结构梳理共享同一份 Markdown，切换视角时保留正在关注的内容。', '',
-    '## 设计原则', '',
-    '### 保持沉浸感', '',
-    '把注意力留给内容。写作时保留必要工具，阅读和梳理结构时让文档占据更多空间。', '',
-    '### 降低视觉噪音', '',
-    '用层级、留白和少量强调色表达关系，避免让边框、按钮和状态提示争夺注意力。', '',
-    '## 主题色体系', '',
-    '主题需要同时照顾浅色与深色。强调色用于选中、定位和主要操作，正文保持稳定对比度。', '',
-    '- 浅色与深色独立选择',
-    '- 八套配色共用语义令牌', '',
-    '## 排版与字距', '',
-    '正文以舒适阅读为先，标题层级清晰。导图中的段落默认截取三十个字，点击后可查看完整内容。', '',
-    '## 导出一致性', '',
-    '> 同一份内容，在编辑器、阅读视图与导出文件中，都应该保留清晰的结构。', '',
-    '| 输出格式 | 使用场景 |', '| --- | --- |', '| HTML | 网页发布 |', '| PDF | 阅读与分享 |', '',
-    '```markdown', '# 这里是代码，不生成标题节点', '```'
-  ].join('\n');
-  var docs = [
-    { name: '主题设计笔记.md', text: sample },
-    { name: '每周复盘.md', text: '# 每周复盘\n\n## 本周进展\n\n完成写作工作台的第一版原型，把结构梳理融入日常 Markdown 写作。\n\n- [x] 确认三个主要视图\n- [x] 验证导图摘要长度\n- [ ] 收集实际使用反馈\n\n## 遇到的问题\n\n文档变长时，单看大纲很难理解章节的具体内容，需要段落摘要辅助判断。\n\n## 下周计划\n\n先验证原型，再接入原生导图控件，避免在交互未确定时投入大量实现工作。' },
-    { name: '读书摘录.md', text: '# 读书摘录\n\n## 写作就是思考\n\n写下来，才能看清一个想法里缺失的环节。结构帮助我们识别重复、跳跃与尚未回答的问题。\n\n> 好的工具应该让想法更清楚。\n\n## 从笔记到文章\n\n### 收集素材\n\n先保留原始材料与出处，避免过早修改。\n\n### 整理结构\n\n把相近的观点放在一起，先确定层级，再补充论据。' },
-    { name: '快速开始.md', text: '# 快速开始\n\n## 编辑\n\n默认使用即时渲染，点击正文直接放置光标，标题、字号和行距保持原样。也可以切换源码，一边编辑 Markdown，一边查看正文。两种方式与导图共享内容。\n\n## 阅读\n\n切换到阅读视图，专注于排版后的完整内容。\n\n## 导图\n\n点击顶部导图查看结构，在摘要设置中调整长度，也可以隐藏内容只看标题。\n\n- 点击节点查看全文\n- 点击分支右侧按钮折叠\n- 拖动画布平移\n- Ctrl 加滚轮缩放\n\n## 打开自己的文档\n\n从文件菜单打开 Markdown 文件。保存按钮会下载副本，原文件不会被覆盖。' },
-    { name: '导出指南.md', text: '# 导出指南\n\n## Markdown\n\n保存会下载当前文档的副本。\n\n## HTML\n\n从文件菜单导出 HTML，得到包含正文内容的独立页面。\n\n## PDF 与 Word\n\n这两个入口保留操作演示，正式版本使用文档导出服务。' }
-  ];
-  var settings = { length: 30, paragraphs: true, lists: true, blocks: false };
+  // 原型始终提供演示文档；正式应用的空启动由 Flutter 工作区独立处理。
+  var docs = TexweftSamples.map(function (doc) { return Object.assign({}, doc); });
+  var builtin = window.VexDocuments?.[new URLSearchParams(location.search).get('document')];
+  if (builtin) docs = [{name:builtin.name,text:builtin.text,readOnly:true}];
+  var workspaceFolder = '演示文档';
+  var settings = { length: 30, paragraphs: true, lists: true, blocks: false, layout: 'right' };
   try {
     var saved = JSON.parse(TexweftStorage.getItem('texweft-design-mindmap') || '{}');
     if (Number.isInteger(saved.length) && saved.length >= 1 && saved.length <= 120) settings.length = saved.length;
     ['paragraphs', 'lists', 'blocks'].forEach(function (key) { if (typeof saved[key] === 'boolean') settings[key] = saved[key]; });
+    if (VexMapLayout.valid(saved.layout)) settings.layout = saved.layout;
   } catch (_) {}
   var editMode = 'instant';
   try { if (TexweftStorage.getItem('texweft-design-edit-method') === 'source') editMode = 'source'; } catch (_) {}
@@ -69,11 +49,16 @@
   var labels = { heading: '标题', paragraph: '段落', quote: '引用', list: '列表项', code: '代码块', table: '表格' };
   var branchColors = ['var(--accent)', 'var(--success)', 'var(--warning)', 'var(--accent)', 'var(--muted)'];
   var textMeasure = document.createElement('canvas').getContext('2d');
+  var typewriter = VexTypewriter.create({
+    source: input, instant: $('instant-content'), enabled: function () { return state.typewriter; },
+    reducedMotion: function () { return reducedMotion() || document.documentElement.dataset.motion === 'false'; }
+  });
   var instant = createTexweftInstantEditor({
     input: input, blocks: function () { return state.parsed ? state.parsed.blocks : []; },
     renderBlock: function (block) {
       var element = $('markdown-preview').querySelector('[data-line="' + block.line + '"]');
-      return element ? (block.kind === 'list' ? '<ul>' + element.outerHTML + '</ul>' : element.outerHTML) : '<p></p>';
+      var listTag = /^\s*\d+[.)]\s/.test(block.raw) ? 'ol' : 'ul';
+      return element ? (block.kind === 'list' ? '<' + listTag + '>' + element.outerHTML + '</' + listTag + '>' : element.outerHTML) : '<p></p>';
     },
     refresh: refreshNow, cursor: updateCursor, remember: remember,
     autoPair: function () { return state.autoPair; }, typewriter: function () { return state.typewriter; }
@@ -100,6 +85,7 @@
     clearTimeout(state.pending);
     state.doc = index; state.selected = null; state.collapsed.clear(); state.dirty = false; state.mapVisited = false;
     input.value = docs[index].text; $('document-name').textContent = docs[index].name; $('node-inspector').hidden = true;
+    input.readOnly = !!docs[index].readOnly; document.body.classList.toggle('builtin-readonly',input.readOnly);
     input.setSelectionRange(0, 0); document.querySelector('.source-scroll').scrollTop = 0;
     document.querySelector('.reading-scroll').scrollTop = 0;
     document.querySelector('.instant-scroll').scrollTop = 0;
@@ -107,46 +93,69 @@
     window.dispatchEvent(new CustomEvent('texweft-document-loaded'));
   }
   function renderFiles() {
+    var collapsed = new Set(Array.from($('file-list').querySelectorAll('details:not([open])')).map(function (node) { return node.dataset.path; }));
     $('file-list').innerHTML = '';
+    function directory(parent, name, path) {
+      var group = document.createElement('details'); group.className = 'file-directory'; group.dataset.path = path;
+      group.open = !collapsed.has(path);
+      var summary = document.createElement('summary');
+      summary.innerHTML = '<svg class="ico tree-chevron" aria-hidden="true"><use href="#i-chevron"/></svg>' + icon('folder') + '<span>' + escape(name) + '</span>';
+      summary.title = name; group.appendChild(summary);
+      var children = document.createElement('div'); children.className = 'file-children'; group.appendChild(children); parent.appendChild(group);
+      return children;
+    }
+    var root = directory($('file-list'), workspaceFolder, ''), folders = new Map([['', root]]);
     docs.forEach(function (doc, index) {
+      var parts = (doc.path || doc.name).split('/'), path = '', parent = root;
+      parts.slice(0, -1).forEach(function (part) {
+        path += '/' + part;
+        if (!folders.has(path)) folders.set(path, directory(parent, part, path));
+        parent = folders.get(path);
+      });
       var button = document.createElement('button'); button.className = 'file-row' + (index === state.doc ? ' selected' : '');
       button.innerHTML = icon('file') + '<span>' + escape(doc.name) + '</span>';
       button.title = doc.name; button.setAttribute('aria-current', index === state.doc ? 'page' : 'false');
       button.onclick = function () { if (index !== state.doc) confirmSwitch(function () { loadDoc(index); }); };
-      $('file-list').appendChild(button);
+      parent.appendChild(button);
     });
     filterFiles();
   }
   function filterFiles() {
     var keyword = $('file-filter').value.trim().toLowerCase(), count = 0;
-    Array.from($('file-list').children).forEach(function (row) { row.hidden = !row.textContent.toLowerCase().includes(keyword); if (!row.hidden) count++; });
+    $('file-list').querySelectorAll('.file-row').forEach(function (row) { row.hidden = !row.textContent.toLowerCase().includes(keyword); if (!row.hidden) count++; });
+    $('file-list').querySelectorAll('.file-directory').forEach(function (folder) {
+      folder.hidden = !folder.querySelector('.file-row:not([hidden])');
+      if (keyword && !folder.hidden) folder.open = true;
+    });
     $('file-empty').hidden = count !== 0;
   }
   $('file-filter').oninput = filterFiles;
   function inline(text) {
-    return escape(text).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    return TexweftRendering.inline(text);
   }
   function renderPreview() {
-    var html = '', listOpen = false;
-    function closeList() { if (listOpen) { html += '</ul>'; listOpen = false; } }
+    var html = '', listOpen = '';
+    function closeList() { if (listOpen) { html += '</' + listOpen + '>'; listOpen = ''; } }
     state.parsed.blocks.forEach(function (block) {
       var attr = ' data-line="' + block.line + '"';
       if (block.kind === 'list') {
-        if (!listOpen) { html += '<ul>'; listOpen = true; }
-        html += '<li' + attr + '>' + (block.checked === null ? '' : block.checked ? '☑ ' : '☐ ') + inline(block.text) + '</li>'; return;
+        var listTag = /^\s*\d+[.)]\s/.test(block.raw) ? 'ol' : 'ul';
+        if (listOpen !== listTag) { closeList(); html += '<' + listTag + '>'; listOpen = listTag; }
+        html += '<li' + attr + '>' + (block.checked === null ? '' : block.checked ? '☑ ' : '☐ ') + inline(block.raw.replace(/^\s*(?:[-+*]|\d+[.)])\s+(?:\[[ xX]\]\s*)?/, '')) + '</li>'; return;
       }
       closeList();
-      if (block.kind === 'heading') html += '<h' + block.level + attr + '>' + inline(block.text) + '</h' + block.level + '>';
+      if (TexweftRendering.special(block)) html += TexweftRendering.renderSpecial(block);
+      else if (block.kind === 'rule') html += '<hr' + attr + '>';
+      else if (block.kind === 'heading') html += '<h' + block.level + attr + '>' + inline(block.raw.split('\n')[0].replace(/^ {0,3}#{1,6}\s+/, '').replace(/\s+#+\s*$/, '')) + '</h' + block.level + '>';
       else if (block.kind === 'code') {
         html += '<section class="md-code-block"' + attr + '><pre><code>' + escape(block.text) + '</code></pre></section>';
       }
-      else if (block.kind === 'quote') html += '<blockquote' + attr + '>' + inline(block.text) + '</blockquote>';
+      else if (block.kind === 'quote') html += '<blockquote' + attr + '>' + inline(block.raw.replace(/^\s*>\s?/gm, '').replace(/\n/g, ' ')) + '</blockquote>';
       else if (block.kind === 'table') {
-        var rows = block.raw.split('\n').filter(function (_, index) { return index !== 1; });
+        var table = VexDocumentOps.table(block.raw), rows = table?.rows || [];
         html += '<table' + attr + '>' + rows.map(function (row, index) {
           var tag = index === 0 ? 'th' : 'td';
-          return '<tr>' + row.replace(/^\s*\||\|\s*$/g, '').split('|').map(function (cell) { return '<' + tag + '>' + inline(cell.trim()) + '</' + tag + '>'; }).join('') + '</tr>';
+          return '<tr>' + row.map(function (cell,col) { return '<' + tag + ' data-align="' + table.align[col] + '" style="text-align:' + (table.align[col] || 'start') + '">' + inline(cell.replace(/\\\|/g,'|')) + '</' + tag + '>'; }).join('') + '</tr>';
         }).join('') + '</table>';
       } else html += '<p' + attr + '>' + inline(block.raw.replace(/\n/g, ' ')) + '</p>';
     });
@@ -155,7 +164,6 @@
   function renderOutline() {
     $('outline-body').innerHTML = '';
     var headings = state.nodes.filter(function (node) { return node.kind === 'heading' && node.level > 0; });
-    $('outline-count').textContent = headings.length;
     headings.forEach(function (node) {
       var button = document.createElement('button'); button.className = 'outline-item';
       button.dataset.sourceLine = node.line;
@@ -187,13 +195,13 @@
     // 源码变化后关闭旧节点详情，防止重新编号后显示到其他段落。
     state.selected = null; $('node-inspector').hidden = true;
     $('line-numbers').innerHTML = state.parsed.lines.map(function (_, index) { return '<div>' + (index + 1) + '</div>'; }).join('');
-    input.style.height = (state.parsed.lines.length * 23 + 82) + 'px';
-    updateMeta(); renderPreview(); instant.render(); renderOutline(); renderMap(); updateCursor();
+    input.style.height = typewriter.sourceHeight() + 'px';
+    updateMeta(); renderPreview(); instant.render(); TexweftRendering.diagrams(); renderOutline(); renderMap(); updateCursor();
     window.dispatchEvent(new CustomEvent('texweft-content-changed'));
   }
   function updateMeta() {
     $('dirty-dot').hidden = !state.dirty;
-    $('save-text').textContent = state.dirty ? '未保存修改' : '未修改';
+    $('save-text').textContent = input.readOnly ? '只读 · 随应用安装的文档' : state.dirty ? '未保存修改' : '未修改';
     $('save-status').querySelector('.ico').style.color = state.dirty ? 'var(--warning)' : 'var(--success)';
     $('sb-wordcount').textContent = contentCount().toLocaleString() + ' 字符';
   }
@@ -207,9 +215,7 @@
   function updateCursor() {
     var before = input.value.slice(0, input.selectionStart).split('\n');
     $('cursor-position').textContent = '行 ' + before.length + '，列 ' + (MM.characters(before[before.length - 1]).length + 1);
-    if (state.typewriter && document.activeElement === input) {
-      var scroll = document.querySelector('.source-scroll'); scroll.scrollTop = Math.max(0, (before.length - 1) * 23 - scroll.clientHeight / 2);
-    }
+    if (state.typewriter) typewriter.request();
   }
   ['click', 'keyup', 'select'].forEach(function (event) { input.addEventListener(event, updateCursor); });
   input.addEventListener('keydown', function (event) {
@@ -236,7 +242,7 @@
       TexweftPresentation.open({
         text: function () { return input.value; }, title: function () { return docs[state.doc].name; },
         finish: function () { instant.finish(); closeLayers(); }, language: function () { return state.language; },
-        background: document.querySelector('.app-window'), mapMode: function () { return state.view === 'mindmap'; }
+        background: document.querySelector('.app-window'), mapMode: function () { return state.view === 'mindmap'; }, mapLayout: function () { return settings.layout; }
       });
       return;
     }
@@ -265,7 +271,6 @@
     $('reading-title').textContent = view === 'read' ? '阅读' : '正文预览';
     $('edit-instant').setAttribute('aria-pressed', String(state.editMode === 'instant'));
     $('edit-source').setAttribute('aria-pressed', String(state.editMode === 'source'));
-    $('edit-method-description').textContent = state.editMode === 'instant' ? '点击内容即可编辑' : '编辑 Markdown 源码';
     document.querySelector('.workspace').classList.toggle('source-only', view === 'edit' && state.editMode === 'source');
     document.querySelectorAll('.content-area > section').forEach(function (pane) { pane.classList.remove('pane-enter'); void pane.offsetWidth; if (!pane.hidden) pane.classList.add('pane-enter'); });
     $('status-view').textContent = { edit: state.editMode === 'instant' ? '编辑 · 即时渲染' : '编辑 · 源码', read: '阅读视图', mindmap: '思维导图' }[view];
@@ -288,7 +293,7 @@
   });
   document.querySelectorAll('.side-tab').forEach(function (tab) {
     tab.onclick = function () {
-      document.querySelectorAll('.side-tab').forEach(function (item) { item.classList.toggle('on', item === tab); });
+      document.querySelectorAll('.side-tab').forEach(function (item) { item.classList.toggle('on', item === tab); item.setAttribute('aria-selected', String(item === tab)); });
       document.querySelectorAll('[data-pane-body]').forEach(function (pane) { pane.hidden = pane.dataset.paneBody !== tab.dataset.pane; });
     };
   });
@@ -308,26 +313,19 @@
   }
   function renderMap() {
     if (!state.parsed) return;
-    var rendered = [], cursor = 54, gap = 14;
-    function layout(node, depth) {
-      node.width = node.isRoot ? 214 : 224; node.height = height(node); node.x = depth * 272 + 32;
-      var children = state.collapsed.has(node.id) ? [] : visibleChildren(node);
-      if (!children.length) { node.y = cursor; cursor += node.height + gap; }
-      else {
-        children.forEach(function (child) { layout(child, depth + 1); });
-        node.y = (children[0].y + children[0].height / 2 + children[children.length - 1].y + children[children.length - 1].height / 2) / 2 - node.height / 2;
-      }
-      node.visibleChildren = children; rendered.push(node);
-    }
-    layout(state.parsed.root, 0);
+    var geometry = VexMapLayout.layout(state.parsed.root, {
+      mode: settings.layout,
+      children: function (node) { return node.visibleChildren = state.collapsed.has(node.id) ? [] : visibleChildren(node); },
+      measure: function (node) { node.width = node.isRoot ? 214 : 224; node.height = height(node); }
+    }), rendered = geometry.nodes;
+    scene.dataset.layout = settings.layout;
     var visible = new Set(rendered.map(function (node) { return node.id; }));
     mapElements.forEach(function (element, id) { if (!visible.has(id)) { element.remove(); mapElements.delete(id); } });
-    var links = '';
     rendered.forEach(function (node, index) {
       var element = mapElements.get(node.id), isNew = !element;
       if (isNew) { element = document.createElement('div'); mapElements.set(node.id, element); $('map-nodes').appendChild(element); }
       element.className = 'map-node' + (node.isRoot ? ' root' : node.kind === 'heading' ? '' : ' content') + (state.selected === node.id ? ' selected' : '') + (isNew ? ' enter' : '');
-      element.dataset.kind = node.kind; element.dataset.line = node.line; element.dataset.nodeId = node.id; element.style.left = node.x + 'px'; element.style.top = node.y + 'px';
+      element.dataset.kind = node.kind; element.dataset.side = node.layoutSide; element.dataset.line = node.line; element.dataset.nodeId = node.id; element.style.left = node.x + 'px'; element.style.top = node.y + 'px';
       element.style.width = node.width + 'px'; element.style.minHeight = node.height + 'px';
       element.style.setProperty('--branch-color', branchColors[node.branch % branchColors.length]);
       element.style.setProperty('--delay', Math.min(index * 14, 180) + 'ms');
@@ -341,13 +339,9 @@
         collapse.onclick = function () { if (state.collapsed.has(node.id)) state.collapsed.delete(node.id); else state.collapsed.add(node.id); $('node-inspector').hidden = true; renderMap(); };
         element.appendChild(collapse);
       }
-      node.visibleChildren.forEach(function (child) {
-        var x1 = node.x + node.width, y1 = node.y + node.height / 2, x2 = child.x, y2 = child.y + child.height / 2, middle = (x1 + x2) / 2;
-        links += '<path style="--branch-color:' + branchColors[child.branch % branchColors.length] + '" d="M' + x1 + ',' + y1 + ' C' + middle + ',' + y1 + ' ' + middle + ',' + y2 + ' ' + x2 + ',' + y2 + '"/>';
-      });
     });
-    $('map-links').innerHTML = links;
-    state.bounds = { width: Math.max.apply(null, rendered.map(function (node) { return node.x + node.width; })) + 32, height: cursor + 20 };
+    $('map-links').innerHTML = geometry.links.map(function (link) { return '<path style="--branch-color:' + branchColors[link.node.branch % branchColors.length] + '" d="' + link.path + '"/>'; }).join('');
+    state.bounds = { width: geometry.width, height: geometry.height };
     scene.style.width = state.bounds.width + 'px'; scene.style.height = state.bounds.height + 'px';
     $('map-links').setAttribute('width', state.bounds.width); $('map-links').setAttribute('height', state.bounds.height);
     $('map-count').textContent = state.nodes.filter(function (node) { return node.kind === 'heading'; }).length + ' 个标题 · ' + rendered.length + ' 个可见节点';
@@ -361,9 +355,10 @@
     $('zoom-value').textContent = Math.round(state.scale * 100) + '%';
   }
   function fit(readable) {
+    if (settings.layout !== 'right') readable = false;
     if (window.TexweftWorkspace?.current === 'three') readable = false;
     if (state.guideRestoring || $('map-pane').hidden || !state.bounds || !canvas.clientWidth) return;
-    state.scale = Math.min(1, Math.max(readable === true ? .75 : .18, Math.min((canvas.clientWidth - 64) / state.bounds.width, (canvas.clientHeight - 84) / state.bounds.height)));
+    state.scale = Math.min(1, Math.max(readable === true ? .75 : .01, Math.min((canvas.clientWidth - 64) / state.bounds.width, (canvas.clientHeight - 84) / state.bounds.height)));
     state.x = (canvas.clientWidth - state.bounds.width * state.scale) / 2;
     state.y = (canvas.clientHeight - state.bounds.height * state.scale) / 2;
     if (readable === true) state.x = Math.max(24, state.x);
@@ -371,7 +366,7 @@
   }
   function zoom(factor, anchor) {
     anchor = anchor || { x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 };
-    var previous = state.scale; state.scale = Math.min(2, Math.max(.18, state.scale * factor));
+    var previous = state.scale; state.scale = Math.min(2, Math.max(.01, state.scale * factor));
     state.x = anchor.x - (anchor.x - state.x) * state.scale / previous; state.y = anchor.y - (anchor.y - state.y) * state.scale / previous;
     transform(!anchor.pointer);
   }
@@ -431,13 +426,16 @@
     requestAnimationFrame(function () { fit(true); });
   }
   function syncSettings() {
+    $('map-layout').value = settings.layout;
     $('summary-length').value = settings.length; $('show-paragraphs').checked = settings.paragraphs;
     $('show-lists').checked = settings.lists; $('show-blocks').checked = settings.blocks;
     $('summary-label').textContent = !settings.paragraphs && !settings.lists && !settings.blocks ? '仅标题' : '摘要 ' + settings.length + ' 字';
     $('summary-example').textContent = MM.clip('把注意力留给内容。写作时保留必要工具，阅读和梳理结构时让文档占据更多空间。', settings.length);
     try { TexweftStorage.setItem('texweft-design-mindmap', JSON.stringify(settings)); } catch (_) {}
-    renderMap(); requestAnimationFrame(function () { fit(true); });
+    renderMap(); requestAnimationFrame(function () { fit(settings.layout === 'right'); });
   }
+  $('map-layout').innerHTML = VexMapLayout.items.map(function (item) { return '<option value="' + item.key + '">' + item.label + '</option>'; }).join('');
+  $('map-layout').onchange = function () { settings.layout = this.value; syncSettings(); };
   $('summary-length').addEventListener('input', function () {
     var value = Number(this.value); if (!Number.isInteger(value) || value < 1 || value > 120) { this.setCustomValidity('请输入 1–120 之间的整数'); return; }
     this.setCustomValidity(''); settings.length = value; syncSettings();
@@ -492,19 +490,24 @@
     var files = Array.from(this.files || []).filter(function (file) { return /\.(md|markdown|mdown|txt)$/i.test(file.name); });
     if (!files.length) { TexweftProto.toast('文件夹中没有可打开的 Markdown 文件'); this.value = ''; return; }
     try {
-      var loaded = await Promise.all(files.map(async function (file) { return { name: file.name, text: await file.text() }; }));
+      var loaded = await Promise.all(files.map(async function (file) { return { name: file.name, path: file.webkitRelativePath.split('/').slice(1).join('/'), text: await file.text() }; }));
       var folder = (files[0].webkitRelativePath || '').split('/')[0] || 'Markdown';
       confirmSwitch(function () {
-        docs = loaded; state.doc = 0; state.dirty = false; $('workspace-folder').textContent = folder;
+        docs = loaded; state.doc = 0; state.dirty = false; workspaceFolder = folder;
         loadDoc(0); TexweftProto.toast('已打开文件夹 · ' + loaded.length + ' 个 Markdown 文件');
       });
     } catch (_) { TexweftProto.toast('无法读取文件夹中的 Markdown 文件'); }
     this.value = '';
   };
   var snippets = { paragraph: '\n\n新段落\n\n', heading: '\n## 新章节\n\n', list: '\n- 列表项\n', ordered: '\n1. 列表项\n', task: '\n- [ ] 待办事项\n', quote: '\n> 引用内容\n', code: '\n```\n代码内容\n```\n', math: '\n$$\nx^2 + y^2 = z^2\n$$\n', rule: '\n\n---\n\n', 'inline-code': '`代码`', table: '\n| 列一 | 列二 |\n| --- | --- |\n| 内容 | 内容 |\n', link: '[链接文字](https://example.com)', bold: '**文字**', italic: '*文字*', image: '![图片描述](image.png)' };
+  Object.assign(snippets,{mermaid:'\n```mermaid\nflowchart LR\n  A[写下想法] --> B[看见脉络]\n```\n',footnote:'[^1]\n\n[^1]: 脚注内容\n',strike:'~~文字~~',highlight:'==文字==',superscript:'^上标^',subscript:'~下标~'});
+  VexMermaid.items.forEach(function (item) { snippets['mermaid-' + item.key] = VexMermaid.snippet(item.key); });
   [1,2,3,4,5,6].forEach(function (level) { snippets['heading' + level] = '\n' + '#'.repeat(level) + ' 新章节\n\n'; });
   document.getElementById('format-toolbar').addEventListener('mousedown', function (event) { if (event.target.closest('.format-button')) event.preventDefault(); });
   TexweftProto.handleAction = function (action, item) {
+    if (elementMenu && elementMenu.handleAction(action === 'insert-table' ? 'element-insert-table' : action)) return true;
+    if (action === 'preferences' || action === 'preferences-mcp' || action === 'mcp-audit' || action === 'dlg-mcp') { VexPreferences.open(action === 'preferences' ? 'general' : 'mcp'); if (action === 'mcp-audit') document.querySelector('[data-mcp-tab=audit]')?.click(); return true; }
+    if (input.readOnly && (action.startsWith('insert-') || ['save','save-all','undo','redo','cut','paste','replace-all','clear-format','rename','delete-chapter','add-child','add-sibling','move-up','move-down','promote','demote'].includes(action))) { TexweftProto.toast('此文档为只读'); return true; }
     if (window.TexweftWorkspace && TexweftWorkspace.handleAction(action, item)) return true;
     if (action.startsWith('insert-')) { if (state.editMode === 'instant' && instant.format(action.slice(7))) return true; insert(snippets[action.slice(7)] || ''); return true; }
     if (action.startsWith('view-')) { setView(action.slice(5)); return true; }
@@ -532,10 +535,8 @@
         document.querySelector('#layer-delete .dlg-path').textContent = docs[state.doc].name;
       }
       if (action === 'dlg-doc') {
-        var thanks = item && item.arg === '鸣谢'; $('doc-tb-title').textContent = window.TexweftL ? TexweftL.label(thanks ? '鸣谢' : '更新日志') : thanks ? '鸣谢' : '更新日志';
-        document.querySelector('.doc-body').scrollTop = 0;
-        document.querySelector('.doc-body').classList.toggle('thanks-document', thanks);
-        $('doc-content-changelog').hidden = thanks; $('doc-content-thanks').hidden = !thanks; openLayer('doc');
+        var target = new URL(location.href); target.searchParams.set('document',item && item.arg === '鸣谢' ? 'thanks' : 'changelog'); target.searchParams.set('child','1'); target.searchParams.set('layout','read'); target.searchParams.set('view','read'); target.searchParams.delete('scenario');
+        if (!window.open(target.href,'_blank')) TexweftProto.toast('请允许弹出窗口后重试');
       } else openLayer(action.slice(4));
       return true;
     }
@@ -547,13 +548,15 @@
       case 'quick-open': if (!state.sidebar) TexweftProto.handleAction('toggle-sidebar'); TexweftProto.handleAction('pane-files'); $('file-filter').focus(); break;
       case 'save': save(); break;
       case 'save-all': save(); break;
-      case 'export-html': instant.finish(); refreshNow(); download('<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>' + escape(docs[state.doc].name) + '</title><style>body{max-width:780px;margin:50px auto;font:16px/1.9 system-ui;padding:0 24px;color:#242933;background:#fff}pre{padding:16px;background:#f4f5f7;overflow:auto}table{border-collapse:collapse}td,th{border:1px solid #ddd;padding:6px 12px}blockquote{border-left:3px solid #888;padding-left:16px;color:#666}' + TexweftTypography.exportStyles() + '</style><body>' + $('markdown-preview').innerHTML + '</body></html>', docs[state.doc].name.replace(/\.[^.]+$/, '') + '.html', 'text/html;charset=utf-8'); break;
+      case 'export-html': instant.finish(); refreshNow(); download('<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>' + escape(docs[state.doc].name) + '</title><style>body{max-width:780px;margin:50px auto;font:16px/1.9 system-ui;padding:0 24px;color:#242933;background:#fff}pre{padding:16px;background:#f4f5f7;overflow:auto}table{border-collapse:collapse}td,th{border:1px solid #ddd;padding:6px 12px}blockquote{border-left:3px solid #888;padding-left:16px;color:#666}' + TexweftTypography.exportStyles() + VexWatermark.exportStyles + '</style><body>' + $('markdown-preview').innerHTML + VexWatermark.exportMark() + '</body></html>', docs[state.doc].name.replace(/\.[^.]+$/, '') + '.html', 'text/html;charset=utf-8'); break;
+      case 'export-pdf': instant.finish(); refreshNow(); VexWatermark.preview('PDF · ' + docs[state.doc].name,$('markdown-preview').innerHTML); break;
+      case 'toggle-watermark': VexPreferences.set('watermarkPreview',!VexPreferences.values.watermarkPreview); break;
       case 'toggle-sidebar': state.sidebar = !state.sidebar; document.querySelector('.sidebar').classList.toggle('closed', !state.sidebar); $('sidebar-toggle').classList.toggle('on', state.sidebar); $('sidebar-toggle').setAttribute('aria-pressed', String(state.sidebar)); break;
       case 'pane-outline': case 'pane-files': if (!state.sidebar) TexweftProto.handleAction('toggle-sidebar'); document.querySelector('.side-tab[data-pane="' + action.slice(5) + '"]').click(); break;
       case 'map-source': state.source = !state.source; applySource(); break;
       case 'map-settings': var opened = !$('map-settings').hidden; if (state.view !== 'mindmap') setView('mindmap'); $('map-settings').hidden = opened; $('map-settings-button').setAttribute('aria-expanded', String(!opened)); $('node-inspector').hidden = true; break;
       case 'close-settings': $('map-settings').hidden = true; $('map-settings-button').setAttribute('aria-expanded', 'false'); break;
-      case 'reset-settings': settings = { length: 30, paragraphs: true, lists: true, blocks: false }; syncSettings(); break;
+      case 'reset-settings': settings = { length: 30, paragraphs: true, lists: true, blocks: false, layout: 'right' }; syncSettings(); break;
       case 'map-collapse': if (state.collapsed.size) state.collapsed.clear(); else state.nodes.filter(function (node) { return !node.isRoot && visibleChildren(node).length; }).forEach(function (node) { state.collapsed.add(node.id); }); $('node-inspector').hidden = true; renderMap(); fit(); break;
       case 'map-fit': fit(); break;
       case 'zoom-in': zoom(1.2); break;
@@ -567,13 +570,13 @@
       case 'toggle-lines': document.querySelector('.source-scroll').classList.toggle('no-lines'); break;
       case 'toggle-pairs': state.autoPair = !state.autoPair; break;
       case 'toggle-focus': state.focus = !state.focus; document.querySelector('.app-window').classList.toggle('focus-mode', state.focus); break;
-      case 'toggle-typewriter': state.typewriter = !state.typewriter; updateCursor(); break;
+      case 'toggle-typewriter': VexPreferences.set('typewriter', !state.typewriter); break;
       case 'toggle-motion': state.motion = !state.motion; document.documentElement.dataset.motion = String(state.motion); break;
       case 'presentation': startPresentation(); break;
       case 'presentation-larger': state.presentationScale = Math.min(2.5, +(state.presentationScale + .1).toFixed(1)); applyPresentation(); break;
       case 'presentation-smaller': state.presentationScale = Math.max(1, +(state.presentationScale - .1).toFixed(1)); applyPresentation(); break;
       case 'presentation-exit': stopPresentation(); break;
-      case 'format-more': TexweftProto.toast('更多格式请从插入菜单选择'); break;
+      case 'format-more': document.querySelector('.tb-menuitem[data-menu="格式(O)"]')?.click(); break;
       case 'typography': TexweftTypography.toggle(); break;
       case 'typography-select': TexweftTypography.choose(item.arg); break;
       case 'toggle-compact': TexweftTypography.toggleCompact(); break;
@@ -620,6 +623,7 @@
     },
     loadDocument: function (index) { confirmSwitch(function () { loadDoc(index); }); },
     applyText: function (text, options) {
+      if (input.readOnly) return;
       options = options || {}; instant.finish();
       if (text === input.value) return;
       if (options.history !== false) remember(input.value);
@@ -630,6 +634,7 @@
       }
     },
     history: function (action) {
+      if (input.readOnly) return;
       instant.finish(); var from = action === 'undo' ? state.undo : state.redo;
       var to = action === 'undo' ? state.redo : state.undo;
       if (!from.length) return;
@@ -675,7 +680,7 @@
     if (!state.sidebar) TexweftProto.handleAction('toggle-sidebar');
     $('file-filter').value = ''; filterFiles();
     TexweftProto.handleAction('pane-files'); state.source = false; state.editMode = 'instant';
-    settings = { length: 30, paragraphs: true, lists: true, blocks: false };
+    settings = { length: 30, paragraphs: true, lists: true, blocks: false, layout: 'right' };
     snapshot.demo = { name: '一分钟上手 · 演练.md', text: '# 让一个想法，长成一篇文章\n\n我想把零散的想法写下来，再用结构把它们连成一条清晰的线索。先写内容，之后慢慢整理。\n\n## 写下想法\n\n点击这段文字试着修改，也可以用 **加粗** 标记重点。\n\n## 看清结构\n\n标题成为导图的主干，段落提供摘要。显示文字可以变短，完整内容一直保留。\n\n## 准备分享\n\n选择舒服的排版，确认保存状态，再把文章导出给读者。' };
     docs.push(snapshot.demo); loadDoc(docs.length - 1); syncSettings(); setView('edit');
     return snapshot;
@@ -724,6 +729,7 @@
       'toggle-typewriter': state.typewriter, 'toggle-motion': state.motion, 'toggle-topmost': state.topmost,
       'toggle-fullscreen': document.querySelector('.app-window').classList.contains('expanded'),
       'toggle-compact': TexweftTypography.state.compact, 'typography-select': !!item && TexweftTypography.state.key === item.arg,
+      'toggle-watermark': VexPreferences.values.watermarkPreview,
       'language': !!item && state.language === item.arg
     };
     if (Object.prototype.hasOwnProperty.call(checks, action)) return checks[action];
@@ -746,7 +752,7 @@
         }
         if (layer.id === 'layer-unsaved' && pendingSwitch) {
           var next = pendingSwitch; pendingSwitch = null;
-          if (button.textContent.trim() === '取消') { closeLayers(); return; }
+          if (button.classList.contains('caption-btn') || button.textContent.trim() === '取消') { closeLayers(); return; }
           if (button.textContent.trim() === '保存') save();
           closeLayers(); next(); return;
         }
@@ -774,4 +780,45 @@
   });
   TexweftProto.attachMenuBar(document.querySelector('.tb-menu'));
   syncSettings(); loadDoc(0); setView(new URLSearchParams(location.search).get('view') || 'edit');
+  VexPreferences.configure({
+    beforeOpen:function () { TexweftProto.closeMenu(); closeLayers(); instant.finish(); },
+    currentAppearance:function () { return {theme:TexweftTheme.state.mode,palette:TexweftTheme.state.palette,typography:TexweftTypography.state.key,compact:TexweftTypography.state.compact}; },
+    toast:TexweftProto.toast, getText:function () { return input.value; },
+    replaceText:function (text) { if (input.readOnly) return; remember(input.value); input.value = text; input.dispatchEvent(new Event('input')); refreshNow(); },
+    apply:function (key,value,all) {
+      if (key === 'theme') TexweftTheme.setMode(value);
+      if (key === 'palette') TexweftTheme.setPalette(value);
+      if (key === 'typography') TexweftTypography.choose(value);
+      if (key === 'compact' && TexweftTypography.state.compact !== value) TexweftTypography.toggleCompact();
+      if (key === 'language') TexweftL.set(value);
+      if (key === 'size') document.documentElement.style.setProperty('--vex-writing-size',value + 'px');
+      if (key === 'font') document.documentElement.dataset.writingFont = value;
+      if (key === 'zoom') document.documentElement.style.setProperty('--vex-content-zoom',value / 100);
+      if (key === 'lineNumbers') document.querySelector('.source-scroll').classList.toggle('no-lines',!value);
+      if (key === 'statusbar') document.querySelector('.statusbar').hidden = !value;
+      if (key === 'autoPair') state.autoPair = value;
+      if (key === 'typewriter') { state.typewriter = value; typewriter.refresh(); }
+      if (key === 'focus') { state.focus = value; document.querySelector('.app-window').classList.toggle('focus-mode',value); }
+      if (['math','chemistry','mermaid','highlight','subscript','softBreak'].includes(key)) { state.lastText = null; cancelAnimationFrame(state.prefRefresh); state.prefRefresh = requestAnimationFrame(refreshNow); }
+    }
+  });
+  if (builtin) { document.title = builtin.name + ' · 维刻 Vex'; document.querySelectorAll('.map-toolbar [data-action^="chapter-"]').forEach(function (button) { button.disabled = true; }); }
+  function platformShortcutLabels() {
+    if (document.body.dataset.platform !== 'macos') return;
+    document.querySelectorAll('[title],[aria-label]').forEach(function (element) {
+      ['title','aria-label'].forEach(function (attribute) { var value = element.getAttribute(attribute); if (value && value.includes('Ctrl')) element.setAttribute(attribute,value.replace(/Ctrl\+/g,'⌘').replace(/Ctrl/g,'⌘')); });
+    });
+  }
+  var elementMenu = VexElementMenu.mount({
+    source:input, roots:[{element:$('instant-content')},{element:$('markdown-preview'),readOnly:true}],
+    getText:function () { return input.value; }, getIdentity:function () { return state.doc + ':' + docs[state.doc].name; },
+    blocks:function () { return state.parsed.blocks; }, readOnly:function () { return input.readOnly; }, touch:function () { return false; },
+    finish:function () { instant.finish(); }, applyText:function (text) { TexweftWorkbench.applyText(text); },
+    beforeOpen:function () { TexweftProto.closeMenu(); }, toast:TexweftProto.toast,
+    entries:[document.getElementById('edit-options'),document.querySelector('#reading-pane .ph-right')],
+    findBlock:function (line) { return Array.from($('instant-content').children).find(function (el) { return state.parsed.blocks[Number(el.dataset.blockIndex)]?.line === line; }); },
+    focus:function (line,sourceActive) { if(sourceActive)input.focus({preventScroll:true}); else document.querySelector('#instant-content [data-line="' + line + '"]')?.closest('.instant-block')?.focus({preventScroll:true}); },
+    editSource:function (line) { TexweftWorkspace.locateEditor(line); }
+  });
+  platformShortcutLabels(); window.addEventListener('texweft-language-changed',platformShortcutLabels);
 })();

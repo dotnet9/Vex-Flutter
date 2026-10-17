@@ -33,7 +33,8 @@
   var workbar = document.querySelector('.workbar'), actions = document.querySelector('.work-actions');
   var layoutButton = document.createElement('button'); layoutButton.className = 'workspace-layout-button'; layoutButton.id = 'workspace-layout';
   layoutButton.setAttribute('aria-haspopup', 'dialog'); layoutButton.setAttribute('aria-expanded', 'false');
-  layoutButton.innerHTML = icon('columns') + '<span>布局</span><span class="layout-chevron">⌄</span>'; workbar.insertBefore(layoutButton, actions);
+  layoutButton.innerHTML = icon('columns') + '<span>布局</span>' + icon('chevron-down');
+  layoutButton.lastElementChild.classList.add('vex-expand-icon','layout-chevron'); workbar.insertBefore(layoutButton, actions);
   var layoutMenu = document.createElement('section'); layoutMenu.className = 'workspace-layout-menu'; layoutMenu.id = 'workspace-layout-menu'; layoutMenu.hidden = true;
   layoutMenu.setAttribute('role', 'dialog'); layoutMenu.setAttribute('aria-label', '工作区布局');
   layoutMenu.innerHTML = '<div class="workspace-menu-heading"><strong>视图组合</strong><button class="icon-button" aria-label="关闭布局菜单">' + icon('x') + '</button></div><p>当前只打开一份文档，切换文件时所有视图一起更新。</p><div class="layout-preset-grid"></div><div class="workspace-layout-footer"><span>点击试选，连续比较布局</span><button id="reset-workspace">默认视图</button></div>';

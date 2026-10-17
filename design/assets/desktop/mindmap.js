@@ -23,7 +23,7 @@
     function fence(line) { return /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line); }
     function structural(index) {
       var line = lines[index] || '';
-      return heading(line) || list(line) || fence(line) || /^\s*>/.test(line) || /^\s*(?:---+|\*\*\*+|___+)\s*$/.test(line)
+      return heading(line) || list(line) || fence(line) || /^\s*\$\$\s*$/.test(line) || /^\s*>/.test(line) || /^\s*(?:---+|\*\*\*+|___+)\s*$/.test(line)
         || (index + 1 < lines.length && /^ {0,3}(?:=+|-+)\s*$/.test(lines[index + 1]));
     }
     for (var i = 0; i < lines.length;) {
@@ -36,12 +36,17 @@
         var content = lines.slice(start + 1, i).join('\n');
         if (i < lines.length) i++;
         block('code', content, start, i - 1, { language: language || 'text', label: '代码块' + (language ? ' · ' + language : '') });
+      } else if (/^\s*\$\$\s*$/.test(line)) {
+        i++; while (i < lines.length && !/^\s*\$\$\s*$/.test(lines[i])) i++;
+        var formula = lines.slice(start + 1, i).join('\n');
+        if (i < lines.length) i++;
+        block('math', formula, start, i - 1, { label: '公式' });
       } else if ((match = heading(line))) {
         block('heading', plain(match[2]), i, i, { level: match[1].length }); i++;
       } else if (i + 1 < lines.length && /^ {0,3}(?:=+|-+)\s*$/.test(lines[i + 1])) {
         block('heading', plain(line), i, i + 1, { level: lines[i + 1].trim()[0] === '=' ? 1 : 2 }); i += 2;
       } else if (/^\s*(?:---+|\*\*\*+|___+)\s*$/.test(line)) {
-        i++;
+        block('rule', '', i, i); i++;
       } else if ((match = list(line))) {
         var text = match[3], indent = match[1].replace(/\t/g, '    ').length;
         i++;

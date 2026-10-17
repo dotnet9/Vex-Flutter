@@ -10,6 +10,9 @@
 .instant-pane { display: flex; flex-direction: column; flex: 1; min-width: 0; background: var(--bg); }
 .instant-scroll { flex: 1; min-height: 0; overflow: auto; }
 .instant-scroll .md-body { max-width: 1280px; padding: 34px 44px 70px; margin: 0 auto; }
+.instant-scroll.typewriter-on, .source-scroll.typewriter-on { overflow-anchor: none; scroll-behavior: auto; }
+.instant-scroll.typewriter-on .md-body, .source-scroll.typewriter-on textarea { padding-top: var(--typewriter-space) !important; padding-bottom: var(--typewriter-space) !important; }
+.source-scroll.typewriter-on .line-numbers { top: var(--typewriter-space); }
 .instant-block { position: relative; display: flow-root; cursor: text; outline: none !important; caret-color: var(--fg); overflow-wrap: anywhere; }
 .instant-block.is-editing { outline: none; }
 .instant-input { outline: none !important; }

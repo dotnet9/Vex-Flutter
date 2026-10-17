@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" href="../logo.svg" type="image/svg+xml">
+<link rel="icon" href="assets/vex-logo.svg" type="image/svg+xml">
 <script>
 (function(){
  const p=new URLSearchParams(location.search),device=p.get('device')|| (innerWidth<601?'phone':'desktop');
@@ -14,15 +14,20 @@
  window.TexweftStorage={getItem(k){if(preview)return memory.get(k)||null;try{return localStorage.getItem(k);}catch{return null;}},setItem(k,v){if(preview){memory.set(k,v);return;}try{localStorage.setItem(k,v);}catch{}},removeItem(k){if(preview){memory.delete(k);return;}try{localStorage.removeItem(k);}catch{}}};
 })();
 </script>
-<title>笺纬 Texweft · 落笔成文，思路成形。</title>
+<title>维刻 Vex · 写下想法，看见脉络。</title>
 <link rel="stylesheet" href="assets/desktop/theme.css"><link rel="stylesheet" href="assets/desktop/dialogs.css"><link rel="stylesheet" href="assets/desktop/workbench.css">
 <link rel="stylesheet" href="assets/desktop/editing.css">
 <link rel="stylesheet" href="assets/desktop/guide.css">
 <link rel="stylesheet" href="assets/desktop/workspace.css">
 <link rel="stylesheet" href="assets/desktop/branding.css">
 <link rel="stylesheet" href="assets/palettes.css"><link rel="stylesheet" href="assets/typography.css">
+<link rel="stylesheet" href="assets/desktop/refinement.css">
+<link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="assets/prototype.css"><link rel="stylesheet" href="assets/element-menu.css">
 <script src="assets/palettes.js"></script><script src="assets/typography-catalog.js"></script>
 <script src="assets/desktop/theme.js"></script>
+<script src="assets/vendor/d3-hierarchy/d3-hierarchy.min.js"></script><script src="assets/map-layout.js"></script>
+<script src="assets/overlay.js"></script><script src="assets/mermaid-catalog.js"></script><script src="assets/documents-data.js"></script><script src="assets/watermark.js"></script><script src="assets/preferences.js"></script><script src="assets/tour-placement.js"></script><script src="assets/diagram-editor.js"></script>
 </head>
 <body data-page="index">
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><defs>
@@ -33,6 +38,8 @@
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
   <symbol id="i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></symbol>
   <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-clipboard" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></symbol>
+  <symbol id="i-scissors" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="m8.12 8.12 12.76 12.76M14 14l6.88-10.88M8.12 15.88 12 12"/></symbol>
   <symbol id="i-export" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
   <symbol id="i-print" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></symbol>
   <symbol id="i-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
@@ -67,6 +74,7 @@
 <symbol id="i-columns" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/></symbol>
 <symbol id="i-sidebar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></symbol>
 <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
 <symbol id="i-fit" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/><rect x="8" y="8" width="8" height="8" rx="1"/></symbol>
 <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
 <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
@@ -74,7 +82,7 @@
 </defs></svg>
 <div class="app-window">
   <header class="titlebar">
-    <div class="brand" title="笺纬 Texweft · 落笔成文，思路成形。"><img src="../logo.svg" alt="">Texweft</div>
+    <div class="brand" title="维刻 Vex · 写下想法，看见脉络。"><img src="assets/vex-logo.svg" alt="">Vex</div>
     <nav class="tb-menu" aria-label="应用菜单"><button class="tb-menuitem" type="button" aria-haspopup="true" aria-expanded="false">文件(F)</button><button class="tb-menuitem" type="button" aria-haspopup="true" aria-expanded="false">编辑(E)</button><button class="tb-menuitem" type="button" aria-haspopup="true" aria-expanded="false">插入(I)</button><button class="tb-menuitem" type="button" aria-haspopup="true" aria-expanded="false">视图(V)</button><button class="tb-menuitem" type="button" aria-haspopup="true" aria-expanded="false">工具(T)</button><button class="tb-menuitem" type="button" aria-haspopup="true" aria-expanded="false">帮助(H)</button></nav>
     <div class="caption-btns" id="caption-btns">
       <button class="caption-btn" data-action="minimize" title="最小化"><svg class="ico" aria-hidden="true"><use href="#i-min"/></svg></button>
@@ -93,25 +101,23 @@
       </div>
       <div class="work-actions"><button class="guide-launch" data-action="guide" id="guide-launch" title="新手引导"><i aria-hidden="true"></i><span>快速上手</span></button><button class="icon-button" data-action="find" title="查找 · Ctrl+F"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg></button><button class="btn sm save-button" data-action="save" title="保存副本 · Ctrl+S"><svg class="ico" aria-hidden="true"><use href="#i-save"/></svg><span>保存</span></button></div>
     </div>
-    <div class="find-strip" id="findbar" hidden><input class="input" id="find-input" placeholder="查找文本"><input class="input" id="replace-input" placeholder="替换为" hidden><button class="btn sm" data-action="find-next">下一个</button><button class="btn sm" data-action="replace-all" id="replace-all" hidden>全部替换</button><small id="find-count">输入查找内容</small><button class="icon-button" data-action="close-find" title="关闭查找"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
     <main class="workspace" data-view="edit">
       <aside class="sidebar" aria-label="文档导航"><div class="sidebar-inner">
-        <div class="side-tabs"><button class="side-tab on" data-pane="files"><svg class="ico" aria-hidden="true"><use href="#i-folder"/></svg>文件</button><button class="side-tab" data-pane="outline"><svg class="ico" aria-hidden="true"><use href="#i-list"/></svg>大纲</button></div>
-        <div class="side-pane" data-pane-body="files">
+        <div class="side-tabs" role="tablist" aria-label="文档导航"><button class="side-tab on" role="tab" aria-selected="true" aria-controls="files-pane" data-pane="files" data-l10n="SidebarFiles">文件</button><button class="side-tab" role="tab" aria-selected="false" aria-controls="outline-pane" data-pane="outline" data-l10n="SidebarOutline">大纲</button></div>
+        <div class="side-pane" id="files-pane" role="tabpanel" data-pane-body="files">
           <label class="sidebar-search"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg><input id="file-filter" placeholder="搜索文档…" aria-label="搜索文档"><kbd style="font-size:9px;opacity:.6">/</kbd></label>
-          <div class="folder-row folder-root"><svg class="ico" aria-hidden="true"><use href="#i-folder"/></svg><span id="workspace-folder">笔记</span><button class="icon-button" data-action="open-folder" title="打开 Markdown 文件夹" aria-label="打开 Markdown 文件夹"><svg class="ico" aria-hidden="true"><use href="#i-folder"/></svg></button></div>
           <div class="file-list" id="file-list"></div><div class="empty-state" id="file-empty" hidden>没有匹配的文档</div>
         </div>
-        <div class="side-pane" data-pane-body="outline" hidden><div class="side-section-label" style="padding-top:16px">文档结构 <span id="outline-count"></span></div><div class="outline-list" id="outline-body"></div></div>
+        <div class="side-pane" id="outline-pane" role="tabpanel" data-pane-body="outline" hidden><div class="outline-list" id="outline-body"></div></div>
       </div></aside>
       <div class="sidebar-splitter" id="sidebar-splitter" role="separator" aria-label="调整文档导航宽度" aria-orientation="vertical" aria-valuemin="200" aria-valuemax="560" aria-valuenow="226" tabindex="0"></div>
       <div class="workspace-main">
+        <div class="find-strip" id="findbar" hidden><input class="input" id="find-input" placeholder="查找文本" aria-label="查找内容"><input class="input" id="replace-input" placeholder="替换为" aria-label="替换内容" hidden><button class="btn sm" data-action="find-next">下一个</button><button class="btn sm" data-action="replace-all" id="replace-all" hidden>全部替换</button><small id="find-count">输入查找内容</small><button class="icon-button" data-action="close-find" title="关闭查找" aria-label="关闭查找"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
         <div class="edit-options" id="edit-options">
           <div class="edit-methods" role="group" aria-label="编辑方式">
             <button data-action="edit-instant" id="edit-instant" aria-pressed="true">即时渲染</button>
             <button data-action="edit-source" id="edit-source" aria-pressed="false">源码</button>
           </div>
-          <span class="edit-method-description" id="edit-method-description">点击内容即可编辑</span>
           <div class="format-toolbar" id="format-toolbar" role="toolbar" aria-label="常用格式">
             <button class="format-button" data-action="insert-bold" data-l10n-title="Bold" aria-label="加粗" title="加粗"><svg class="ico"><use href="#i-bold"/></svg></button>
             <button class="format-button" data-action="insert-italic" data-l10n-title="Italic" aria-label="斜体" title="斜体"><svg class="ico"><use href="#i-italic"/></svg></button>
@@ -130,7 +136,7 @@
             <button class="format-button format-more" data-action="format-more" data-l10n-title="WBMoreFormatting" aria-label="更多格式" title="更多格式"><svg class="ico"><use href="#i-more"/></svg></button>
           </div>
 
-          <button class="toolbar-button typography-trigger" data-action="typography" title="Markdown 排版主题">排版 <span data-typography-label>简</span><span aria-hidden="true">⌄</span></button>
+          <button class="toolbar-button typography-trigger" data-action="typography" title="Markdown 排版主题">排版 <span data-typography-label>简</span><svg class="ico vex-expand-icon" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
         </div>
       <div class="content-area">
         <section class="instant-pane" id="instant-pane" aria-label="即时渲染编辑器">
@@ -142,10 +148,11 @@
           <div class="source-scroll"><div class="line-numbers" aria-hidden="true" id="line-numbers"></div><textarea id="markdown-input" aria-label="Markdown 内容" spellcheck="false" wrap="off"></textarea></div>
         </section>
         <section class="reading-pane" id="reading-pane" aria-label="正文预览">
-          <div class="pane-head"><svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg><span id="reading-title">正文预览</span><span class="ph-right"><button class="toolbar-button typography-trigger" data-action="typography">排版 <span data-typography-label>简</span><span aria-hidden="true">⌄</span></button></span></div><div class="reading-scroll"><article class="md-body" id="markdown-preview"></article></div>
+          <div class="pane-head"><svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg><span id="reading-title">正文预览</span><span class="ph-right"><button class="toolbar-button typography-trigger" data-action="typography">排版 <span data-typography-label>简</span><svg class="ico vex-expand-icon" aria-hidden="true"><use href="#i-chevron-down"/></svg></button></span></div><div class="reading-scroll"><article class="md-body" id="markdown-preview"></article></div>
         </section>
         <section class="map-pane" id="map-pane" aria-label="Markdown 思维导图" hidden>
           <div class="map-toolbar"><div class="map-toolbar-title"><svg class="ico" aria-hidden="true"><use href="#i-map"/></svg><span id="map-count">文档结构</span></div>
+            <select class="map-layout-select" id="map-layout" aria-label="导图布局" title="导图布局"></select>
             <button class="toolbar-button" data-action="map-settings" id="map-settings-button" aria-expanded="false" aria-controls="map-settings"><svg class="ico" aria-hidden="true"><use href="#i-gear"/></svg><span id="summary-label">摘要 30 字</span></button>
             <span class="toolbar-divider"></span><button class="toolbar-button" data-action="map-collapse" id="collapse-all"><svg class="ico" aria-hidden="true"><use href="#i-list"/></svg>收起分支</button>
             <button class="toolbar-button" data-action="map-source" id="map-source-toggle" aria-pressed="false"><svg class="ico" aria-hidden="true"><use href="#i-columns"/></svg>对照源码</button>
@@ -181,10 +188,8 @@
     <!-- 未保存更改 -->
     <div class="overlay win-layer" id="layer-unsaved" hidden>
       <div class="dialog">
-        <div class="dlg-title">
-          <span class="dlg-ico warn"><svg><use href="#i-warn"/></svg></span>
-          未保存的更改
-        </div>
+        <div class="mini-titlebar"><span>未保存的更改</span><span class="caption-btns"><button class="caption-btn close" data-close data-l10n-title="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></span></div>
+        <div class="dialog-content">
         <p class="dlg-msg">「主题设计笔记.md」有尚未保存的修改。关闭前要保存这些更改吗？</p>
         <div class="dlg-path mono">D:\Notes\笔记\主题设计笔记.md</div>
         <div class="dlg-actions">
@@ -192,16 +197,15 @@
           <button class="btn" data-close="已放弃修改并关闭文档">不保存</button>
           <button class="btn primary" data-close="已保存并关闭文档">保存</button>
         </div>
+        </div>
       </div>
     </div>
 
     <!-- 重命名文件 -->
     <div class="overlay win-layer" id="layer-rename" hidden>
       <div class="dialog" style="width: 430px;">
-        <div class="dlg-title">
-          <span class="dlg-ico info"><svg><use href="#i-edit"/></svg></span>
-          重命名文件
-        </div>
+        <div class="mini-titlebar"><span>重命名文件</span><span class="caption-btns"><button class="caption-btn close" data-close data-l10n-title="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></span></div>
+        <div class="dialog-content">
         <div class="dlg-field" style="margin-top:14px;">
           <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">文件名</label>
           <input class="input mono" id="rename-input" value="主题设计笔记.md">
@@ -215,27 +219,27 @@
           <button class="btn" data-close="已取消">取消</button>
           <button class="btn primary" id="rename-ok">重命名</button>
         </div>
+        </div>
       </div>
     </div>
 
     <!-- 错误提示 -->
     <div class="overlay win-layer" id="layer-error" hidden>
       <div class="dialog" style="width: 470px;">
-        <div class="dlg-title">
-          <span class="dlg-ico warn"><svg><use href="#i-x"/></svg></span>
-          导出 PDF 失败
-        </div>
-        <p class="dlg-msg">写入 <span class="mono">Texweft-指南.pdf</span> 时被其他程序占用。请关闭可能打开该文件的程序（如 PDF 阅读器）后重试。</p>
+        <div class="mini-titlebar"><span>导出 PDF 失败</span><span class="caption-btns"><button class="caption-btn close" data-close data-l10n-title="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></span></div>
+        <div class="dialog-content">
+        <p class="dlg-msg">写入 <span class="mono">Vex-指南.pdf</span> 时被其他程序占用。请关闭可能打开该文件的程序（如 PDF 阅读器）后重试。</p>
         <div class="detail-box">
           <div style="font-size:11.5px;font-weight:600;color:var(--muted);cursor:pointer;user-select:none;" id="err-toggle">▸ 错误详情（点击展开 / 收起）</div>
           <pre id="err-detail" style="display:none;">CodeWF.Markdown.ExportException: The process cannot access the file
-'D:\Notes\export\Texweft-指南.pdf' because it is being used by another process.
+'D:\Notes\export\Vex-指南.pdf' because it is being used by another process.
    at MarkdownDocumentExporter.ExportToPdf(ExportContext ctx)
-   at Texweft.Modules.Workspace.ExportService.ExportPdfAsync(String path)</pre>
+   at Vex.Modules.Workspace.ExportService.ExportPdfAsync(String path)</pre>
         </div>
         <div class="dlg-actions">
           <button class="btn" id="err-copy">复制详情</button>
           <button class="btn primary" data-close="已关闭错误提示">关闭</button>
+        </div>
         </div>
       </div>
     </div>
@@ -246,7 +250,7 @@
         <div class="mini-titlebar">
           删除确认
           <span class="caption-btns">
-            <span class="caption-btn" data-close="已取消，文件安全"><svg class="sym" style="width:11px;height:11px"><use href="#i-x"/></svg></span>
+            <button class="caption-btn close" data-close data-l10n-title="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
           </span>
         </div>
         <div style="padding: 22px;">
@@ -270,7 +274,7 @@
         <div class="mini-titlebar">
           属性
           <span class="caption-btns">
-            <span class="caption-btn" data-close><svg class="sym" style="width:11px;height:11px"><use href="#i-x"/></svg></span>
+            <button class="caption-btn close" data-close data-l10n-title="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
           </span>
         </div>
         <div style="display:flex;align-items:center;gap:14px;padding:20px 24px 14px;">
@@ -303,7 +307,7 @@
         <div class="mini-titlebar">
           统计
           <span class="caption-btns">
-            <span class="caption-btn" data-close><svg class="sym" style="width:11px;height:11px"><use href="#i-x"/></svg></span>
+            <button class="caption-btn close" data-close data-l10n-title="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
           </span>
         </div>
         <div class="stat-hero">
@@ -321,19 +325,18 @@
       </div>
     </div>
 
-    <!-- 关于 Texweft -->
+    <!-- 关于 Vex -->
     <div class="overlay win-layer" id="layer-about" hidden>
-      <div class="mini-window about-updated" style="width:460px;max-height:85vh;overflow:auto">
-        <div class="mini-titlebar"><span data-l10n="AboutTexweftTitle"></span><button class="caption-btn" data-close aria-label="Close">×</button></div>
-        <div class="about-hero"><img class="about-logo" src="../logo.svg" alt="笺纬 Texweft"><div class="about-identity"><h2>笺纬 Texweft</h2><div class="slogan" data-proto-label="笺纬 Texweft · 落笔成文，思路成形。">笺纬 Texweft · 落笔成文，思路成形。</div></div></div>
+      <div class="mini-window about-updated" role="dialog" aria-modal="true" aria-labelledby="about-title" style="max-height:85vh;overflow:auto">
+        <div class="mini-titlebar"><span data-proto-label="关于">关于</span><span class="caption-btns"><button class="caption-btn close" data-close data-l10n-title="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></span></div>
+        <div class="about-hero"><img class="about-logo" src="assets/vex-logo.svg" alt=""><div class="about-identity"><h2 id="about-title">维刻 Vex</h2><div class="slogan" data-proto-label="写下想法，看见脉络。">写下想法，看见脉络。</div></div></div>
         <div class="about-rows">
-          <div class="about-row"><span class="k" data-l10n="AboutVersionLabel"></span><span class="v about-version"><span class="ver-badge" id="about-version"></span><button class="about-link" data-action="dlg-doc" data-proto-label="更新日志">更新日志</button></span></div>
-          <div class="about-row"><span class="k" data-l10n="AboutPlatformLabel"></span><span class="v">Flutter / Dart</span></div>
+          <div class="about-row"><span class="k" data-l10n="AboutVersionLabel"></span><span class="v about-version"><span class="ver-badge" id="about-version"></span><button class="about-link" data-action="dlg-doc" data-proto-label="更新日志">更新日志</button><button class="btn sm" id="texweft-update"></button><span id="texweft-update-status" role="status" hidden></span></span></div>
           <div class="about-row"><span class="k" data-l10n="AboutAuthorLabel"></span><span class="v" data-l10n="AboutAuthorName"></span></div>
-          <div class="about-row"><span class="k" data-l10n="ProjectLicenseLabel"></span><span class="v">MIT License · Texweft</span></div>
-          <div class="about-row"><span class="k" data-proto-label="链接">链接</span><span class="v about-links"><a href="https://codewf.com" data-proto-label="官网">官网</a><span aria-hidden="true">·</span><a href="https://github.com/dotnet9/texweft" data-proto-label="开源仓库">开源仓库</a></span></div>
+          <div class="about-row"><span class="k" data-l10n="ProjectLicenseLabel"></span><span class="v">MIT License</span></div>
+          <div class="about-row"><span class="k" data-proto-label="链接">链接</span><span class="v about-links"><a href="https://codewf.com" data-proto-label="官网">官网</a><span aria-hidden="true">·</span><a href="https://github.com/dotnet9/Vex-Flutter" data-proto-label="开源仓库">开源仓库</a></span></div>
         </div>
-        <div class="about-footer"><div class="about-foot" id="about-copyright">Copyright © 2026 Texweft(笺纬)</div><button class="btn primary" id="texweft-update"></button><p id="texweft-update-status" role="status" hidden></p></div>
+        <div class="about-footer"><div class="about-foot" id="about-copyright">Copyright © 2026 Vex(维刻)</div><div class="about-framework">Flutter / Dart</div></div>
       </div>
     </div>
 
@@ -343,7 +346,7 @@
         <div class="mini-titlebar">
           MCP 设置
           <span class="caption-btns">
-            <span class="caption-btn" data-close><svg class="sym" style="width:11px;height:11px"><use href="#i-x"/></svg></span>
+            <button class="caption-btn close" data-close data-l10n-title="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
           </span>
         </div>
         <div class="set-head">
@@ -409,12 +412,12 @@
         <div class="mini-titlebar">
           <span id="doc-tb-title">更新日志</span>
           <span class="caption-btns">
-            <span class="caption-btn" data-close><svg class="sym" style="width:11px;height:11px"><use href="#i-x"/></svg></span>
+            <button class="caption-btn close" data-close data-l10n-title="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
           </span>
         </div>
         <div class="doc-body">
           <div class="md-body" id="doc-content-changelog"><h2>0.1.0 · 设计预览</h2><ul><li>单窗口工作区提供八种视图组合。</li><li>即时编辑、源码、阅读、导图与章节编排共享当前文档。</li><li>八套界面配色、六套排版、写作辅助、演示与六步引导。</li><li>手机和平板采用适合触控的自适应布局。</li><li>统一根目录 Logo；提供六个平台的安装或获取流程原型。</li></ul><p>此页面为交互原型，应用使用 Flutter 原生渲染。本页面的更新流程仅作演示，实际版本以发布页为准。</p></div>
-          <div class="md-body thanks-content" id="doc-content-thanks" hidden><h2 data-l10n="ProjectThanksTitle"></h2><p data-l10n="ProjectThanksBody"></p><p data-project-components></p><p><a href="Third-Party-Licenses.html" target="_blank" rel="noopener" data-l10n="ProjectLicensesLink"></a></p><p>Texweft · MIT License<br>Copyright © 2026 沙漠尽头的狼 / CodeWF</p></div>
+          <div class="md-body thanks-content" id="doc-content-thanks" hidden><h2 data-l10n="ProjectThanksTitle"></h2><p data-l10n="ProjectThanksBody"></p><p data-project-components></p><p><a href="Third-Party-Licenses.html" target="_blank" rel="noopener" data-l10n="ProjectLicensesLink"></a></p><p>Vex · MIT License<br>Copyright © 2026 沙漠尽头的狼 / CodeWF</p></div>
         </div>
       </div>
     </div>
@@ -428,8 +431,8 @@
   <button data-action="presentation-exit" aria-label="退出演示" title="退出演示">×</button>
 </div>
 <link rel="stylesheet" href="assets/presentation.css">
-<script src="assets/editor.js"></script><script src="assets/presentation-labels.js"></script><script src="assets/presentation.js"></script>
+<script src="assets/document-operations.js"></script><script src="assets/editor.js"></script><script src="assets/element-menu.js"></script><script src="assets/presentation-labels.js"></script><script src="assets/presentation.js"></script>
 <input type="file" id="open-file-input" accept=".md,.markdown,.mdown,.txt" hidden>
 <input type="file" id="open-folder-input" accept=".md,.markdown,.mdown,.txt" webkitdirectory directory multiple hidden>
-<script src="assets/desktop/localization.js"></script><script src="assets/project-info.js"></script><script src="assets/desktop/typography.js"></script><script src="assets/desktop/interact.js"></script><script src="assets/desktop/mindmap.js"></script><script src="assets/code-fence.js"></script><script src="assets/desktop/instant-editor.js"></script><script src="assets/desktop/workbench.js"></script><script src="assets/desktop/guide.js"></script>
+<script src="assets/desktop/localization.js"></script><script src="assets/project-info.js"></script><script src="assets/desktop/typography.js"></script><script src="assets/desktop/interact.js"></script><script src="assets/desktop/mindmap.js"></script><script src="assets/code-fence.js"></script><script src="assets/vendor/katex/katex.min.js"></script><script src="assets/vendor/katex/mhchem.min.js"></script><script src="assets/vendor/mermaid/mermaid.min.js"></script><script src="assets/desktop/rendering.js"></script><script src="assets/desktop/samples.js"></script><script src="assets/desktop/typewriter.js"></script><script src="assets/desktop/instant-editor.js"></script><script src="assets/desktop/workbench.js"></script><script src="assets/desktop/guide.js"></script>
 <script src="assets/desktop/about-update.js"></script><script src="assets/desktop/workspace.js"></script><script src="assets/desktop/chapter-editor.js"></script><script src="assets/desktop/preview.js"></script></body></html>

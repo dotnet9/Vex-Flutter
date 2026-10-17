@@ -1,5 +1,5 @@
 /* ============================================================
-   Texweft 界面原型 · 交互层（单页版）
+   Vex 界面原型 · 交互层（单页版）
    主窗体为 Texweft.html，采用单窗口固定视图组合；菜单与状态栏的界面
    在窗体内以浮层呼出：
    - TexweftProto.toast(msg)          操作反馈（对应 App 状态栏提示）
@@ -59,7 +59,7 @@
       { label: '保存', gesture: 'Ctrl+S', action: 'save' },
       { label: '另存为…', gesture: 'Ctrl+Shift+S', action: 'save' },
       { label: '导出', sub: [
-        { label: 'HTML', action: 'export-html' }, { label: 'PDF', act: 'dlg-error' },
+        { label: 'HTML', action: 'export-html' }, { label: 'PDF', action: 'export-pdf' },
         { label: 'PNG 长图', toast: 'PNG 长图导出（桌面版操作演示）' },
         { label: 'Word（.docx）', toast: 'Word 导出（桌面版操作演示）' }
       ]},
@@ -85,7 +85,7 @@
       { label: '无序列表', action: 'insert-list' }, { label: '有序列表', action: 'insert-ordered' }, { label: '任务列表', action: 'insert-task' },
       { label: '引用', action: 'insert-quote' },
       { sep: true },
-      { label: '表格', action: 'insert-table' }, { label: '代码块', action: 'insert-code' },
+      { label: '表格', action: 'insert-table', sub:VexElementMenu.tableItems() }, { label: '代码块', action: 'insert-code' },
       { label: '公式块', action: 'insert-math' }, { label: '水平分割线', action: 'insert-rule' },
       { label: '链接', action: 'insert-link' }, { label: '图片', action: 'insert-image' },
       { sep: true },
@@ -104,6 +104,7 @@
       ]},
       { label: '编辑显示', sub: [
         { label: '显示行号', check: true, action: 'toggle-lines' },
+        { label: '显示文档水印', check: true, action: 'toggle-watermark' },
         { label: '自动配对输入', check: true, action: 'toggle-pairs' }, { label: '显示状态栏', check: true, action: 'toggle-status' }
       ]},
       { label: '写作辅助', sub: [
@@ -130,16 +131,34 @@
     { key: 'help', label: '帮助(H)', items: [
       { label: '新手引导', action: 'guide' }, { label: '更新日志', act: 'dlg-doc', arg: '更新日志' },
       { label: '鸣谢', act: 'dlg-doc', arg: '鸣谢' }, { sep: true },
-      { label: '官方网站', toast: '官方网站：codewf.com' }, { label: '反馈', toast: '反馈入口：github.com/dotnet9/texweft/issues' },
-      { label: '关于 Texweft', act: 'dlg-about' }
+      { label: '官方网站', toast: '官方网站：codewf.com' }, { label: '反馈', toast: '反馈入口：github.com/dotnet9/Vex-Flutter/issues' },
+      { label: '关于 Vex', act: 'dlg-about' }
     ]}
   ];
+  var originalInsert = MENUS[2].items;
+  MENUS[2] = { key:'paragraph', label:'段落(P)', items:originalInsert.filter(function (item) { return item.action && !['insert-link','insert-image','insert-bold','insert-italic','insert-inline-code','clear-format'].includes(item.action); }).concat([{label:'Mermaid 图表',sub:VexMermaid.items.map(function (item) {return {label:item.label,action:'insert-mermaid-'+item.key};})},{label:'脚注',action:'insert-footnote'}]) };
+  MENUS.splice(3,0,{key:'format',label:'格式(O)',items:[{label:'加粗',gesture:'Ctrl+B',action:'insert-bold'},{label:'斜体',gesture:'Ctrl+I',action:'insert-italic'},{label:'删除线',action:'insert-strike'},{label:'高亮',action:'insert-highlight'},{label:'上标',action:'insert-superscript'},{label:'下标',action:'insert-subscript'},{label:'行内代码',action:'insert-inline-code'},{sep:true},{label:'链接',action:'insert-link'},{label:'图片',action:'insert-image'},{sep:true},{label:'清除格式',action:'clear-format'}]});
+  var toolsMenu = MENUS.find(function (menu) { return menu.key === 'tools'; });
+  toolsMenu.items.unshift({label:'偏好设置…',gesture:'Ctrl+,',action:'preferences'},{sep:true});
+  toolsMenu.items = toolsMenu.items.map(function (item) { return item.label === 'MCP 设置' ? {label:'MCP 设置',action:'preferences-mcp'} : item.label === 'MCP 审计' ? {label:'MCP 审计',action:'mcp-audit'} : item; });
+  if (new URLSearchParams(location.search).get('platform') === 'macos') MENUS.unshift({key:'app',label:'Vex',items:[{label:'关于 Vex',act:'dlg-about'},{label:'偏好设置…',gesture:'⌘,',action:'preferences'},{sep:true},{label:'退出 Vex',gesture:'⌘Q',action:'close'}]});
   TexweftProto.menuData = MENUS;
+  var menuNav = document.querySelector('.tb-menu');
+  menuNav.innerHTML = MENUS.map(function (menu) { return '<button class="tb-menuitem" type="button" aria-haspopup="true" aria-expanded="false">' + menu.label + '</button>'; }).join('');
 
   /* 把一个 .tb-menu 导航容器变成可交互菜单 */
   var openMenuKey = null;
   var menuHost = null;
+  var submenus = [];
+  function hideSubmenu(sub) {
+    var visible = sub.style.display !== 'none';
+    sub.style.display = 'none'; sub._owner.setAttribute('aria-expanded','false');
+    submenus.filter(function (item) { return item._owner.closest('.submenu') === sub; }).forEach(hideSubmenu);
+    if (visible) window.dispatchEvent(new CustomEvent('vex-menu-positioned'));
+  }
+  function clearSubmenus() { submenus.forEach(function (sub) { clearTimeout(sub._hideTimer); sub.remove(); }); submenus = []; }
   function closeOpenMenu() {
+    clearSubmenus();
     if (menuHost) menuHost.style.display = 'none';
     openMenuKey = null;
     document.querySelectorAll('.tb-menuitem.open').forEach(function (m) { m.classList.remove('open'); });
@@ -147,7 +166,8 @@
   }
   TexweftProto.closeMenu = closeOpenMenu;
 
-  function buildItem(it, toastAll) {
+  function buildItem(it, toastAll, depth) {
+    depth = depth || 0;
     if (it.sep) { var s = document.createElement('div'); s.className = 'menu-sep'; return s; }
     if (it.check && it.action && TexweftProto.isActionChecked) it.on = TexweftProto.isActionChecked(it.action, it);
     if (it.action === 'theme') it.on = document.documentElement.dataset.themeMode === it.arg;
@@ -156,59 +176,67 @@
     el.dataset.menuLabel = it.label;
     if (it.action || it.act) el.dataset.menuAction = it.action || it.act;
     el.tabIndex = 0;
+    var disabled = typeof it.disabled === 'function' ? it.disabled() : !!it.disabled;
+    if (disabled) { el.setAttribute('aria-disabled','true'); el.tabIndex = -1; }
     el.setAttribute('role', it.check ? 'menuitemcheckbox' : 'menuitem');
     if (it.check) el.setAttribute('aria-checked', String(!!it.on));
     el.addEventListener('keydown', function (event) {
       if (event.target !== el) return;
       if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); el.click(); }
-      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); event.stopPropagation(); var siblings = Array.from(el.parentElement.children).filter(function (item) { return item.classList.contains('menu-item'); }); siblings[(siblings.indexOf(el) + (event.key === 'ArrowDown' ? 1 : siblings.length - 1)) % siblings.length].focus(); }
-      if (event.key === 'ArrowRight' && el._sub) { event.preventDefault(); event.stopPropagation(); el._placeSub(); el._sub.querySelector('.menu-item').focus(); }
-      if (event.key === 'ArrowLeft' && el.parentElement.classList.contains('submenu')) { event.preventDefault(); event.stopPropagation(); el.parentElement.style.display = 'none'; el.parentElement.parentElement.focus(); }
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); event.stopPropagation(); var siblings = Array.from(el.parentElement.children).filter(function (item) { return item.classList.contains('menu-item') && item.getAttribute('aria-disabled') !== 'true'; }); siblings[(siblings.indexOf(el) + (event.key === 'ArrowDown' ? 1 : siblings.length - 1)) % siblings.length]?.focus(); }
+      if (event.key === 'ArrowRight' && el._sub) { event.preventDefault(); event.stopPropagation(); el._placeSub(); el._sub.querySelector('.menu-item:not([aria-disabled=true])')?.focus(); }
+      if (event.key === 'ArrowLeft' && el.parentElement.classList.contains('submenu')) { event.preventDefault(); event.stopPropagation(); var parent = el.parentElement; hideSubmenu(parent); parent._owner.focus(); }
     });
     el.className = 'menu-item' + (it.danger ? ' danger' : '') + (it.on ? ' checked' : '') + (it.sub ? ' has-sub' : '');
+    el.addEventListener('mouseenter',function () { submenus.filter(function (sub) {return sub._depth >= depth && sub !== el._sub;}).forEach(hideSubmenu); });
     var indicator = document.createElement('span'); indicator.className = 'menu-state'; indicator.setAttribute('aria-hidden', 'true'); indicator.textContent = it.on ? '✓' : ''; el.appendChild(indicator);
     var label = document.createElement('span'); label.className = 'menu-label'; label.textContent = window.TexweftL ? TexweftL.label(it.label) : it.label; el.appendChild(label);
     if (it.gesture) {
       var g = document.createElement('span');
       g.className = 'mi-gesture';
-      g.textContent = it.gesture;
+      g.textContent = new URLSearchParams(location.search).get('platform') === 'macos' ? it.gesture.replace(/Ctrl\+/g,'⌘').replace(/Shift\+/g,'⇧').replace(/Alt\+/g,'⌥') : it.gesture;
       el.appendChild(g);
     } else if (it.sub) {
       var a = document.createElement('span');
       a.className = 'mi-arrow';
-      a.textContent = '›';
+      a.setAttribute('aria-hidden','true');
+      a.innerHTML = '<svg class="ico vex-expand-icon" aria-hidden="true"><use href="#i-chevron"/></svg>';
       el.appendChild(a);
     }
     if (it.sub) {
       var sub = document.createElement('div');
       sub.className = 'submenu flyout'; sub.setAttribute('role', 'menu');
-      it.sub.forEach(function (s) { sub.appendChild(buildItem(s)); });
-      el.appendChild(sub);
+      sub._owner = el; sub._depth = depth; sub.dataset.parentLabel = it.label;
+      sub.id = 'vex-submenu-' + submenus.length; submenus.push(sub);
+      sub.style.display = 'none'; document.body.appendChild(sub);
+      el.setAttribute('aria-haspopup','menu'); el.setAttribute('aria-expanded','false'); el.setAttribute('aria-controls',sub.id);
+      it.sub.forEach(function (s) { sub.appendChild(buildItem(s,toastAll,depth+1)); });
       function placeSub() {
-        el.parentNode.querySelectorAll(':scope > .menu-item > .submenu').forEach(function (s) {
-          if (s !== sub) s.style.display = 'none';
-        });
+        clearTimeout(sub._hideTimer);
+        submenus.filter(function (s) { return s._depth >= depth && s !== sub; }).forEach(hideSubmenu);
         var r = el.getBoundingClientRect();
         sub.style.display = 'block';
         sub.style.position = 'fixed';
-        sub.style.left = Math.max(8, Math.min(r.right - 4, window.innerWidth - sub.offsetWidth - 8)) + 'px';
+        var right = r.right + 4, left = r.left - sub.offsetWidth - 4;
+        sub.style.left = Math.max(8, Math.min(right + sub.offsetWidth <= innerWidth - 8 ? right : left, innerWidth - sub.offsetWidth - 8)) + 'px';
         sub.style.top = Math.max(8, Math.min(r.top - 6, window.innerHeight - sub.offsetHeight - 8)) + 'px';
+        el.setAttribute('aria-expanded','true');
+        window.dispatchEvent(new CustomEvent('vex-menu-positioned'));
       }
+      function branchHovered(menu) { return menu.matches(':hover') || submenus.some(function (child) { return child._owner.closest('.submenu') === menu && child.style.display === 'block' && branchHovered(child); }); }
+      function scheduleHide() { clearTimeout(sub._hideTimer); sub._hideTimer = setTimeout(function () { if (!branchHovered(sub) && !el.matches(':hover')) hideSubmenu(sub); },180); }
       el.addEventListener('mouseenter', placeSub);
-      el.addEventListener('mouseleave', function () {
-        setTimeout(function () {
-          if (!sub.matches(':hover') && !el.matches(':hover')) sub.style.display = 'none';
-        }, 120);
-      });
-      sub.addEventListener('mouseenter', function () { sub.style.display = 'block'; });
+      el.addEventListener('mouseleave', scheduleHide);
+      sub.addEventListener('mouseenter', function () { clearTimeout(sub._hideTimer); });
+      sub.addEventListener('mouseleave',scheduleHide);
       el._placeSub = placeSub;
       el._sub = sub;
     }
     el.addEventListener('click', function (e) {
       e.stopPropagation();
+      if (disabled) return;
       if (it.sub) {
-        if (el._sub.style.display === 'block') el._sub.style.display = 'none';
-        else el._placeSub();
+        el._placeSub();
         return;
       }
       if (it.action === 'theme' || it.action === 'palette') {
@@ -247,7 +275,7 @@
       var key = item.getAttribute('data-menu');
       var data = MENUS.filter(function (m) { return m.label === key || m.key === key; })[0];
       if (!data) return;
-      host.innerHTML = '';
+      clearSubmenus(); host.innerHTML = '';
       var box = document.createElement('div');
       box.className = 'flyout';
       box.style.minWidth = '248px';
@@ -259,6 +287,8 @@
       host.style.display = 'block';
       host.style.left = Math.max(0, Math.min(item.offsetLeft, bar.offsetWidth - 268)) + 'px';
       host.style.top = (nav.offsetTop + nav.offsetHeight + 2) + 'px';
+      box.style.maxHeight = Math.max(120,innerHeight-host.getBoundingClientRect().top-12) + 'px';
+      box.addEventListener('scroll',function () { submenus.forEach(hideSubmenu); });
       openMenuKey = data.key;
     }
 
@@ -284,5 +314,6 @@
 
     document.addEventListener('click', closeOpenMenu);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeOpenMenu(); });
+    window.addEventListener('resize',closeOpenMenu);
   };
 })();

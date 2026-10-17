@@ -8,6 +8,7 @@
   var layer = document.createElement('div'); layer.id = 'texweft-guide'; layer.className = 'tour-layer'; layer.hidden = true;
   layer.innerHTML = '<svg class="tour-mask" aria-hidden="true"><defs><mask id="tour-cutouts" maskUnits="userSpaceOnUse"><rect width="100%" height="100%" fill="white"></rect><g class="tour-cutouts" fill="black"></g></mask></defs><rect class="tour-scrim" width="100%" height="100%" mask="url(#tour-cutouts)"></rect></svg><div class="tour-rings"></div><section class="tour-card" role="dialog" aria-modal="false" aria-labelledby="tour-title" aria-describedby="tour-description"></section>';
   document.body.appendChild(layer);
+  var pointer = document.createElement('div'); pointer.className = 'vex-tour-pointer'; pointer.setAttribute('aria-hidden','true'); layer.appendChild(pointer);
   var card = $('.tour-card'), cutouts = $('.tour-cutouts'), rings = $('.tour-rings');
   function visible(selector) { var node = $(selector); return !!node && !node.closest('[hidden]') && node.getBoundingClientRect().width > 0; }
   var steps = [
@@ -48,7 +49,7 @@
     {
       name: '分享', title: '保存，也方便分享', description: '保存文档，或将排好版的内容导出、复制到发布平台。', tip: '文件 → 导出；工具 → 复制到公众号等平台。',
       targets: function () {
-        return ['.save-button', '.tb-menuitem[data-menu="文件(F)"]', '.tb-menuitem[data-menu="工具(T)"]'].concat(visible('.menu-flyout') ? ['.menu-flyout'] : []).concat(visible('.menu-item[data-menu-label="导出"] .submenu') ? ['.menu-item[data-menu-label="导出"] .submenu'] : []);
+        return ['.save-button', '.tb-menuitem[data-menu="文件(F)"]', '.tb-menuitem[data-menu="工具(T)"]'].concat(visible('.menu-flyout') ? ['.menu-flyout'] : []).concat(visible('.submenu[data-parent-label="导出"]') ? ['.submenu[data-parent-label="导出"]'] : []);
       },
       allow: '.save-button, .tb-menuitem[data-menu="文件(F)"], .tb-menuitem[data-menu="工具(T)"], .menu-item[data-menu-action="save"], .menu-item[data-menu-label="导出"], .menu-item[data-menu-action="export-html"], .menu-item[data-menu-label^="复制到"]',
       prepare: function () { TexweftWorkspace.setLayout('read'); $('.reading-scroll').scrollTop = 0; }
@@ -57,7 +58,8 @@
   try { $('#guide-launch').hidden = !!TexweftStorage.getItem(storageKey); } catch (_) {}
   function hideExtras() {
     if (visible('#chapter-delete-dialog')) $('#chapter-delete-cancel').click();
-    ['#typography-panel', '#map-settings', '#node-inspector', '#texweft-theme-panel', '#workspace-layout-menu'].forEach(function (selector) { var node = $(selector); if (node) node.hidden = true; });
+    ['#typography-panel', '#map-settings', '#node-inspector', '#workspace-layout-menu'].forEach(function (selector) { var node = $(selector); if (node) node.hidden = true; });
+    var languageMenu = $('#texweft-language-menu'); if (languageMenu) languageMenu.open = false;
     $('#workspace-layout').setAttribute('aria-expanded', 'false'); TexweftProto.closeMenu();
   }
   function mark(index, message) {
@@ -80,6 +82,7 @@
     preparing = true; hideExtras(); stepIndex = Math.max(0, Math.min(steps.length - 1, index));
     layer.dataset.step = stepIndex + 1; $('.app-window').dataset.guideStep = stepIndex + 1;
     steps[stepIndex].prepare(); stepText = TexweftWorkbench.text; renderCard(); preparing = false; schedule();
+    if (!matchMedia('(prefers-reduced-motion:reduce)').matches && document.documentElement.dataset.motion !== 'false') card.animate([{opacity:0,translate:'0 5px'},{opacity:1,translate:'0 0'}],{duration:180,easing:'cubic-bezier(.2,.8,.2,1)'});
     $('.tour-next').focus({ preventScroll: true });
     clearTimeout(settledTimer); settledTimer = setTimeout(schedule, 260);
   }
@@ -184,26 +187,18 @@
     });
   }
   function position(rects) {
-    var bounds = appBounds(), size = card.getBoundingClientRect(), margin = 18, left = bounds.left + margin, top = bounds.top + 70;
-    card.style.maxHeight = Math.max(180,bounds.height-2*margin)+'px';
-    if (stepIndex === 1) { top = bounds.bottom - size.height - margin; }
-    else if (stepIndex === 2) { top = $('#map-viewport').getBoundingClientRect().top + 28; }
-    else if (stepIndex === 3 || stepIndex === 4) { top = bounds.bottom - size.height - margin; }
-    else if (stepIndex === 5) { left = bounds.right - size.width - margin; top = $('.workbar').getBoundingClientRect().bottom + 20; }
-    else {
-      var rect = rects.find(function (r) { return r.kind === 'text'; }) || rects[0];
-      if (rect) { left = rect.x + 12; top = rect.y + rect.height + 18; if (top + size.height > bounds.bottom-margin) top = rect.y-size.height-18; }
-    }
-    left = Math.max(bounds.left+margin,Math.min(bounds.right-size.width-margin,left)); top = Math.max(bounds.top+margin,Math.min(bounds.bottom-size.height-margin,top));
-    card.style.left = left+'px'; card.style.top = top+'px';
+    var bounds = appBounds(), candidates = rects.filter(function (r) { return r.kind !== 'preview'; });
+    var target = rects.find(function (r) { return r.kind === 'text'; }) || candidates[0];
+    if (stepIndex >= 2 && candidates.length > 1) target = candidates[candidates.length-1];
+    pointer.hidden = !target;
+    if (target) VexTourPlacement.attach(card,pointer,target,bounds,['bottom','right','left','bottom','bottom','bottom'][stepIndex],candidates.filter(function (r) { return r !== target; }));
   }
   function fitChapters() {
     if (!open || stepIndex !== 2 || !TexweftWorkbench.state.bounds) return;
-    position([]);
-    var viewport = $('#map-viewport').getBoundingClientRect(), guide = card.getBoundingClientRect(), bounds = TexweftWorkbench.state.bounds;
-    var left = Math.max(viewport.left,guide.right+24), width = Math.max(200,viewport.right-left-16), height = viewport.height-36;
+    var viewport = $('#map-viewport').getBoundingClientRect(), bounds = TexweftWorkbench.state.bounds;
+    var left = Math.max(viewport.left,appBounds().left+18+card.offsetWidth+18), width = Math.max(100,viewport.right-left-18), height = viewport.height-36;
     var state = TexweftWorkbench.state; state.scale = Math.min(1,width/bounds.width,height/bounds.height);
-    state.x = left-viewport.left+(width-bounds.width*state.scale)/2; state.y = (viewport.height-bounds.height*state.scale)/2;
+    state.x = left-viewport.left; state.y = (viewport.height-bounds.height*state.scale)/2;
     TexweftWorkbench.renderMap(); schedule();
   }
   function fitComparison() {
@@ -217,6 +212,7 @@
   new ResizeObserver(schedule).observe($('.app-window'));
   card.addEventListener('toggle', schedule, true);
   window.addEventListener('resize', function () { schedule(); if (stepIndex === 2) requestAnimationFrame(fitChapters); });
+  window.addEventListener('vex-menu-positioned',schedule);
   document.addEventListener('scroll', schedule, true);
   window.TexweftGuide = {start:start,close:close,get active() {return open;}};
   if (new URLSearchParams(location.search).get('tour') === '1') requestAnimationFrame(start);

@@ -2,8 +2,9 @@
 (() => {
   'use strict';
   const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const safeURL = (value, image = false) => /^(https?:|mailto:|#)/i.test(value) || (image && /^data:image\/(png|jpeg|gif|webp);base64,/i.test(value)) ? value : '#';
+  const safeURL = (value, image = false) => /^(https?:|mailto:|#)/i.test(value) || value === 'Third-Party-Licenses.html' || (image && (/^data:image\/(png|jpeg|gif|webp);base64,/i.test(value) || /^assets\/[\w./-]+$/i.test(value) && !value.split('/').includes('..'))) ? value : '#';
   function inline(value) {
+    if (window.TexweftRendering) return TexweftRendering.inline(value);
     const tokens = [];
     const token = html => { tokens.push(html); return `\u0001${tokens.length - 1}\u0002`; };
     let s = esc(value);
@@ -29,6 +30,11 @@
         if (end > 0) { i = end + 1; continue; }
       }
       if (!line.trim()) { i++; continue; }
+      if (line.trim() === '$$') {
+        i++; while (i < lines.length && lines[i].trim() !== '$$') i++;
+        const formula = lines.slice(start + 1,i).join('\n'); if (i < lines.length) i++;
+        add('math',start,i,TexweftRendering.renderSpecial({kind:'math',text:formula,line:start + 1})); continue;
+      }
       if ((match = /^(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line))) {
         const level = match[1].length, title = match[2];
         add('heading', i, ++i, `<h${level}>${inline(title)}</h${level}>`, { level, title, id: `heading-${start}` }); continue;
@@ -42,14 +48,14 @@
         const closing = new RegExp('^ {0,3}' + marker[0] + '{' + marker.length + ',}\\s*$');
         while (i < lines.length && !closing.test(lines[i])) i++;
         const code = lines.slice(start + 1, i).join('\n'); if (i < lines.length) i++;
-        add('code', start, i, `<pre data-language="${esc(language)}"><code>${esc(code)}</code></pre>`, { language }); continue;
+        add('code', start, i, language.toLowerCase() === 'mermaid' && window.TexweftRendering ? TexweftRendering.renderSpecial({kind:'code',language,text:code,line:start+1}) : `<pre data-language="${esc(language)}"><code>${esc(code)}</code></pre>`, { language }); continue;
       }
       if (/^\s*(---+|\*\*\*+)\s*$/.test(line)) { add('hr', i, ++i, '<hr>'); continue; }
       if (i + 1 < lines.length && line.includes('|') && /^\s*\|?\s*:?-{3,}/.test(lines[i + 1])) {
-        const cells = row => row.trim().replace(/^\||\|$/g,'').split('|').map(x => x.trim());
-        let rows = `<thead><tr>${cells(line).map(x => `<th>${inline(x)}</th>`).join('')}</tr></thead><tbody>`; i += 2;
-        while (i < lines.length && lines[i].trim() && lines[i].includes('|')) { rows += `<tr>${cells(lines[i++]).map(x => `<td>${inline(x)}</td>`).join('')}</tr>`; }
-        add('table', start, i, `<table>${rows}</tbody></table>`); continue;
+        i += 2; while (i < lines.length && lines[i].trim() && lines[i].includes('|')) i++;
+        const value=VexDocumentOps.table(lines.slice(start,i).join('\n'));
+        if(value){const row=(cells,tag)=>'<tr>'+cells.map((cell,index)=>`<${tag} data-align="${value.align[index]}" style="text-align:${value.align[index]||'start'}">${inline(cell.replace(/\\\|/g,'|'))}</${tag}>`).join('')+'</tr>';add('table',start,i,`<table><thead>${row(value.rows[0],'th')}</thead><tbody>${value.rows.slice(1).map(cells=>row(cells,'td')).join('')}</tbody></table>`);continue;}
+        i=start;
       }
       if (/^>/.test(line)) {
         while (i < lines.length && /^>/.test(lines[i])) i++;
@@ -65,18 +71,19 @@
       }
       i++;
       while (i < lines.length && lines[i].trim() && !special(lines[i]) && !(i + 1 < lines.length && lines[i].includes('|') && /^\s*\|?\s*:?-{3,}/.test(lines[i + 1]))) i++;
-      add('paragraph', start, i, `<p>${lines.slice(start, i).map(inline).join('<br>')}</p>`);
+      add('paragraph', start, i, `<p>${lines.slice(start, i).map(inline).join(window.VexPreferences?.values.softBreak === false ? ' ' : '<br>')}</p>`);
     }
     return { blocks, headings };
   }
   function render(text, editable = false) {
     const data = parse(text);
-    return data.blocks.map((b, n) => `<div class="md-block" data-block="${n}" data-line="${b.line}" ${b.id ? `id="${editable ? 'edit-' : 'read-'}${b.id}"` : ''} ${editable && !['hr', 'code'].includes(b.type) ? 'contenteditable="true" spellcheck="false"' : ''}>${editable && b.type === 'code' ? b.html.replace('<pre ', '<pre contenteditable="plaintext-only" spellcheck="false" role="textbox" aria-label="代码正文" ') : editable ? b.html : b.html.replace(/<input /g,'<input disabled ')}</div>`).join('') || (editable ? '<div class="md-block" data-block="0" contenteditable="true"><p><br></p></div>' : '<p class="muted">空白的一页，等待你的想法。</p>');
+    return data.blocks.map((b, n) => `<div class="md-block" data-block="${n}" data-line="${b.line}" ${b.id ? `id="${editable ? 'edit-' : 'read-'}${b.id}"` : ''} ${editable && !['hr', 'code','math'].includes(b.type) ? 'contenteditable="true" spellcheck="false"' : ''}>${editable && b.type === 'code' && b.language.toLowerCase() !== 'mermaid' ? b.html.replace('<pre ', '<pre contenteditable="plaintext-only" spellcheck="false" role="textbox" aria-label="代码正文" ') : editable ? b.html : b.html.replace(/<input /g,'<input disabled ')}</div>`).join('') || (editable ? '<div class="md-block" data-block="0" contenteditable="true"><p><br></p></div>' : '<p class="muted">空白的一页，等待你的想法。</p>');
   }
   function toMarkdown(node) {
     if (node.nodeType === Node.TEXT_NODE) return node.nodeValue.replace(/\u00a0/g,' ');
     if (node.nodeType !== Node.ELEMENT_NODE) return '';
     if (node.classList.contains('md-code-footer')) return '';
+    if (node.dataset.markdown) return node.dataset.markdown;
     const tag = node.tagName.toLowerCase(), inner = () => [...node.childNodes].map(toMarkdown).join('');
     if (/^h[1-6]$/.test(tag)) return '#'.repeat(Number(tag[1])) + ' ' + inner() + '\n\n';
     if (tag === 'br') return '\n';
@@ -88,13 +95,11 @@
     if (tag === 'pre') return '```' + (node.dataset.language || '') + '\n' + node.textContent.replace(/\n$/,'') + '\n```\n\n';
     if (tag === 'code') return '`' + node.textContent + '`';
     if (tag === 'blockquote') return inner().trim().split('\n').map(x => '> ' + x).join('\n') + '\n\n';
-    if (tag === 'li') { const box = node.querySelector('input'); const ordered = node.parentElement.tagName === 'OL'; return (ordered ? [...node.parentElement.children].indexOf(node) + 1 + '. ' : '- ') + (box ? `[${box.checked ? 'x' : ' '}] ` : '') + inner().trim() + '\n'; }
+    if (tag === 'li') { const box = node.querySelector('input'); const ordered = node.parentElement?.tagName === 'OL'; return (ordered ? [...node.parentElement.children].indexOf(node) + 1 + '. ' : '- ') + (box ? `[${box.checked ? 'x' : ' '}] ` : '') + inner().trim() + '\n'; }
     if (tag === 'ul' || tag === 'ol') return inner() + '\n';
     if (tag === 'input') return '';
     if (tag === 'table') {
-      const rows = [...node.querySelectorAll('tr')].map(row => '| ' + [...row.children].map(cell => toMarkdown(cell).trim().replace(/\n/g,' ')).join(' | ') + ' |');
-      if (rows.length) rows.splice(1, 0, '| ' + [...node.querySelector('tr').children].map(() => '---').join(' | ') + ' |');
-      return rows.join('\n') + '\n\n';
+      return VexDocumentOps.fromDOM(node,toMarkdown) + '\n\n';
     }
     if (tag === 'p' || tag === 'div') return inner() + '\n\n';
     return inner();
@@ -104,19 +109,30 @@
     const clearActive = () => {
       if (!active) return;
       active.element.classList.remove('is-editing');
-      active.element.querySelector('.md-code-footer')?.remove();
       active = null;
     };
-    const repaint = () => { active = null; host.innerHTML = render(options.getText(), true); };
+    const repaint = () => {
+      if (window.VexDiagramEditing?.busy(host)) return;
+      active = null; const text = options.getText(); host.innerHTML = render(text, true);
+      parse(text).blocks.forEach((block,index) => {
+        const el = host.querySelector(`[data-block="${index}"]`);
+        if (block.type !== 'code') return;
+        if (block.language.toLowerCase() === 'mermaid' && window.VexPreferences?.values.mermaid !== false) {
+          const before = text.slice(0,block.start), after = text.slice(block.end);
+          VexDiagramEditing.mount(el,block,{begin:clearActive,change:raw => options.onChange(before + raw + after,true),finish:repaint});
+        } else el.append(TexweftCodeFence.footer(block.language || ''));
+      });
+    };
     const begin = el => {
       if (active?.element === el) return;
       clearActive();
       const block = parse(options.getText()).blocks[Number(el.dataset.block)] || { start: 0, end: 0, raw: '' };
+      if (el.querySelector('.diagram-editor') || block.type === 'math') return;
       active = { element: el, before: options.getText().slice(0, block.start), after: options.getText().slice(block.end), raw: block.raw, changed: false };
       el.classList.add('is-editing');
       if (block.type === 'code') {
         active.fence = TexweftCodeFence.parse(block.raw);
-        el.append(TexweftCodeFence.footer(active.fence?.language || block.language || ''));
+        el.querySelector('.md-code-language').value = active.fence?.language || block.language || '';
       }
     };
     const sync = () => {

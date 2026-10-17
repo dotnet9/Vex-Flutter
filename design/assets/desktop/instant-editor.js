@@ -11,11 +11,14 @@
     function text(node) { return (node.textContent || '').replace(/\u00a0/g, ' '); }
     function inline(node) {
       if (node.nodeType === Node.TEXT_NODE) return node.nodeValue.replace(/\u00a0/g, ' ');
-      if (node.nodeType !== Node.ELEMENT_NODE || node.contentEditable === 'false') return '';
+      if (node.nodeType !== Node.ELEMENT_NODE) return '';
+      if (node.dataset.markdown) return node.dataset.markdown;
+      if (node.contentEditable === 'false') return '';
       var value = Array.from(node.childNodes).map(inline).join(''), tag = node.tagName;
       if (tag === 'BR') return '\n';
       if (tag === 'STRONG' || tag === 'B') return '**' + value + '**';
       if (tag === 'EM' || tag === 'I') return '*' + value + '*';
+      if (tag === 'DEL' || tag === 'S') return '~~' + value + '~~';
       if (tag === 'CODE') return '`' + text(node) + '`';
       if (tag === 'A') return '[' + value + '](' + node.getAttribute('href') + ')';
       if (tag === 'IMG') return '![' + (node.getAttribute('alt') || '') + '](' + node.getAttribute('src') + ')';
@@ -29,9 +32,7 @@
       if (tag === 'BLOCKQUOTE') return value.split('\n').map(function (line) { return '> ' + line; }).join('\n') + '\n\n';
       if (tag === 'UL' || tag === 'OL') return Array.from(node.children).map(function (item, index) { return (tag === 'OL' ? (index + 1) + '. ' : '- ') + inline(item).replace(/^[☑☐] /, ''); }).join('\n') + '\n\n';
       if (tag === 'TABLE') {
-        var rows = Array.from(node.rows).map(function (row) { return '| ' + Array.from(row.cells).map(inline).join(' | ') + ' |'; });
-        if (rows.length) rows.splice(1, 0, '| ' + Array.from(node.rows[0].cells).map(function () { return '---'; }).join(' | ') + ' |');
-        return rows.join('\n') + '\n\n';
+        return VexDocumentOps.fromDOM(node,inline) + '\n\n';
       }
       if (node.classList.contains('md-code-block')) return '```' + (active.block.language || '') + '\n' + text(node.querySelector('code')).replace(/\n$/, '') + '\n```\n\n';
       return value;
@@ -93,10 +94,9 @@
       var offset = Math.min(active.value.length, caretOffset());
       options.input.setSelectionRange(active.start + offset, active.start + offset);
       options.input.dispatchEvent(new Event('input')); options.cursor();
-      if (options.typewriter()) active.element.scrollIntoView({ block: 'center' });
     }
     function render() {
-      if (active) return;
+      if (active || window.VexDiagramEditing?.busy(host)) return;
       host.replaceChildren();
       options.blocks().forEach(function (block, index) {
         var element = document.createElement('div'), span = range(block);
@@ -104,11 +104,27 @@
         element.contentEditable = 'true'; element.spellcheck = false; element.setAttribute('role', 'textbox'); element.setAttribute('aria-multiline', 'true');
         element.setAttribute('aria-label', '编辑第 ' + block.line + ' 行：' + block.text.slice(0, 20));
         element.innerHTML = options.renderBlock(block);
-        if (block.kind === 'code') {
+        if (TexweftRendering.special(block) || block.kind === 'rule') {
+          element.contentEditable = 'false';
+          if (block.kind === 'code' && block.language.toLowerCase() === 'mermaid' && window.VexPreferences?.values.mermaid !== false && !options.input.readOnly) {
+            var diagramBefore = options.input.value.slice(0, span.start), diagramAfter = options.input.value.slice(span.end);
+            VexDiagramEditing.mount(element, block, {
+              begin: function () { if (active) finish(); options.remember(options.input.value); },
+              change: function (raw) { options.input.value = diagramBefore + raw + diagramAfter; options.input.dispatchEvent(new Event('input')); },
+              finish: function () { options.refresh(); render(); }
+            });
+          } else if (block.kind !== 'rule') {
+            element.tabIndex = 0; element.setAttribute('role', 'figure'); element.setAttribute('aria-label', block.kind === 'math' ? '数学或化学公式' : 'Markdown 图表');
+            element.ondblclick = function () { TexweftWorkspace.locateEditor(block.line); };
+            element.onkeydown = function (event) { if (event.key === 'Enter') { event.preventDefault(); TexweftWorkspace.locateEditor(block.line); } };
+          } else element.removeAttribute('role');
+        } else if (block.kind === 'code') {
           element.contentEditable = 'false';
           var pre = element.querySelector('pre'); pre.contentEditable = 'plaintext-only'; pre.tabIndex = 0;
           pre.setAttribute('role', 'textbox'); pre.setAttribute('aria-label', '代码正文'); pre.setAttribute('aria-multiline', 'true');
+          element.append(TexweftCodeFence.footer(block.language || ''));
         }
+        if (options.input.readOnly) { element.contentEditable = 'false'; element.querySelectorAll('[contenteditable]').forEach(function (node) { node.contentEditable = 'false'; }); }
         host.appendChild(element);
       });
       if (!options.blocks().length) {
@@ -117,13 +133,14 @@
       }
     }
     function begin(element) {
+      if (options.input.readOnly || element.querySelector('.diagram-editor')) return;
       if (active?.element === element) return;
       if (active) finish();
       var block = options.blocks()[Number(element.dataset.blockIndex)] || { kind: 'paragraph', raw: '', line: 1, endLine: 1 }, span = range(block);
       active = { element: element, block: block, start: span.start, end: span.end, original: block.raw, value: block.raw, before: options.input.value.slice(0, span.start), after: options.input.value.slice(span.end), changed: false };
       if (block.kind === 'code') {
         active.fence = TexweftCodeFence.parse(block.raw);
-        element.append(TexweftCodeFence.footer(active.fence?.language || block.language || ''));
+        element.querySelector('.md-code-language').value = active.fence?.language || block.language || '';
       }
       element.classList.add('instant-input', 'is-editing');
     }
@@ -135,7 +152,6 @@
         else if (previous.original !== previous.value) options.remember(previous.before + previous.original + previous.after);
       }
       active = null; previous.element.classList.remove('instant-input', 'is-editing');
-      previous.element.querySelector('.md-code-footer')?.remove();
       if (previous.element.contains(document.activeElement)) document.activeElement.blur();
       if (previous.changed) { options.refresh(); render(); }
       return start;
@@ -150,7 +166,7 @@
       var next = host.querySelector('[data-block-index="' + index + '"]');
       if (next) { (next.querySelector('pre[contenteditable]') || next).focus({ preventScroll: true }); var caret = document.caretRangeFromPoint(event.clientX, event.clientY); if (caret && next.contains(caret.startContainer)) { getSelection().removeAllRanges(); getSelection().addRange(caret); } }
     });
-    host.addEventListener('focusin', function (event) { var element = event.target.closest('.instant-block'); if (element && !event.target.closest('.md-code-footer')) begin(element); });
+    host.addEventListener('focusin', function (event) { var element = event.target.closest('.instant-block'); if (element && !TexweftRendering.special(options.blocks()[Number(element.dataset.blockIndex)] || {}) && !event.target.closest('.md-code-footer')) begin(element); });
     host.addEventListener('focusout', function (event) { if (active && !active.element.contains(event.relatedTarget)) finish(); });
     host.addEventListener('input', function (event) { if (active) { if (!event.isComposing) normalizeInline(); sync(); } });
     host.addEventListener('compositionstart', function () { composing = true; });
@@ -174,7 +190,7 @@
       render: render, finish: finish, editing: function () { return !!active; },
       focusAt: function (line) {
         finish(); var index = options.blocks().findIndex(function (block) { return line >= block.line && line <= block.endLine; }); if (index < 0) index = Math.max(0, options.blocks().length - 1);
-        var element = host.querySelector('[data-block-index="' + index + '"]'); if (element) { (element.querySelector('pre[contenteditable]') || element).focus({ preventScroll: true }); begin(element); setCaret(text(element).length); element.scrollIntoView({ block: 'nearest' }); }
+        var element = host.querySelector('[data-block-index="' + index + '"]'); if (element) { (element.querySelector('pre[contenteditable]') || element).focus({ preventScroll: true }); begin(element); setCaret(text(element).length); if (options.typewriter()) options.cursor(); else element.scrollIntoView({ block: 'nearest' }); }
       },
       insert: function (value) { if (!active) return false; (active.element.querySelector('pre[contenteditable]') || active.element).focus({ preventScroll: true }); document.execCommand('insertText', false, value); normalizeInline(); sync(); return true; },
       format: function (kind) {

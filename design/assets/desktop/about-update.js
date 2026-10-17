@@ -33,7 +33,7 @@
     if (state === 'failed') operation(retry);
     else if (state === 'available') operation('downloading');
     else if (state === 'downloaded') operation('installing');
-    else if (state === 'manual') window.open('https://github.com/dotnet9/texweft/releases/latest', '_blank', 'noopener,noreferrer');
+    else if (state === 'manual') window.open('https://github.com/dotnet9/Vex-Flutter/releases/latest', '_blank', 'noopener,noreferrer');
     else operation('checking');
   };
   $('layer-about').querySelector('[data-close]').addEventListener('click', cancel);

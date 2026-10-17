@@ -1,10 +1,18 @@
 <!doctype html>
 <html lang="zh-CN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#24766b"><title>笺纬 Texweft · 落笔成文，思路成形。</title><link rel="icon" href="../logo.svg" type="image/svg+xml"><link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/app.css"><link rel="stylesheet" href="assets/palettes.css"><link rel="stylesheet" href="assets/typography.css">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#24766b"><title>维刻 Vex · 写下想法，看见脉络。</title><link rel="icon" href="assets/vex-logo.svg" type="image/svg+xml"><link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/app.css"><link rel="stylesheet" href="assets/palettes.css"><link rel="stylesheet" href="assets/typography.css">
 <script src="assets/palettes.js"></script><script src="assets/typography-catalog.js"></script>
+<link rel="stylesheet" href="assets/vendor/katex/katex.min.css"><link rel="stylesheet" href="assets/prototype.css"><link rel="stylesheet" href="assets/element-menu.css">
+<script src="assets/overlay.js"></script><script src="assets/mermaid-catalog.js"></script><script src="assets/documents-data.js"></script><script src="assets/watermark.js"></script><script src="assets/preferences.js"></script><script src="assets/tour-placement.js"></script><script src="assets/diagram-editor.js"></script>
 </head>
 <body>
 <svg class="sprite" aria-hidden="true"><defs>
+ <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+ <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+ <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
+ <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18h1.5a2 2 0 0 0 0-4H12a2 2 0 0 1 0-4h3.5a5.5 5.5 0 0 0 0-11H12Z"/><circle cx="7.5" cy="9" r="1"/><circle cx="11" cy="6.5" r="1"/><circle cx="16" cy="7.5" r="1"/></symbol>
+ <symbol id="i-terminal" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><path d="M12 19h8"/></symbol>
+ <symbol id="i-refresh" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></symbol>
  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h5"/></symbol>
  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></symbol>
@@ -14,9 +22,10 @@
  <symbol id="i-map" viewBox="0 0 24 24"><rect x="2" y="8" width="6" height="8" rx="1.5"/><rect x="16" y="2" width="6" height="6" rx="1.5"/><rect x="16" y="16" width="6" height="6" rx="1.5"/><path d="M8 12h4V5h4M12 12v7h4"/></symbol>
  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
  <symbol id="i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12l4 4v12a2 2 0 0 1-2 2zM7 3v6h10V3M7 21v-8h10v8"/></symbol>
- <symbol id="i-down" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+ <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
  <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+ <symbol id="i-min" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></symbol>
  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 13A9 9 0 0 1 11 3a9 9 0 1 0 10 10z"/></symbol>
  <symbol id="i-settings" viewBox="0 0 24 24"><path d="m10 3-.6 2.5-2.1 1.2L5 6l-2 3 1.8 1.8v2.4L3 15l2 3 2.3-.7 2.1 1.2L10 21h4l.6-2.5 2.1-1.2 2.3.7 2-3-1.8-1.8v-2.4L21 9l-2-3-2.3.7-2.1-1.2L14 3z"/><circle cx="12" cy="12" r="3"/></symbol>
@@ -31,6 +40,10 @@
  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M3 10h11a7 7 0 0 1 0 14M3 10l5-5M3 10l5 5" transform="translate(0 -3)"/></symbol>
  <symbol id="i-redo" viewBox="0 0 24 24"><path d="M21 7H10a7 7 0 0 0 0 14M21 7l-5-5M21 7l-5 5"/></symbol>
  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+ <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+ <symbol id="i-clipboard" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></symbol>
+ <symbol id="i-scissors" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="m8.12 8.12 12.76 12.76M14 14l6.88-10.88M8.12 15.88 12 12"/></symbol>
+ <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
  <symbol id="i-export" viewBox="0 0 24 24"><path d="M12 15V2m-5 5 5-5 5 5M4 14v6a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-6"/></symbol>
  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></symbol>
  <symbol id="i-fit" viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/><rect x="8" y="8" width="8" height="8" rx="1"/></symbol>
@@ -40,8 +53,8 @@
 <main class="app-window" id="app">
  <div class="phone-system" aria-hidden="true"><span>9:41</span><span class="phone-island"></span><span>▰ ▮▮▮</span></div>
  <header class="titlebar">
-  <button class="brand" data-action="about" title="笺纬 Texweft"><img src="../logo.svg" alt=""><strong>Texweft</strong></button>
-  <nav class="menubar" aria-label="主菜单"><button data-menu="file" data-i18n="file">文件</button><button data-menu="edit" data-i18n="edit">编辑</button><button data-menu="insert" data-i18n="insert">插入</button><button data-menu="view" data-i18n="view">视图</button><button data-menu="tools" data-i18n="tools">工具</button><button data-menu="help" data-i18n="help">帮助</button></nav>
+  <button class="brand" data-action="about" title="维刻 Vex"><img src="assets/vex-logo.svg" alt=""><strong>Vex</strong></button>
+  <nav class="menubar" aria-label="主菜单"><button data-menu="file" data-i18n="file">文件</button><button data-menu="edit" data-i18n="edit">编辑</button><button data-menu="paragraph">段落</button><button data-menu="format">格式</button><button data-menu="view" data-i18n="view">视图</button><button data-menu="tools" data-i18n="tools">工具</button><button data-menu="help" data-i18n="help">帮助</button></nav>
   <span class="titlebar-spacer"></span><span class="local-label"><span class="dot"></span><span data-i18n="local">本地工作区</span></span>
   <div class="window-buttons" aria-label="窗口预览"><button data-action="minimize" aria-label="最小化">−</button><button data-action="maximize" aria-label="切换窗口大小">□</button><button data-action="close-app" aria-label="关闭">×</button></div>
  </header>
@@ -50,7 +63,6 @@
   <div class="view-switch" role="tablist" aria-label="文档视图"><button role="tab" data-view="write" aria-selected="true"><svg class="icon"><use href="#i-edit"/></svg><span data-i18n="write">写作</span></button><button role="tab" data-view="read" aria-selected="false"><svg class="icon"><use href="#i-book"/></svg><span data-i18n="read">阅读</span></button><button role="tab" data-view="map" aria-selected="false"><svg class="icon"><use href="#i-map"/></svg><span data-i18n="mindmap">导图</span></button></div>
   <div class="workbar-actions"><button class="btn layout-trigger" data-action="layout" aria-expanded="false"><svg class="icon"><use href="#i-grid"/></svg><span data-i18n="layout">布局</span><svg class="icon small"><use href="#i-down"/></svg></button><button class="icon-btn desktop-theme" data-action="theme" aria-label="切换浅深主题"><svg class="icon"><use href="#i-sun"/></svg></button><button class="icon-btn mobile-more" data-menu="mobile" aria-label="更多操作"><svg class="icon"><use href="#i-more"/></svg></button><button class="btn primary save-button" data-action="save" title="保存 Markdown 副本"><svg class="icon"><use href="#i-save"/></svg><span data-i18n="save">保存</span></button></div>
  </div>
- <div class="find-bar" id="find-bar" hidden><svg class="icon"><use href="#i-search"/></svg><input id="find-input" placeholder="在文档中查找…" aria-label="查找内容"><span id="find-count">0 / 0</span><button class="icon-btn" data-action="find-prev" aria-label="上一处">↑</button><button class="icon-btn" data-action="find-next" aria-label="下一处">↓</button><button class="btn quiet" data-action="toggle-replace" data-i18n="replace">替换</button><div class="replace-controls" hidden><input id="replace-input" placeholder="替换为…" aria-label="替换内容"><button class="btn" data-action="replace-one" data-i18n="replace">替换</button><button class="btn" data-action="replace-all" data-i18n="replaceAll">全部替换</button></div><button class="icon-btn" data-action="close-find" aria-label="关闭查找"><svg class="icon"><use href="#i-close"/></svg></button></div>
  <div class="workspace">
   <div class="sidebar-backdrop" id="sidebar-backdrop" hidden></div>
   <aside class="sidebar" id="sidebar">
@@ -61,6 +73,7 @@
    <footer class="sidebar-footer"><button data-action="open-folder"><svg class="icon"><use href="#i-folder"/></svg><span data-i18n="openFolder">打开文件夹</span></button><button class="icon-btn" data-action="settings" aria-label="设置"><svg class="icon"><use href="#i-settings"/></svg></button></footer>
   </aside>
   <section class="document-workspace" id="document-workspace">
+   <div class="find-bar" id="find-bar" hidden><div class="find-controls"><svg class="icon"><use href="#i-search"/></svg><input id="find-input" placeholder="在文档中查找…" aria-label="查找内容"><span id="find-count" role="status">0 / 0</span><button class="icon-btn" data-action="find-prev" aria-label="上一处">↑</button><button class="icon-btn" data-action="find-next" aria-label="下一处">↓</button><button class="btn quiet" data-action="toggle-replace" aria-expanded="false" data-i18n="replace">替换</button><button class="icon-btn" data-action="close-find" aria-label="关闭查找"><svg class="icon"><use href="#i-close"/></svg></button></div><div class="replace-controls" hidden><input id="replace-input" placeholder="替换为…" aria-label="替换内容"><button class="btn" data-action="replace-one" data-i18n="replace">替换</button><button class="btn" data-action="replace-all" data-i18n="replaceAll">全部替换</button></div></div>
    <div class="draft-banner" id="draft-banner" hidden><span><svg class="icon"><use href="#i-info"/></svg><span data-i18n="draftFound">发现一份尚未保存的草稿</span></span><button class="btn quiet" data-action="discard-draft" data-i18n="discard">忽略</button><button class="btn" data-action="restore-draft" data-i18n="restore">恢复草稿</button></div>
    <div class="formatbar" id="formatbar"><div class="editing-switch"><button data-editor="instant" aria-pressed="true" data-i18n="instant">即时编辑</button><button data-editor="source" aria-pressed="false" data-i18n="source">源码</button></div><span class="toolbar-rule"></span><div class="format-tools"><button data-format="heading" title="标题" aria-label="插入标题">H<span class="tiny">2</span></button><button data-format="bold" title="加粗 Ctrl/⌘ B" aria-label="加粗"><b>B</b></button><button data-format="italic" title="斜体 Ctrl/⌘ I" aria-label="斜体"><i>I</i></button><button data-format="quote" title="引用" aria-label="引用">❞</button><span class="toolbar-rule"></span><button data-format="list" title="列表" aria-label="无序列表"><svg class="icon"><use href="#i-list"/></svg></button><button data-format="task" title="任务列表" aria-label="任务列表"><svg class="icon"><use href="#i-check"/></svg></button><button data-format="link" title="链接" aria-label="插入链接"><svg class="icon"><use href="#i-link"/></svg></button><button data-format="image" title="图片" aria-label="插入图片"><svg class="icon"><use href="#i-image"/></svg></button><button data-format="code" title="代码块" aria-label="插入代码块"><svg class="icon"><use href="#i-code-block"/></svg></button><button data-format="table" title="表格" aria-label="插入表格"><svg class="icon"><use href="#i-table"/></svg></button></div><span class="toolbar-spacer"></span><button class="typography-trigger" data-action="typography"><span class="type-symbol">Aa</span><span data-i18n="typography">排版</span><svg class="icon small"><use href="#i-down"/></svg></button></div>
    <div class="view-surface" id="view-surface" data-layout="instant">
@@ -74,11 +87,12 @@
  <footer class="statusbar"><button class="status-saved" data-action="document-info"><span class="dot"></span><span id="footer-save-label">已保存</span></button><span class="status-view" id="status-view">即时编辑</span><span class="toolbar-spacer"></span><button data-action="statistics" id="word-count">0 字</button><span id="reading-time">约 1 分钟</span><span class="status-separator"></span><button data-action="document-info">UTF-8</button><span id="cursor-position">Ln 1, Col 1</span><button class="status-zoom" data-action="zoom">100%</button></footer>
  <nav class="mobile-viewbar" aria-label="文档视图"><button data-view="write" aria-selected="true"><svg class="icon"><use href="#i-edit"/></svg><span data-i18n="write">写作</span></button><button data-view="read" aria-selected="false"><svg class="icon"><use href="#i-book"/></svg><span data-i18n="read">阅读</span></button><button data-view="map" aria-selected="false"><svg class="icon"><use href="#i-map"/></svg><span data-i18n="mindmap">导图</span></button><button data-action="outline"><svg class="icon"><use href="#i-list"/></svg><span data-i18n="outline">大纲</span></button></nav><div class="home-indicator" aria-hidden="true"></div>
  <div class="popover" id="popover" hidden></div><div class="menu-popover" id="menu-popover" hidden></div>
+ <div class="phone-sheet-host" id="phone-sheet-host" hidden></div>
  <div class="modal-host" id="modal-host" hidden></div><div class="toast-host" id="toast-host" role="status" aria-live="polite"></div>
  <div class="guide-ring" id="guide-ring" hidden></div><section class="guide-card" id="guide-card" hidden aria-label="新手引导"></section>
- <div class="closed-app" id="closed-app" hidden><img src="../logo.svg" alt="Texweft"><h1>笺纬 Texweft</h1><p data-i18n="slogan">落笔成文，思路成形。</p><button class="btn primary" data-action="reopen" data-i18n="backToWriting">回到写作</button><a href="index.html" data-i18n="prototypeHome">原型导航</a></div>
+ <div class="closed-app" id="closed-app" hidden><img src="assets/vex-logo.svg" alt="Vex"><h1>维刻 Vex</h1><p data-i18n="slogan">写下想法，看见脉络。</p><button class="btn primary" data-action="reopen" data-i18n="backToWriting">回到写作</button><a href="index.html" data-i18n="prototypeHome">原型导航</a></div>
 </main>
 <input type="file" id="file-input" accept=".md,.markdown,.mdown,.txt,text/plain,text/markdown" multiple hidden><input type="file" id="folder-input" webkitdirectory multiple hidden><input type="file" id="image-input" accept="image/*" hidden>
 <link rel="stylesheet" href="assets/presentation.css">
-<script src="assets/code-fence.js"></script><script src="assets/editor.js"></script><script src="assets/presentation-labels.js"></script><script src="assets/presentation.js"></script><script src="assets/mindmap.js"></script><script src="assets/project-info.js"></script><script src="assets/app.js"></script>
+<script src="assets/code-fence.js"></script><script src="assets/vendor/katex/katex.min.js"></script><script src="assets/vendor/katex/mhchem.min.js"></script><script src="assets/vendor/mermaid/mermaid.min.js"></script><script src="assets/vendor/d3-hierarchy/d3-hierarchy.min.js"></script><script src="assets/map-layout.js"></script><script src="assets/desktop/rendering.js"></script><script src="assets/desktop/samples.js"></script><script src="assets/document-operations.js"></script><script src="assets/editor.js"></script><script src="assets/element-menu.js"></script><script src="assets/presentation-labels.js"></script><script src="assets/presentation.js"></script><script src="assets/mindmap.js"></script><script src="assets/project-info.js"></script><script src="assets/app.js"></script>
 </body></html>
