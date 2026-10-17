@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:texweft/app.dart';
 import 'package:texweft/domain/workspace.dart';
 import 'package:texweft/l10n/l10n.dart';
+import 'package:texweft/ui/core/app_widgets.dart';
 import 'package:texweft/ui/workspace/workspace_element_entries.dart';
 import 'package:texweft/ui/workspace/workspace_element_menu.dart';
 import 'package:texweft_editor/texweft_editor.dart';
@@ -14,6 +15,92 @@ import 'package:texweft_editor/texweft_editor.dart';
 import 'support/fakes.dart';
 
 void main() {
+  testWidgets(
+    'keyboard context menu executes and returns focus to the editor',
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      String? copied;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copied = (call.arguments as Map)['text'] as String;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      final vm = fakeWorkspace();
+      vm.editor.session.replace('```dart\nfinal value = 1;\n```\n');
+      vm.setLayout(WorkspaceLayout.source);
+      await tester.pumpWidget(TexweftApp(viewModel: vm));
+      vm.editor.select(vm.editor.text.indexOf('value'));
+      vm.editor.sourceFocus.requestFocus();
+      await tester.pumpAndSettle();
+      Future<void> open() async {
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+        await tester.sendKeyEvent(LogicalKeyboardKey.f10);
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+        await tester.pumpAndSettle();
+      }
+
+      await open();
+      expect(
+        find.byKey(const ValueKey('menu-element:copy-source')),
+        findsOneWidget,
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(copied, 'final value = 1;');
+      expect(vm.editor.sourceFocus.hasFocus, isTrue);
+      await open();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('menu-element:copy-source')),
+        findsNothing,
+      );
+      expect(vm.editor.sourceFocus.hasFocus, isTrue);
+
+      vm.editor.session.replace('text idea\n');
+      vm.setLayout(WorkspaceLayout.instant);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('text idea'));
+      await tester.pumpAndSettle();
+      final input = tester
+          .widget<TextField>(find.byKey(const ValueKey('instant-active-input')))
+          .controller!;
+      input.selection = const TextSelection(baseOffset: 9, extentOffset: 5);
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.contextMenu);
+      await tester.pumpAndSettle();
+      final cut = tester.widget<AppButton>(
+        find.byKey(const ValueKey('menu-element:cut')),
+      );
+      expect(cut.onPressed, isNotNull);
+      expect(cut.focusNode?.hasFocus, isTrue);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(copied, 'idea');
+      expect(vm.editor.text, 'text \n');
+      vm.editor.session.undo();
+      await tester.pumpAndSettle();
+      expect(vm.editor.text, 'text idea\n');
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      vm.dispose();
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.windows),
+  );
+
   test('all element menus respect readonly and text/block boundaries', () {
     final vm = fakeWorkspace();
     addTearDown(vm.dispose);

@@ -37,12 +37,14 @@ class AppButton extends StatelessWidget {
     this.selected = false,
     this.bordered = false,
     this.primary = false,
+    this.focusNode,
     this.height = 32,
     this.padding = 9,
   });
   final String? label, icon, trailingIcon, tooltip;
   final VoidCallback? onPressed;
   final bool selected, bordered, primary;
+  final FocusNode? focusNode;
   final double height, padding;
   @override
   Widget build(BuildContext context) {
@@ -54,6 +56,7 @@ class AppButton extends StatelessWidget {
         : c.onSurface;
     final button = TextButton(
       onPressed: onPressed,
+      focusNode: focusNode,
       style: TextButton.styleFrom(
         foregroundColor: foreground,
         backgroundColor: primary

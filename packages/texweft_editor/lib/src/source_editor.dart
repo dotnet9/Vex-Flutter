@@ -6,6 +6,7 @@ import 'package:re_editor/re_editor.dart';
 
 import 'code_block.dart';
 import 'context_request.dart';
+import 'context_shortcuts.dart';
 import 'controller.dart';
 import 'editing_preferences.dart';
 import 'source_controller.dart';
@@ -38,6 +39,8 @@ class MarkdownSourceEditor extends StatefulWidget {
 
 class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
   late MarkdownSourceEditingController _code;
+  final _editorRegion = GlobalKey();
+  CodeIndicatorValueNotifier? _indicator;
   late _SourceViewport _viewport;
   bool _restoringScroll = false;
   double _viewportHeight = 0;
@@ -95,16 +98,19 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
           ],
         ),
   );
-  late final _contextToolbar = _SourceContextToolbar((position) {
+  void _showContext(Offset position, {bool keyboard = false}) {
     final selection = widget.controller.selection;
     widget.onContextMenu?.call(
       MarkdownContextRequest(
         offset: selection.isValid ? selection.start : 0,
         selection: selection,
         position: position,
+        keyboard: keyboard,
       ),
     );
-  });
+  }
+
+  late final _contextToolbar = _SourceContextToolbar(_showContext);
 
   @override
   void initState() {
@@ -181,6 +187,51 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
     });
   }
 
+  bool _showKeyboardContext() {
+    final selection = widget.controller.selection;
+    if (widget.onContextMenu == null ||
+        !selection.isValid ||
+        !_code.composing.isCollapsed) {
+      return false;
+    }
+    final source = widget.controller.text;
+    _code.makeCursorVisible();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          widget.controller.text != source ||
+          widget.controller.selection != selection) {
+        return;
+      }
+      final box =
+          _editorRegion.currentContext?.findRenderObject() as RenderBox?;
+      final caret = _code.selection.extent;
+      final paragraph = _indicator?.value?.paragraphs
+          .where((line) => line.index == caret.index)
+          .firstOrNull;
+      final offset = paragraph?.getOffset(caret);
+      if (box == null || paragraph == null || offset == null) return;
+      // Use Re-Editor's laid-out paragraph, including tabs and font fallback.
+      final local =
+          offset +
+          paragraph.offset +
+          Offset(
+            (widget.lineNumbers ? 48 : 0) - _horizontal.offset,
+            paragraph.preferredLineHeight - _vertical.offset,
+          );
+      _showContext(
+        box.localToGlobal(
+          Offset(
+            local.dx.clamp(0, box.size.width),
+            local.dy.clamp(0, box.size.height),
+          ),
+        ),
+        keyboard: true,
+      );
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+    return true;
+  }
+
   @override
   void dispose() {
     widget.controller.source.removeListener(_revealSelection);
@@ -197,6 +248,7 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
     final color = Theme.of(context).colorScheme;
     final font = MarkdownCodeBlock.textStyle(context, widget.fontSize);
     return LayoutBuilder(
+      key: _editorRegion,
       builder: (context, constraints) {
         _viewportHeight = constraints.maxHeight;
         final inset = widget.typewriter
@@ -205,58 +257,64 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
                           1.9) /
                   2
             : null;
-        return CodeEditor(
-          key: PageStorageKey(('source', widget.controller)),
-          controller: _code,
-          scrollController: _scroll,
-          focusNode: widget.controller.sourceFocus,
-          toolbarController: widget.onContextMenu == null
-              ? _toolbar
-              : _contextToolbar,
-          autofocus: false,
-          wordWrap: false,
-          autocompleteSymbols: widget.editingPreferences?.autoPair ?? false,
-          chunkAnalyzer: const NonCodeChunkAnalyzer(),
-          shortcutsActivatorsBuilder: const _SourceShortcuts(),
-          style: CodeEditorStyle(
-            fontFamily: font.fontFamily,
-            fontFamilyFallback: font.fontFamilyFallback,
-            fontSize: MediaQuery.textScalerOf(context).scale(widget.fontSize),
-            fontHeight: 1.9,
-            textColor: color.onSurface,
-            backgroundColor: Colors.transparent,
-            cursorColor: color.primary,
-            selectionColor: color.primary.withValues(alpha: .18),
-          ),
-          padding: EdgeInsets.fromLTRB(
-            widget.lineNumbers ? 4 : 28,
-            inset ?? 26,
-            28,
-            inset ?? 70,
-          ),
-          indicatorBuilder: widget.lineNumbers
-              ? (context, editing, chunks, notifier) => SizedBox(
-                  width: 48,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: DefaultCodeLineNumber(
-                        controller: editing,
-                        notifier: notifier,
-                        textStyle: font.copyWith(
-                          fontSize: 10,
-                          color: color.onSurfaceVariant,
-                        ),
-                        focusedTextStyle: font.copyWith(
-                          fontSize: 10,
-                          color: color.primary,
+        return MarkdownContextShortcuts(
+          onShow: widget.onContextMenu == null ? null : _showKeyboardContext,
+          child: CodeEditor(
+            key: PageStorageKey(('source', widget.controller)),
+            controller: _code,
+            scrollController: _scroll,
+            focusNode: widget.controller.sourceFocus,
+            toolbarController: widget.onContextMenu == null
+                ? _toolbar
+                : _contextToolbar,
+            autofocus: false,
+            wordWrap: false,
+            autocompleteSymbols: widget.editingPreferences?.autoPair ?? false,
+            chunkAnalyzer: const NonCodeChunkAnalyzer(),
+            shortcutsActivatorsBuilder: const _SourceShortcuts(),
+            style: CodeEditorStyle(
+              fontFamily: font.fontFamily,
+              fontFamilyFallback: font.fontFamilyFallback,
+              fontSize: MediaQuery.textScalerOf(context).scale(widget.fontSize),
+              fontHeight: 1.9,
+              textColor: color.onSurface,
+              backgroundColor: Colors.transparent,
+              cursorColor: color.primary,
+              selectionColor: color.primary.withValues(alpha: .18),
+            ),
+            padding: EdgeInsets.fromLTRB(
+              widget.lineNumbers ? 4 : 28,
+              inset ?? 26,
+              28,
+              inset ?? 70,
+            ),
+            indicatorBuilder: (context, editing, chunks, notifier) {
+              _indicator = notifier;
+              return widget.lineNumbers
+                  ? SizedBox(
+                      width: 48,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: DefaultCodeLineNumber(
+                            controller: editing,
+                            notifier: notifier,
+                            textStyle: font.copyWith(
+                              fontSize: 10,
+                              color: color.onSurfaceVariant,
+                            ),
+                            focusedTextStyle: font.copyWith(
+                              fontSize: 10,
+                              color: color.primary,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                )
-              : null,
+                    )
+                  : const SizedBox.shrink();
+            },
+          ),
         );
       },
     );
@@ -286,6 +344,29 @@ class _MobileSourceEditorState extends State<MarkdownSourceEditor> {
   final _scroll = ScrollController();
   final _viewport = GlobalKey();
   bool _centerScheduled = false;
+
+  bool _showKeyboardContext() {
+    if (widget.onContextMenu == null ||
+        !widget.controller.source.value.composing.isCollapsed) {
+      return false;
+    }
+    final viewport = _viewport.currentContext;
+    final position = viewport == null
+        ? null
+        : markdownCaretMenuPosition(viewport);
+    if (position == null) return false;
+    final selection = widget.controller.selection;
+    widget.onContextMenu!(
+      MarkdownContextRequest(
+        offset: selection.isValid ? selection.start : 0,
+        selection: selection,
+        position: position,
+        keyboard: true,
+      ),
+    );
+    return true;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -401,80 +482,87 @@ class _MobileSourceEditorState extends State<MarkdownSourceEditor> {
                     ),
                   ),
                 Expanded(
-                  child: CallbackShortcuts(
-                    bindings: {
-                      const SingleActivator(LogicalKeyboardKey.tab): () =>
-                          indentMarkdownSelection(
-                            widget.controller.source,
-                            widget.editingPreferences?.indent ?? 2,
+                  child: MarkdownContextShortcuts(
+                    onShow: widget.onContextMenu == null
+                        ? null
+                        : _showKeyboardContext,
+                    child: CallbackShortcuts(
+                      bindings: {
+                        const SingleActivator(LogicalKeyboardKey.tab): () =>
+                            indentMarkdownSelection(
+                              widget.controller.source,
+                              widget.editingPreferences?.indent ?? 2,
+                            ),
+                        const SingleActivator(
+                          LogicalKeyboardKey.tab,
+                          shift: true,
+                        ): () => indentMarkdownSelection(
+                          widget.controller.source,
+                          widget.editingPreferences?.indent ?? 2,
+                          reverse: true,
+                        ),
+                      },
+                      child: TextField(
+                        controller: widget.controller.source,
+                        contextMenuBuilder: widget.onContextMenu == null
+                            ? null
+                            : (context, editable) {
+                                final position =
+                                    editable.contextMenuAnchors.primaryAnchor;
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  if (!mounted) return;
+                                  editable.hideToolbar();
+                                  final selection = widget.controller.selection;
+                                  widget.onContextMenu!(
+                                    MarkdownContextRequest(
+                                      offset: selection.isValid
+                                          ? selection.start
+                                          : 0,
+                                      selection: selection,
+                                      position: position,
+                                    ),
+                                  );
+                                });
+                                return const SizedBox.shrink();
+                              },
+                        focusNode: widget.controller.sourceFocus,
+                        scrollController: _scroll,
+                        keyboardType: TextInputType.multiline,
+                        expands: true,
+                        minLines: null,
+                        maxLines: null,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        inputFormatters: [
+                          if (widget.editingPreferences?.autoPair == true)
+                            const MarkdownPairFormatter(),
+                          MarkdownTypingFormatter(),
+                        ],
+                        smartDashesType: SmartDashesType.disabled,
+                        smartQuotesType: SmartQuotesType.disabled,
+                        style:
+                            MarkdownCodeBlock.textStyle(
+                              context,
+                              widget.fontSize,
+                            ).copyWith(
+                              fontSize: widget.fontSize,
+                              height: 1.9,
+                              color: color.onSurface,
+                            ),
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: false,
+                          isCollapsed: true,
+                          contentPadding: EdgeInsets.fromLTRB(
+                            widget.lineNumbers ? 4 : 28,
+                            top,
+                            28,
+                            widget.typewriter ? top : 70,
                           ),
-                      const SingleActivator(
-                        LogicalKeyboardKey.tab,
-                        shift: true,
-                      ): () => indentMarkdownSelection(
-                        widget.controller.source,
-                        widget.editingPreferences?.indent ?? 2,
-                        reverse: true,
-                      ),
-                    },
-                    child: TextField(
-                      controller: widget.controller.source,
-                      contextMenuBuilder: widget.onContextMenu == null
-                          ? null
-                          : (context, editable) {
-                              final position =
-                                  editable.contextMenuAnchors.primaryAnchor;
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                if (!mounted) return;
-                                editable.hideToolbar();
-                                final selection = widget.controller.selection;
-                                widget.onContextMenu!(
-                                  MarkdownContextRequest(
-                                    offset: selection.isValid
-                                        ? selection.start
-                                        : 0,
-                                    selection: selection,
-                                    position: position,
-                                  ),
-                                );
-                              });
-                              return const SizedBox.shrink();
-                            },
-                      focusNode: widget.controller.sourceFocus,
-                      scrollController: _scroll,
-                      keyboardType: TextInputType.multiline,
-                      expands: true,
-                      minLines: null,
-                      maxLines: null,
-                      autocorrect: false,
-                      enableSuggestions: false,
-                      inputFormatters: [
-                        if (widget.editingPreferences?.autoPair == true)
-                          const MarkdownPairFormatter(),
-                        MarkdownTypingFormatter(),
-                      ],
-                      smartDashesType: SmartDashesType.disabled,
-                      smartQuotesType: SmartQuotesType.disabled,
-                      style:
-                          MarkdownCodeBlock.textStyle(
-                            context,
-                            widget.fontSize,
-                          ).copyWith(
-                            fontSize: widget.fontSize,
-                            height: 1.9,
-                            color: color.onSurface,
-                          ),
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        filled: false,
-                        isCollapsed: true,
-                        contentPadding: EdgeInsets.fromLTRB(
-                          widget.lineNumbers ? 4 : 28,
-                          top,
-                          28,
-                          widget.typewriter ? top : 70,
                         ),
                       ),
                     ),

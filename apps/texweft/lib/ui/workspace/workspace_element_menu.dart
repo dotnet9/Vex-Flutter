@@ -37,6 +37,7 @@ class WorkspaceElementMenu extends StatefulWidget {
 
 class _WorkspaceElementMenuState extends State<WorkspaceElementMenu> {
   final _menu = MenuController();
+  final _menuFocus = FocusNode();
   final _anchor = GlobalKey();
   MarkdownTableTarget? _table;
   MarkdownElementTarget? _target;
@@ -44,7 +45,14 @@ class _WorkspaceElementMenuState extends State<WorkspaceElementMenu> {
   ValueChanged<int>? _onEditAt;
   WorkspaceDocument? _document;
   bool _readOnly = false, _openingTouch = false;
+  bool _keyboardMenu = false;
   List<WorkspaceMenuEntry> _entries = [];
+
+  @override
+  void dispose() {
+    _menuFocus.dispose();
+    super.dispose();
+  }
 
   void _open(MarkdownContextRequest request) {
     if (_openingTouch) return;
@@ -66,6 +74,7 @@ class _WorkspaceElementMenuState extends State<WorkspaceElementMenu> {
       _onEditAt = request.onEditAt;
       _document = vm.current;
       _readOnly = request.readOnly;
+      _keyboardMenu = request.keyboard;
       _entries = table != null
           ? workspaceTableEntries(context.l10n, table, readOnly: _readOnly)
           : workspaceElementEntries(
@@ -101,6 +110,11 @@ class _WorkspaceElementMenuState extends State<WorkspaceElementMenu> {
       } else {
         final box = _anchor.currentContext!.findRenderObject()! as RenderBox;
         _menu.open(position: box.globalToLocal(request.position));
+        if (request.keyboard) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _menu.isOpen) _menuFocus.requestFocus();
+          });
+        }
       }
     });
   }
@@ -352,7 +366,12 @@ class _WorkspaceElementMenuState extends State<WorkspaceElementMenu> {
     animated: !MediaQuery.disableAnimationsOf(context),
     key: _anchor,
     controller: _menu,
-    menuChildren: workspaceMenuWidgets(context, _entries, _run),
+    menuChildren: workspaceMenuWidgets(
+      context,
+      _entries,
+      _run,
+      firstFocusNode: _keyboardMenu ? _menuFocus : null,
+    ),
     child: widget.builder(_open),
   );
 }

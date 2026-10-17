@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:texweft/app.dart';
@@ -105,7 +106,29 @@ void main() {
           await tester.pumpAndSettle();
           vm.setLayout(WorkspaceLayout.source);
           vm.editor.select(source.indexOf('final'));
+          vm.editor.sourceFocus.requestFocus();
           await tester.pumpAndSettle();
+          await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+          await tester.sendKeyEvent(LogicalKeyboardKey.f10);
+          await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('menu-element:copy-source')),
+            findsOneWidget,
+          );
+          await capture('$prefix-keyboard-context');
+          await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+          await tester.pumpAndSettle();
+          expect(
+            (await Clipboard.getData(Clipboard.kTextPlain))?.text,
+            'final idea = "写下想法，看见脉络";',
+          );
+          expect(vm.editor.sourceFocus.hasFocus, isTrue);
+          await tester.sendKeyEvent(LogicalKeyboardKey.contextMenu);
+          await tester.pumpAndSettle();
+          await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+          await tester.pumpAndSettle();
+          expect(vm.editor.sourceFocus.hasFocus, isTrue);
           await tester.tap(
             find.byType(MarkdownSourceEditor),
             buttons: kSecondaryMouseButton,

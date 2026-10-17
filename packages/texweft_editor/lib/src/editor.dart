@@ -7,6 +7,7 @@ import 'package:texweft_markdown_core/texweft_markdown_core.dart';
 
 import 'code_block.dart';
 import 'context_request.dart';
+import 'context_shortcuts.dart';
 import 'controller.dart';
 import 'editing_preferences.dart';
 import 'element_target.dart';
@@ -375,6 +376,29 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
     return result;
   }
 
+  bool _showKeyboardContext() {
+    if (widget.onContextMenu == null ||
+        !_focus.hasFocus ||
+        !_input.value.composing.isCollapsed) {
+      return false;
+    }
+    final body = _bodyRegion.currentContext;
+    final position = body == null ? null : markdownCaretMenuPosition(body);
+    if (position == null) return false;
+    final selection = widget.controller.selection;
+    widget.onContextMenu!(
+      MarkdownContextRequest(
+        offset: selection.isValid ? selection.start : _start,
+        selection: selection,
+        position: position,
+        keyboard: true,
+        onEdit: () => _focus.requestFocus(),
+        onEditAt: _editAt,
+      ),
+    );
+    return true;
+  }
+
   void _update() {
     _scheduleCenter();
     if (_checkpoint == null ||
@@ -729,78 +753,81 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
 
   Widget _bodyField(ColorScheme colors) => KeyedSubtree(
     key: _bodyRegion,
-    child: CallbackShortcuts(
-      bindings: {
-        const SingleActivator(LogicalKeyboardKey.tab): () =>
-            indentMarkdownSelection(
-              _input,
-              widget.editingPreferences?.indent ?? 2,
-            ),
-        const SingleActivator(LogicalKeyboardKey.tab, shift: true): () =>
-            indentMarkdownSelection(
-              _input,
-              widget.editingPreferences?.indent ?? 2,
-              reverse: true,
-            ),
-      },
-      child: TextField(
-        key: const ValueKey('instant-active-input'),
-        groupId: this,
-        controller: _input,
-        focusNode: _focus,
-        contextMenuBuilder: widget.onContextMenu == null
-            ? null
-            : (context, editable) {
-                final position = editable.contextMenuAnchors.primaryAnchor;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (!mounted) return;
-                  editable.hideToolbar();
-                  final selection = widget.controller.selection;
-                  widget.onContextMenu!(
-                    MarkdownContextRequest(
-                      offset: selection.isValid ? selection.start : _start,
-                      selection: selection,
-                      position: position,
-                      onEdit: () => _focus.requestFocus(),
-                      onEditAt: _editAt,
-                    ),
-                  );
-                });
-                return const SizedBox.shrink();
-              },
-        maxLines: null,
-        autocorrect: _codeFence == null,
-        enableSuggestions: _codeFence == null,
-        inputFormatters: [
-          if (widget.editingPreferences?.autoPair == true)
-            const MarkdownPairFormatter(),
-          if (_codeFence == null) MarkdownTypingFormatter(),
-        ],
-        smartDashesType: SmartDashesType.disabled,
-        smartQuotesType: SmartQuotesType.disabled,
-        onTapOutside: (_) => _finish(),
-        style: _codeFence != null
-            ? MarkdownCodeBlock.textStyle(context, _codeFontSize)
-            : _activeStyle,
-        textAlign:
-            _kind == MarkdownBlockKind.heading &&
-                widget.typography == MarkdownTypography.editorial
-            ? TextAlign.center
-            : TextAlign.start,
-        scrollPadding: EdgeInsets.zero,
-        cursorHeight: _codeFence == null ? _activeStyle.fontSize : null,
+    child: MarkdownContextShortcuts(
+      onShow: widget.onContextMenu == null ? null : _showKeyboardContext,
+      child: CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.tab): () =>
+              indentMarkdownSelection(
+                _input,
+                widget.editingPreferences?.indent ?? 2,
+              ),
+          const SingleActivator(LogicalKeyboardKey.tab, shift: true): () =>
+              indentMarkdownSelection(
+                _input,
+                widget.editingPreferences?.indent ?? 2,
+                reverse: true,
+              ),
+        },
+        child: TextField(
+          key: const ValueKey('instant-active-input'),
+          groupId: this,
+          controller: _input,
+          focusNode: _focus,
+          contextMenuBuilder: widget.onContextMenu == null
+              ? null
+              : (context, editable) {
+                  final position = editable.contextMenuAnchors.primaryAnchor;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!mounted) return;
+                    editable.hideToolbar();
+                    final selection = widget.controller.selection;
+                    widget.onContextMenu!(
+                      MarkdownContextRequest(
+                        offset: selection.isValid ? selection.start : _start,
+                        selection: selection,
+                        position: position,
+                        onEdit: () => _focus.requestFocus(),
+                        onEditAt: _editAt,
+                      ),
+                    );
+                  });
+                  return const SizedBox.shrink();
+                },
+          maxLines: null,
+          autocorrect: _codeFence == null,
+          enableSuggestions: _codeFence == null,
+          inputFormatters: [
+            if (widget.editingPreferences?.autoPair == true)
+              const MarkdownPairFormatter(),
+            if (_codeFence == null) MarkdownTypingFormatter(),
+          ],
+          smartDashesType: SmartDashesType.disabled,
+          smartQuotesType: SmartQuotesType.disabled,
+          onTapOutside: (_) => _finish(),
+          style: _codeFence != null
+              ? MarkdownCodeBlock.textStyle(context, _codeFontSize)
+              : _activeStyle,
+          textAlign:
+              _kind == MarkdownBlockKind.heading &&
+                  widget.typography == MarkdownTypography.editorial
+              ? TextAlign.center
+              : TextAlign.start,
+          scrollPadding: EdgeInsets.zero,
+          cursorHeight: _codeFence == null ? _activeStyle.fontSize : null,
 
-        decoration: InputDecoration(
-          hintText: _codeFence == null && _input.text.isEmpty
-              ? widget.labels.placeholder
-              : null,
-          maintainHintSize: false,
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          filled: false,
-          isCollapsed: true,
-          contentPadding: EdgeInsets.zero,
+          decoration: InputDecoration(
+            hintText: _codeFence == null && _input.text.isEmpty
+                ? widget.labels.placeholder
+                : null,
+            maintainHintSize: false,
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            filled: false,
+            isCollapsed: true,
+            contentPadding: EdgeInsets.zero,
+          ),
         ),
       ),
     ),

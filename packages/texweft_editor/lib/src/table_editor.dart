@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:texweft_markdown_core/texweft_markdown_core.dart';
 
 import 'context_request.dart';
+import 'context_shortcuts.dart';
 import 'controller.dart';
 import 'editing_preferences.dart';
 import 'labels.dart';
@@ -214,94 +215,115 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
               },
         child: ListenableBuilder(
           listenable: focus,
-          builder: (context, _) => Stack(
-            alignment: Alignment.centerLeft,
-            children: [
-              Opacity(
-                opacity: focus.hasFocus ? 1 : 0,
-                alwaysIncludeSemantics: true,
-                child: TextField(
-                  key: ValueKey('table-cell-$row-$col'),
-                  controller: input,
-                  focusNode: focus,
-                  maxLines: null,
-                  textInputAction: TextInputAction.next,
-                  style: widget.style.copyWith(
-                    fontWeight: row == 0 ? FontWeight.w600 : FontWeight.w400,
-                  ),
-                  textAlign: switch (alignment) {
-                    MarkdownTableAlignment.center => TextAlign.center,
-                    MarkdownTableAlignment.right => TextAlign.right,
-                    _ => TextAlign.left,
+          builder: (context, _) => MarkdownContextShortcuts(
+            onShow: widget.onContextMenu == null
+                ? null
+                : () {
+                    if (!input.value.composing.isCollapsed) return false;
+                    final position = markdownCaretMenuPosition(context);
+                    if (position == null) return false;
+                    widget.onContextMenu!(
+                      MarkdownContextRequest(
+                        offset: cell.range.start,
+                        position: position,
+                        selection: widget.controller.selection,
+                        keyboard: true,
+                        tableRow: row,
+                        tableColumn: col,
+                      ),
+                    );
+                    return true;
                   },
-                  contextMenuBuilder: widget.onContextMenu == null
-                      ? null
-                      : (context, editable) {
-                          final anchor =
-                              editable.contextMenuAnchors.primaryAnchor;
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (!mounted) return;
-                            editable.hideToolbar();
-                            widget.onContextMenu!(
-                              MarkdownContextRequest(
-                                offset: cell.range.start,
-                                position: anchor,
-                                tableRow: row,
-                                tableColumn: col,
-                              ),
-                            );
-                          });
-                          return const SizedBox.shrink();
-                        },
-                  inputFormatters: [
-                    FilteringTextInputFormatter.singleLineFormatter,
-                  ],
-                  onSubmitted: (_) => focus.nextFocus(),
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    filled: false,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
+            child: Stack(
+              alignment: Alignment.centerLeft,
+              children: [
+                Opacity(
+                  opacity: focus.hasFocus ? 1 : 0,
+                  alwaysIncludeSemantics: true,
+                  child: TextField(
+                    key: ValueKey('table-cell-$row-$col'),
+                    controller: input,
+                    focusNode: focus,
+                    maxLines: null,
+                    textInputAction: TextInputAction.next,
+                    style: widget.style.copyWith(
+                      fontWeight: row == 0 ? FontWeight.w600 : FontWeight.w400,
                     ),
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                  ),
-                ),
-              ),
-              if (!focus.hasFocus)
-                IgnorePointer(
-                  child: ExcludeSemantics(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
+                    textAlign: switch (alignment) {
+                      MarkdownTableAlignment.center => TextAlign.center,
+                      MarkdownTableAlignment.right => TextAlign.right,
+                      _ => TextAlign.left,
+                    },
+                    contextMenuBuilder: widget.onContextMenu == null
+                        ? null
+                        : (context, editable) {
+                            final anchor =
+                                editable.contextMenuAnchors.primaryAnchor;
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (!mounted) return;
+                              editable.hideToolbar();
+                              widget.onContextMenu!(
+                                MarkdownContextRequest(
+                                  offset: cell.range.start,
+                                  position: anchor,
+                                  tableRow: row,
+                                  tableColumn: col,
+                                ),
+                              );
+                            });
+                            return const SizedBox.shrink();
+                          },
+                    inputFormatters: [
+                      FilteringTextInputFormatter.singleLineFormatter,
+                    ],
+                    onSubmitted: (_) => focus.nextFocus(),
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      filled: false,
+                      contentPadding: EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 10,
                       ),
-                      child: MarkdownReader(
-                        key: ValueKey('table-display-$row-$col'),
-                        data: cell.text,
-                        inline: true,
-                        selectable: false,
-                        bodyStyle: widget.style.copyWith(
-                          fontWeight: row == 0
-                              ? FontWeight.w600
-                              : FontWeight.w400,
-                        ),
-                        inlineAlignment: switch (alignment) {
-                          MarkdownTableAlignment.center => WrapAlignment.center,
-                          MarkdownTableAlignment.right => WrapAlignment.end,
-                          _ => WrapAlignment.start,
-                        },
-                        preferences: widget.preferences,
-                        editingPreferences: widget.editingPreferences,
-                        imageBuilder: widget.imageBuilder,
-                        labels: widget.labels,
-                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
                     ),
                   ),
                 ),
-            ],
+                if (!focus.hasFocus)
+                  IgnorePointer(
+                    child: ExcludeSemantics(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        child: MarkdownReader(
+                          key: ValueKey('table-display-$row-$col'),
+                          data: cell.text,
+                          inline: true,
+                          selectable: false,
+                          bodyStyle: widget.style.copyWith(
+                            fontWeight: row == 0
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                          ),
+                          inlineAlignment: switch (alignment) {
+                            MarkdownTableAlignment.center =>
+                              WrapAlignment.center,
+                            MarkdownTableAlignment.right => WrapAlignment.end,
+                            _ => WrapAlignment.start,
+                          },
+                          preferences: widget.preferences,
+                          editingPreferences: widget.editingPreferences,
+                          imageBuilder: widget.imageBuilder,
+                          labels: widget.labels,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

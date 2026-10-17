@@ -65,6 +65,10 @@ Source, instant editing and reading use the same captured source targets.
 Desktop secondary click opens a flyout; phone and tablet long-press use a
 fixed-header sheet with hierarchical submenus. Clipboard and inline-format
 tools share the prototype icons; submenu arrows match the titlebar menus.
+Source, active instant blocks and table cells also support the Context Menu
+key and Shift+F10. Keyboard invocation preserves backward selections, anchors
+to the actual caret and focuses the first enabled command. Enter executes it;
+Escape returns focus to editing. Composing IME text is never interrupted.
 
 - Links: open, copy address, edit text/address/title, unlink without losing
   inline formatting. Images: preview, copy address, replace, edit description,
@@ -86,6 +90,7 @@ double-encoded on repeated editing. Opening links allows HTTP, HTTPS and mailto;
 other schemes are never executed by these menus.
 
 Coverage: `element_target_test.dart`, `element_input_test.dart`,
-`test/element_menu_test.dart` and `integration_test/element_menu_test.dart`.
+`context_keyboard_test.dart`, `test/element_menu_test.dart` and
+`integration_test/element_menu_test.dart`.
 Native screenshot checks run on Windows at 1280px and 390px in light/dark mode;
 iOS phone/tablet long-press is covered by widget tests, not physical-device tests.

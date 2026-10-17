@@ -8,6 +8,7 @@ final class MarkdownContextRequest {
     this.tableRow,
     this.tableColumn,
     this.readOnly = false,
+    this.keyboard = false,
     this.selection,
     this.onEdit,
     this.onEditAt,
@@ -16,6 +17,7 @@ final class MarkdownContextRequest {
   final Offset position;
   final int? tableRow, tableColumn;
   final bool readOnly;
+  final bool keyboard;
   final TextSelection? selection;
   final VoidCallback? onEdit;
   final ValueChanged<int>? onEditAt;
