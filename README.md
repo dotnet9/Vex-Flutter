@@ -42,6 +42,6 @@ flutter test --no-pub integration_test/typing_test.dart -d windows
 
 发布目标为 Windows 安装程序、macOS DMG、Linux DEB、Android APK 及符合 Apple、HarmonyOS 签名要求的分发包，不使用便携压缩包代替安装包。鸿蒙手机、平板和电脑需使用对应适配 SDK 与设备验证，不把概念原型计作系统适配完成。
 
-`v0.2.0` 起通过 GitHub Actions 按 tag 构建安装包：Windows x64 EXE、macOS Intel / Apple 芯片通用 DMG、Linux x64 / ARM64 DEB、Android 三架构正式签名 APK，并生成 SHA-256 校验文件。iOS 当前仅接入 macOS runner 编译检查，IPA 与鸿蒙 HAP 尚缺签名或适配条件。详见 [安装包与自动发布](docs/安装包与自动发布.md)，产物以 [GitHub Releases](https://github.com/dotnet9/texweft/releases) 的实际构建结果为准。
+`v0.2.1` 起通过 GitHub Actions 按 tag 构建安装包：Windows x64 EXE、macOS Intel / Apple 芯片通用 DMG、Linux x64 / ARM64 DEB、Android 三架构正式签名 APK，并生成 SHA-256 校验文件。iOS 当前仅接入 macOS runner 编译检查，IPA 与鸿蒙 HAP 尚缺签名或适配条件。详见 [安装包与自动发布](docs/安装包与自动发布.md)，产物以 [GitHub Releases](https://github.com/dotnet9/texweft/releases) 的实际构建结果为准。
 
 MIT License · 沙漠尽头的狼 / CodeWF · [codewf.com](https://codewf.com)
