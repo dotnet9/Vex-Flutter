@@ -14,6 +14,8 @@ Android 命令显式指定 preview，包名 `com.codewf.texweft.preview`，应�
 
 production 使用包名 `com.codewf.texweft`，签名读取本机忽略的 `android/key.properties`：`storeFile`（相对 android 目录）、`storePassword`、`keyAlias`、`keyPassword`。正式构建必须配置发行证书，不回退到开发签名。证书及密码不得提交到仓库。
 
+v0.2.0 起已配置固定发行证书，GitHub Actions 从 Secrets 恢复签名并制作 ARMv7、ARM64、x86_64 APK；发布前核对实际证书 SHA-256、正式包名与版本。开发机的密钥与密码位于忽略目录 `.signing`，需安全备份并在以后升级中复用。CI 配置见 [安装包与自动发布](安装包与自动发布.md)。
+
 ```powershell
 flutter build apk --release --flavor production --split-per-abi --target-platform android-arm64
 ```

@@ -1,6 +1,6 @@
 name: texweft_mindmap
 description: Extensible native Flutter tree mind maps with layout, zoom, selection and drag interactions.
-version: 0.1.0
+version: 0.2.0
 repository: https://github.com/dotnet9/texweft/tree/main/packages/texweft_mindmap
 resolution: workspace
 environment:

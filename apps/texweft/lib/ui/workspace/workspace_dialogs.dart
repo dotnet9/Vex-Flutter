@@ -459,7 +459,8 @@ class _AboutDialogState extends State<_AboutDialog> {
           'https://api.github.com/repos/dotnet9/texweft/releases/latest',
         ),
       );
-      request.headers.set('User-Agent', 'Texweft/0.1.0');
+      final info = await _info;
+      request.headers.set('User-Agent', 'Texweft/${info?.version ?? 'dev'}');
       final response = await request.close().timeout(
         const Duration(seconds: 20),
       );

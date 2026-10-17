@@ -1,6 +1,6 @@
 name: texweft_editor
 description: Native Flutter Markdown source, instant editing and reading widgets with shared document history.
-version: 0.1.0
+version: 0.2.0
 repository: https://github.com/dotnet9/texweft/tree/main/packages/texweft_editor
 resolution: workspace
 environment:
@@ -9,7 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  texweft_markdown_core: ^0.1.0
+  texweft_markdown_core: ^0.2.0
   flutter_markdown_plus: ^1.0.12
   markdown: ^7.3.1
   super_sliver_list: ^0.4.1

@@ -3,7 +3,7 @@
 
 使用 Flutter 原生渲染的 Markdown 写作空间，面向桌面、手机和平板。一个窗口共享即时编辑、源码、阅读和思维导图，以本地文件为中心。编辑体验参考 Typora，工作区功能与原型参考 [Vex](https://github.com/dotnet9/Vex)。
 
-目前处于开发阶段。Windows 已完成原生 debug、release 构建与实际窗口运行，以及代码块、选区格式化、标题和列表输入的窗口集成验证；Android 已构建可安装的 release 预览 APK，并通过模拟器工作区与四语言切换测试，尚未发布正式安装包。跨平台发行、完整即时编辑体验、MCP 和视觉还原度仍在实现与验收中。当前状态见 [实现验收](docs/实现验收.md)，可评审的浏览器原型见 [design](design/README.md)。
+目前处于开发阶段。Windows 已完成原生 debug、release 构建、实际窗口运行与安装卸载验证，以及代码块、选区格式化、标题和列表输入的窗口集成验证；Android 已完成三架构 production APK 的发行签名构建与身份校验，早前预览包通过模拟器工作区与四语言切换测试。多平台安装包交给 GitHub Actions 构建发布；跨平台真机、完整即时编辑体验、MCP 和视觉还原度仍在实现与验收中。当前状态见 [实现验收](docs/实现验收.md)，可评审的浏览器原型见 [design](design/README.md)。
 
 界面支持简体中文、繁体中文、英语、日语；在设置中即时切换并保存，首次启动匹配系统语言。菜单、对话框、布局与排版选择、提示、引导及内置示例采用官方 ARB 本地化，切换界面语言保留文档与撤销历史。独立编辑器与导图包允许宿主注入翻译。详见 [国际化](docs/国际化.md)。
 
@@ -41,5 +41,7 @@ flutter test --no-pub integration_test/typing_test.dart -d windows
 已接入 Markdown、独立 HTML、PDF、Word（OOXML）和完整导图 PNG 导出，以及系统打印入口。PDF 支持离线中文和长代码分页；复杂图片、嵌套列表、数学与图表仍需补齐和验证。
 
 发布目标为 Windows 安装程序、macOS DMG、Linux DEB、Android APK 及符合 Apple、HarmonyOS 签名要求的分发包，不使用便携压缩包代替安装包。鸿蒙手机、平板和电脑需使用对应适配 SDK 与设备验证，不把概念原型计作系统适配完成。
+
+`v0.2.0` 起通过 GitHub Actions 按 tag 构建安装包：Windows x64 EXE、macOS Intel / Apple 芯片通用 DMG、Linux x64 / ARM64 DEB、Android 三架构正式签名 APK，并生成 SHA-256 校验文件。iOS 当前仅接入 macOS runner 编译检查，IPA 与鸿蒙 HAP 尚缺签名或适配条件。详见 [安装包与自动发布](docs/安装包与自动发布.md)，产物以 [GitHub Releases](https://github.com/dotnet9/texweft/releases) 的实际构建结果为准。
 
 MIT License · 沙漠尽头的狼 / CodeWF · [codewf.com](https://codewf.com)

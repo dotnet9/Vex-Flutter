@@ -6,6 +6,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  texweft_mindmap: ^0.1.0
+  texweft_mindmap: ^0.2.0
 flutter:
   uses-material-design: true
