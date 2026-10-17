@@ -290,7 +290,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.metadata.outputs.tag }}
-          target_commitish: ${{ needs.metadata.outputs.commit }}
+          # The annotated tag was verified before building. Do not ask the
+          # integration token to create a ref at an older workflow-bearing commit.
           name: Texweft ${{ needs.metadata.outputs.tag }}
           body_path: .github/release-notes/${{ needs.metadata.outputs.tag }}.md
           prerelease: true
