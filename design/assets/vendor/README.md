@@ -1,0 +1,12 @@
+# 原型离线渲染依赖
+
+桌面与自适应 HTML 原型使用，不加入 Flutter 应用的启动文档或发布资源。
+
+| 组件 | 版本 | 来源 | 用途与许可 |
+| --- | --- | --- | --- |
+| KaTeX | 0.16.22 | https://www.npmjs.com/package/katex/v/0.16.22 | 数学排版，MIT，见 `katex/LICENSE` |
+| mhchem | 随 KaTeX 0.16.22 | KaTeX `dist/contrib/mhchem.min.js` | 适配层 MIT，原始 MathJax/mhchem Apache-2.0，见 `katex/mhchem-NOTICE` 与 `katex/Apache-2.0.txt` |
+| Mermaid | 11.12.0 | https://www.npmjs.com/package/mermaid/v/11.12.0 | 流程图、时序图，MIT，见 `mermaid/LICENSE` |
+| D3 hierarchy | 3.1.2 | https://www.npmjs.com/package/d3-hierarchy/v/3.1.2 | 导图树形与放射布局，ISC，见 `d3-hierarchy/LICENSE` |
+
+JavaScript、样式与所需 WOFF2 字体均存放本地；演示插图是项目自行绘制的 SVG。
