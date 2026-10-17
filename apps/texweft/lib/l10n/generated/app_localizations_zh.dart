@@ -331,7 +331,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get imageMarkdown => '![图片说明](图片路径)';
 
   @override
-  String get documentChanged => '文档已变化，请重新选择表格插入位置。';
+  String get documentChanged => '文档已变化，请重新打开菜单或选择插入位置。';
 
   @override
   String get restore => '恢复';
@@ -1303,6 +1303,105 @@ class AppLocalizationsZh extends AppLocalizations {
   String get menuParagraph => '段落';
 
   @override
+  String get elementActions => '当前元素操作';
+
+  @override
+  String get elementOpenLink => '打开链接';
+
+  @override
+  String get elementPreviewImage => '预览图片';
+
+  @override
+  String get elementCopyUrl => '复制地址';
+
+  @override
+  String get elementEditLink => '编辑链接…';
+
+  @override
+  String get elementEditImage => '替换图片 / 修改描述…';
+
+  @override
+  String get elementUnlink => '取消链接';
+
+  @override
+  String get elementDeleteImage => '删除图片';
+
+  @override
+  String get elementPreview => '预览';
+
+  @override
+  String get elementCopySource => '复制源码';
+
+  @override
+  String get elementEditCode => '编辑代码 / 语言…';
+
+  @override
+  String get elementEditMath => '编辑公式…';
+
+  @override
+  String get elementEditDiagram => '编辑图表源码…';
+
+  @override
+  String get elementExpandDiagram => '展开源码与预览';
+
+  @override
+  String get elementDeleteBlock => '删除当前块';
+
+  @override
+  String get elementDeleteSelection => '删除选中文字';
+
+  @override
+  String get elementClipboardAs => '复制 / 粘贴为';
+
+  @override
+  String get elementCopyMarkdown => '复制为 Markdown';
+
+  @override
+  String get elementCopyPlain => '复制为纯文本';
+
+  @override
+  String get elementPastePlain => '粘贴为纯文本';
+
+  @override
+  String get elementParagraphType => '段落类型';
+
+  @override
+  String get elementIndent => '增加缩进';
+
+  @override
+  String get elementOutdent => '减少缩进';
+
+  @override
+  String get elementToggleTask => '切换任务状态';
+
+  @override
+  String get elementInsertAbove => '在上方插入段落';
+
+  @override
+  String get elementInsertBelow => '在下方插入段落';
+
+  @override
+  String get elementAddress => '地址';
+
+  @override
+  String get elementInvalidAddress => '请输入有效地址。';
+
+  @override
+  String get elementInvalidLanguage => '语言名称不能包含空格或围栏符号。';
+
+  @override
+  String get elementDescription => '文字 / 描述';
+
+  @override
+  String get elementTitle => '标题';
+
+  @override
+  String get elementLanguage => '语言';
+
+  @override
+  String get elementSource => '源码';
+
+  @override
   String get tableRowAbove => '上方插入行';
 
   @override
@@ -1736,7 +1835,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get imageMarkdown => '![圖片說明](圖片路徑)';
 
   @override
-  String get documentChanged => '文件已變化，請重新選擇表格插入位置。';
+  String get documentChanged => '文件已變化，請重新開啟選單或選擇插入位置。';
 
   @override
   String get restore => '還原';
@@ -2706,6 +2805,105 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get menuParagraph => '段落';
+
+  @override
+  String get elementActions => '目前元素操作';
+
+  @override
+  String get elementOpenLink => '開啟連結';
+
+  @override
+  String get elementPreviewImage => '預覽圖片';
+
+  @override
+  String get elementCopyUrl => '複製位址';
+
+  @override
+  String get elementEditLink => '編輯連結…';
+
+  @override
+  String get elementEditImage => '取代圖片 / 修改描述…';
+
+  @override
+  String get elementUnlink => '取消連結';
+
+  @override
+  String get elementDeleteImage => '刪除圖片';
+
+  @override
+  String get elementPreview => '預覽';
+
+  @override
+  String get elementCopySource => '複製原始碼';
+
+  @override
+  String get elementEditCode => '編輯程式碼 / 語言…';
+
+  @override
+  String get elementEditMath => '編輯公式…';
+
+  @override
+  String get elementEditDiagram => '編輯圖表原始碼…';
+
+  @override
+  String get elementExpandDiagram => '展開原始碼與預覽';
+
+  @override
+  String get elementDeleteBlock => '刪除目前區塊';
+
+  @override
+  String get elementDeleteSelection => '刪除選取文字';
+
+  @override
+  String get elementClipboardAs => '複製 / 貼上為';
+
+  @override
+  String get elementCopyMarkdown => '複製為 Markdown';
+
+  @override
+  String get elementCopyPlain => '複製為純文字';
+
+  @override
+  String get elementPastePlain => '貼上為純文字';
+
+  @override
+  String get elementParagraphType => '段落類型';
+
+  @override
+  String get elementIndent => '增加縮排';
+
+  @override
+  String get elementOutdent => '減少縮排';
+
+  @override
+  String get elementToggleTask => '切換工作狀態';
+
+  @override
+  String get elementInsertAbove => '在上方插入段落';
+
+  @override
+  String get elementInsertBelow => '在下方插入段落';
+
+  @override
+  String get elementAddress => '位址';
+
+  @override
+  String get elementInvalidAddress => '請輸入有效位址。';
+
+  @override
+  String get elementInvalidLanguage => '語言名稱不能包含空格或圍欄符號。';
+
+  @override
+  String get elementDescription => '文字 / 描述';
+
+  @override
+  String get elementTitle => '標題';
+
+  @override
+  String get elementLanguage => '語言';
+
+  @override
+  String get elementSource => '原始碼';
 
   @override
   String get tableRowAbove => '在上方插入列';

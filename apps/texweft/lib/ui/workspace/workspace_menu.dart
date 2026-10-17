@@ -17,6 +17,7 @@ final class WorkspaceMenuEntry {
     this.checked,
     this.enabled = true,
     this.icon,
+    this.toolbar = false,
   });
   const WorkspaceMenuEntry.separator()
     : id = '-',
@@ -25,13 +26,15 @@ final class WorkspaceMenuEntry {
       shortcut = null,
       checked = null,
       enabled = false,
-      icon = null;
+      icon = null,
+      toolbar = false;
   final String id, label;
   final String? icon;
   final List<WorkspaceMenuEntry> children;
   final SingleActivator? shortcut;
   final bool? checked;
   final bool enabled;
+  final bool toolbar;
   bool get isSeparator => id == '-';
 }
 

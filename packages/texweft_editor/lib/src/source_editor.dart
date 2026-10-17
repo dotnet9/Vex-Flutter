@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:re_editor/re_editor.dart';
 
 import 'code_block.dart';
+import 'context_request.dart';
 import 'controller.dart';
 import 'editing_preferences.dart';
 import 'source_controller.dart';
@@ -20,12 +21,14 @@ class MarkdownSourceEditor extends StatefulWidget {
     this.fontSize = 14,
     this.typewriter = false,
     this.editingPreferences,
+    this.onContextMenu,
   });
   final MarkdownEditorController controller;
   final bool lineNumbers;
   final double fontSize;
   final bool typewriter;
   final MarkdownEditingPreferences? editingPreferences;
+  final ValueChanged<MarkdownContextRequest>? onContextMenu;
   @override
   State<MarkdownSourceEditor> createState() =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.windows
@@ -50,7 +53,7 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
     verticalScroller: _vertical,
     horizontalScroller: _horizontal,
   );
-  final _toolbar = MobileSelectionToolbarController(
+  late final _toolbar = MobileSelectionToolbarController(
     builder:
         ({
           required context,
@@ -92,6 +95,16 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
           ],
         ),
   );
+  late final _contextToolbar = _SourceContextToolbar((position) {
+    final selection = widget.controller.selection;
+    widget.onContextMenu?.call(
+      MarkdownContextRequest(
+        offset: selection.isValid ? selection.start : 0,
+        selection: selection,
+        position: position,
+      ),
+    );
+  });
 
   @override
   void initState() {
@@ -197,7 +210,9 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
           controller: _code,
           scrollController: _scroll,
           focusNode: widget.controller.sourceFocus,
-          toolbarController: _toolbar,
+          toolbarController: widget.onContextMenu == null
+              ? _toolbar
+              : _contextToolbar,
           autofocus: false,
           wordWrap: false,
           autocompleteSymbols: widget.editingPreferences?.autoPair ?? false,
@@ -404,6 +419,27 @@ class _MobileSourceEditorState extends State<MarkdownSourceEditor> {
                     },
                     child: TextField(
                       controller: widget.controller.source,
+                      contextMenuBuilder: widget.onContextMenu == null
+                          ? null
+                          : (context, editable) {
+                              final position =
+                                  editable.contextMenuAnchors.primaryAnchor;
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (!mounted) return;
+                                editable.hideToolbar();
+                                final selection = widget.controller.selection;
+                                widget.onContextMenu!(
+                                  MarkdownContextRequest(
+                                    offset: selection.isValid
+                                        ? selection.start
+                                        : 0,
+                                    selection: selection,
+                                    position: position,
+                                  ),
+                                );
+                              });
+                              return const SizedBox.shrink();
+                            },
                       focusNode: widget.controller.sourceFocus,
                       scrollController: _scroll,
                       keyboardType: TextInputType.multiline,
@@ -451,6 +487,26 @@ class _MobileSourceEditorState extends State<MarkdownSourceEditor> {
       },
     );
   }
+}
+
+class _SourceContextToolbar implements SelectionToolbarController {
+  _SourceContextToolbar(this.onShow);
+  final ValueChanged<Offset> onShow;
+  @override
+  void show({
+    required BuildContext context,
+    required CodeLineEditingController controller,
+    required TextSelectionToolbarAnchors anchors,
+    Rect? renderRect,
+    required LayerLink layerLink,
+    required ValueNotifier<bool> visibility,
+  }) {
+    visibility.value = false;
+    onShow(anchors.primaryAnchor);
+  }
+
+  @override
+  void hide(BuildContext context) {}
 }
 
 /// Paint only visible line labels. Scrolling never splits the entire source or

@@ -8,9 +8,15 @@ final class MarkdownContextRequest {
     this.tableRow,
     this.tableColumn,
     this.readOnly = false,
+    this.selection,
+    this.onEdit,
+    this.onEditAt,
   });
   final int offset;
   final Offset position;
   final int? tableRow, tableColumn;
   final bool readOnly;
+  final TextSelection? selection;
+  final VoidCallback? onEdit;
+  final ValueChanged<int>? onEditAt;
 }

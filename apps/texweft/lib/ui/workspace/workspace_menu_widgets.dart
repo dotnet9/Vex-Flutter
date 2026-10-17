@@ -11,19 +11,43 @@ List<Widget> workspaceMenuWidgets(
   for (final item in entries)
     if (item.isSeparator)
       const Divider(height: 13, indent: 8, endIndent: 8)
+    else if (item.toolbar)
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final tool in item.children)
+              AppButton(
+                key: ValueKey('menu-${tool.id}'),
+                icon: tool.icon,
+                tooltip: tool.label,
+                onPressed: tool.enabled ? () => onAction(tool.id) : null,
+              ),
+          ],
+        ),
+      )
     else if (item.children.isNotEmpty)
       SubmenuButton(
+        animated: !MediaQuery.disableAnimationsOf(context),
         key: ValueKey('menu-${item.id}'),
         leadingIcon: const SizedBox(width: 16),
         menuChildren: workspaceMenuWidgets(context, item.children, onAction),
-        child: Text(item.label),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 280),
+          child: Text(item.label, maxLines: 1, overflow: TextOverflow.ellipsis),
+        ),
       )
     else
       MenuItemButton(
         key: ValueKey('menu-${item.id}'),
         leadingIcon: SizedBox(
           width: 16,
-          child: item.checked == true ? const AppGlyph('check') : null,
+          child: item.checked == true
+              ? const AppGlyph('check')
+              : item.icon == null
+              ? null
+              : AppGlyph(item.icon!),
         ),
         onPressed: item.enabled ? () => onAction(item.id) : null,
         trailingIcon: item.shortcut == null

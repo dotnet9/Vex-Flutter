@@ -96,6 +96,27 @@ class _TouchMenuState extends State<_TouchMenu> {
                     for (final item in items)
                       if (item.isSeparator)
                         const Divider(height: 13, indent: 20, endIndent: 20)
+                      else if (item.toolbar)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          child: Row(
+                            children: [
+                              for (final tool in item.children)
+                                AppButton(
+                                  key: ValueKey('touch-menu-${tool.id}'),
+                                  icon: tool.icon,
+                                  tooltip: tool.label,
+                                  height: 44,
+                                  onPressed: tool.enabled
+                                      ? () => Navigator.pop(context, tool.id)
+                                      : null,
+                                ),
+                            ],
+                          ),
+                        )
                       else
                         ListTile(
                           key: ValueKey('touch-menu-${item.id}'),

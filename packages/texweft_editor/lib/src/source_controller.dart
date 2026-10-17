@@ -153,8 +153,15 @@ final class MarkdownSourceEditingController
 
   Future<void> _paste() async {
     if (isComposing) return;
+    final before = editor.source.value, revision = editor.session.revision;
     final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
-    if (_disposed || clipboard?.text == null || isComposing) return;
+    if (_disposed ||
+        clipboard?.text == null ||
+        isComposing ||
+        editor.source.value != before ||
+        editor.session.revision != revision) {
+      return;
+    }
     editor.replaceSelection(clipboard!.text!);
     makeCursorVisible();
   }

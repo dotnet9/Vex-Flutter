@@ -341,7 +341,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get documentChanged =>
-      'The document changed. Select the table insertion point again.';
+      'The document changed. Reopen the menu or select the insertion point again.';
 
   @override
   String get restore => 'Restore';
@@ -1351,6 +1351,106 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get menuParagraph => 'Paragraph';
+
+  @override
+  String get elementActions => 'Element actions';
+
+  @override
+  String get elementOpenLink => 'Open link';
+
+  @override
+  String get elementPreviewImage => 'Preview image';
+
+  @override
+  String get elementCopyUrl => 'Copy address';
+
+  @override
+  String get elementEditLink => 'Edit link…';
+
+  @override
+  String get elementEditImage => 'Replace image / edit description…';
+
+  @override
+  String get elementUnlink => 'Remove link';
+
+  @override
+  String get elementDeleteImage => 'Delete image';
+
+  @override
+  String get elementPreview => 'Preview';
+
+  @override
+  String get elementCopySource => 'Copy source';
+
+  @override
+  String get elementEditCode => 'Edit code / language…';
+
+  @override
+  String get elementEditMath => 'Edit formula…';
+
+  @override
+  String get elementEditDiagram => 'Edit diagram source…';
+
+  @override
+  String get elementExpandDiagram => 'Expand source and preview';
+
+  @override
+  String get elementDeleteBlock => 'Delete current block';
+
+  @override
+  String get elementDeleteSelection => 'Delete selected text';
+
+  @override
+  String get elementClipboardAs => 'Copy / Paste as';
+
+  @override
+  String get elementCopyMarkdown => 'Copy as Markdown';
+
+  @override
+  String get elementCopyPlain => 'Copy as plain text';
+
+  @override
+  String get elementPastePlain => 'Paste as plain text';
+
+  @override
+  String get elementParagraphType => 'Paragraph type';
+
+  @override
+  String get elementIndent => 'Increase indentation';
+
+  @override
+  String get elementOutdent => 'Decrease indentation';
+
+  @override
+  String get elementToggleTask => 'Toggle task status';
+
+  @override
+  String get elementInsertAbove => 'Insert paragraph above';
+
+  @override
+  String get elementInsertBelow => 'Insert paragraph below';
+
+  @override
+  String get elementAddress => 'Address';
+
+  @override
+  String get elementInvalidAddress => 'Enter a valid address.';
+
+  @override
+  String get elementInvalidLanguage =>
+      'Use one language identifier without spaces or fence characters.';
+
+  @override
+  String get elementDescription => 'Text / description';
+
+  @override
+  String get elementTitle => 'Title';
+
+  @override
+  String get elementLanguage => 'Language';
+
+  @override
+  String get elementSource => 'Source';
 
   @override
   String get tableRowAbove => 'Insert row above';

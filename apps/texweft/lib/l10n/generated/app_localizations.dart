@@ -740,7 +740,7 @@ abstract class AppLocalizations {
   /// No description provided for @documentChanged.
   ///
   /// In zh, this message translates to:
-  /// **'文档已变化，请重新选择表格插入位置。'**
+  /// **'文档已变化，请重新打开菜单或选择插入位置。'**
   String get documentChanged;
 
   /// No description provided for @restore.
@@ -2482,6 +2482,204 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'段落'**
   String get menuParagraph;
+
+  /// No description provided for @elementActions.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前元素操作'**
+  String get elementActions;
+
+  /// No description provided for @elementOpenLink.
+  ///
+  /// In zh, this message translates to:
+  /// **'打开链接'**
+  String get elementOpenLink;
+
+  /// No description provided for @elementPreviewImage.
+  ///
+  /// In zh, this message translates to:
+  /// **'预览图片'**
+  String get elementPreviewImage;
+
+  /// No description provided for @elementCopyUrl.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制地址'**
+  String get elementCopyUrl;
+
+  /// No description provided for @elementEditLink.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑链接…'**
+  String get elementEditLink;
+
+  /// No description provided for @elementEditImage.
+  ///
+  /// In zh, this message translates to:
+  /// **'替换图片 / 修改描述…'**
+  String get elementEditImage;
+
+  /// No description provided for @elementUnlink.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消链接'**
+  String get elementUnlink;
+
+  /// No description provided for @elementDeleteImage.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除图片'**
+  String get elementDeleteImage;
+
+  /// No description provided for @elementPreview.
+  ///
+  /// In zh, this message translates to:
+  /// **'预览'**
+  String get elementPreview;
+
+  /// No description provided for @elementCopySource.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制源码'**
+  String get elementCopySource;
+
+  /// No description provided for @elementEditCode.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑代码 / 语言…'**
+  String get elementEditCode;
+
+  /// No description provided for @elementEditMath.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑公式…'**
+  String get elementEditMath;
+
+  /// No description provided for @elementEditDiagram.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑图表源码…'**
+  String get elementEditDiagram;
+
+  /// No description provided for @elementExpandDiagram.
+  ///
+  /// In zh, this message translates to:
+  /// **'展开源码与预览'**
+  String get elementExpandDiagram;
+
+  /// No description provided for @elementDeleteBlock.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除当前块'**
+  String get elementDeleteBlock;
+
+  /// No description provided for @elementDeleteSelection.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除选中文字'**
+  String get elementDeleteSelection;
+
+  /// No description provided for @elementClipboardAs.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制 / 粘贴为'**
+  String get elementClipboardAs;
+
+  /// No description provided for @elementCopyMarkdown.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制为 Markdown'**
+  String get elementCopyMarkdown;
+
+  /// No description provided for @elementCopyPlain.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制为纯文本'**
+  String get elementCopyPlain;
+
+  /// No description provided for @elementPastePlain.
+  ///
+  /// In zh, this message translates to:
+  /// **'粘贴为纯文本'**
+  String get elementPastePlain;
+
+  /// No description provided for @elementParagraphType.
+  ///
+  /// In zh, this message translates to:
+  /// **'段落类型'**
+  String get elementParagraphType;
+
+  /// No description provided for @elementIndent.
+  ///
+  /// In zh, this message translates to:
+  /// **'增加缩进'**
+  String get elementIndent;
+
+  /// No description provided for @elementOutdent.
+  ///
+  /// In zh, this message translates to:
+  /// **'减少缩进'**
+  String get elementOutdent;
+
+  /// No description provided for @elementToggleTask.
+  ///
+  /// In zh, this message translates to:
+  /// **'切换任务状态'**
+  String get elementToggleTask;
+
+  /// No description provided for @elementInsertAbove.
+  ///
+  /// In zh, this message translates to:
+  /// **'在上方插入段落'**
+  String get elementInsertAbove;
+
+  /// No description provided for @elementInsertBelow.
+  ///
+  /// In zh, this message translates to:
+  /// **'在下方插入段落'**
+  String get elementInsertBelow;
+
+  /// No description provided for @elementAddress.
+  ///
+  /// In zh, this message translates to:
+  /// **'地址'**
+  String get elementAddress;
+
+  /// No description provided for @elementInvalidAddress.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入有效地址。'**
+  String get elementInvalidAddress;
+
+  /// No description provided for @elementInvalidLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'语言名称不能包含空格或围栏符号。'**
+  String get elementInvalidLanguage;
+
+  /// No description provided for @elementDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'文字 / 描述'**
+  String get elementDescription;
+
+  /// No description provided for @elementTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'标题'**
+  String get elementTitle;
+
+  /// No description provided for @elementLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'语言'**
+  String get elementLanguage;
+
+  /// No description provided for @elementSource.
+  ///
+  /// In zh, this message translates to:
+  /// **'源码'**
+  String get elementSource;
 
   /// No description provided for @tableRowAbove.
   ///

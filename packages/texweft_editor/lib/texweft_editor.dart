@@ -5,6 +5,7 @@ export 'src/context_request.dart';
 export 'src/controller.dart';
 export 'src/editing_preferences.dart';
 export 'src/editor.dart';
+export 'src/element_target.dart';
 export 'src/font_families.dart';
 export 'src/labels.dart';
 export 'src/markdown_preferences.dart';

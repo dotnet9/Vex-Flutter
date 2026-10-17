@@ -4,12 +4,20 @@ import 'package:markdown/markdown.dart' as md;
 
 import 'code_block.dart';
 import 'editing_preferences.dart';
+import 'element_target.dart';
 import 'font_families.dart';
 import 'labels.dart';
 import 'markdown_preferences.dart';
 import 'markdown_syntax.dart';
 import 'math_formula.dart';
 import 'mermaid_block.dart';
+
+typedef MarkdownMediaContextCallback = void Function(
+  String url,
+  bool image,
+  int occurrence,
+  Offset position,
+);
 
 enum MarkdownTypography {
   simple('简约', '日常写作 · 清爽留白'),
@@ -43,6 +51,7 @@ class MarkdownReader extends StatelessWidget {
     this.editingPreferences,
     this.preferences = const MarkdownPreferences(),
     this.labels = const MarkdownEditorLabels(),
+    this.onMediaContext,
   });
   final String data;
   final MarkdownTypography typography;
@@ -53,6 +62,7 @@ class MarkdownReader extends StatelessWidget {
   final MarkdownEditorLabels labels;
   final void Function(String text, String? href, String title)? onTapLink;
   final Widget Function(Uri uri, String? title, String? alt)? imageBuilder;
+  final MarkdownMediaContextCallback? onMediaContext;
   MarkdownStyleSheet styleSheet(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final accent = typography == MarkdownTypography.column
@@ -176,6 +186,7 @@ class MarkdownReader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sheet = styleSheet(context);
+    final imageOccurrences = <String, int>{};
     return MarkdownBody(
       key: ValueKey(preferences),
       data: data,
@@ -186,8 +197,34 @@ class MarkdownReader extends StatelessWidget {
       inlineSyntaxes: MarkdownSyntax.inlines(preferences),
       styleSheet: sheet,
       onTapLink: onTapLink,
-      imageBuilder: imageBuilder,
+      imageBuilder: imageBuilder == null || onMediaContext == null
+          ? imageBuilder
+          : (uri, title, alt) {
+              final url = uri.toString();
+              final occurrence = imageOccurrences.update(
+                url,
+                (value) => value + 1,
+                ifAbsent: () => 0,
+              );
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onSecondaryTapUp: (event) => onMediaContext!(
+                  url,
+                  true,
+                  occurrence,
+                  event.globalPosition,
+                ),
+                onLongPressStart: (event) => onMediaContext!(
+                  url,
+                  true,
+                  occurrence,
+                  event.globalPosition,
+                ),
+                child: imageBuilder!(uri, title, alt),
+              );
+            },
       builders: {
+        if (onMediaContext != null) 'a': _ContextLinkBuilder(this, sheet),
         'pre': _CodeBlockBuilder(
           selectable,
           fontSize / 15 * (compact ? 13 : 14),
@@ -209,6 +246,78 @@ class MarkdownReader extends StatelessWidget {
             _ => sheet.h6!,
           }),
       },
+    );
+  }
+}
+
+class _ContextLinkBuilder extends MarkdownElementBuilder {
+  _ContextLinkBuilder(this.reader, this.sheet);
+  final MarkdownReader reader;
+  final MarkdownStyleSheet sheet;
+  final _occurrences = <String, int>{};
+  @override
+  Widget? visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    final url = markdownAttributeText(element.attributes['href'] ?? '');
+    final occurrence = _occurrences.update(
+      url,
+      (value) => value + 1,
+      ifAbsent: () => 0,
+    );
+    bool containsImage(md.Node node) =>
+        node is md.Element &&
+        (node.tag == 'img' || (node.children?.any(containsImage) ?? false));
+    if (containsImage(element)) return null;
+    InlineSpan span(md.Node node) {
+      if (node is! md.Element) return TextSpan(text: node.textContent);
+      return TextSpan(
+        style: switch (node.tag) {
+          'strong' => sheet.strong,
+          'em' => sheet.em,
+          'del' => sheet.del,
+          'code' => sheet.code,
+          _ => null,
+        },
+        text: node.tag == 'br' ? '\n' : null,
+        children: node.children?.map(span).toList(),
+      );
+    }
+
+    return MouseRegion(
+      cursor: reader.onTapLink == null
+          ? SystemMouseCursors.text
+          : SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: reader.onTapLink == null
+            ? null
+            : () => reader.onTapLink!(
+                element.textContent,
+                url,
+                element.attributes['title'] ?? '',
+              ),
+        onSecondaryTapUp: (event) => reader.onMediaContext!(
+          url,
+          false,
+          occurrence,
+          event.globalPosition,
+        ),
+        onLongPressStart: (event) => reader.onMediaContext!(
+          url,
+          false,
+          occurrence,
+          event.globalPosition,
+        ),
+        child: Text.rich(
+          TextSpan(
+            style: sheet.p?.merge(sheet.a),
+            children: element.children?.map(span).toList(),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -20,6 +20,7 @@ class AppGlyph extends StatelessWidget {
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#$hex" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${appIconPaths[name] ?? appIconPaths['file']}</svg>',
       width: size,
       height: size,
+      colorFilter: ColorFilter.mode(value, BlendMode.srcIn),
       excludeFromSemantics: true,
     );
   }

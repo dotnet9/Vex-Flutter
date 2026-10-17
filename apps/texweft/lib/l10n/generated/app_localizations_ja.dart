@@ -333,7 +333,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get imageMarkdown => '![画像の説明](画像のパス)';
 
   @override
-  String get documentChanged => '文書が変更されました。表の挿入位置を選び直してください。';
+  String get documentChanged => '文書が変更されました。メニューを開き直すか、挿入位置を選び直してください。';
 
   @override
   String get restore => '復元';
@@ -1306,6 +1306,105 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get menuParagraph => '段落';
+
+  @override
+  String get elementActions => '要素の操作';
+
+  @override
+  String get elementOpenLink => 'リンクを開く';
+
+  @override
+  String get elementPreviewImage => '画像をプレビュー';
+
+  @override
+  String get elementCopyUrl => 'アドレスをコピー';
+
+  @override
+  String get elementEditLink => 'リンクを編集…';
+
+  @override
+  String get elementEditImage => '画像を置換 / 説明を編集…';
+
+  @override
+  String get elementUnlink => 'リンクを解除';
+
+  @override
+  String get elementDeleteImage => '画像を削除';
+
+  @override
+  String get elementPreview => 'プレビュー';
+
+  @override
+  String get elementCopySource => 'ソースをコピー';
+
+  @override
+  String get elementEditCode => 'コード / 言語を編集…';
+
+  @override
+  String get elementEditMath => '数式を編集…';
+
+  @override
+  String get elementEditDiagram => '図のソースを編集…';
+
+  @override
+  String get elementExpandDiagram => 'ソースとプレビューを展開';
+
+  @override
+  String get elementDeleteBlock => '現在のブロックを削除';
+
+  @override
+  String get elementDeleteSelection => '選択した文字を削除';
+
+  @override
+  String get elementClipboardAs => '形式を指定してコピー / 貼り付け';
+
+  @override
+  String get elementCopyMarkdown => 'Markdown としてコピー';
+
+  @override
+  String get elementCopyPlain => 'プレーンテキストとしてコピー';
+
+  @override
+  String get elementPastePlain => 'プレーンテキストとして貼り付け';
+
+  @override
+  String get elementParagraphType => '段落の種類';
+
+  @override
+  String get elementIndent => 'インデントを増やす';
+
+  @override
+  String get elementOutdent => 'インデントを減らす';
+
+  @override
+  String get elementToggleTask => 'タスクの状態を切り替え';
+
+  @override
+  String get elementInsertAbove => '上に段落を挿入';
+
+  @override
+  String get elementInsertBelow => '下に段落を挿入';
+
+  @override
+  String get elementAddress => 'アドレス';
+
+  @override
+  String get elementInvalidAddress => '有効なアドレスを入力してください。';
+
+  @override
+  String get elementInvalidLanguage => '言語名に空白やフェンス記号は使用できません。';
+
+  @override
+  String get elementDescription => 'テキスト / 説明';
+
+  @override
+  String get elementTitle => 'タイトル';
+
+  @override
+  String get elementLanguage => '言語';
+
+  @override
+  String get elementSource => 'ソース';
 
   @override
   String get tableRowAbove => '上に行を挿入';

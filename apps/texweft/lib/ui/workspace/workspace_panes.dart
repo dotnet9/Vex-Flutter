@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
 import 'package:texweft_editor/texweft_editor.dart';
@@ -113,6 +112,7 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
           Expanded(
             child: _contentScale(pane, switch (pane) {
               'source' => MarkdownSourceEditor(
+                onContextMenu: _onContextMenu,
                 key: widget.editingKey,
                 controller: vm.editor,
                 lineNumbers: vm.lineNumbers,
@@ -343,6 +343,26 @@ class _DocumentReadingState extends State<_DocumentReading> {
             if (blocks.isEmpty) return Text(context.l10n.emptyDocument);
             final block = blocks[index];
             final reader = MarkdownReader(
+              onMediaContext: (url, image, occurrence, position) {
+                final token = markdownMediaTargets(vm.editor.text, block)
+                    .where(
+                      (token) =>
+                          token.image == image &&
+                          token.url == markdownAttributeText(url),
+                    )
+                    .elementAtOrNull(occurrence);
+                if (token == null) return;
+                widget.onContextMenu?.call(
+                  MarkdownContextRequest(
+                    offset: token.range.start,
+                    position: position,
+                    selection: TextSelection.collapsed(
+                      offset: token.range.start,
+                    ),
+                    readOnly: true,
+                  ),
+                );
+              },
               imageBuilder: (uri, title, alt) => DocumentImage(
                 uri: uri,
                 documentPath: vm.current.path,
@@ -364,19 +384,32 @@ class _DocumentReadingState extends State<_DocumentReading> {
                 }
               },
             );
-            if (block.kind != MarkdownBlockKind.table) return reader;
-            return Listener(
-              onPointerDown: (event) {
-                if (event.buttons == kSecondaryMouseButton) {
-                  widget.onContextMenu?.call(
-                    MarkdownContextRequest(
-                      offset: block.range.start,
-                      position: event.position,
-                      readOnly: true,
-                    ),
-                  );
-                }
-              },
+            void openContext(Offset position) {
+              final source = vm.editor.text;
+              final tokens =
+                  const [
+                    MarkdownBlockKind.code,
+                    MarkdownBlockKind.math,
+                  ].contains(block.kind)
+                  ? <MarkdownMediaTarget>[]
+                  : markdownMediaTargets(source, block);
+              widget.onContextMenu?.call(
+                MarkdownContextRequest(
+                  offset: tokens.length == 1
+                      ? tokens.single.range.start
+                      : block.range.start,
+                  position: position,
+                  selection: TextSelection.collapsed(offset: block.range.start),
+                  readOnly: true,
+                ),
+              );
+            }
+
+            return GestureDetector(
+              key: ValueKey('read-element-${block.range.start}'),
+              behavior: HitTestBehavior.translucent,
+              onSecondaryTapUp: (event) => openContext(event.globalPosition),
+              onLongPressStart: (event) => openContext(event.globalPosition),
               child: reader,
             );
           },

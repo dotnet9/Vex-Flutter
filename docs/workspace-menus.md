@@ -39,3 +39,34 @@ opens the fixed-header touch sheet. Reading mode only permits copying a table.
 Commands captured before a document change or switch cannot modify new content.
 Coverage: `table_commands_test.dart`, `test/table_menu_test.dart`, and native
 Windows screenshots in `integration_test/table_menu_test.dart`.
+
+## Element Context Menus
+
+Source, instant editing and reading use the same captured source targets.
+Desktop secondary click opens a flyout; phone and tablet long-press use a
+fixed-header sheet with hierarchical submenus. Clipboard and inline-format
+tools share the prototype icons; submenu arrows match the titlebar menus.
+
+- Links: open, copy address, edit text/address/title, unlink without losing
+  inline formatting. Images: preview, copy address, replace, edit description,
+  delete. Local replacement follows the image copy/relative-path preferences.
+- Code: copy bare source, edit code/language, delete. Formulas expose bare LaTeX
+  source and retain their original delimiter convention. Mermaid adds preview
+  and source-plus-preview expansion with live rendering in its edit dialog.
+- Text: copy as Markdown, HTML source or plain text; cut, paste, literal-text
+  paste, selection deletion, formatting and paragraph conversion. Lists add
+  indentation and task toggling. All editable elements support insertion above
+  or below and deletion through shared undo history.
+- Read-only panes permit preview/open/copy only. Menu snapshots, edit dialogs
+  and asynchronous clipboard operations reject changed/switched documents.
+  Source-editor keyboard paste also rejects changed selections.
+
+CommonMark supplies media parsing, including reference definitions, nested
+destinations, escaped labels, repeated links and linked images. URLs are not
+double-encoded on repeated editing. Opening links allows HTTP, HTTPS and mailto;
+other schemes are never executed by these menus.
+
+Coverage: `element_target_test.dart`, `element_input_test.dart`,
+`test/element_menu_test.dart` and `integration_test/element_menu_test.dart`.
+Native screenshot checks run on Windows at 1280px and 390px in light/dark mode;
+iOS phone/tablet long-press is covered by widget tests, not physical-device tests.

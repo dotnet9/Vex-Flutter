@@ -9,6 +9,7 @@ import 'code_block.dart';
 import 'context_request.dart';
 import 'controller.dart';
 import 'editing_preferences.dart';
+import 'element_target.dart';
 import 'labels.dart';
 import 'markdown_preferences.dart';
 import 'mermaid_block.dart';
@@ -67,6 +68,92 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
   var _writing = false;
   Offset? _dragOrigin;
   int? _dragBase;
+
+  void _editAt(int offset) {
+    if (!mounted) return;
+    final at = offset.clamp(0, widget.controller.text.length);
+    final block =
+        widget.controller.document.blocks
+            .where((b) => b.range.contains(at))
+            .firstOrNull ??
+        MarkdownBlock(MarkdownBlockKind.paragraph, SourceRange(at, at), 1);
+    _begin(block, sourceOffset: at);
+  }
+
+  void _openBlockContext(MarkdownBlock block, Offset position) {
+    if (widget.onContextMenu == null) return;
+    _finish();
+    final source = widget.controller.text;
+    final media =
+        const [
+          MarkdownBlockKind.code,
+          MarkdownBlockKind.math,
+        ].contains(block.kind)
+        ? <MarkdownMediaTarget>[]
+        : markdownMediaTargets(source, block);
+    final selection = widget.controller.selection;
+    final selectedHere =
+        selection.isValid &&
+        !selection.isCollapsed &&
+        selection.start >= block.range.start &&
+        selection.end <= block.range.end;
+    widget.onContextMenu!(
+      MarkdownContextRequest(
+        offset: selectedHere
+            ? selection.start
+            : media.length == 1
+            ? media.single.range.start
+            : block.range.start,
+        position: position,
+        selection: selectedHere
+            ? selection
+            : TextSelection.collapsed(offset: block.range.start),
+        onEdit: () => _begin(block),
+        onEditAt: _editAt,
+      ),
+    );
+  }
+
+  void _openMediaContext(
+    MarkdownBlock block,
+    String url,
+    bool image,
+    int occurrence,
+    Offset position,
+  ) {
+    final token = markdownMediaTargets(widget.controller.text, block)
+        .where(
+          (token) =>
+              token.image == image && token.url == markdownAttributeText(url),
+        )
+        .elementAtOrNull(occurrence);
+    if (token == null) return;
+    _finish();
+    widget.onContextMenu?.call(
+      MarkdownContextRequest(
+        offset: token.range.start,
+        position: position,
+        selection: TextSelection.collapsed(offset: token.range.start),
+        onEditAt: _editAt,
+      ),
+    );
+  }
+
+  Widget _contextBlock(MarkdownBlock block, String source) {
+    final child = _displayBlock(block, source);
+    if (widget.onContextMenu == null || block.kind == MarkdownBlockKind.table) {
+      return child;
+    }
+    return GestureDetector(
+      key: ValueKey('element-block-${block.range.start}'),
+      behavior: HitTestBehavior.translucent,
+      onSecondaryTapUp: (event) =>
+          _openBlockContext(block, event.globalPosition),
+      onLongPressStart: (event) =>
+          _openBlockContext(block, event.globalPosition),
+      child: child,
+    );
+  }
 
   void _dragSelection(PointerMoveEvent event) {
     if (_dragOrigin == null ||
@@ -139,6 +226,15 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
             fontSize: widget.fontSize,
             selectable: false,
             imageBuilder: widget.imageBuilder,
+            onMediaContext: widget.onContextMenu == null
+                ? null
+                : (url, image, occurrence, position) => _openMediaContext(
+                    block,
+                    url,
+                    image,
+                    occurrence,
+                    position,
+                  ),
             editingPreferences: widget.editingPreferences,
             preferences: widget.preferences,
             labels: widget.labels,
@@ -648,6 +744,26 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
         groupId: this,
         controller: _input,
         focusNode: _focus,
+        contextMenuBuilder: widget.onContextMenu == null
+            ? null
+            : (context, editable) {
+                final position = editable.contextMenuAnchors.primaryAnchor;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+                  editable.hideToolbar();
+                  final selection = widget.controller.selection;
+                  widget.onContextMenu!(
+                    MarkdownContextRequest(
+                      offset: selection.isValid ? selection.start : _start,
+                      selection: selection,
+                      position: position,
+                      onEdit: () => _focus.requestFocus(),
+                      onEditAt: _editAt,
+                    ),
+                  );
+                });
+                return const SizedBox.shrink();
+              },
         maxLines: null,
         autocorrect: _codeFence == null,
         enableSuggestions: _codeFence == null,
@@ -724,13 +840,13 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
                     for (final block in blocks.where(
                       (b) => _checkpoint == null || b.range.end <= _start,
                     ))
-                      _displayBlock(block, source),
+                      _contextBlock(block, source),
                     if (_checkpoint != null) _field(colors),
                     if (_checkpoint != null)
                       for (final block in blocks.where(
                         (b) => b.range.start >= _end && b.range.start > _start,
                       ))
-                        _displayBlock(block, source),
+                        _contextBlock(block, source),
                     if (_checkpoint == null)
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,
