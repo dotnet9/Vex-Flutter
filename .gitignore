@@ -25,6 +25,8 @@
 *.iml
 *.log
 coverage/
+__pycache__/
+*.pyc
 artifacts/
 .DS_Store
 # The workspace pubspec.lock is intentionally committed.
