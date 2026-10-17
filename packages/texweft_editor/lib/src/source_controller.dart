@@ -10,8 +10,12 @@ import 'typing_formatter.dart';
 /// Line endings are a display projection, never a document-wide conversion.
 final class MarkdownSourceEditingController
     extends CodeLineEditingControllerDelegate {
-  MarkdownSourceEditingController(this.editor)
-    : super(delegate: CodeLineEditingController()) {
+  MarkdownSourceEditingController(this.editor, {int indent = 2})
+    : super(
+        delegate: CodeLineEditingController(
+          options: CodeLineOptions(indentSize: indent),
+        ),
+      ) {
     _projection = _SourceProjection(editor.source.text);
     _readSource();
     editor.source.addListener(_readSource);

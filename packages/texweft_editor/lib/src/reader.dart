@@ -3,6 +3,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:markdown/markdown.dart' as md;
 
 import 'code_block.dart';
+import 'editing_preferences.dart';
 import 'font_families.dart';
 
 enum MarkdownTypography {
@@ -34,11 +35,13 @@ class MarkdownReader extends StatelessWidget {
     this.selectable = true,
     this.onTapLink,
     this.imageBuilder,
+    this.editingPreferences,
   });
   final String data;
   final MarkdownTypography typography;
   final bool compact, selectable;
   final double fontSize;
+  final MarkdownEditingPreferences? editingPreferences;
   final void Function(String text, String? href, String title)? onTapLink;
   final Widget Function(Uri uri, String? title, String? alt)? imageBuilder;
   MarkdownStyleSheet styleSheet(BuildContext context) {
@@ -49,7 +52,12 @@ class MarkdownReader extends StatelessWidget {
               : const Color(0xffa04d35))
         : colors.primary;
     final fonts = MarkdownFontFamilies.of(context);
-    final book = typography == MarkdownTypography.book;
+    final font = editingPreferences?.font ?? MarkdownBodyFont.system;
+    final book =
+        font == MarkdownBodyFont.serif ||
+        (font == MarkdownBodyFont.system &&
+            typography == MarkdownTypography.book);
+    final mono = font == MarkdownBodyFont.mono;
     final body = Theme.of(context).textTheme.bodyMedium!.copyWith(
       fontSize: compact ? fontSize * .93 : fontSize,
       height: compact
@@ -63,10 +71,18 @@ class MarkdownReader extends StatelessWidget {
               MarkdownTypography.editorial => 2,
               _ => 1.9,
             },
-      letterSpacing: fontSize * .01,
+      letterSpacing: 0,
       color: colors.onSurface,
-      fontFamily: book ? fonts.serif : null,
-      fontFamilyFallback: book ? fonts.serifFallback : null,
+      fontFamily: mono
+          ? fonts.monospace
+          : book
+          ? fonts.serif
+          : null,
+      fontFamilyFallback: mono
+          ? fonts.monospaceFallback
+          : book
+          ? fonts.serifFallback
+          : null,
     );
     return MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
       p: body,
@@ -85,7 +101,7 @@ class MarkdownReader extends StatelessWidget {
             : typography == MarkdownTypography.book
             ? FontWeight.w600
             : FontWeight.w700,
-        letterSpacing: -fontSize * .04,
+        letterSpacing: 0,
       ),
       h1Padding: EdgeInsets.zero,
       h2: body.copyWith(
@@ -163,6 +179,7 @@ class MarkdownReader extends StatelessWidget {
         'pre': _CodeBlockBuilder(
           selectable,
           fontSize / 15 * (compact ? 13 : 14),
+          editingPreferences,
         ),
         for (var level = 1; level <= 6; level++)
           'h$level': _HeadingBuilder(this, level, switch (level) {
@@ -179,9 +196,10 @@ class MarkdownReader extends StatelessWidget {
 }
 
 class _CodeBlockBuilder extends MarkdownElementBuilder {
-  _CodeBlockBuilder(this.selectable, this.fontSize);
+  _CodeBlockBuilder(this.selectable, this.fontSize, this.preferences);
   final bool selectable;
   final double fontSize;
+  final MarkdownEditingPreferences? preferences;
 
   @override
   bool isBlockElement() => true;
@@ -197,7 +215,8 @@ class _CodeBlockBuilder extends MarkdownElementBuilder {
     child: MarkdownCodeBlock(
       code: element.textContent.replaceFirst(RegExp(r'\n$'), ''),
       selectable: selectable,
-      fontSize: fontSize,
+      fontSize: preferences?.codeSize ?? fontSize,
+      wrap: preferences?.codeWrap ?? false,
     ),
   );
 }

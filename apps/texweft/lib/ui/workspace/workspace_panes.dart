@@ -96,13 +96,14 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
               ),
             ),
           Expanded(
-            child: switch (pane) {
+            child: _contentScale(pane, switch (pane) {
               'source' => MarkdownSourceEditor(
                 key: widget.editingKey,
                 controller: vm.editor,
                 lineNumbers: vm.lineNumbers,
                 typewriter: vm.typewriter,
-                fontSize: 14,
+                fontSize: vm.editingPreferences.codeSize,
+                editingPreferences: vm.editingPreferences,
               ),
               'read' => _DocumentReading(vm: vm),
               'map' => _mapPane(),
@@ -120,6 +121,7 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                 typewriter: vm.typewriter,
                 focusMode: vm.focusMode,
                 fontSize: vm.fontSize,
+                editingPreferences: vm.editingPreferences,
                 padding: EdgeInsets.fromLTRB(
                   titled ? 34 : 44,
                   titled ? 24 : 34,
@@ -127,12 +129,23 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                   70,
                 ),
               ),
-            },
+            }),
           ),
         ],
       ),
     );
   }
+
+  Widget _contentScale(String pane, Widget child) => pane == 'map'
+      ? child
+      : MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(
+              MediaQuery.textScalerOf(context).scale(1) * vm.contentZoom,
+            ),
+          ),
+          child: child,
+        );
 
   Widget _mapPane() => LayoutBuilder(
     builder: (context, constraints) => Column(
@@ -320,6 +333,7 @@ class _DocumentReadingState extends State<_DocumentReading> {
               typography: vm.typography,
               compact: vm.compact,
               fontSize: vm.fontSize,
+              editingPreferences: vm.editingPreferences,
               onTapLink: (_, href, _) {
                 final uri = Uri.tryParse(href ?? '');
                 if (uri != null &&

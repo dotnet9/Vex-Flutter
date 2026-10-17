@@ -1,5 +1,67 @@
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:texweft_markdown_core/texweft_markdown_core.dart';
+
+export 'pair_formatter.dart';
+
+void indentMarkdownSelection(
+  TextEditingController controller,
+  int size, {
+  bool reverse = false,
+}) {
+  final value = controller.value, selection = controller.selection;
+  if (!selection.isValid || !value.composing.isCollapsed) return;
+  final start = selection.start == 0
+      ? 0
+      : value.text.lastIndexOf('\n', selection.start - 1) + 1;
+  if (selection.isCollapsed && !reverse) {
+    final spaces = ' ' * (size - (selection.start - start) % size);
+    controller.value = TextEditingValue(
+      text: value.text.replaceRange(selection.start, selection.end, spaces),
+      selection: TextSelection.collapsed(
+        offset: selection.start + spaces.length,
+      ),
+    );
+    return;
+  }
+  final end = selection.end > start && value.text[selection.end - 1] == '\n'
+      ? selection.end - 1
+      : selection.end;
+  var base = selection.baseOffset, extent = selection.extentOffset;
+  final edits = <(int, int, String)>[];
+  for (var offset = start; offset <= end;) {
+    final count = reverse
+        ? RegExp(r'^ {1,8}')
+                  .firstMatch(value.text.substring(offset))
+                  ?.group(0)
+                  ?.length ??
+              0
+        : 0;
+    edits.add((
+      offset,
+      reverse ? count.clamp(0, size) : 0,
+      reverse ? '' : ' ' * size,
+    ));
+    final next = value.text.indexOf('\n', offset);
+    if (next < 0) break;
+    offset = next + 1;
+  }
+  var text = value.text;
+  for (final (offset, removed, inserted) in edits.reversed) {
+    text = text.replaceRange(offset, offset + removed, inserted);
+    int adjusted(int position) => position < offset
+        ? position
+        : position < offset + removed
+        ? offset
+        : position + inserted.length - removed;
+    base = adjusted(base);
+    extent = adjusted(extent);
+  }
+  controller.value = TextEditingValue(
+    text: text,
+    selection: TextSelection(baseOffset: base, extentOffset: extent),
+  );
+}
 
 /// Continues a list or quotation when Enter inserts a single line break.
 /// Pasted blocks, composing text and fenced code keep platform input unchanged.

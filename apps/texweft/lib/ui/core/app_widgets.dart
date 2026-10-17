@@ -95,7 +95,7 @@ class AppButton extends StatelessWidget {
             ),
           if (trailingIcon != null) ...[
             const SizedBox(width: 7),
-            AppGlyph(trailingIcon!, size: 11, color: foreground),
+            AppGlyph(trailingIcon!, size: 14, color: foreground),
           ],
         ],
       ),

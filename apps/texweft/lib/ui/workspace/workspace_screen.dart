@@ -12,6 +12,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../../data/services/file_service.dart';
 import '../../domain/workspace.dart';
+import '../../domain/file_preferences.dart';
 import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
 import '../core/palette_tokens.dart';
@@ -892,7 +893,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                   ],
                                 ),
                               ),
-                              if (!phone)
+                              if (!phone && state.statusbar)
                                 _statusbar(state, constraints.maxWidth),
                               if (phone) _mobileNav(state),
                             ],
@@ -1680,7 +1681,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         border: Border(top: BorderSide(color: c.outlineVariant)),
       ),
       child: DefaultTextStyle(
-        style: TextStyle(fontSize: 10.5, color: c.onSurfaceVariant),
+        style: TextStyle(fontSize: 12, color: c.onSurfaceVariant),
         child: Row(
           children: [
             AppGlyph(
@@ -1694,11 +1695,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                   ? context.l10n.unsaved
                   : context.l10n.unmodified,
             ),
-            const SizedBox(width: 16),
-            Text(
-              context.l10n.layoutName(state.layout),
-              style: TextStyle(color: c.primary),
-            ),
+            if (width > 1100) ...[
+              const SizedBox(width: 16),
+              Text(
+                context.l10n.layoutName(state.layout),
+                style: TextStyle(color: c.primary),
+              ),
+            ],
             if (state.status.isNotEmpty && width > 1200)
               Expanded(
                 child: Padding(
@@ -1713,15 +1716,21 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             else
               const Spacer(),
             Text(context.l10n.cursorPosition(position.line, position.column)),
-            const SizedBox(width: 16),
-            Text(
-              context.l10n.characterCount(
-                state.editor.session.text.characters.length,
+            if (width > 900) ...[
+              const SizedBox(width: 16),
+              Text(
+                context.l10n.characterCount(
+                  state.editor.session.text.characters.length,
+                ),
               ),
-            ),
+            ],
             const SizedBox(width: 16),
             Text(
-              'UTF-8 · ${state.editor.document.newline == '\r\n' ? 'CRLF' : 'LF'}',
+              '${switch (state.current.format.encoding) {
+                DocumentEncoding.utf8 => 'UTF-8',
+                DocumentEncoding.utf8Bom => 'UTF-8 BOM',
+                DocumentEncoding.gb18030 => 'GB18030',
+              }} · ${state.current.format.newline == DocumentNewline.crlf || (state.current.format.newline == DocumentNewline.system && Platform.isWindows) ? 'CRLF' : 'LF'}',
             ),
             const SizedBox(width: 10),
             AppButton(

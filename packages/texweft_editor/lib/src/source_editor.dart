@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:re_editor/re_editor.dart';
 
 import 'code_block.dart';
 import 'controller.dart';
+import 'editing_preferences.dart';
 import 'source_controller.dart';
 import 'typing_formatter.dart';
 
@@ -17,11 +19,13 @@ class MarkdownSourceEditor extends StatefulWidget {
     this.lineNumbers = true,
     this.fontSize = 14,
     this.typewriter = false,
+    this.editingPreferences,
   });
   final MarkdownEditorController controller;
   final bool lineNumbers;
   final double fontSize;
   final bool typewriter;
+  final MarkdownEditingPreferences? editingPreferences;
   @override
   State<MarkdownSourceEditor> createState() =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.windows
@@ -93,7 +97,10 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
   void initState() {
     super.initState();
     _viewport = _sourceViewports[widget.controller] ??= _SourceViewport();
-    _code = MarkdownSourceEditingController(widget.controller);
+    _code = MarkdownSourceEditingController(
+      widget.controller,
+      indent: widget.editingPreferences?.indent ?? 2,
+    );
     widget.controller.source.addListener(_revealSelection);
     widget.controller.sourceFocus.addListener(_revealSelection);
   }
@@ -101,14 +108,19 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
   @override
   void didUpdateWidget(covariant MarkdownSourceEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller) {
+    if (oldWidget.controller != widget.controller ||
+        oldWidget.editingPreferences?.indent !=
+            widget.editingPreferences?.indent) {
       oldWidget.controller.source.removeListener(_revealSelection);
       oldWidget.controller.sourceFocus.removeListener(_revealSelection);
       _code.dispose();
       _viewport = _sourceViewports[widget.controller] ??= _SourceViewport();
       final vertical = _viewport.vertical, horizontal = _viewport.horizontal;
       _restoringScroll = true;
-      _code = MarkdownSourceEditingController(widget.controller);
+      _code = MarkdownSourceEditingController(
+        widget.controller,
+        indent: widget.editingPreferences?.indent ?? 2,
+      );
       widget.controller.source.addListener(_revealSelection);
       widget.controller.sourceFocus.addListener(_revealSelection);
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -188,7 +200,7 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
           toolbarController: _toolbar,
           autofocus: false,
           wordWrap: false,
-          autocompleteSymbols: false,
+          autocompleteSymbols: widget.editingPreferences?.autoPair ?? false,
           chunkAnalyzer: const NonCodeChunkAnalyzer(),
           shortcutsActivatorsBuilder: const _SourceShortcuts(),
           style: CodeEditorStyle(
@@ -374,36 +386,60 @@ class _MobileSourceEditorState extends State<MarkdownSourceEditor> {
                     ),
                   ),
                 Expanded(
-                  child: TextField(
-                    controller: widget.controller.source,
-                    focusNode: widget.controller.sourceFocus,
-                    scrollController: _scroll,
-                    keyboardType: TextInputType.multiline,
-                    expands: true,
-                    minLines: null,
-                    maxLines: null,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    inputFormatters: [MarkdownTypingFormatter()],
-                    smartDashesType: SmartDashesType.disabled,
-                    smartQuotesType: SmartQuotesType.disabled,
-                    style: MarkdownCodeBlock.textStyle(context, widget.fontSize)
-                        .copyWith(
-                          fontSize: widget.fontSize,
-                          height: 1.9,
-                          color: color.onSurface,
+                  child: CallbackShortcuts(
+                    bindings: {
+                      const SingleActivator(LogicalKeyboardKey.tab): () =>
+                          indentMarkdownSelection(
+                            widget.controller.source,
+                            widget.editingPreferences?.indent ?? 2,
+                          ),
+                      const SingleActivator(
+                        LogicalKeyboardKey.tab,
+                        shift: true,
+                      ): () => indentMarkdownSelection(
+                        widget.controller.source,
+                        widget.editingPreferences?.indent ?? 2,
+                        reverse: true,
+                      ),
+                    },
+                    child: TextField(
+                      controller: widget.controller.source,
+                      focusNode: widget.controller.sourceFocus,
+                      scrollController: _scroll,
+                      keyboardType: TextInputType.multiline,
+                      expands: true,
+                      minLines: null,
+                      maxLines: null,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      inputFormatters: [
+                        if (widget.editingPreferences?.autoPair == true)
+                          const MarkdownPairFormatter(),
+                        MarkdownTypingFormatter(),
+                      ],
+                      smartDashesType: SmartDashesType.disabled,
+                      smartQuotesType: SmartQuotesType.disabled,
+                      style:
+                          MarkdownCodeBlock.textStyle(
+                            context,
+                            widget.fontSize,
+                          ).copyWith(
+                            fontSize: widget.fontSize,
+                            height: 1.9,
+                            color: color.onSurface,
+                          ),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        filled: false,
+                        isCollapsed: true,
+                        contentPadding: EdgeInsets.fromLTRB(
+                          widget.lineNumbers ? 4 : 28,
+                          top,
+                          28,
+                          widget.typewriter ? top : 70,
                         ),
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      filled: false,
-                      isCollapsed: true,
-                      contentPadding: EdgeInsets.fromLTRB(
-                        widget.lineNumbers ? 4 : 28,
-                        top,
-                        28,
-                        widget.typewriter ? top : 70,
                       ),
                     ),
                   ),

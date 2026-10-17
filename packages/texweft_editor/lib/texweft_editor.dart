@@ -2,6 +2,7 @@
 library;
 
 export 'src/controller.dart';
+export 'src/editing_preferences.dart';
 export 'src/editor.dart';
 export 'src/font_families.dart';
 export 'src/labels.dart';

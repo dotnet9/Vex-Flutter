@@ -7,6 +7,7 @@ import 'package:texweft_markdown_core/texweft_markdown_core.dart';
 
 import 'code_block.dart';
 import 'controller.dart';
+import 'editing_preferences.dart';
 import 'labels.dart';
 import 'reader.dart';
 import 'table_editor.dart';
@@ -26,6 +27,7 @@ class MarkdownInstantEditor extends StatefulWidget {
     this.imageBuilder,
     this.typewriter = false,
     this.focusMode = false,
+    this.editingPreferences,
   });
   final MarkdownEditorLabels labels;
   final MarkdownEditorController controller;
@@ -35,6 +37,7 @@ class MarkdownInstantEditor extends StatefulWidget {
   final EdgeInsets padding;
   final Widget Function(Uri uri, String? title, String? alt)? imageBuilder;
   final bool typewriter, focusMode;
+  final MarkdownEditingPreferences? editingPreferences;
   @override
   State<MarkdownInstantEditor> createState() => _MarkdownInstantEditorState();
 }
@@ -112,6 +115,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
             fontSize: widget.fontSize,
             selectable: false,
             imageBuilder: widget.imageBuilder,
+            editingPreferences: widget.editingPreferences,
           ),
         ),
       ),
@@ -470,9 +474,12 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
     typography: widget.typography,
     compact: widget.compact,
     fontSize: widget.fontSize,
+    editingPreferences: widget.editingPreferences,
   );
   int get _level => _prefix.trim().length.clamp(1, 6);
-  double get _codeFontSize => widget.fontSize / 15 * (widget.compact ? 13 : 14);
+  double get _codeFontSize =>
+      widget.editingPreferences?.codeSize ??
+      widget.fontSize / 15 * (widget.compact ? 13 : 14);
   TextStyle get _activeStyle {
     final sheet = _reader.styleSheet(context);
     if (_kind != MarkdownBlockKind.heading) return sheet.p!;
@@ -503,6 +510,9 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
 
   Widget _codeBody(ColorScheme colors) => LayoutBuilder(
     builder: (context, constraints) {
+      if (widget.editingPreferences?.codeWrap == true) {
+        return _bodyField(colors);
+      }
       final painter = TextPainter(
         text: TextSpan(
           text: _input.text,
@@ -525,40 +535,59 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
 
   Widget _bodyField(ColorScheme colors) => KeyedSubtree(
     key: _bodyRegion,
-    child: TextField(
-      key: const ValueKey('instant-active-input'),
-      groupId: this,
-      controller: _input,
-      focusNode: _focus,
-      maxLines: null,
-      autocorrect: _codeFence == null,
-      enableSuggestions: _codeFence == null,
-      inputFormatters: [if (_codeFence == null) MarkdownTypingFormatter()],
-      smartDashesType: SmartDashesType.disabled,
-      smartQuotesType: SmartQuotesType.disabled,
-      onTapOutside: (_) => _finish(),
-      style: _codeFence != null
-          ? MarkdownCodeBlock.textStyle(context, _codeFontSize)
-          : _activeStyle,
-      textAlign:
-          _kind == MarkdownBlockKind.heading &&
-              widget.typography == MarkdownTypography.editorial
-          ? TextAlign.center
-          : TextAlign.start,
-      scrollPadding: EdgeInsets.zero,
-      cursorHeight: _codeFence == null ? _activeStyle.fontSize : null,
+    child: CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.tab): () =>
+            indentMarkdownSelection(
+              _input,
+              widget.editingPreferences?.indent ?? 2,
+            ),
+        const SingleActivator(LogicalKeyboardKey.tab, shift: true): () =>
+            indentMarkdownSelection(
+              _input,
+              widget.editingPreferences?.indent ?? 2,
+              reverse: true,
+            ),
+      },
+      child: TextField(
+        key: const ValueKey('instant-active-input'),
+        groupId: this,
+        controller: _input,
+        focusNode: _focus,
+        maxLines: null,
+        autocorrect: _codeFence == null,
+        enableSuggestions: _codeFence == null,
+        inputFormatters: [
+          if (widget.editingPreferences?.autoPair == true)
+            const MarkdownPairFormatter(),
+          if (_codeFence == null) MarkdownTypingFormatter(),
+        ],
+        smartDashesType: SmartDashesType.disabled,
+        smartQuotesType: SmartQuotesType.disabled,
+        onTapOutside: (_) => _finish(),
+        style: _codeFence != null
+            ? MarkdownCodeBlock.textStyle(context, _codeFontSize)
+            : _activeStyle,
+        textAlign:
+            _kind == MarkdownBlockKind.heading &&
+                widget.typography == MarkdownTypography.editorial
+            ? TextAlign.center
+            : TextAlign.start,
+        scrollPadding: EdgeInsets.zero,
+        cursorHeight: _codeFence == null ? _activeStyle.fontSize : null,
 
-      decoration: InputDecoration(
-        hintText: _codeFence == null && _input.text.isEmpty
-            ? widget.labels.placeholder
-            : null,
-        maintainHintSize: false,
-        border: InputBorder.none,
-        enabledBorder: InputBorder.none,
-        focusedBorder: InputBorder.none,
-        filled: false,
-        isCollapsed: true,
-        contentPadding: EdgeInsets.zero,
+        decoration: InputDecoration(
+          hintText: _codeFence == null && _input.text.isEmpty
+              ? widget.labels.placeholder
+              : null,
+          maintainHintSize: false,
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          filled: false,
+          isCollapsed: true,
+          contentPadding: EdgeInsets.zero,
+        ),
       ),
     ),
   );

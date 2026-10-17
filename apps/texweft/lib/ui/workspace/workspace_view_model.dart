@@ -61,6 +61,10 @@ final class WorkspaceViewModel extends ChangeNotifier {
   bool sidebar = true, outline = false, compact = false, lineNumbers = true;
   bool findVisible = false, replaceVisible = false, focusMode = false;
   bool typewriter = false;
+  MarkdownEditingPreferences editingPreferences =
+      const MarkdownEditingPreferences();
+  double contentZoom = 1;
+  bool statusbar = true, motion = true;
   PresentationController? presenter;
   bool get presentation => presenter != null;
   bool paragraphs = true, lists = true, blocks = false;
@@ -116,6 +120,15 @@ final class WorkspaceViewModel extends ChangeNotifier {
       lineNumbers = preferences['lineNumbers'] != false;
       typewriter = preferences['typewriter'] == true;
       focusMode = preferences['focusMode'] == true;
+      editingPreferences = MarkdownEditingPreferences.fromJson(
+        preferences['editor'],
+      );
+      contentZoom = (preferences['contentZoom'] as num? ?? 1).toDouble().clamp(
+        .9,
+        1.25,
+      );
+      statusbar = preferences['statusbar'] != false;
+      motion = preferences['motion'] != false;
       sidebarWidth = (preferences['sidebarWidth'] as num? ?? 226)
           .toDouble()
           .clamp(200, 560);
@@ -133,7 +146,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
       );
       fontSize = (preferences['fontSize'] as num? ?? 16).toDouble().clamp(
         12,
-        22,
+        24,
       );
       final paths = preferences['recent'];
       if (paths is List) recent.addAll(paths.whereType<String>().take(20));
@@ -324,6 +337,9 @@ final class WorkspaceViewModel extends ChangeNotifier {
     String? language,
     bool? lineNumbers,
     double? fontSize,
+    double? contentZoom,
+    bool? statusbar,
+    bool? motion,
   }) {
     this.palette = palette ?? this.palette;
     themeMode = mode ?? themeMode;
@@ -336,7 +352,28 @@ final class WorkspaceViewModel extends ChangeNotifier {
       _refreshMap();
     }
     this.lineNumbers = lineNumbers ?? this.lineNumbers;
-    this.fontSize = fontSize ?? this.fontSize;
+    this.fontSize = (fontSize ?? this.fontSize).clamp(12, 24);
+    this.contentZoom = (contentZoom ?? this.contentZoom).clamp(.9, 1.25);
+    this.statusbar = statusbar ?? this.statusbar;
+    this.motion = motion ?? this.motion;
+    _notify();
+    persist();
+  }
+
+  void updateEditorPreferences({
+    MarkdownBodyFont? font,
+    double? codeSize,
+    int? indent,
+    bool? autoPair,
+    bool? codeWrap,
+  }) {
+    editingPreferences = editingPreferences.copyWith(
+      font: font,
+      codeSize: codeSize,
+      indent: indent,
+      autoPair: autoPair,
+      codeWrap: codeWrap,
+    );
     _notify();
     persist();
   }
@@ -854,6 +891,10 @@ final class WorkspaceViewModel extends ChangeNotifier {
             'typewriter': typewriter,
             'focusMode': focusMode,
             'fontSize': fontSize,
+            'editor': editingPreferences.toJson(),
+            'contentZoom': contentZoom,
+            'statusbar': statusbar,
+            'motion': motion,
             'sidebarWidth': sidebarWidth,
             'summaryLength': summaryLength,
             'paragraphs': paragraphs,

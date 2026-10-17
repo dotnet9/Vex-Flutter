@@ -12,10 +12,12 @@ class MarkdownCodeBlock extends StatelessWidget {
     this.fontSize = 14,
     this.child,
     this.footer,
+    this.wrap = false,
   });
 
   final String code;
   final bool selectable;
+  final bool wrap;
   final double fontSize;
   final Widget? child;
   final Widget? footer;
@@ -48,12 +50,22 @@ class MarkdownCodeBlock extends StatelessWidget {
           ),
           child:
               child ??
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: selectable
-                    ? SelectableText(code.isEmpty ? ' ' : code, style: style)
-                    : Text(code.isEmpty ? ' ' : code, style: style),
-              ),
+              (wrap
+                  ? (selectable
+                        ? SelectableText(
+                            code.isEmpty ? ' ' : code,
+                            style: style,
+                          )
+                        : Text(code.isEmpty ? ' ' : code, style: style))
+                  : SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: selectable
+                          ? SelectableText(
+                              code.isEmpty ? ' ' : code,
+                              style: style,
+                            )
+                          : Text(code.isEmpty ? ' ' : code, style: style),
+                    )),
         ),
         SizedBox(
           height: 32,

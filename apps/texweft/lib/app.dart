@@ -20,13 +20,27 @@ class TexweftApp extends StatelessWidget {
     child:
         Selector<
           WorkspaceViewModel,
-          ({String palette, ThemeMode mode, String language})
+          ({String palette, ThemeMode mode, String language, bool motion})
         >(
-          selector: (_, vm) =>
-              (palette: vm.palette, mode: vm.themeMode, language: vm.language),
+          selector: (_, vm) => (
+            palette: vm.palette,
+            mode: vm.themeMode,
+            language: vm.language,
+            motion: vm.motion,
+          ),
           builder: (_, value, _) => MaterialApp(
             onGenerateTitle: (context) => context.l10n.appTitle,
             debugShowCheckedModeBanner: false,
+            themeAnimationDuration: value.motion
+                ? const Duration(milliseconds: 200)
+                : Duration.zero,
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                disableAnimations:
+                    MediaQuery.disableAnimationsOf(context) || !value.motion,
+              ),
+              child: child!,
+            ),
             theme: appTheme(
               value.palette,
               Brightness.light,
