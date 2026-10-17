@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
+import 'package:texweft_editor/texweft_editor.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../data/services/file_service.dart';
@@ -14,7 +16,9 @@ import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
 import '../core/palette_tokens.dart';
 import 'insert_table_dialog.dart';
+import 'mcp_settings_dialog.dart';
 import 'workspace_dialogs.dart';
+import 'workspace_guide.dart';
 import 'workspace_panes.dart';
 import 'workspace_pickers.dart';
 import 'workspace_presentation.dart';
@@ -31,9 +35,15 @@ class WorkspaceScreen extends StatefulWidget {
 class _WorkspaceScreenState extends State<WorkspaceScreen>
     with WidgetsBindingObserver, WindowListener {
   final _scaffold = GlobalKey<ScaffoldState>();
+  WorkspaceViewModel? _boundVm;
+  final _guideEditing = GlobalKey(),
+      _guideMap = GlobalKey(),
+      _guideMapToolbar = GlobalKey();
+  final _guideTypography = GlobalKey(), _guideFileMenu = GlobalKey();
   final _find = TextEditingController(), _replace = TextEditingController();
   final _findFocus = FocusNode();
   final _layoutsMenu = MenuController(), _typographyMenu = MenuController();
+  final _topMenus = <String, MenuController>{};
   bool _dragging = false, _closing = false, _nativeCloseApproved = false;
   bool _changingPresentation = false;
   bool _maximized = false;
@@ -58,6 +68,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
 
   @override
   void dispose() {
+    _boundVm?.mcp.confirm = null;
     WidgetsBinding.instance.removeObserver(this);
     if (widget.windowIntegration && _desktop) {
       windowManager.removeListener(this);
@@ -92,10 +103,52 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _boundVm = vm;
+    vm.mcp.confirm = _confirmMcp;
     final title = context.l10n.appTitle;
     if (widget.windowIntegration && _desktop) {
       unawaited(windowManager.setTitle(title));
     }
+  }
+
+  Future<bool> _confirmMcp(String name) async {
+    if (!mounted || _closing) return false;
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AppDialog(
+            title: context.l10n.mcpConfirmTitle,
+            actions: [
+              AppButton(
+                label: context.l10n.cancel,
+                onPressed: () => Navigator.pop(context, false),
+              ),
+              AppButton(
+                label: context.l10n.mcpExecute,
+                primary: true,
+                onPressed: () => Navigator.pop(context, true),
+              ),
+            ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  context.l10n.mcpConfirmBody,
+                  style: const TextStyle(fontSize: 14, height: 1.8),
+                ),
+                const SizedBox(height: 16),
+                SelectableText(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ) ??
+        false;
   }
 
   void _error(Object error) {
@@ -199,6 +252,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
 
   void _format(String command) {
     final e = vm.editor;
+    if (command.startsWith('heading-')) {
+      e.linePrefix('${'#' * int.parse(command.substring(8))} ');
+      return;
+    }
     switch (command) {
       case 'bold':
         e.surround('**');
@@ -228,6 +285,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         unawaited(_run(_insertTable));
       case 'rule':
         e.replaceSelection('\n\n---\n\n');
+      case 'paragraph':
+        e.replaceSelection('\n\n');
     }
   }
 
@@ -250,6 +309,32 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   }
 
   void _action(String action) {
+    if (action.startsWith('layout:')) {
+      vm.setLayout(WorkspaceLayout.values.byName(action.substring(7)));
+      return;
+    }
+    if (action.startsWith('palette:')) {
+      vm.updateAppearance(palette: action.substring(8));
+      return;
+    }
+    if (action.startsWith('theme:')) {
+      vm.updateAppearance(mode: ThemeMode.values.byName(action.substring(6)));
+      return;
+    }
+    if (action.startsWith('typography:')) {
+      vm.updateAppearance(
+        typography: MarkdownTypography.values.byName(action.substring(11)),
+      );
+      return;
+    }
+    if (action.startsWith('export:')) {
+      unawaited(showExportDialog(context, vm, type: action.substring(7)));
+      return;
+    }
+    if (action.startsWith('open-path:')) {
+      unawaited(_run(() => vm.openPath(action.substring(10))));
+      return;
+    }
     if (action.startsWith('format:')) {
       _format(action.substring(7));
       return;
@@ -257,6 +342,102 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     switch (action) {
       case 'new':
         vm.newDocument();
+      case 'save-all':
+        unawaited(
+          _run(() async {
+            final previous = vm.current;
+            for (final document in List.of(vm.documents)) {
+              if (!document.editor.session.isDirty) continue;
+              vm.switchDocument(document);
+              if (!await vm.save()) break;
+            }
+            if (vm.documents.contains(previous)) vm.switchDocument(previous);
+          }),
+        );
+      case 'close-document':
+        unawaited(_run(_closeDocument));
+      case 'clear-recent':
+        vm.recent.clear();
+        vm.persist();
+        setState(() {});
+      case 'compact':
+        vm.updateAppearance(compact: !vm.compact);
+      case 'files' || 'outline':
+        if (!vm.sidebar) vm.toggleSidebar();
+        vm.setOutline(action == 'outline');
+      case 'fullscreen':
+        if (widget.windowIntegration) {
+          unawaited(
+            _run(
+              () async => windowManager.setFullScreen(
+                !await windowManager.isFullScreen(),
+              ),
+            ),
+          );
+        }
+      case 'maximize':
+        if (widget.windowIntegration) {
+          unawaited(
+            _run(() async {
+              if (await windowManager.isMaximized()) {
+                await windowManager.unmaximize();
+              } else {
+                await windowManager.maximize();
+              }
+            }),
+          );
+        }
+      case 'zoom-in' || 'zoom-out' || 'zoom-reset':
+        vm.updateAppearance(
+          fontSize: action == 'zoom-reset'
+              ? 16
+              : (vm.fontSize + (action == 'zoom-in' ? 1 : -1)).clamp(12, 22),
+        );
+      case 'lines':
+        vm.updateAppearance(lineNumbers: !vm.lineNumbers);
+      case 'website' || 'feedback':
+        unawaited(
+          launchUrl(
+            Uri.parse(
+              action == 'website'
+                  ? 'https://codewf.com'
+                  : 'https://github.com/dotnet9/Vex-Flutter/issues',
+            ),
+            mode: LaunchMode.externalApplication,
+          ),
+        );
+      case 'mcp-audit':
+        unawaited(
+          showDialog<void>(
+            context: context,
+            builder: (context) => AppDialog(
+              title: context.l10n.mcpAudit,
+              width: 620,
+              child: ListenableBuilder(
+                listenable: vm.mcp,
+                builder: (context, _) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: vm.mcp.audit.isEmpty
+                      ? [Text(context.l10n.mcpAuditEmpty)]
+                      : [
+                          for (final item in vm.mcp.audit)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: SelectableText(
+                                '${item['time']}\n${item['tool']} · ${item['result']}',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  height: 1.6,
+                                ),
+                              ),
+                            ),
+                        ],
+                ),
+              ),
+            ),
+          ),
+        );
       case 'open':
         unawaited(_run(vm.open));
       case 'folder':
@@ -323,6 +504,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         unawaited(showSummarySettings(context, vm));
       case 'settings':
         unawaited(showSettings(context, vm));
+      case 'mcp':
+        unawaited(showMcpSettings(context, vm.mcp));
       case 'about':
         unawaited(showAbout(context));
       case 'guide':
@@ -338,6 +521,43 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       case 'export':
         unawaited(_export());
     }
+  }
+
+  Future<void> _closeDocument() async {
+    vm.endGuide();
+    var keepDraft = false;
+    if (vm.editor.session.isDirty) {
+      final decision = await showDialog<String>(
+        context: context,
+        builder: (context) => AppDialog(
+          title: context.l10n.unsavedContent,
+          width: 520,
+          actions: [
+            AppButton(
+              label: context.l10n.cancel,
+              onPressed: () => Navigator.pop(context),
+            ),
+            AppButton(
+              label: context.l10n.keepDraftClose,
+              onPressed: () => Navigator.pop(context, 'draft'),
+            ),
+            AppButton(
+              label: context.l10n.save,
+              primary: true,
+              onPressed: () => Navigator.pop(context, 'save'),
+            ),
+          ],
+          child: Text(
+            vm.current.name,
+            style: const TextStyle(fontSize: 14, height: 1.8),
+          ),
+        ),
+      );
+      if (decision == null) return;
+      if (decision == 'save' && !await vm.save()) return;
+      keepDraft = decision == 'draft';
+    }
+    await vm.closeCurrent(keepDraft: keepDraft);
   }
 
   Future<void> _export() async {
@@ -473,6 +693,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                   ): () =>
                       _action('undo'),
                   const SingleActivator(LogicalKeyboardKey.escape): () {
+                    for (final menu in _topMenus.values) {
+                      menu.close();
+                    }
+                    _layoutsMenu.close();
+                    _typographyMenu.close();
                     state.closeFind();
                     if (state.guiding) state.endGuide();
                   },
@@ -491,7 +716,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                             Navigator.pop(context);
                             unawaited(_run(() => state.openPath(path)));
                           },
-                          onFolder: () => _action('folder'),
                         ),
                       ),
                     )
@@ -595,7 +819,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                           onOpenPath: (path) => unawaited(
                                             _run(() => state.openPath(path)),
                                           ),
-                                          onFolder: () => _action('folder'),
                                         ),
                                       ),
                                     if (showSidebar)
@@ -632,6 +855,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                             _formatbar(state, phone),
                                           Expanded(
                                             child: WorkspacePanes(
+                                              editingKey: _guideEditing,
+                                              mapKey: _guideMap,
+                                              mapToolbarKey: _guideMapToolbar,
                                               vm: state,
                                               onAction: _action,
                                               onError: _error,
@@ -643,7 +869,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                   ],
                                 ),
                               ),
-                              if (state.guiding) _guide(state),
                               if (!phone)
                                 _statusbar(state, constraints.maxWidth),
                               if (phone) _mobileNav(state),
@@ -651,9 +876,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                           ),
                         ),
                       ),
+                      if (state.guiding) Positioned.fill(child: _guide(state)),
                       if (state.presentation)
                         Positioned.fill(
                           child: WorkspacePresentation(
+                            documentPath: state.current.path,
                             controller: state.presenter!,
                             typography: state.typography,
                             fontSize: state.fontSize,
@@ -695,7 +922,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       crossAxisAlignment: WrapCrossAlignment.center,
       spacing: 12,
       children: [
-        Text(text, style: const TextStyle(fontSize: 11)),
+        Text(text, style: const TextStyle(fontSize: 12)),
         ...actions,
       ],
     ),
@@ -704,7 +931,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     final c = Theme.of(context).colorScheme;
     return Container(
       key: const ValueKey('custom-titlebar'),
-      height: 40,
+      height: 33,
       decoration: BoxDecoration(
         color: c.surfaceContainerLow,
         border: Border(bottom: BorderSide(color: c.outlineVariant)),
@@ -714,57 +941,93 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         children: [
           SvgPicture.asset('assets/brand/logo.svg', width: 22, height: 22),
           const SizedBox(width: 7),
-          const Text(
-            'Texweft',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -.5,
+          if (width >= 980)
+            const Text(
+              'Texweft',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -.5,
+              ),
             ),
-          ),
           const SizedBox(width: 14),
           _menu(context.l10n.menuFile, [
             (context.l10n.newDocument, 'new', 'Ctrl+N'),
+            ('', '-', ''),
             (context.l10n.open, 'open', 'Ctrl+O'),
             (context.l10n.openFolder, 'folder', ''),
+            (context.l10n.openRecent, '@recent', ''),
+            ('', '-', ''),
             (context.l10n.save, 'save', 'Ctrl+S'),
             (context.l10n.saveAs, 'save-as', 'Ctrl+Shift+S'),
-            (context.l10n.exportShareMenu, 'export', ''),
+            (context.l10n.saveAllDocuments, 'save-all', ''),
+            (context.l10n.exportShareMenu, '@export', ''),
+            (context.l10n.printPreview, 'export:print', 'Ctrl+Shift+P'),
+            ('', '-', ''),
+            (context.l10n.closeDocument, 'close-document', 'Ctrl+W'),
             (context.l10n.exit, 'exit', ''),
-          ]),
+          ], key: _guideFileMenu),
           _menu(context.l10n.menuEdit, [
             (context.l10n.undo, 'undo', 'Ctrl+Z'),
             (context.l10n.redo, 'redo', 'Ctrl+Y'),
+            ('', '-', ''),
             (context.l10n.cut, 'cut', 'Ctrl+X'),
             (context.l10n.copy, 'copy', 'Ctrl+C'),
             (context.l10n.paste, 'paste', 'Ctrl+V'),
             (context.l10n.selectAll, 'select-all', 'Ctrl+A'),
+            ('', '-', ''),
             (context.l10n.find, 'find', 'Ctrl+F'),
             (context.l10n.replace, 'replace', 'Ctrl+H'),
           ]),
           _menu(context.l10n.menuInsert, [
-            (context.l10n.heading, 'format:heading', ''),
+            (context.l10n.newParagraph, 'format:paragraph', ''),
+            for (var level = 1; level <= 6; level++)
+              ('${context.l10n.heading} $level', 'format:heading-$level', ''),
+            ('', '-', ''),
+            (context.l10n.unorderedList, 'format:list', ''),
+            (context.l10n.orderedList, 'format:ordered', ''),
+            (context.l10n.taskList, 'format:task', ''),
             (context.l10n.quote, 'format:quote', ''),
+            ('', '-', ''),
+            (context.l10n.table, 'format:table', ''),
+            (context.l10n.codeBlock, 'format:code', ''),
+            (context.l10n.horizontalRule, 'format:rule', ''),
             (context.l10n.link, 'format:link', ''),
             (context.l10n.image, 'format:image', ''),
-            (context.l10n.codeBlock, 'format:code', ''),
-            (context.l10n.table, 'format:table', ''),
-            (context.l10n.horizontalRule, 'format:rule', ''),
+            ('', '-', ''),
+            (context.l10n.bold, 'format:bold', 'Ctrl+B'),
+            (context.l10n.italic, 'format:italic', 'Ctrl+I'),
+            (context.l10n.strike, 'format:strike', ''),
+            (context.l10n.inlineCode, 'format:inline-code', ''),
           ]),
           _menu(context.l10n.menuView, [
-            (context.l10n.workspaceLayoutMenu, 'layouts', ''),
-            (context.l10n.toggleSidebar, 'sidebar', ''),
-            (context.l10n.focusMode, 'focus', ''),
+            (context.l10n.workspaceLayoutMenu, '@layouts', ''),
+            (context.l10n.menuNavigation, '@navigation', ''),
+            (context.l10n.sourceLineNumbers, 'lines', ''),
+            ('', '-', ''),
+            (context.l10n.focusMode, 'focus', 'F8'),
             (context.l10n.presentationMode, 'presentation', 'F5'),
-            (context.l10n.appearanceMenu, 'appearance', ''),
+            ('', '-', ''),
+            (context.l10n.appearanceMenu, '@appearance', ''),
+            (context.l10n.markdownTypography, '@typography', ''),
+            ('', '-', ''),
+            (context.l10n.menuWindow, '@window', ''),
+            (context.l10n.zoomIn, 'zoom-in', ''),
+            (context.l10n.zoomOut, 'zoom-out', ''),
+            (context.l10n.actualSize, 'zoom-reset', ''),
           ]),
           _menu(context.l10n.menuTools, [
             (context.l10n.summarySettings, 'summary', ''),
-            (context.l10n.exportShare, 'export', ''),
             (context.l10n.settings, 'settings', ''),
+            ('', '-', ''),
+            (context.l10n.mcpSettings, 'mcp', ''),
+            (context.l10n.mcpAudit, 'mcp-audit', ''),
           ]),
           _menu(context.l10n.menuHelp, [
             (context.l10n.quickStart, 'guide', ''),
+            ('', '-', ''),
+            (context.l10n.officialWebsite, 'website', ''),
+            (context.l10n.feedback, 'feedback', ''),
             (context.l10n.aboutUpdates, 'about', ''),
           ]),
           Expanded(
@@ -785,7 +1048,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
               child: const SizedBox.expand(),
             ),
           ),
-          if (width >= 1100) ...[
+          if (width >= 1280) ...[
             AppButton(
               key: const ValueKey('titlebar-theme'),
               label: switch (state.themeMode) {
@@ -907,36 +1170,131 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     );
   }
 
-  Widget _menu(String label, List<(String, String, String)> items) =>
-      MenuAnchor(
-        menuChildren: [
-          for (final item in items)
-            MenuItemButton(
-              onPressed: () => _action(item.$2),
-              trailingIcon: item.$3.isEmpty
-                  ? null
-                  : Text(
-                      item.$3,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-              child: Text(item.$1),
+  Widget _menu(
+    String label,
+    List<(String, String, String)> items, {
+    Key? key,
+  }) => MenuAnchor(
+    key: key,
+    controller: _topMenus.putIfAbsent(label, MenuController.new),
+    menuChildren: _menuChildren(items),
+    builder: (context, controller, _) => TextButton(
+      style: TextButton.styleFrom(
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
+        textStyle: const TextStyle(fontSize: 14, height: 1.4),
+        minimumSize: const Size(0, 28),
+        fixedSize: const Size.fromHeight(28),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+      ),
+      onPressed: () =>
+          controller.isOpen ? controller.close() : controller.open(),
+      child: Text(label, maxLines: 1),
+    ),
+  );
+  List<Widget> _menuChildren(List<(String, String, String)> items) => [
+    for (final item in items)
+      if (item.$2 == '-')
+        const Divider(height: 13, indent: 8, endIndent: 8)
+      else if (item.$2.startsWith('@'))
+        SubmenuButton(
+          leadingIcon: const SizedBox(width: 16),
+          menuChildren: _submenu(item.$2),
+          child: Text(item.$1),
+        )
+      else
+        MenuItemButton(
+          leadingIcon: SizedBox(
+            width: 16,
+            child: _checked(item.$2) ? const AppGlyph('check') : null,
+          ),
+          onPressed: () => _action(item.$2),
+          trailingIcon: SizedBox(
+            width: 104,
+            child: Text(
+              item.$3,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
-        ],
-        builder: (context, controller, _) => AppButton(
-          label: label,
-          padding: 8,
-          onPressed: () {
-            if (controller.isOpen) {
-              controller.close();
-            } else {
-              controller.open();
-            }
-          },
+          ),
+          child: Text(item.$1),
         ),
-      );
+  ];
+  bool _checked(String action) => switch (action) {
+    'lines' => vm.lineNumbers,
+    'sidebar' => vm.sidebar,
+    'compact' => vm.compact,
+    'focus' => vm.focusMode,
+    _ =>
+      action == 'layout:${vm.layout.name}' ||
+          action == 'theme:${vm.themeMode.name}' ||
+          action == 'palette:${vm.palette}' ||
+          action == 'typography:${vm.typography.name}',
+  };
+  List<Widget> _submenu(String name) {
+    final l = context.l10n;
+    if (name == '@recent') {
+      return [
+        if (vm.recent.isEmpty) MenuItemButton(child: Text(l.noRecent)),
+        for (final path in vm.recent)
+          MenuItemButton(
+            onPressed: () => _action('open-path:$path'),
+            child: SizedBox(
+              width: 320,
+              child: Text(path, maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+          ),
+        if (vm.recent.isNotEmpty) ...[
+          const Divider(),
+          MenuItemButton(
+            onPressed: () => _action('clear-recent'),
+            child: Text(l.clearRecent),
+          ),
+        ],
+      ];
+    }
+    return _menuChildren(switch (name) {
+      '@export' => [
+        ('HTML', 'export:html', ''),
+        ('PDF', 'export:pdf', ''),
+        ('Word (.docx)', 'export:docx', ''),
+        (l.mindMapPng, 'export:png', ''),
+      ],
+      '@layouts' => [
+        for (final layout in WorkspaceLayout.values)
+          (l.layoutName(layout), 'layout:${layout.name}', ''),
+      ],
+      '@navigation' => [
+        (l.toggleSidebar, 'sidebar', ''),
+        (l.files, 'files', ''),
+        (l.outline, 'outline', ''),
+      ],
+      '@appearance' => [
+        (l.followSystem, 'theme:system', ''),
+        (l.light, 'theme:light', ''),
+        (l.dark, 'theme:dark', ''),
+        ('', '-', ''),
+        for (final palette in paletteNames.keys)
+          (l.paletteName(palette), 'palette:$palette', ''),
+      ],
+      '@typography' => [
+        for (final type in MarkdownTypography.values)
+          (l.typographyName(type), 'typography:${type.name}', ''),
+        ('', '-', ''),
+        (l.compactSpacing, 'compact', ''),
+      ],
+      '@window' => [
+        (l.fullscreen, 'fullscreen', 'F11'),
+        (l.maximizeRestore, 'maximize', ''),
+      ],
+      _ => <(String, String, String)>[],
+    });
+  }
+
   Widget _workbar(WorkspaceViewModel state, bool phone, double width) {
     final c = Theme.of(context).colorScheme;
     return Container(
@@ -1007,7 +1365,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          if (!phone && width >= 1100)
+          if (!phone && width >= 1100 && !state.guideSeen)
             Flexible(
               child: AppButton(
                 label: context.l10n.quickStartBadge,
@@ -1159,6 +1517,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
 
   Widget _typographyPicker(WorkspaceViewModel state, {bool iconOnly = false}) =>
       WorkspacePickerAnchor(
+        key: _guideTypography,
         vm: state,
         picker: WorkspacePicker.typography,
         controller: _typographyMenu,
@@ -1196,7 +1555,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                   focusNode: _findFocus,
                   onChanged: state.search,
                   onSubmitted: (_) => state.nextMatch(),
-                  style: const TextStyle(fontSize: 11),
+                  style: const TextStyle(fontSize: 12),
                   decoration: InputDecoration(hintText: context.l10n.findText),
                 ),
               ),
@@ -1247,7 +1606,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                     height: 30,
                     child: TextField(
                       controller: _replace,
-                      style: const TextStyle(fontSize: 11),
+                      style: const TextStyle(fontSize: 12),
                       decoration: InputDecoration(
                         hintText: context.l10n.replaceWith,
                       ),
@@ -1386,69 +1745,20 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       (context.l10n.guideTypographyTitle, context.l10n.guideTypographyBody),
       (context.l10n.guideFinishTitle, context.l10n.guideFinishBody),
     ];
-    final narrow = MediaQuery.sizeOf(context).width < 700;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      color: Theme.of(context).colorScheme.primaryContainer,
-      child: Flex(
-        direction: narrow ? Axis.vertical : Axis.horizontal,
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: narrow
-            ? CrossAxisAlignment.start
-            : CrossAxisAlignment.center,
-        children: [
-          Flexible(
-            fit: narrow ? FlexFit.loose : FlexFit.tight,
-            flex: narrow ? 0 : 1,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${state.guideStep + 1}/6  ${steps[state.guideStep].$1}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  steps[state.guideStep].$2,
-                  style: const TextStyle(fontSize: 11, height: 1.7),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: narrow ? 0 : 10, height: narrow ? 10 : 0),
-          Wrap(
-            spacing: 6,
-            children: [
-              AppButton(
-                label: context.l10n.endGuide,
-                onPressed: state.endGuide,
-              ),
-              if (state.guideStep > 0)
-                AppButton(
-                  label: context.l10n.previous,
-                  onPressed: () => state.advanceGuide(state.guideStep - 1),
-                ),
-              AppButton(
-                label: state.guideStep == 5
-                    ? context.l10n.done
-                    : context.l10n.next,
-                primary: true,
-                onPressed: () {
-                  if (state.guideStep == 5) {
-                    state.endGuide();
-                  } else {
-                    state.advanceGuide(state.guideStep + 1);
-                  }
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
+    final target = switch (state.guideStep) {
+      2 => _guideMap,
+      3 => _guideMapToolbar,
+      4 => _guideTypography,
+      5 => _guideFileMenu,
+      _ => _guideEditing,
+    };
+    return WorkspaceGuide(
+      target: target,
+      step: state.guideStep,
+      title: steps[state.guideStep].$1,
+      description: steps[state.guideStep].$2,
+      onClose: state.endGuide,
+      onStep: state.advanceGuide,
     );
   }
 }

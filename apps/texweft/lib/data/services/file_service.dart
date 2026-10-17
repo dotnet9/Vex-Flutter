@@ -11,6 +11,17 @@ final class OpenedDocument {
   final String? path;
 }
 
+final class OpenedFolder {
+  OpenedFolder(
+    this.path, {
+    required List<String> files,
+    List<String> directories = const [],
+  }) : files = List.unmodifiable(files),
+       directories = List.unmodifiable(directories);
+  final String path;
+  final List<String> files, directories;
+}
+
 final class FileConflict implements Exception {
   const FileConflict();
   @override
@@ -20,7 +31,7 @@ final class FileConflict implements Exception {
 abstract interface class DocumentFileService {
   Future<OpenedDocument?> pick();
   Future<OpenedDocument> read(String path);
-  Future<List<String>?> folder();
+  Future<OpenedFolder?> folder();
   Future<String?> saveAs(String name, Uint8List bytes, {String? dialogTitle});
   Future<void> write(String path, String text, {String? expected});
 }
@@ -51,20 +62,29 @@ final class NativeDocumentFileService implements DocumentFileService {
   );
 
   @override
-  Future<List<String>?> folder() async {
+  Future<OpenedFolder?> folder() async {
     final path = await FilePicker.getDirectoryPath();
     if (path == null) return null;
+    return readFolder(path);
+  }
+
+  Future<OpenedFolder> readFolder(String path) async {
     final files = <String>[];
-    await for (final entity in Directory(path).list(followLinks: false)) {
+    final directories = <String>[];
+    await for (final entity in Directory(
+      path,
+    ).list(recursive: true, followLinks: false)) {
+      if (entity is Directory) directories.add(entity.path);
       if (entity is File &&
           [
             '.md',
             '.markdown',
+            '.txt',
           ].contains(p.extension(entity.path).toLowerCase())) {
         files.add(entity.path);
       }
     }
-    return files..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return OpenedFolder(path, files: files, directories: directories);
   }
 
   @override

@@ -29,10 +29,18 @@ final class MemoryFiles implements DocumentFileService {
   final content = <String, String>{};
   Future<void> Function()? beforeWrite;
   String? nextSave = '/notes/saved.md';
+  String? folderPath = '/notes';
+  List<String> folderDirectories = [];
   @override
   Future<OpenedDocument?> pick() async => null;
   @override
-  Future<List<String>?> folder() async => content.keys.toList();
+  Future<OpenedFolder?> folder() async => folderPath == null
+      ? null
+      : OpenedFolder(
+          folderPath!,
+          files: content.keys.toList(),
+          directories: folderDirectories,
+        );
   @override
   Future<OpenedDocument> read(String path) async =>
       OpenedDocument(path.split('/').last, content[path]!, path);

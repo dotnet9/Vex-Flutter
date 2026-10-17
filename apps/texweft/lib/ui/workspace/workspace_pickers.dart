@@ -80,7 +80,7 @@ class WorkspacePickerAnchor extends StatelessWidget {
                           ? context.l10n.layoutHint
                           : context.l10n.typographyHint,
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 12,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -96,7 +96,7 @@ class WorkspacePickerAnchor extends StatelessWidget {
                         dense: true,
                         title: Text(
                           context.l10n.compactSpacing,
-                          style: const TextStyle(fontSize: 11),
+                          style: const TextStyle(fontSize: 12),
                         ),
                         value: vm.compact,
                         onChanged: (value) =>
@@ -181,7 +181,7 @@ class TypographyChoices extends StatelessWidget {
                 Text(
                   context.l10n.typographyName(type),
                   style: const TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -190,7 +190,7 @@ class TypographyChoices extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 9,
+                    fontSize: 12,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -327,11 +327,13 @@ class _TypographySample extends StatelessWidget {
             ),
             child: Text(
               context.l10n.sampleHeading,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               textAlign: type == MarkdownTypography.editorial
                   ? TextAlign.center
                   : TextAlign.start,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
                 fontFamily: type == MarkdownTypography.book
                     ? MarkdownFontFamilies.of(context).serif

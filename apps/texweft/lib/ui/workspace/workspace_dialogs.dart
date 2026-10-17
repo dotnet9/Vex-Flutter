@@ -15,15 +15,19 @@ import '../core/palette_tokens.dart';
 import 'workspace_pickers.dart';
 import 'workspace_view_model.dart';
 
-Future<void> showExportDialog(BuildContext context, WorkspaceViewModel vm) =>
-    showDialog<void>(
-      context: context,
-      builder: (context) => _ExportDialog(vm: vm),
-    );
+Future<void> showExportDialog(
+  BuildContext context,
+  WorkspaceViewModel vm, {
+  String? type,
+}) => showDialog<void>(
+  context: context,
+  builder: (context) => _ExportDialog(vm: vm, type: type),
+);
 
 class _ExportDialog extends StatefulWidget {
-  const _ExportDialog({required this.vm});
+  const _ExportDialog({required this.vm, this.type});
   final WorkspaceViewModel vm;
+  final String? type;
   @override
   State<_ExportDialog> createState() => _ExportDialogState();
 }
@@ -32,6 +36,16 @@ class _ExportDialogState extends State<_ExportDialog> {
   final _service = DocumentExportService();
   bool _busy = false;
   String _message = '';
+  @override
+  void initState() {
+    super.initState();
+    if (widget.type != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _export(widget.type!);
+      });
+    }
+  }
+
   Future<void> _export(String type) async {
     final vm = widget.vm, source = widget.vm.editor.session.text;
     final colors = Theme.of(context).colorScheme,
@@ -119,7 +133,7 @@ class _ExportDialogState extends State<_ExportDialog> {
       children: [
         Text(
           context.l10n.exportDescription,
-          style: const TextStyle(fontSize: 12, height: 1.9),
+          style: const TextStyle(fontSize: 14, height: 1.9),
         ),
         const SizedBox(height: 18),
         Wrap(
@@ -177,7 +191,7 @@ class _ExportDialogState extends State<_ExportDialog> {
             padding: const EdgeInsets.only(top: 12),
             child: SelectableText(
               _message,
-              style: const TextStyle(fontSize: 12, height: 1.8),
+              style: const TextStyle(fontSize: 14, height: 1.8),
             ),
           ),
       ],
@@ -200,7 +214,7 @@ Future<void> showAppearance(
         children: [
           Text(
             context.l10n.themeMode,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 10),
           Wrap(
@@ -222,7 +236,7 @@ Future<void> showAppearance(
           const SizedBox(height: 22),
           Text(
             context.l10n.interfaceColors,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -241,7 +255,7 @@ Future<void> showAppearance(
           const SizedBox(height: 24),
           Text(
             context.l10n.bodyTypography,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           LayoutBuilder(
@@ -253,11 +267,11 @@ Future<void> showAppearance(
             contentPadding: EdgeInsets.zero,
             title: Text(
               context.l10n.compactSpacing,
-              style: const TextStyle(fontSize: 12),
+              style: const TextStyle(fontSize: 14),
             ),
             subtitle: Text(
               context.l10n.appearancePreservesSource,
-              style: const TextStyle(fontSize: 11),
+              style: const TextStyle(fontSize: 12),
             ),
             value: vm.compact,
             onChanged: (v) => vm.updateAppearance(compact: v),
@@ -281,7 +295,7 @@ Future<void> showSummarySettings(BuildContext context, WorkspaceViewModel vm) =>
             children: [
               Text(
                 context.l10n.summaryLength(vm.summaryLength),
-                style: const TextStyle(fontSize: 12),
+                style: const TextStyle(fontSize: 14),
               ),
               Slider(
                 value: vm.summaryLength.toDouble(),
@@ -298,7 +312,7 @@ Future<void> showSummarySettings(BuildContext context, WorkspaceViewModel vm) =>
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
                   dense: true,
-                  title: Text(item.$2, style: const TextStyle(fontSize: 12)),
+                  title: Text(item.$2, style: const TextStyle(fontSize: 14)),
                   value: item.$1,
                   onChanged: (v) => vm.setSummary(
                     paragraphs: item.$3 == 'p' ? v : null,
@@ -309,7 +323,7 @@ Future<void> showSummarySettings(BuildContext context, WorkspaceViewModel vm) =>
               const SizedBox(height: 12),
               Text(
                 context.l10n.summaryDescription,
-                style: const TextStyle(fontSize: 11, height: 1.8),
+                style: const TextStyle(fontSize: 12, height: 1.8),
               ),
               const SizedBox(height: 12),
               AppButton(
@@ -355,7 +369,7 @@ Future<void> showSettings(BuildContext context, WorkspaceViewModel vm) =>
               const SizedBox(height: 8),
               Text(
                 context.l10n.languageHint,
-                style: const TextStyle(fontSize: 11, height: 1.7),
+                style: const TextStyle(fontSize: 12, height: 1.7),
               ),
               const SizedBox(height: 22),
               Text(
@@ -366,14 +380,14 @@ Future<void> showSettings(BuildContext context, WorkspaceViewModel vm) =>
                 contentPadding: EdgeInsets.zero,
                 title: Text(
                   context.l10n.sourceLineNumbers,
-                  style: const TextStyle(fontSize: 12),
+                  style: const TextStyle(fontSize: 14),
                 ),
                 value: vm.lineNumbers,
                 onChanged: (v) => vm.updateAppearance(lineNumbers: v),
               ),
               Text(
                 context.l10n.bodyFontSize(vm.fontSize.round()),
-                style: const TextStyle(fontSize: 12),
+                style: const TextStyle(fontSize: 14),
               ),
               Slider(
                 value: vm.fontSize,
@@ -390,7 +404,7 @@ Future<void> showSettings(BuildContext context, WorkspaceViewModel vm) =>
               const SizedBox(height: 8),
               Text(
                 context.l10n.localFilesDescription,
-                style: const TextStyle(fontSize: 12, height: 1.9),
+                style: const TextStyle(fontSize: 14, height: 1.9),
               ),
               const SizedBox(height: 18),
               AppButton(
@@ -456,7 +470,7 @@ class _AboutDialogState extends State<_AboutDialog> {
     try {
       final request = await client.getUrl(
         Uri.parse(
-          'https://api.github.com/repos/dotnet9/texweft/releases/latest',
+          'https://api.github.com/repos/dotnet9/Vex-Flutter/releases/latest',
         ),
       );
       final info = await _info;
@@ -491,51 +505,63 @@ class _AboutDialogState extends State<_AboutDialog> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            SvgPicture.asset('assets/brand/logo.svg', width: 72, height: 72),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    context.l10n.appTitle,
-                    style: const TextStyle(
-                      fontSize: 25,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    context.l10n.slogan,
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                  const SizedBox(height: 5),
-                  FutureBuilder<PackageInfo?>(
-                    future: _info,
-                    builder: (context, snapshot) => Text(
-                      [
-                        if (snapshot.data case final info?) _version(info),
-                        context.l10n.nativeApplication,
-                      ].join(' · '),
-                      style: const TextStyle(fontSize: 11),
-                    ),
-                  ),
-                ],
-              ),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer
+                .withValues(alpha: .5),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.primary
+                  .withValues(alpha: .14),
             ),
-          ],
+          ),
+          child: Row(
+            children: [
+              SvgPicture.asset('assets/brand/logo.svg', width: 80, height: 80),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.l10n.appTitle,
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      context.l10n.slogan,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 5),
+                    FutureBuilder<PackageInfo?>(
+                      future: _info,
+                      builder: (context, snapshot) => Text(
+                        [
+                          if (snapshot.data case final info?) _version(info),
+                          context.l10n.nativeApplication,
+                        ].join(' · '),
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 24),
         Text(
           context.l10n.aboutDescription,
-          style: const TextStyle(fontSize: 13, height: 1.9),
+          style: const TextStyle(fontSize: 14, height: 1.9),
         ),
         const SizedBox(height: 20),
         Text(
           context.l10n.author,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         ),
         const SizedBox(height: 10),
         Wrap(
@@ -556,7 +582,7 @@ class _AboutDialogState extends State<_AboutDialog> {
               icon: 'code',
               bordered: true,
               onPressed: () => launchUrl(
-                Uri.parse('https://github.com/dotnet9/texweft'),
+                Uri.parse('https://github.com/dotnet9/Vex-Flutter'),
                 mode: LaunchMode.externalApplication,
               ),
             ),
@@ -565,7 +591,7 @@ class _AboutDialogState extends State<_AboutDialog> {
               icon: 'export',
               bordered: true,
               onPressed: () => launchUrl(
-                Uri.parse('https://github.com/dotnet9/texweft/releases'),
+                Uri.parse('https://github.com/dotnet9/Vex-Flutter/releases'),
                 mode: LaunchMode.externalApplication,
               ),
             ),
@@ -582,12 +608,12 @@ class _AboutDialogState extends State<_AboutDialog> {
         if (_update.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: Text(_update, style: const TextStyle(fontSize: 12)),
+            child: Text(_update, style: const TextStyle(fontSize: 14)),
           ),
         const SizedBox(height: 12),
         Text(
           context.l10n.acknowledgements,
-          style: const TextStyle(fontSize: 11, height: 1.8),
+          style: const TextStyle(fontSize: 12, height: 1.8),
         ),
         const SizedBox(height: 10),
         AppButton(
@@ -599,7 +625,7 @@ class _AboutDialogState extends State<_AboutDialog> {
         const SizedBox(height: 10),
         const Text(
           'Copyright © 2026 沙漠尽头的狼 / CodeWF\nTexweft · MIT License',
-          style: TextStyle(fontSize: 11, height: 1.8),
+          style: TextStyle(fontSize: 12, height: 1.8),
         ),
       ],
     ),

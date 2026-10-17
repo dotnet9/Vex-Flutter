@@ -1774,6 +1774,216 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'正文'**
   String get presentationMarkdown;
+
+  /// No description provided for @mcpSettings.
+  ///
+  /// In zh, this message translates to:
+  /// **'MCP 设置'**
+  String get mcpSettings;
+
+  /// No description provided for @mcpIntro.
+  ///
+  /// In zh, this message translates to:
+  /// **'允许 AI 客户端通过本机 MCP 接口读取和操作当前文档。'**
+  String get mcpIntro;
+
+  /// No description provided for @mcpEnable.
+  ///
+  /// In zh, this message translates to:
+  /// **'启用 MCP Server'**
+  String get mcpEnable;
+
+  /// No description provided for @mcpAddress.
+  ///
+  /// In zh, this message translates to:
+  /// **'监听地址'**
+  String get mcpAddress;
+
+  /// No description provided for @mcpPort.
+  ///
+  /// In zh, this message translates to:
+  /// **'端口'**
+  String get mcpPort;
+
+  /// No description provided for @mcpToken.
+  ///
+  /// In zh, this message translates to:
+  /// **'授权 Token'**
+  String get mcpToken;
+
+  /// No description provided for @mcpGenerate.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新生成'**
+  String get mcpGenerate;
+
+  /// No description provided for @mcpCopyAddress.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制地址'**
+  String get mcpCopyAddress;
+
+  /// No description provided for @mcpScope.
+  ///
+  /// In zh, this message translates to:
+  /// **'允许访问范围'**
+  String get mcpScope;
+
+  /// No description provided for @mcpDocument.
+  ///
+  /// In zh, this message translates to:
+  /// **'仅当前文档'**
+  String get mcpDocument;
+
+  /// No description provided for @mcpFolder.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前打开文件夹'**
+  String get mcpFolder;
+
+  /// No description provided for @mcpCustom.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义目录'**
+  String get mcpCustom;
+
+  /// No description provided for @mcpConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'修改、保存或打开文件前需要确认'**
+  String get mcpConfirm;
+
+  /// No description provided for @mcpRunning.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务运行中'**
+  String get mcpRunning;
+
+  /// No description provided for @mcpStopped.
+  ///
+  /// In zh, this message translates to:
+  /// **'未启动'**
+  String get mcpStopped;
+
+  /// No description provided for @mcpConfirmTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'确认 MCP 操作'**
+  String get mcpConfirmTitle;
+
+  /// No description provided for @mcpConfirmBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 客户端请求执行以下操作。执行后可通过撤销恢复文档修改。'**
+  String get mcpConfirmBody;
+
+  /// No description provided for @mcpExecute.
+  ///
+  /// In zh, this message translates to:
+  /// **'执行'**
+  String get mcpExecute;
+
+  /// No description provided for @mcpInvalid.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入 1024–65535 的端口和至少 24 位的 Token。'**
+  String get mcpInvalid;
+
+  /// No description provided for @openRecent.
+  ///
+  /// In zh, this message translates to:
+  /// **'打开最近文件'**
+  String get openRecent;
+
+  /// No description provided for @saveAllDocuments.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存全部'**
+  String get saveAllDocuments;
+
+  /// No description provided for @fullscreen.
+  ///
+  /// In zh, this message translates to:
+  /// **'切换全屏'**
+  String get fullscreen;
+
+  /// No description provided for @actualSize.
+  ///
+  /// In zh, this message translates to:
+  /// **'实际大小'**
+  String get actualSize;
+
+  /// No description provided for @menuNavigation.
+  ///
+  /// In zh, this message translates to:
+  /// **'文档导航'**
+  String get menuNavigation;
+
+  /// No description provided for @menuWindow.
+  ///
+  /// In zh, this message translates to:
+  /// **'窗口'**
+  String get menuWindow;
+
+  /// No description provided for @closeDocument.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭文档'**
+  String get closeDocument;
+
+  /// No description provided for @documentProperties.
+  ///
+  /// In zh, this message translates to:
+  /// **'文档属性'**
+  String get documentProperties;
+
+  /// No description provided for @mcpAudit.
+  ///
+  /// In zh, this message translates to:
+  /// **'MCP 审计'**
+  String get mcpAudit;
+
+  /// No description provided for @mcpAuditEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无操作记录'**
+  String get mcpAuditEmpty;
+
+  /// No description provided for @noRecent.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无最近文件'**
+  String get noRecent;
+
+  /// No description provided for @clearRecent.
+  ///
+  /// In zh, this message translates to:
+  /// **'清空最近记录'**
+  String get clearRecent;
+
+  /// No description provided for @officialWebsite.
+  ///
+  /// In zh, this message translates to:
+  /// **'官方网站'**
+  String get officialWebsite;
+
+  /// No description provided for @feedback.
+  ///
+  /// In zh, this message translates to:
+  /// **'反馈'**
+  String get feedback;
+
+  /// No description provided for @printPreview.
+  ///
+  /// In zh, this message translates to:
+  /// **'打印预览'**
+  String get printPreview;
+
+  /// No description provided for @strike.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除线'**
+  String get strike;
 }
 
 class _AppLocalizationsDelegate

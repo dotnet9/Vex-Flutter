@@ -50,7 +50,7 @@ class AppButton extends StatelessWidget {
         ? c.onPrimary
         : selected
         ? c.primary
-        : c.onSurfaceVariant;
+        : c.onSurface;
     final button = TextButton(
       onPressed: onPressed,
       style: TextButton.styleFrom(
@@ -66,7 +66,7 @@ class AppButton extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: padding),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         textStyle: const TextStyle(
-          fontSize: 12,
+          fontSize: 14,
           height: 1.2,
           fontWeight: FontWeight.w400,
         ),
@@ -110,12 +110,11 @@ class AppCloseButton extends StatelessWidget {
   final VoidCallback onPressed;
   final String? tooltip;
   @override
-  Widget build(BuildContext context) => AppButton(
+  Widget build(BuildContext context) => AppCaptionButton(
     icon: 'x',
     tooltip: tooltip ?? context.l10n.close,
     onPressed: onPressed,
-    height: 32,
-    padding: 8,
+    close: true,
   );
 }
 
@@ -139,8 +138,8 @@ class AppCaptionButton extends StatelessWidget {
       child: TextButton(
         onPressed: onPressed,
         style: ButtonStyle(
-          fixedSize: const WidgetStatePropertyAll(Size(42, 39)),
-          minimumSize: const WidgetStatePropertyAll(Size(42, 39)),
+          fixedSize: const WidgetStatePropertyAll(Size(46, 32)),
+          minimumSize: const WidgetStatePropertyAll(Size(46, 32)),
           padding: const WidgetStatePropertyAll(EdgeInsets.zero),
           visualDensity: VisualDensity.standard,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -164,7 +163,7 @@ class AppCaptionButton extends StatelessWidget {
                 : c.onSurfaceVariant,
           ),
         ),
-        child: AppGlyph(icon, size: 12),
+        child: AppGlyph(icon, size: 14),
       ),
     );
   }
@@ -203,7 +202,7 @@ class PanelHeader extends StatelessWidget {
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 11, color: c.onSurfaceVariant),
+              style: TextStyle(fontSize: 12, color: c.onSurfaceVariant),
             ),
           ),
           ?trailing,
@@ -227,6 +226,7 @@ class AppDialog extends StatelessWidget {
   final List<Widget> actions;
   @override
   Widget build(BuildContext context) => Dialog(
+    clipBehavior: Clip.antiAlias,
     insetPadding: const EdgeInsets.all(20),
     child: ConstrainedBox(
       constraints: BoxConstraints(
@@ -236,17 +236,21 @@ class AppDialog extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(22, 15, 10, 12),
+          Container(
+            key: const ValueKey('dialog-titlebar'),
+            height: 36,
+            padding: const EdgeInsets.only(left: 16),
             child: Row(
               children: [
                 Expanded(
                   child: Text(
                     title,
                     style: const TextStyle(
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 AppCloseButton(onPressed: () => Navigator.pop(context)),

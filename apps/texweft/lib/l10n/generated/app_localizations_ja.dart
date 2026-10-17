@@ -950,4 +950,109 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get presentationMarkdown => '本文';
+
+  @override
+  String get mcpSettings => 'MCP 設定';
+
+  @override
+  String get mcpIntro => 'ローカル MCP 接続から AI クライアントが文書を読み取り、編集できます。';
+
+  @override
+  String get mcpEnable => 'MCP サーバーを有効にする';
+
+  @override
+  String get mcpAddress => '待受アドレス';
+
+  @override
+  String get mcpPort => 'ポート';
+
+  @override
+  String get mcpToken => '認証トークン';
+
+  @override
+  String get mcpGenerate => '再生成';
+
+  @override
+  String get mcpCopyAddress => 'アドレスをコピー';
+
+  @override
+  String get mcpScope => 'アクセス範囲';
+
+  @override
+  String get mcpDocument => '現在の文書のみ';
+
+  @override
+  String get mcpFolder => '現在のフォルダー';
+
+  @override
+  String get mcpCustom => '指定フォルダー';
+
+  @override
+  String get mcpConfirm => '編集・保存・ファイルを開く前に確認する';
+
+  @override
+  String get mcpRunning => 'サーバー稼働中';
+
+  @override
+  String get mcpStopped => '停止中';
+
+  @override
+  String get mcpConfirmTitle => 'MCP 操作の確認';
+
+  @override
+  String get mcpConfirmBody => 'AI クライアントが次の操作を要求しています。文書の編集は元に戻せます。';
+
+  @override
+  String get mcpExecute => '実行';
+
+  @override
+  String get mcpInvalid => 'ポートは 1024–65535、トークンは 24 文字以上で入力してください。';
+
+  @override
+  String get openRecent => '最近使ったファイル';
+
+  @override
+  String get saveAllDocuments => 'すべて保存';
+
+  @override
+  String get fullscreen => '全画面表示';
+
+  @override
+  String get actualSize => '実際のサイズ';
+
+  @override
+  String get menuNavigation => '文書ナビゲーション';
+
+  @override
+  String get menuWindow => 'ウィンドウ';
+
+  @override
+  String get closeDocument => '文書を閉じる';
+
+  @override
+  String get documentProperties => '文書のプロパティ';
+
+  @override
+  String get mcpAudit => 'MCP 操作履歴';
+
+  @override
+  String get mcpAuditEmpty => '操作履歴はありません';
+
+  @override
+  String get noRecent => '最近使ったファイルはありません';
+
+  @override
+  String get clearRecent => '履歴を消去';
+
+  @override
+  String get officialWebsite => '公式サイト';
+
+  @override
+  String get feedback => 'フィードバック';
+
+  @override
+  String get printPreview => '印刷プレビュー';
+
+  @override
+  String get strike => '取り消し線';
 }

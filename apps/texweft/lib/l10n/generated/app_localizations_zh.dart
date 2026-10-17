@@ -945,6 +945,111 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get presentationMarkdown => '正文';
+
+  @override
+  String get mcpSettings => 'MCP 设置';
+
+  @override
+  String get mcpIntro => '允许 AI 客户端通过本机 MCP 接口读取和操作当前文档。';
+
+  @override
+  String get mcpEnable => '启用 MCP Server';
+
+  @override
+  String get mcpAddress => '监听地址';
+
+  @override
+  String get mcpPort => '端口';
+
+  @override
+  String get mcpToken => '授权 Token';
+
+  @override
+  String get mcpGenerate => '重新生成';
+
+  @override
+  String get mcpCopyAddress => '复制地址';
+
+  @override
+  String get mcpScope => '允许访问范围';
+
+  @override
+  String get mcpDocument => '仅当前文档';
+
+  @override
+  String get mcpFolder => '当前打开文件夹';
+
+  @override
+  String get mcpCustom => '自定义目录';
+
+  @override
+  String get mcpConfirm => '修改、保存或打开文件前需要确认';
+
+  @override
+  String get mcpRunning => '服务运行中';
+
+  @override
+  String get mcpStopped => '未启动';
+
+  @override
+  String get mcpConfirmTitle => '确认 MCP 操作';
+
+  @override
+  String get mcpConfirmBody => 'AI 客户端请求执行以下操作。执行后可通过撤销恢复文档修改。';
+
+  @override
+  String get mcpExecute => '执行';
+
+  @override
+  String get mcpInvalid => '请输入 1024–65535 的端口和至少 24 位的 Token。';
+
+  @override
+  String get openRecent => '打开最近文件';
+
+  @override
+  String get saveAllDocuments => '保存全部';
+
+  @override
+  String get fullscreen => '切换全屏';
+
+  @override
+  String get actualSize => '实际大小';
+
+  @override
+  String get menuNavigation => '文档导航';
+
+  @override
+  String get menuWindow => '窗口';
+
+  @override
+  String get closeDocument => '关闭文档';
+
+  @override
+  String get documentProperties => '文档属性';
+
+  @override
+  String get mcpAudit => 'MCP 审计';
+
+  @override
+  String get mcpAuditEmpty => '暂无操作记录';
+
+  @override
+  String get noRecent => '暂无最近文件';
+
+  @override
+  String get clearRecent => '清空最近记录';
+
+  @override
+  String get officialWebsite => '官方网站';
+
+  @override
+  String get feedback => '反馈';
+
+  @override
+  String get printPreview => '打印预览';
+
+  @override
+  String get strike => '删除线';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -1887,4 +1992,109 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get presentationMarkdown => '正文';
+
+  @override
+  String get mcpSettings => 'MCP 設定';
+
+  @override
+  String get mcpIntro => '允許 AI 用戶端透過本機 MCP 介面讀取和操作目前文件。';
+
+  @override
+  String get mcpEnable => '啟用 MCP Server';
+
+  @override
+  String get mcpAddress => '監聽位址';
+
+  @override
+  String get mcpPort => '連接埠';
+
+  @override
+  String get mcpToken => '授權 Token';
+
+  @override
+  String get mcpGenerate => '重新產生';
+
+  @override
+  String get mcpCopyAddress => '複製位址';
+
+  @override
+  String get mcpScope => '允許存取範圍';
+
+  @override
+  String get mcpDocument => '僅目前文件';
+
+  @override
+  String get mcpFolder => '目前開啟的資料夾';
+
+  @override
+  String get mcpCustom => '自訂目錄';
+
+  @override
+  String get mcpConfirm => '修改、儲存或開啟檔案前需要確認';
+
+  @override
+  String get mcpRunning => '服務執行中';
+
+  @override
+  String get mcpStopped => '未啟動';
+
+  @override
+  String get mcpConfirmTitle => '確認 MCP 操作';
+
+  @override
+  String get mcpConfirmBody => 'AI 用戶端要求執行以下操作。執行後可透過復原還原文件修改。';
+
+  @override
+  String get mcpExecute => '執行';
+
+  @override
+  String get mcpInvalid => '請輸入 1024–65535 的連接埠及至少 24 字元的 Token。';
+
+  @override
+  String get openRecent => '開啟最近檔案';
+
+  @override
+  String get saveAllDocuments => '全部儲存';
+
+  @override
+  String get fullscreen => '切換全螢幕';
+
+  @override
+  String get actualSize => '實際大小';
+
+  @override
+  String get menuNavigation => '文件導覽';
+
+  @override
+  String get menuWindow => '視窗';
+
+  @override
+  String get closeDocument => '關閉文件';
+
+  @override
+  String get documentProperties => '文件內容';
+
+  @override
+  String get mcpAudit => 'MCP 稽核';
+
+  @override
+  String get mcpAuditEmpty => '暫無操作記錄';
+
+  @override
+  String get noRecent => '暫無最近檔案';
+
+  @override
+  String get clearRecent => '清除最近記錄';
+
+  @override
+  String get officialWebsite => '官方網站';
+
+  @override
+  String get feedback => '意見回饋';
+
+  @override
+  String get printPreview => '列印預覽';
+
+  @override
+  String get strike => '刪除線';
 }

@@ -99,8 +99,9 @@ void main() {
       );
       await restored.initialize(watchFiles: false);
       expect(restored.language, 'ja');
-      expect(restored.current.name, stringsForLanguage('ja').sampleDesignName);
-      expect(restored.editor.text, stringsForLanguage('ja').sampleDesign);
+      expect(restored.current.name, stringsForLanguage('ja').untitledFile);
+      expect(restored.editor.text, isEmpty);
+      expect(restored.documents, isEmpty);
       restored.dispose();
     },
   );

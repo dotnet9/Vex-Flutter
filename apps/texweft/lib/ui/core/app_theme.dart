@@ -13,12 +13,12 @@ ThemeData appTheme(
     useMaterial3: true,
     colorScheme: c,
     scaffoldBackgroundColor: c.surface,
-    fontFamily: AppFonts.interface,
+    fontFamily: AppFonts.interfaceFor(language),
     fontFamilyFallback: AppFonts.fallbackFor(language),
     extensions: [AppFonts.markdownFor(language)],
-    visualDensity: VisualDensity.compact,
+    visualDensity: VisualDensity.standard,
     textTheme: ThemeData(useMaterial3: true).textTheme.apply(
-      fontFamily: AppFonts.interface,
+      fontFamily: AppFonts.interfaceFor(language),
       fontFamilyFallback: AppFonts.fallbackFor(language),
       bodyColor: c.onSurface,
       displayColor: c.onSurface,
@@ -39,7 +39,7 @@ ThemeData appTheme(
       filled: true,
       fillColor: c.surfaceContainer,
       contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      hintStyle: TextStyle(fontSize: 11, color: c.onSurfaceVariant),
+      hintStyle: TextStyle(fontSize: 14, color: c.onSurfaceVariant),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(5),
         borderSide: BorderSide(color: c.outlineVariant),
@@ -65,7 +65,8 @@ ThemeData appTheme(
       style: MenuStyle(
         backgroundColor: WidgetStatePropertyAll(c.surfaceContainerLow),
         elevation: const WidgetStatePropertyAll(6),
-        padding: const WidgetStatePropertyAll(EdgeInsets.all(5)),
+        padding: const WidgetStatePropertyAll(EdgeInsets.all(7)),
+        minimumSize: const WidgetStatePropertyAll(Size(272, 0)),
         shape: WidgetStatePropertyAll(
           RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(7),
@@ -76,8 +77,9 @@ ThemeData appTheme(
     ),
     menuButtonTheme: const MenuButtonThemeData(
       style: ButtonStyle(
-        textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 12)),
-        minimumSize: WidgetStatePropertyAll(Size(170, 32)),
+        textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 14, height: 1.4)),
+        minimumSize: WidgetStatePropertyAll(Size(260, 36)),
+        padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 12)),
       ),
     ),
     tooltipTheme: const TooltipThemeData(

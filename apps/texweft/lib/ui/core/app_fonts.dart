@@ -3,14 +3,23 @@ import 'package:texweft_editor/texweft_editor.dart';
 
 /// Match the prototype's system font strategy without bundling CJK libraries.
 abstract final class AppFonts {
+  static String interfaceFor(String language) {
+    if (defaultTargetPlatform == TargetPlatform.windows) {
+      if (language == 'ja') return 'Yu Gothic UI';
+      if (language == 'zh_Hant') return 'Microsoft JhengHei UI';
+    }
+    return interface;
+  }
+
   static String get interface => switch (defaultTargetPlatform) {
-    TargetPlatform.windows => 'Segoe UI',
+    TargetPlatform.windows => 'Microsoft YaHei UI',
     TargetPlatform.iOS || TargetPlatform.macOS => '.SF UI Text',
     TargetPlatform.android => 'Roboto',
     _ => 'sans-serif',
   };
 
   static const fallback = [
+    'Segoe UI',
     'Microsoft YaHei UI',
     'PingFang SC',
     'HarmonyOS Sans SC',

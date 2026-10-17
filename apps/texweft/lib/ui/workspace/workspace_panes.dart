@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../domain/workspace.dart';
 import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
+import 'document_image.dart';
 import 'workspace_view_model.dart';
 
 class WorkspacePanes extends StatefulWidget {
@@ -15,10 +16,14 @@ class WorkspacePanes extends StatefulWidget {
     required this.vm,
     required this.onAction,
     required this.onError,
+    this.editingKey,
+    this.mapKey,
+    this.mapToolbarKey,
   });
   final WorkspaceViewModel vm;
   final ValueChanged<String> onAction;
   final ValueChanged<Object> onError;
+  final GlobalKey? editingKey, mapKey, mapToolbarKey;
   @override
   State<WorkspacePanes> createState() => _WorkspacePanesState();
 }
@@ -93,13 +98,20 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
           Expanded(
             child: switch (pane) {
               'source' => MarkdownSourceEditor(
+                key: widget.editingKey,
                 controller: vm.editor,
                 lineNumbers: vm.lineNumbers,
-                fontSize: 12,
+                fontSize: 14,
               ),
               'read' => _DocumentReading(vm: vm),
               'map' => _mapPane(),
               _ => MarkdownInstantEditor(
+                imageBuilder: (uri, title, alt) => DocumentImage(
+                  uri: uri,
+                  documentPath: vm.current.path,
+                  alt: alt,
+                ),
+                key: widget.editingKey,
                 controller: vm.editor,
                 labels: context.l10n.editorLabels,
                 typography: vm.typography,
@@ -123,6 +135,7 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
     builder: (context, constraints) => Column(
       children: [
         Container(
+          key: widget.mapToolbarKey,
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainerLow,
             border: Border(
@@ -196,6 +209,7 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                 child: RepaintBoundary(
                   key: mapBoundaryKey,
                   child: MindMapView(
+                    key: widget.mapKey,
                     controller: vm.map,
                     labels: context.l10n.mapLabels,
                     onSelect: vm.selectNode,
@@ -204,6 +218,8 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                       setState(() => _inspector = true);
                     },
                     onMove: (from, to) => _command(() => vm.moveNode(from, to)),
+                    onRename: (node, title) =>
+                        _command(() => vm.renameNode(node, title)),
                   ),
                 ),
               ),
@@ -291,6 +307,11 @@ class _DocumentReadingState extends State<_DocumentReading> {
             if (blocks.isEmpty) return Text(context.l10n.emptyDocument);
             final block = blocks[index];
             return MarkdownReader(
+              imageBuilder: (uri, title, alt) => DocumentImage(
+                uri: uri,
+                documentPath: vm.current.path,
+                alt: alt,
+              ),
               key: ValueKey(block.range.start),
               data: block.range.slice(vm.editor.session.text),
               typography: vm.typography,
@@ -376,14 +397,14 @@ class _ChapterInspectorState extends State<ChapterInspector> {
                 children: [
                   Text(
                     context.l10n.sectionTitle,
-                    style: const TextStyle(fontSize: 11),
+                    style: const TextStyle(fontSize: 12),
                   ),
                   const SizedBox(height: 7),
                   Row(
                     children: [
                       Text(
                         'H${h.level}',
-                        style: TextStyle(fontSize: 11, color: c.primary),
+                        style: TextStyle(fontSize: 12, color: c.primary),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -444,7 +465,7 @@ class _ChapterInspectorState extends State<ChapterInspector> {
                   const SizedBox(height: 15),
                   Text(
                     context.l10n.sectionBody,
-                    style: const TextStyle(fontSize: 11),
+                    style: const TextStyle(fontSize: 12),
                   ),
                   const SizedBox(height: 7),
                   TextField(
@@ -456,7 +477,7 @@ class _ChapterInspectorState extends State<ChapterInspector> {
                   const SizedBox(height: 5),
                   Text(
                     context.l10n.sectionBodyHint,
-                    style: TextStyle(fontSize: 10, color: c.onSurfaceVariant),
+                    style: TextStyle(fontSize: 12, color: c.onSurfaceVariant),
                   ),
                   const SizedBox(height: 12),
                   Row(

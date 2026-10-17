@@ -14,6 +14,7 @@ void main() {
       await tester.binding.setSurfaceSize(size);
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final vm = fakeWorkspace();
+      vm.editor.session.replace('# 排版检查\n\n用自己的文章验证排版切换。');
       await tester.pumpWidget(TexweftApp(viewModel: vm));
       await tester.pumpAndSettle();
       // Navigator's home route has its own transparent barrier behind the page.

@@ -990,4 +990,112 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get presentationMarkdown => 'Markdown';
+
+  @override
+  String get mcpSettings => 'MCP settings';
+
+  @override
+  String get mcpIntro =>
+      'Allow AI clients to read and edit documents through the local MCP endpoint.';
+
+  @override
+  String get mcpEnable => 'Enable MCP server';
+
+  @override
+  String get mcpAddress => 'Listen address';
+
+  @override
+  String get mcpPort => 'Port';
+
+  @override
+  String get mcpToken => 'Authorization token';
+
+  @override
+  String get mcpGenerate => 'Regenerate';
+
+  @override
+  String get mcpCopyAddress => 'Copy address';
+
+  @override
+  String get mcpScope => 'Allowed scope';
+
+  @override
+  String get mcpDocument => 'Current document only';
+
+  @override
+  String get mcpFolder => 'Current workspace folder';
+
+  @override
+  String get mcpCustom => 'Custom folder';
+
+  @override
+  String get mcpConfirm => 'Confirm before modifying, saving or opening files';
+
+  @override
+  String get mcpRunning => 'Server running';
+
+  @override
+  String get mcpStopped => 'Stopped';
+
+  @override
+  String get mcpConfirmTitle => 'Confirm MCP operation';
+
+  @override
+  String get mcpConfirmBody =>
+      'An AI client requested this operation. Document edits can be undone.';
+
+  @override
+  String get mcpExecute => 'Execute';
+
+  @override
+  String get mcpInvalid =>
+      'Use port 1024–65535 and a token of at least 24 characters.';
+
+  @override
+  String get openRecent => 'Open recent';
+
+  @override
+  String get saveAllDocuments => 'Save all';
+
+  @override
+  String get fullscreen => 'Toggle fullscreen';
+
+  @override
+  String get actualSize => 'Actual size';
+
+  @override
+  String get menuNavigation => 'Document navigation';
+
+  @override
+  String get menuWindow => 'Window';
+
+  @override
+  String get closeDocument => 'Close document';
+
+  @override
+  String get documentProperties => 'Document properties';
+
+  @override
+  String get mcpAudit => 'MCP audit';
+
+  @override
+  String get mcpAuditEmpty => 'No operations recorded';
+
+  @override
+  String get noRecent => 'No recent files';
+
+  @override
+  String get clearRecent => 'Clear recent files';
+
+  @override
+  String get officialWebsite => 'Website';
+
+  @override
+  String get feedback => 'Feedback';
+
+  @override
+  String get printPreview => 'Print preview';
+
+  @override
+  String get strike => 'Strikethrough';
 }

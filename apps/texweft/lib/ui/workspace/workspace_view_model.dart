@@ -12,11 +12,12 @@ import 'package:texweft_mindmap/texweft_mindmap.dart';
 import '../../data/repositories/recovery_repository.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../data/services/file_service.dart';
-import '../../domain/workspace.dart';
 import '../../domain/presentation.dart';
+import '../../domain/workspace.dart';
 import '../../l10n/l10n.dart';
 import '../core/palette_tokens.dart';
 import 'presentation_controller.dart';
+import 'workspace_mcp.dart';
 
 final class WorkspaceViewModel extends ChangeNotifier {
   WorkspaceViewModel({
@@ -27,23 +28,19 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }) : language = languageNames.containsKey(initialLanguage)
            ? initialLanguage
            : 'en' {
-    _addSamples();
-    current = documents.first;
+    _blank = WorkspaceDocument(
+      id: 'empty-workspace',
+      name: strings.untitledFile,
+      text: '',
+    );
+    current = _blank;
+    _blank.editor.addListener(_changed);
     _map = MindMapController(_tree());
+    mcp = WorkspaceMcp(this);
   }
 
-  void _addSamples() {
-    for (final entry in strings.sampleDocuments.entries) {
-      _add(
-        WorkspaceDocument(
-          id: 'sample-${documents.length}',
-          name: entry.key,
-          text: entry.value,
-          demo: true,
-        ),
-      );
-    }
-  }
+  late WorkspaceDocument _blank;
+  late final WorkspaceMcp mcp;
 
   AppLocalizations get strings => stringsForLanguage(language);
   final DocumentFileService files;
@@ -51,10 +48,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   final RecoveryRepository recovery;
   final documents = <WorkspaceDocument>[];
   final recent = <String>[];
-  final folderPaths = <String>[];
-  String? _folderName;
-  String? get folderName =>
-      _folderName == '' ? strings.emptyFolder : _folderName;
+  OpenedFolder? folder;
   late WorkspaceDocument current;
   late final MindMapController _map;
   MindMapController get map => _map;
@@ -69,7 +63,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   bool get presentation => presenter != null;
   bool paragraphs = true, lists = true, blocks = false;
   int summaryLength = 30;
-  double sidebarWidth = 226, fontSize = 15;
+  double sidebarWidth = 226, fontSize = 16;
   String filter = '', findQuery = '', replacement = '';
   String Function(AppLocalizations)? _statusMessage;
   String get status => _statusMessage?.call(strings) ?? '';
@@ -107,22 +101,11 @@ final class WorkspaceViewModel extends ChangeNotifier {
               .where((t) => t.name == preferences['theme'])
               .firstOrNull ??
           themeMode;
-      final previousLanguage = language;
       language = languageNames.containsKey(preferences['language'])
           ? preferences['language']! as String
           : language;
-      // Only replace untouched built-in samples during initial preference loading.
-      // Changing the interface language later never rewrites a document.
-      if (language != previousLanguage &&
-          documents.every((d) => d.demo && !d.editor.session.isDirty)) {
-        for (final doc in documents) {
-          doc.editor.removeListener(_changed);
-          doc.dispose();
-        }
-        documents.clear();
-        _addSamples();
-        current = documents.first;
-      }
+      if (!documents.contains(_blank)) _blank.name = strings.untitledFile;
+      guideSeen = preferences['guideSeen'] == true;
       compact = preferences['compact'] == true;
       lineNumbers = preferences['lineNumbers'] != false;
       sidebarWidth = (preferences['sidebarWidth'] as num? ?? 226)
@@ -134,13 +117,14 @@ final class WorkspaceViewModel extends ChangeNotifier {
       paragraphs = preferences['paragraphs'] != false;
       lists = preferences['lists'] != false;
       blocks = preferences['blocks'] == true;
-      fontSize = (preferences['fontSize'] as num? ?? 15).toDouble().clamp(
+      fontSize = (preferences['fontSize'] as num? ?? 16).toDouble().clamp(
         12,
         22,
       );
       final paths = preferences['recent'];
       if (paths is List) recent.addAll(paths.whereType<String>().take(20));
       recoverable = await recovery.load();
+      await mcp.load(preferences['mcp']);
     } catch (error) {
       _statusMessage = (l) => l.preferencesLoadFailed(error.toString());
     }
@@ -168,6 +152,12 @@ final class WorkspaceViewModel extends ChangeNotifier {
   String? _mapDocument;
   void _changed() {
     if (_disposed) return;
+    if (!_guiding &&
+        identical(current, _blank) &&
+        editor.text.isNotEmpty &&
+        !documents.contains(_blank)) {
+      documents.add(_blank);
+    }
     if (_mapDocument != current.id || _mapRevision != editor.session.revision) {
       _refreshMap();
       search(findQuery);
@@ -292,6 +282,11 @@ final class WorkspaceViewModel extends ChangeNotifier {
   void moveNode(String source, String target) {
     final from = _headingForNode[source], to = _headingForNode[target];
     if (from != null && to != null) editor.session.reparentHeading(from, to);
+  }
+
+  void renameNode(MindMapNode node, String title) {
+    final id = _headingForNode[node.id];
+    if (id != null && !node.summary) editor.session.renameHeading(id, title);
   }
 
   void setLayout(WorkspaceLayout value) {
@@ -444,6 +439,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }
 
   void switchDocument(WorkspaceDocument document) {
+    endGuide();
     if (_guiding) endGuide();
     presenter?.dispose();
     presenter = null;
@@ -456,6 +452,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }
 
   void newDocument() {
+    endGuide();
     final id = DateTime.now().microsecondsSinceEpoch.toString();
     final doc = WorkspaceDocument(id: id, name: strings.untitledFile, text: '');
     _add(doc);
@@ -470,6 +467,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   Future<void> openPath(String path) async =>
       acceptOpened(await files.read(path));
   void acceptOpened(OpenedDocument opened) {
+    endGuide();
     final existing = documents
         .where(
           (d) => opened.path != null && p.equals(d.path ?? '', opened.path!),
@@ -492,12 +490,9 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }
 
   Future<void> openFolder() async {
-    final paths = await files.folder();
-    if (paths == null) return;
-    folderPaths
-      ..clear()
-      ..addAll(paths);
-    _folderName = paths.isEmpty ? '' : p.basename(p.dirname(paths.first));
+    final selected = await files.folder();
+    if (selected == null) return;
+    folder = selected;
     sidebar = true;
     outline = false;
     _notify();
@@ -526,6 +521,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
       if (!Platform.isAndroid && !Platform.isIOS) doc.name = p.basename(path);
     }
     doc.persistedText = text;
+    if (!documents.contains(doc)) documents.add(doc);
     doc.editor.session.markSaved(savedText: text);
     externalChange = null;
     final savedName = doc.name;
@@ -541,6 +537,37 @@ final class WorkspaceViewModel extends ChangeNotifier {
       ..insert(0, path);
     if (recent.length > 20) recent.removeRange(20, recent.length);
     persist();
+  }
+
+  Future<void> closeCurrent({bool keepDraft = false}) async {
+    endGuide();
+    final document = current;
+    if (keepDraft && editor.session.isDirty) {
+      recoverable.add({
+        'name': document.name,
+        'path': document.path,
+        'text': editor.text,
+        'saved': document.persistedText ?? '',
+      });
+    }
+    documents.remove(document);
+    document.editor.removeListener(_changed);
+    document.dispose();
+    if (identical(document, _blank)) {
+      _blank = WorkspaceDocument(
+        id: 'empty-workspace',
+        name: strings.untitledFile,
+        text: '',
+      );
+      _blank.editor.addListener(_changed);
+    }
+    current = documents.firstOrNull ?? _blank;
+    selectedHeadingId = null;
+    externalChange = null;
+    _refreshMap();
+    search(findQuery);
+    _notify();
+    await flushRecovery(throwOnError: true);
   }
 
   Future<void> checkExternal() async {
@@ -640,6 +667,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
             'lists': lists,
             'blocks': blocks,
             'recent': List.of(recent),
+            'guideSeen': guideSeen,
+            'mcp': mcp.preferences,
           })
           .catchError((Object error) {
             _statusMessage = (l) => l.preferencesSaveFailed(error.toString());
@@ -649,13 +678,20 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }
 
   bool _guiding = false;
+  bool guideSeen = false;
   bool get guiding => _guiding;
   int guideStep = 0;
   MarkdownSnapshot? _guideSnapshot;
   WorkspaceLayout? _guideLayout;
+  TextSelection? _guideSelection;
+  MarkdownTypography? _guideTypography;
+  bool _guideCompact = false;
   void startGuide() {
     if (_guiding) return;
     _guideSnapshot = editor.session.snapshot();
+    _guideSelection = editor.selection;
+    _guideTypography = typography;
+    _guideCompact = compact;
     _guideLayout = layout;
     _guiding = true;
     guideStep = 0;
@@ -678,21 +714,34 @@ final class WorkspaceViewModel extends ChangeNotifier {
   void endGuide() {
     if (!_guiding) return;
     editor.session.restore(_guideSnapshot!);
+    final selection = _guideSelection;
+    if (selection != null && selection.isValid) {
+      editor.select(selection.baseOffset, selection.extentOffset);
+    }
+    typography = _guideTypography!;
+    compact = _guideCompact;
     layout = _guideLayout!;
     _guiding = false;
+    guideSeen = true;
     _guideSnapshot = null;
+    persist();
     _notify();
   }
 
   @override
   void dispose() {
     _disposed = true;
+    mcp.dispose();
     presenter?.dispose();
     _autosave?.cancel();
     _externalTimer?.cancel();
     for (final doc in documents) {
       doc.editor.removeListener(_changed);
       doc.dispose();
+    }
+    if (!documents.contains(_blank)) {
+      _blank.editor.removeListener(_changed);
+      _blank.dispose();
     }
     map.dispose();
     super.dispose();

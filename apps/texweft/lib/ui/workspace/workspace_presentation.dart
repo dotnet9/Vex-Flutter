@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
+import 'document_image.dart';
 import 'presentation_controller.dart';
 
 class WorkspacePresentation extends StatelessWidget {
@@ -18,12 +19,14 @@ class WorkspacePresentation extends StatelessWidget {
     required this.typography,
     required this.fontSize,
     required this.onExit,
+    this.documentPath,
   });
 
   final PresentationController controller;
   final MarkdownTypography typography;
   final double fontSize;
   final VoidCallback onExit;
+  final String? documentPath;
 
   @override
   Widget build(BuildContext context) => CallbackShortcuts(
@@ -145,6 +148,7 @@ class WorkspacePresentation extends StatelessWidget {
                                     controller: controller,
                                     typography: typography,
                                     fontSize: fontSize * controller.scale,
+                                    documentPath: documentPath,
                                   ),
                           ),
                         ],
@@ -477,10 +481,12 @@ class _PresentationBody extends StatelessWidget {
     required this.controller,
     required this.typography,
     required this.fontSize,
+    this.documentPath,
   });
   final PresentationController controller;
   final MarkdownTypography typography;
   final double fontSize;
+  final String? documentPath;
   @override
   Widget build(BuildContext context) {
     final deck = controller.deck, slide = controller.slide;
@@ -501,6 +507,11 @@ class _PresentationBody extends StatelessWidget {
           itemBuilder: (context, index) => count == 0
               ? Text(context.l10n.emptyDocument)
               : MarkdownReader(
+                  imageBuilder: (uri, title, alt) => DocumentImage(
+                    uri: uri,
+                    documentPath: documentPath,
+                    alt: alt,
+                  ),
                   data: deck.document.blocks[slide.firstBlock + index].range
                       .slice(deck.document.source),
                   typography: typography,

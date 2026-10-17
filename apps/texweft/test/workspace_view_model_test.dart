@@ -2,12 +2,55 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:texweft/data/services/file_service.dart';
 import 'package:texweft/domain/workspace.dart';
 
 import 'support/fakes.dart';
 
 void main() {
+  test('opening a native folder preserves its root, nested files and empty directories', () async {
+    final directory = await Directory.systemTemp.createTemp('texweft-folder-');
+    addTearDown(() async {
+      expect(
+        directory.absolute.path,
+        startsWith(Directory.systemTemp.absolute.path),
+      );
+      await directory.delete(recursive: true);
+    });
+    final nested = await Directory('${directory.path}/专题/子目录')
+        .create(recursive: true);
+    final empty = await Directory('${directory.path}/空目录').create();
+    final first = await File('${directory.path}/首篇.md').writeAsString('# 文本');
+    final second = await File('${nested.path}/方程.MARKDOWN')
+        .writeAsString(r'$$x^2$$');
+    final third = await File('${nested.path}/笔记.txt').writeAsString('笔记');
+    await File('${nested.path}/图片.svg').writeAsString('<svg/>');
+    final folder = await NativeDocumentFileService().readFolder(directory.path);
+    expect(folder.path, directory.path);
+    expect(
+      folder.files.map(p.normalize),
+      unorderedEquals([first.path, second.path, third.path].map(p.normalize)),
+    );
+    expect(
+      folder.directories.map(p.normalize),
+      containsAll([nested.path, empty.path].map(p.normalize)),
+    );
+    final vm = fakeWorkspace();
+    addTearDown(vm.dispose);
+    final files = vm.files as MemoryFiles;
+    files.folderPath = directory.path;
+    files.content.addAll({for (final file in folder.files) file: '# 文档'});
+    files.folderDirectories = folder.directories;
+    await vm.openFolder();
+    expect(vm.folder?.path, directory.path);
+    expect(vm.folder?.files, unorderedEquals(folder.files));
+    expect(vm.documents, isEmpty);
+    files.folderPath = null;
+    await vm.openFolder();
+    expect(vm.folder?.path, directory.path);
+  });
+
   test(
     'mind map assigns each block to its section with duplicate headings',
     () {
@@ -78,7 +121,7 @@ void main() {
     expect(vm.editor.session.text, original);
     expect(vm.layout, WorkspaceLayout.three);
     vm.editor.session.undo();
-    expect(vm.editor.session.text, vm.strings.sampleDesign);
+    expect(vm.editor.session.text, isEmpty);
   });
   test(
     'recovered drafts preserve the saved comparison and stay dirty',

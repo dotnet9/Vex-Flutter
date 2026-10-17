@@ -5,8 +5,8 @@ import 'package:flutter/services.dart';
 import 'app.dart';
 import 'data/repositories/recovery_repository.dart';
 import 'data/repositories/settings_repository.dart';
-import 'data/services/file_service.dart';
 import 'data/services/desktop_window.dart';
+import 'data/services/file_service.dart';
 import 'l10n/l10n.dart';
 import 'ui/workspace/workspace_view_model.dart';
 
