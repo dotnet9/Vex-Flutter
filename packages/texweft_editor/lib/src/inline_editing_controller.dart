@@ -77,6 +77,7 @@ class MarkdownInlineEditingController extends TextEditingController {
             fontFamily: fonts.monospace,
             fontFamilyFallback: fonts.monospaceFallback,
             fontSize: (style?.fontSize ?? 15) * .87,
+            height: 1.8,
             color: colors.primary,
             backgroundColor: colors.surfaceContainerLow,
           ),

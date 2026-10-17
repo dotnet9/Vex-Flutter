@@ -55,6 +55,38 @@ void main() {
         }
       }
 
+      Offset glyphPoint(RenderParagraph paragraph, int offset) =>
+          paragraph.localToGlobal(
+            paragraph
+                .getBoxesForSelection(
+                  TextSelection(baseOffset: offset, extentOffset: offset + 1),
+                )
+                .first
+                .toRect()
+                .center,
+          );
+      void expectGlyph(Finder field, int offset, Offset before) {
+        final editable = tester
+            .state<EditableTextState>(
+              find.descendant(of: field, matching: find.byType(EditableText)),
+            )
+            .renderEditable;
+        final heightStyle = editable.selectionHeightStyle;
+        editable.selectionHeightStyle = ui.BoxHeightStyle.tight;
+        final after = editable.localToGlobal(
+          editable
+              .getBoxesForSelection(
+                TextSelection(baseOffset: offset, extentOffset: offset + 1),
+              )
+              .first
+              .toRect()
+              .center,
+        );
+        editable.selectionHeightStyle = heightStyle;
+        expect(after.dx, closeTo(before.dx, .2));
+        expect(after.dy, closeTo(before.dy, .2));
+      }
+
       for (final size in [const Size(1280, 900), const Size(390, 844)]) {
         for (var i = 0; i < 3; i++) {
           final actual =
@@ -71,6 +103,32 @@ void main() {
         for (final mode in [ThemeMode.light, ThemeMode.dark]) {
           vm.updateAppearance(mode: mode);
           await tester.pumpAndSettle();
+          // Reset focus so both states can be compared without changing source.
+          FocusManager.instance.primaryFocus?.unfocus();
+          vm.setLayout(WorkspaceLayout.read);
+          await tester.pumpAndSettle();
+          vm.setLayout(WorkspaceLayout.instant);
+          await tester.pumpAndSettle();
+          final bodyRich = find.byWidgetPredicate(
+            (w) => w is RichText && w.text.toPlainText().startsWith('从这里开始'),
+          );
+          expect(bodyRich, findsOneWidget);
+          final bodyParagraph = tester.renderObject<RenderParagraph>(bodyRich);
+          final bodyPoint = glyphPoint(
+            bodyParagraph,
+            bodyParagraph.text.toPlainText().length - 1,
+          );
+          final beforeGlyphs = <String, Offset>{
+            for (final token in ['从', '写', '文', '成', 'p', '与', '项', '。'])
+              token: glyphPoint(
+                bodyParagraph,
+                bodyParagraph.text.toPlainText().indexOf(token),
+              ),
+          };
+          final tableBefore = tester.getRect(
+            find.byKey(const ValueKey('table-cell-1-0')),
+          );
+          await capture('${size.width.toInt()}-${mode.name}-display');
           await tester.tap(
             find.textContaining('从这里开始', findRichText: true).first,
           );
@@ -80,6 +138,14 @@ void main() {
           expect(input.text, body);
           input.selection = const TextSelection.collapsed(offset: body.length);
           await tester.pumpAndSettle();
+          for (final entry in beforeGlyphs.entries) {
+            expectGlyph(field, body.indexOf(entry.key), entry.value);
+          }
+          expectGlyph(field, body.length - 1, bodyPoint);
+          expect(
+            tester.getRect(find.byKey(const ValueKey('table-cell-1-0'))),
+            tableBefore,
+          );
           await capture('${size.width.toInt()}-${mode.name}-hidden');
           input.selection = TextSelection.collapsed(
             offset: body.indexOf('写下想法') + 2,
@@ -104,6 +170,17 @@ void main() {
           await tester.pumpAndSettle();
           expect(vm.editor.text, source);
           final cell = find.byKey(const ValueKey('table-cell-1-0'));
+          final cellRich = find.descendant(
+            of: find.byKey(const ValueKey('table-display-1-0')),
+            matching: find.byType(RichText),
+          );
+          final cellParagraph = tester.renderObject<RenderParagraph>(
+            cellRich.first,
+          );
+          final cellPoint = glyphPoint(
+            cellParagraph,
+            cellParagraph.text.toPlainText().length - 1,
+          );
           await tester.tap(cell);
           await tester.pumpAndSettle();
           final tableInput = tester.widget<TextField>(cell).controller!;
@@ -111,6 +188,7 @@ void main() {
             offset: tableInput.text.length,
           );
           await tester.pumpAndSettle();
+          expectGlyph(cell, tableInput.text.length - 1, cellPoint);
           await capture('${size.width.toInt()}-${mode.name}-table');
           await tester.enterText(cell, '${tableInput.text}！');
           await tester.pumpAndSettle();

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:texweft/app.dart';
@@ -368,10 +369,16 @@ void main() {
       await tester.pumpWidget(TexweftApp(viewModel: vm));
       await tester.pumpAndSettle();
       final second = find.byWidgetPredicate(
-        (w) => w is Text && w.textSpan?.toPlainText() == 'Second',
+        (w) => w is RichText && w.text.toPlainText() == 'First and Second',
       );
-      await tester.tap(
-        second,
+      final paragraph = tester.renderObject<RenderParagraph>(second);
+      final box = paragraph
+          .getBoxesForSelection(
+            const TextSelection(baseOffset: 10, extentOffset: 11),
+          )
+          .single;
+      await tester.tapAt(
+        paragraph.localToGlobal(box.toRect().center),
         buttons: kSecondaryMouseButton,
         kind: PointerDeviceKind.mouse,
       );

@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:markdown/markdown.dart' as md;
@@ -11,6 +12,8 @@ import 'markdown_preferences.dart';
 import 'markdown_syntax.dart';
 import 'math_formula.dart';
 import 'mermaid_block.dart';
+
+part 'reader_link_context.dart';
 
 typedef MarkdownMediaContextCallback = void Function(
   String url,
@@ -174,8 +177,9 @@ class MarkdownReader extends StatelessWidget {
       code: TextStyle(
         fontFamily: fonts.monospace,
         fontFamilyFallback: fonts.monospaceFallback,
-        fontSize: fontSize * .87,
+        fontSize: (body.fontSize ?? fontSize) * .87,
         height: 1.8,
+        letterSpacing: 0,
         color: accent,
         backgroundColor: colors.surfaceContainerLow,
       ),
@@ -199,76 +203,93 @@ class MarkdownReader extends StatelessWidget {
   Widget build(BuildContext context) {
     final sheet = styleSheet(context);
     final imageOccurrences = <String, int>{};
-    return MarkdownBody(
-      key: ValueKey(preferences),
-      data: data,
-      selectable: selectable,
-      softLineBreak: preferences.softBreak,
-      extensionSet: MarkdownSyntax.extensions(preferences),
-      blockSyntaxes: inline
-          ? const [MarkdownInlineBlockSyntax()]
-          : MarkdownSyntax.blocks(preferences),
-      inlineSyntaxes: MarkdownSyntax.inlines(preferences),
-      styleSheet: sheet,
-      onTapLink: onTapLink,
-      imageBuilder: imageBuilder == null || onMediaContext == null
-          ? imageBuilder
-          : (uri, title, alt) {
-              final url = uri.toString();
-              final occurrence = imageOccurrences.update(
-                url,
-                (value) => value + 1,
-                ifAbsent: () => 0,
-              );
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onSecondaryTapUp: (event) => onMediaContext!(
-                  url,
-                  true,
-                  occurrence,
-                  event.globalPosition,
-                ),
-                onLongPressStart: (event) => onMediaContext!(
-                  url,
-                  true,
-                  occurrence,
-                  event.globalPosition,
-                ),
-                child: imageBuilder!(uri, title, alt),
-              );
-            },
-      builders: {
-        if (onMediaContext != null) 'a': _ContextLinkBuilder(this, sheet),
-        'pre': _CodeBlockBuilder(
-          selectable,
-          fontSize / 15 * (compact ? 13 : 14),
-          editingPreferences,
-          labels,
+    final linkOccurrences = <String, int>{};
+    return _LinkRecognizerHost(
+      reader: this,
+      builder: (links) => MarkdownBody(
+        key: ValueKey((
           preferences,
-        ),
-        'vex-math': _MathBuilder(this, false),
-        'vex-math-block': _MathBuilder(this, true),
-        for (final tag in ['mark', 'sub', 'sup'])
-          tag: _InlineMarkBuilder(this, tag),
-        for (var level = 1; level <= 6; level++)
-          'h$level': _HeadingBuilder(this, level, switch (level) {
-            1 => sheet.h1!,
-            2 => sheet.h2!,
-            3 => sheet.h3!,
-            4 => sheet.h4!,
-            5 => sheet.h5!,
-            _ => sheet.h6!,
+          onMediaContext != null,
+          selectable,
+          inline,
+        )),
+        data: data,
+        selectable: selectable,
+        fitContent: !inline,
+        softLineBreak: preferences.softBreak,
+        extensionSet: MarkdownSyntax.extensions(preferences),
+        blockSyntaxes: inline
+            ? const [MarkdownInlineBlockSyntax()]
+            : MarkdownSyntax.blocks(preferences),
+        inlineSyntaxes: MarkdownSyntax.inlines(preferences),
+        styleSheet: sheet,
+        onTapLink: onTapLink,
+        imageBuilder: imageBuilder == null || onMediaContext == null
+            ? imageBuilder
+            : (uri, title, alt) {
+                final url = uri.toString();
+                final occurrence = imageOccurrences.update(
+                  url,
+                  (value) => value + 1,
+                  ifAbsent: () => 0,
+                );
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onSecondaryTapUp: (event) => onMediaContext!(
+                    url,
+                    true,
+                    occurrence,
+                    event.globalPosition,
+                  ),
+                  onLongPressStart: (event) => onMediaContext!(
+                    url,
+                    true,
+                    occurrence,
+                    event.globalPosition,
+                  ),
+                  child: imageBuilder!(uri, title, alt),
+                );
+              },
+        builders: {
+          // The renderer probes every builder once before traversing each AST.
+          // Reset counters even when inherited theme/text scale reparses it.
+          'vex-parse-boundary': _ReaderParseBoundary(() {
+            imageOccurrences.clear();
+            linkOccurrences.clear();
           }),
-      },
+          if (onMediaContext != null)
+            'a': _ContextLinkBuilder(sheet, links, linkOccurrences),
+          'pre': _CodeBlockBuilder(
+            selectable,
+            fontSize / 15 * (compact ? 13 : 14),
+            editingPreferences,
+            labels,
+            preferences,
+          ),
+          'vex-math': _MathBuilder(this, false),
+          'vex-math-block': _MathBuilder(this, true),
+          for (final tag in ['mark', 'sub', 'sup'])
+            tag: _InlineMarkBuilder(this, tag),
+          for (var level = 1; level <= 6; level++)
+            'h$level': _HeadingBuilder(this, level, switch (level) {
+              1 => sheet.h1!,
+              2 => sheet.h2!,
+              3 => sheet.h3!,
+              4 => sheet.h4!,
+              5 => sheet.h5!,
+              _ => sheet.h6!,
+            }),
+        },
+      ),
     );
   }
 }
 
 class _ContextLinkBuilder extends MarkdownElementBuilder {
-  _ContextLinkBuilder(this.reader, this.sheet);
-  final MarkdownReader reader;
+  _ContextLinkBuilder(this.sheet, this.links, this._occurrences);
   final MarkdownStyleSheet sheet;
-  final _occurrences = <String, int>{};
+  final _LinkRecognizerHostState links;
+  final Map<String, int> _occurrences;
   @override
   Widget? visitElementAfterWithContext(
     BuildContext context,
@@ -286,51 +307,42 @@ class _ContextLinkBuilder extends MarkdownElementBuilder {
         node is md.Element &&
         (node.tag == 'img' || (node.children?.any(containsImage) ?? false));
     if (containsImage(element)) return null;
-    InlineSpan span(md.Node node) {
-      if (node is! md.Element) return TextSpan(text: node.textContent);
-      return TextSpan(
-        style: switch (node.tag) {
+    final recognizer = links.recognizer(
+      url,
+      occurrence,
+      element.textContent,
+      element.attributes['title'] ?? '',
+    );
+    Iterable<TextSpan> spans(md.Node node, TextStyle style) sync* {
+      if (node is md.Element) {
+        final childStyle = style.merge(switch (node.tag) {
           'strong' => sheet.strong,
           'em' => sheet.em,
           'del' => sheet.del,
           'code' => sheet.code,
           _ => null,
-        },
-        text: node.tag == 'br' ? '\n' : null,
-        children: node.children?.map(span).toList(),
+        });
+        if (node.tag == 'br') {
+          yield TextSpan(text: '\n', style: childStyle, recognizer: recognizer);
+        }
+        for (final child in node.children ?? <md.Node>[]) {
+          yield* spans(child, childStyle);
+        }
+        return;
+      }
+      yield TextSpan(
+        text: node.textContent,
+        style: style,
+        recognizer: recognizer,
       );
     }
 
-    return MouseRegion(
-      cursor: reader.onTapLink == null
-          ? SystemMouseCursors.text
-          : SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: reader.onTapLink == null
-            ? null
-            : () => reader.onTapLink!(
-                element.textContent,
-                url,
-                element.attributes['title'] ?? '',
-              ),
-        onSecondaryTapUp: (event) => reader.onMediaContext!(
-          url,
-          false,
-          occurrence,
-          event.globalPosition,
-        ),
-        onLongPressStart: (event) => reader.onMediaContext!(
-          url,
-          false,
-          occurrence,
-          event.globalPosition,
-        ),
-        child: Text.rich(
-          TextSpan(
-            style: sheet.p?.merge(sheet.a),
-            children: element.children?.map(span).toList(),
-          ),
-        ),
+    final style = (parentStyle ?? sheet.p!).merge(sheet.a);
+    return Text.rich(
+      TextSpan(
+        children: element.children
+            ?.expand((node) => spans(node, style))
+            .toList(),
       ),
     );
   }

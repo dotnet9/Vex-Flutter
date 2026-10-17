@@ -327,11 +327,10 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
                 if (!focus.hasFocus)
                   IgnorePointer(
                     child: ExcludeSemantics(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
+                      child: Container(
+                        width: double.infinity,
+                        // Match RenderEditable's three-pixel caret reserve.
+                        padding: const EdgeInsets.fromLTRB(12, 10, 15, 10),
                         child: MarkdownReader(
                           key: ValueKey('table-display-$row-$col'),
                           data: cell.text,
