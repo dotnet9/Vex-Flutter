@@ -33,6 +33,8 @@ final class MemoryFiles implements DocumentFileService {
   String? nextSave = '/notes/saved.md';
   String? folderPath = '/notes';
   List<String> folderDirectories = [];
+  Uint8List? lastSavedBytes;
+  String? lastSaveName, lastInitialDirectory;
   @override
   Future<OpenedDocument?> pick() async => null;
   @override
@@ -52,8 +54,13 @@ final class MemoryFiles implements DocumentFileService {
     String name,
     Uint8List bytes, {
     String? dialogTitle,
+    String? initialDirectory,
   }) async {
-    if (nextSave != null) {
+    lastSavedBytes = bytes;
+    lastSaveName = name;
+    lastInitialDirectory = initialDirectory;
+    if (nextSave != null &&
+        ['md', 'markdown', 'txt'].contains(name.split('.').last)) {
       content[nextSave!] = (await decodeDocument(bytes)).text;
     }
     return nextSave;

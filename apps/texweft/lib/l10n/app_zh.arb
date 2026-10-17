@@ -508,5 +508,10 @@
   "officialWebsite": "官方网站",
   "feedback": "反馈",
   "printPreview": "打印预览",
-  "strike": "删除线"
+  "strike": "删除线",
+  "documentWatermark": "文档水印",
+  "watermarkPreview": "正文中显示",
+  "watermarkExport": "导出时包含水印",
+  "watermarkText": "水印文字",
+  "watermarkOpacity": "不透明度"
 }

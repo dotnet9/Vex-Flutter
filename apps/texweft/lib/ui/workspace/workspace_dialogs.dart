@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path/path.dart' as p;
 import 'package:printing/printing.dart';
 import 'package:texweft_mindmap/texweft_mindmap.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -16,6 +18,7 @@ import '../core/palette_tokens.dart';
 import 'workspace_pickers.dart';
 import 'workspace_view_model.dart';
 import 'builtin_documents.dart';
+import 'document_watermark.dart';
 
 Future<void> showExportDialog(
   BuildContext context,
@@ -75,6 +78,8 @@ class _ExportDialogState extends State<_ExportDialog> {
                 colors: colors,
                 typography: typography,
                 compact: compact,
+                styled: vm.exportPreferences.htmlStyle,
+                watermark: vm.watermark,
               ),
             ),
           );
@@ -93,6 +98,8 @@ class _ExportDialogState extends State<_ExportDialog> {
             colors: colors,
             typography: typography,
             compact: compact,
+            preferences: vm.exportPreferences,
+            watermark: vm.watermark,
           );
       }
       if (type == 'print') {
@@ -112,7 +119,16 @@ class _ExportDialogState extends State<_ExportDialog> {
           '$stem.$type',
           bytes,
           dialogTitle: vm.strings.saveNamedFile('$stem.$type'),
+          initialDirectory: vm.exportPreferences.folder.trim().isNotEmpty
+              ? vm.exportPreferences.folder.trim()
+              : vm.current.path == null
+              ? null
+              : p.dirname(vm.current.path!),
         );
+        if (path != null && vm.exportPreferences.openAfterExport) {
+          final result = await OpenFilex.open(path);
+          if (result.type != ResultType.done) throw StateError(result.message);
+        }
         if (mounted) {
           setState(
             () => _message = path == null
@@ -158,12 +174,26 @@ class _ExportDialogState extends State<_ExportDialog> {
                 label: entry.$2,
                 icon: entry.$3,
                 bordered: true,
+                selected: widget.vm.exportPreferences.format == entry.$1,
                 height: 36,
                 onPressed: _busy ? null : () => _export(entry.$1),
               ),
           ],
         ),
         const SizedBox(height: 18),
+        SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          title: Text(
+            context.l10n.watermarkExport,
+            style: const TextStyle(fontSize: 14),
+          ),
+          value: widget.vm.watermark.export,
+          onChanged: _busy
+              ? null
+              : (value) =>
+                    setState(() => widget.vm.updateWatermark(export: value)),
+        ),
+        const SizedBox(height: 12),
         AppButton(
           label: context.l10n.copyHtml,
           icon: 'copy',
@@ -179,6 +209,8 @@ class _ExportDialogState extends State<_ExportDialog> {
                         colors: Theme.of(context).colorScheme,
                         typography: vm.typography,
                         compact: vm.compact,
+                        styled: vm.exportPreferences.htmlStyle,
+                        watermark: vm.watermark,
                       ),
                     ),
                   );
@@ -281,6 +313,58 @@ Future<void> showAppearance(
             ),
             value: vm.compact,
             onChanged: (v) => vm.updateAppearance(compact: v),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            context.l10n.documentWatermark,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: Text(context.l10n.watermarkPreview),
+            value: vm.watermark.preview,
+            onChanged: (value) => vm.updateWatermark(preview: value),
+          ),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: Text(context.l10n.watermarkExport),
+            value: vm.watermark.export,
+            onChanged: (value) => vm.updateWatermark(export: value),
+          ),
+          TextFormField(
+            key: const ValueKey('watermark-text'),
+            initialValue: vm.watermark.text,
+            maxLength: 60,
+            decoration: InputDecoration(labelText: context.l10n.watermarkText),
+            onChanged: (value) => vm.updateWatermark(text: value),
+          ),
+          Row(
+            children: [
+              Text(context.l10n.watermarkOpacity),
+              Expanded(
+                child: Slider(
+                  value: vm.watermark.opacity,
+                  min: 0,
+                  max: .5,
+                  divisions: 50,
+                  label: '${(vm.watermark.opacity * 100).round()}%',
+                  onChanged: (value) => vm.updateWatermark(opacity: value),
+                ),
+              ),
+              SizedBox(
+                width: 40,
+                child: Text('${(vm.watermark.opacity * 100).round()}%'),
+              ),
+            ],
+          ),
+          SizedBox(
+            height: 150,
+            child: ClipRect(
+              child: DocumentWatermark(
+                preferences: vm.watermark.copyWith(preview: true),
+                child: Center(child: Text(context.l10n.slogan)),
+              ),
+            ),
           ),
         ],
       ),

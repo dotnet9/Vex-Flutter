@@ -12,6 +12,7 @@ import '../../data/repositories/settings_repository.dart';
 import '../../data/services/file_service.dart';
 import '../../data/services/document_codec.dart';
 import '../../domain/file_preferences.dart';
+import '../../domain/export_preferences.dart';
 import '../../domain/presentation.dart';
 import '../../domain/workspace.dart';
 import '../../l10n/l10n.dart';
@@ -47,6 +48,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
   final SettingsRepository settings;
   final RecoveryRepository recovery;
   final filePreferences = FilePreferences();
+  ExportPreferences exportPreferences = const ExportPreferences();
+  WatermarkPreferences watermark = const WatermarkPreferences();
   final documents = <WorkspaceDocument>[];
   final recent = <String>[];
   OpenedFolder? folder;
@@ -91,6 +94,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
     try {
       final preferences = await settings.load();
       filePreferences.load(preferences['files']);
+      exportPreferences = ExportPreferences.fromJson(preferences['export']);
+      watermark = WatermarkPreferences.fromJson(preferences['watermark']);
       _blank.format = filePreferences.newDocumentFormat;
       final savedPalette = preferences['palette'];
       if (savedPalette is String && paletteNames.containsKey(savedPalette)) {
@@ -373,6 +378,42 @@ final class WorkspaceViewModel extends ChangeNotifier {
       indent: indent,
       autoPair: autoPair,
       codeWrap: codeWrap,
+    );
+    _notify();
+    persist();
+  }
+
+  void updateExportPreferences({
+    String? format,
+    String? folder,
+    bool? openAfterExport,
+    ExportPaper? paper,
+    double? margin,
+    bool? htmlStyle,
+  }) {
+    exportPreferences = exportPreferences.copyWith(
+      format: format,
+      folder: folder,
+      openAfterExport: openAfterExport,
+      paper: paper,
+      margin: margin,
+      htmlStyle: htmlStyle,
+    );
+    _notify();
+    persist();
+  }
+
+  void updateWatermark({
+    bool? preview,
+    bool? export,
+    String? text,
+    double? opacity,
+  }) {
+    watermark = watermark.copyWith(
+      preview: preview,
+      export: export,
+      text: text,
+      opacity: opacity,
     );
     _notify();
     persist();
@@ -905,6 +946,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
             'guideSeen': guideSeen,
             'mcp': mcp.preferences,
             'files': filePreferences.toJson(),
+            'export': exportPreferences.toJson(),
+            'watermark': watermark.toJson(),
             'workspace': {
               'paths': documents
                   .map((d) => d.path)

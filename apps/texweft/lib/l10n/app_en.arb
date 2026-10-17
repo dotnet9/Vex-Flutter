@@ -327,5 +327,10 @@
   "officialWebsite": "Website",
   "feedback": "Feedback",
   "printPreview": "Print preview",
-  "strike": "Strikethrough"
+  "strike": "Strikethrough",
+  "documentWatermark": "Document watermark",
+  "watermarkPreview": "Show in document",
+  "watermarkExport": "Include watermark in export",
+  "watermarkText": "Watermark text",
+  "watermarkOpacity": "Opacity"
 }

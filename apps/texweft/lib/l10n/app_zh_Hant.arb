@@ -327,5 +327,10 @@
   "officialWebsite": "官方網站",
   "feedback": "意見回饋",
   "printPreview": "列印預覽",
-  "strike": "刪除線"
+  "strike": "刪除線",
+  "documentWatermark": "文件浮水印",
+  "watermarkPreview": "內文中顯示",
+  "watermarkExport": "匯出時包含浮水印",
+  "watermarkText": "浮水印文字",
+  "watermarkOpacity": "不透明度"
 }

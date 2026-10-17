@@ -2068,6 +2068,36 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'删除线'**
   String get strike;
+
+  /// No description provided for @documentWatermark.
+  ///
+  /// In zh, this message translates to:
+  /// **'文档水印'**
+  String get documentWatermark;
+
+  /// No description provided for @watermarkPreview.
+  ///
+  /// In zh, this message translates to:
+  /// **'正文中显示'**
+  String get watermarkPreview;
+
+  /// No description provided for @watermarkExport.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出时包含水印'**
+  String get watermarkExport;
+
+  /// No description provided for @watermarkText.
+  ///
+  /// In zh, this message translates to:
+  /// **'水印文字'**
+  String get watermarkText;
+
+  /// No description provided for @watermarkOpacity.
+  ///
+  /// In zh, this message translates to:
+  /// **'不透明度'**
+  String get watermarkOpacity;
 }
 
 class _AppLocalizationsDelegate

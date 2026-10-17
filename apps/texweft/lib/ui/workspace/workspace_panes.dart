@@ -8,6 +8,7 @@ import '../../domain/workspace.dart';
 import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
 import 'document_image.dart';
+import 'document_watermark.dart';
 import 'workspace_view_model.dart';
 
 class WorkspacePanes extends StatefulWidget {
@@ -144,7 +145,9 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
               MediaQuery.textScalerOf(context).scale(1) * vm.contentZoom,
             ),
           ),
-          child: child,
+          child: pane == 'source'
+              ? child
+              : DocumentWatermark(preferences: vm.watermark, child: child),
         );
 
   Widget _mapPane() => LayoutBuilder(

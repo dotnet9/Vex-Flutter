@@ -1092,6 +1092,21 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get strike => '删除线';
+
+  @override
+  String get documentWatermark => '文档水印';
+
+  @override
+  String get watermarkPreview => '正文中显示';
+
+  @override
+  String get watermarkExport => '导出时包含水印';
+
+  @override
+  String get watermarkText => '水印文字';
+
+  @override
+  String get watermarkOpacity => '不透明度';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -2181,4 +2196,19 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get strike => '刪除線';
+
+  @override
+  String get documentWatermark => '文件浮水印';
+
+  @override
+  String get watermarkPreview => '內文中顯示';
+
+  @override
+  String get watermarkExport => '匯出時包含浮水印';
+
+  @override
+  String get watermarkText => '浮水印文字';
+
+  @override
+  String get watermarkOpacity => '不透明度';
 }

@@ -41,7 +41,12 @@ abstract interface class DocumentFileService {
   Future<OpenedDocument> read(String path);
   Future<OpenedFolder?> folder();
   Future<OpenedFolder> readFolder(String path);
-  Future<String?> saveAs(String name, Uint8List bytes, {String? dialogTitle});
+  Future<String?> saveAs(
+    String name,
+    Uint8List bytes, {
+    String? dialogTitle,
+    String? initialDirectory,
+  });
   Future<void> write(
     String path,
     String text, {
@@ -113,9 +118,11 @@ final class NativeDocumentFileService implements DocumentFileService {
     String name,
     Uint8List bytes, {
     String? dialogTitle,
+    String? initialDirectory,
   }) async {
     final destination = await FilePicker.saveFile(
       dialogTitle: dialogTitle,
+      initialDirectory: initialDirectory,
       fileName: name,
       type: FileType.custom,
       allowedExtensions: [p.extension(name).replaceFirst('.', '')],

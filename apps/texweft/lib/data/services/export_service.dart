@@ -11,6 +11,8 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:texweft_editor/texweft_editor.dart';
 import 'package:texweft_mindmap/texweft_mindmap.dart';
 
+import '../../domain/export_preferences.dart';
+
 /// Native document encoders. No browser engine or HTML-to-PDF WebView.
 final class DocumentExportService {
   static List<md.Node> _parse(String source) => md.Document(
@@ -33,7 +35,14 @@ final class DocumentExportService {
     required ColorScheme colors,
     required MarkdownTypography typography,
     bool compact = false,
+    bool styled = true,
+    WatermarkPreferences watermark = const WatermarkPreferences(),
   }) {
+    if (!styled) {
+      typography = MarkdownTypography.simple;
+      compact = false;
+      colors = ColorScheme.fromSeed(seedColor: const Color(0xff24766b));
+    }
     final accent = _hex(colors.primary),
         fg = _hex(colors.onSurface),
         bg = _hex(colors.surface),
@@ -65,8 +74,12 @@ final class DocumentExportService {
         ? 2.05
         : 1.95} ${typography == MarkdownTypography.book ? 'Georgia,"Noto Serif CJK SC",SimSun,serif' : 'system-ui,"Microsoft YaHei UI","PingFang SC",sans-serif'}}
 article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80px;overflow-wrap:anywhere}h1{font-size:2em;line-height:1.45;margin:0 0 30px}h2{font-size:1.4em;line-height:1.6;margin:32px 0 16px;$section}h3{font-size:1.15em;margin-top:26px}p{margin:0 0 ${compact ? 10 : 18}px}a{color:$accent}blockquote{margin:18px 0;padding:12px 18px;border-left:3px solid $accent;background:$panel}pre{white-space:pre;overflow-x:auto;padding:8px 12px;background:$panel;border:1px solid $border;border-radius:3px}pre code{font:14px/22px Consolas,Menlo,monospace;color:$fg;background:transparent}code{font:0.9em/1.8 Consolas,monospace;background:$panel}table{border-collapse:collapse;width:100%;margin:18px 0}td,th{border:1px solid $border;padding:9px 12px;text-align:left}th{background:$panel}img{max-width:100%}hr{border:0;border-top:1px solid $border;margin:28px 0}li{margin:6px 0}@media(max-width:600px){article{padding:28px 22px}}@media print{body{color:#222;background:white}article{padding:0;max-width:none}h1,h2,h3{break-after:avoid}pre,blockquote,tr{break-inside:avoid}}
-</style></head><body><article>$body</article></body></html>''';
+.vex-watermark{position:fixed;inset:0;z-index:10;pointer-events:none;user-select:none;overflow:hidden}.vex-watermark svg{width:100%;height:100%;display:block}
+</style></head><body><article>$body</article>${watermark.export && watermark.visible ? _htmlWatermark(watermark.copyWith()) : ''}</body></html>''';
   }
+
+  String _htmlWatermark(WatermarkPreferences watermark) =>
+      '''<div class="vex-watermark" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg"><defs><pattern id="vex-watermark" width="280" height="180" patternUnits="userSpaceOnUse"><text x="140" y="90" fill="#24766b" fill-opacity="${watermark.opacity}" text-anchor="middle" dominant-baseline="middle" font-family="system-ui,sans-serif" font-size="21" transform="rotate(-25 140 90)"${watermark.text.runes.length > 14 ? ' textLength="235" lengthAdjust="spacingAndGlyphs"' : ''}>${_escape(watermark.text)}</text></pattern></defs><rect width="100%" height="100%" fill="url(#vex-watermark)"/></svg></div>''';
 
   Future<Uint8List> pdf({
     required String source,
@@ -74,12 +87,14 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
     required ColorScheme colors,
     required MarkdownTypography typography,
     bool compact = false,
+    ExportPreferences preferences = const ExportPreferences(),
+    WatermarkPreferences watermark = const WatermarkPreferences(),
   }) async {
     final font = await _pdfFont('NotoSansSC');
     final boldFont = await _pdfFont('NotoSansSC-SemiBold');
     final accent = PdfColor.fromInt(colors.primary.toARGB32()),
         line = PdfColor.fromInt(colors.outlineVariant.toARGB32());
-    final document = pw.Document(title: title, author: 'Texweft');
+    final document = pw.Document(title: title, author: 'Vex');
     final base = pw.TextStyle(
       font: font,
       fontSize: 10,
@@ -281,17 +296,62 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
       return result;
     }
 
+    final format = switch (preferences.paper) {
+      ExportPaper.a4 => PdfPageFormat.a4,
+      ExportPaper.letter => PdfPageFormat.letter,
+      ExportPaper.a5 => PdfPageFormat.a5,
+    };
     document.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(44),
-        maxPages: 500,
-        theme: pw.ThemeData.withFont(
-          base: font,
-          bold: boldFont,
-          italic: font,
-          boldItalic: boldFont,
+        pageTheme: pw.PageTheme(
+          pageFormat: format,
+          theme: pw.ThemeData.withFont(
+            base: font,
+            bold: boldFont,
+            italic: font,
+            boldItalic: boldFont,
+          ),
+          margin: pw.EdgeInsets.all(
+            preferences.margin.clamp(10, 30) * PdfPageFormat.mm,
+          ),
+          buildForeground: watermark.export && watermark.visible
+              ? (_) => pw.FullPage(
+                  ignoreMargins: true,
+                  child: pw.Opacity(
+                    opacity: watermark.opacity.clamp(0, .5),
+                    child: pw.Stack(
+                      children: [
+                        for (var y = 20.0; y < format.height; y += 135)
+                          for (var x = 15.0; x < format.width; x += 210)
+                            pw.Positioned(
+                              left: x,
+                              top: y,
+                              child: pw.SizedBox(
+                                width: 176.25,
+                                height: 75,
+                                child: pw.Transform.rotate(
+                                  angle: 25 * math.pi / 180,
+                                  child: pw.FittedBox(
+                                    fit: pw.BoxFit.scaleDown,
+                                    child: pw.Text(
+                                      watermark.copyWith().text,
+                                      style: pw.TextStyle(
+                                        font: font,
+                                        fontSize: 15.75,
+                                        color: PdfColor.fromInt(0xff24766b),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                      ],
+                    ),
+                  ),
+                )
+              : null,
         ),
+        maxPages: 500,
         footer: (context) => pw.Align(
           alignment: pw.Alignment.centerRight,
           child: pw.Text(

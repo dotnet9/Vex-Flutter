@@ -327,5 +327,10 @@
   "officialWebsite": "公式サイト",
   "feedback": "フィードバック",
   "printPreview": "印刷プレビュー",
-  "strike": "取り消し線"
+  "strike": "取り消し線",
+  "documentWatermark": "透かし",
+  "watermarkPreview": "本文に表示",
+  "watermarkExport": "書き出しに透かしを含める",
+  "watermarkText": "透かしの文字",
+  "watermarkOpacity": "不透明度"
 }

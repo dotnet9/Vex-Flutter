@@ -1097,4 +1097,19 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get strike => '取り消し線';
+
+  @override
+  String get documentWatermark => '透かし';
+
+  @override
+  String get watermarkPreview => '本文に表示';
+
+  @override
+  String get watermarkExport => '書き出しに透かしを含める';
+
+  @override
+  String get watermarkText => '透かしの文字';
+
+  @override
+  String get watermarkOpacity => '不透明度';
 }

@@ -1140,4 +1140,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get strike => 'Strikethrough';
+
+  @override
+  String get documentWatermark => 'Document watermark';
+
+  @override
+  String get watermarkPreview => 'Show in document';
+
+  @override
+  String get watermarkExport => 'Include watermark in export';
+
+  @override
+  String get watermarkText => 'Watermark text';
+
+  @override
+  String get watermarkOpacity => 'Opacity';
 }
