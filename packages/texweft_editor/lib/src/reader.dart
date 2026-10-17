@@ -158,6 +158,7 @@ class MarkdownReader extends StatelessWidget {
         color: colors.onSurfaceVariant,
       ),
       listBullet: body.copyWith(color: accent),
+      checkbox: body.copyWith(color: accent),
       listIndent: 24,
       listBulletPadding: const EdgeInsets.only(right: 8),
       blockquote: body.copyWith(color: colors.onSurfaceVariant),

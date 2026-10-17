@@ -1,3 +1,5 @@
+import 'list_extent.dart';
+
 /// An immutable range in Dart UTF-16 string offsets, matching Flutter selections.
 final class SourceRange {
   const SourceRange(this.start, this.end) : assert(start >= 0 && end >= start);
@@ -91,6 +93,7 @@ final class MarkdownDocument {
           })
         >[];
     final blocks = <MarkdownBlock>[];
+    final lists = ListExtentParser(lines.map((line) => line.text).toList());
     String? fence;
     var fenceLength = 0;
     var codeStart = 0;
@@ -171,6 +174,24 @@ final class MarkdownDocument {
           continue;
         }
       }
+      final listEnd = lists.endOfList(
+        i,
+        interruptsParagraph:
+            blocks.isNotEmpty &&
+            blocks.last.kind == MarkdownBlockKind.paragraph &&
+            blocks.last.range.end == line.start,
+      );
+      if (listEnd != null) {
+        blocks.add(
+          MarkdownBlock(
+            MarkdownBlockKind.list,
+            SourceRange(line.start, lines[listEnd - 1].end),
+            line.number,
+          ),
+        );
+        i = listEnd - 1;
+        continue;
+      }
       final atx = RegExp(r'^ {0,3}(#{1,6})(?:[ \t]+(.*?)|[ \t]*)$')
           .firstMatch(text);
       var isHeading = false;
@@ -213,8 +234,6 @@ final class MarkdownDocument {
           ? MarkdownBlockKind.heading
           : RegExp(r'^ {0,3}>').hasMatch(text)
           ? MarkdownBlockKind.quote
-          : RegExp(r'^ {0,3}(?:[-+*]|\d+[.)])\s').hasMatch(text)
-          ? MarkdownBlockKind.list
           : RegExp(
               r'^ {0,3}(?:\*\s*){3,}$|^ {0,3}(?:-\s*){3,}$|^ {0,3}(?:_\s*){3,}$',
             ).hasMatch(text)

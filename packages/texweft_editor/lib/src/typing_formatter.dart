@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:texweft_markdown_core/texweft_markdown_core.dart';
+import 'package:markdown/markdown.dart' as md;
 
 export 'pair_formatter.dart';
 
@@ -66,6 +66,26 @@ void indentMarkdownSelection(
 /// Continues a list or quotation when Enter inserts a single line break.
 /// Pasted blocks, composing text and fenced code keep platform input unchanged.
 final class MarkdownTypingFormatter extends TextInputFormatter {
+  bool _insideCode(String source, int offset) {
+    var marker = 'VexCaretBoundary';
+    while (source.contains(marker)) {
+      marker += '_';
+    }
+    // A temporary sentinel lets CommonMark resolve nested fences/indentation;
+    // it is never written into the editing value or document history.
+    final nodes = md.Document(extensionSet: md.ExtensionSet.gitHubFlavored)
+        .parseLines(
+          source
+              .replaceRange(offset, offset, marker)
+              .split(RegExp(r'\r\n|\n|\r')),
+        );
+    bool code(md.Node node) =>
+        node is md.Element &&
+        ((node.tag == 'pre' && node.textContent.contains(marker)) ||
+            (node.children ?? []).any(code));
+    return nodes.any(code);
+  }
+
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
@@ -97,12 +117,7 @@ final class MarkdownTypingFormatter extends TextInputFormatter {
             text: oldValue.text.replaceRange(offset, offset, newline),
             selection: TextSelection.collapsed(offset: offset + newline.length),
           );
-    if (MarkdownDocument.parse(oldValue.text).blocks.any(
-      (block) =>
-          block.kind == MarkdownBlockKind.code &&
-          block.range.start <= offset &&
-          offset <= block.range.end,
-    )) {
+    if (_insideCode(oldValue.text, offset)) {
       return plainValue;
     }
     final before = oldValue.text.substring(0, offset);

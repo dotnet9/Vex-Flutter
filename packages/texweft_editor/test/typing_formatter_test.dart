@@ -45,6 +45,16 @@ void main() {
   test('code, pasted blocks and uncommitted IME input stay literal', () {
     expect(enter('```text\n- 代码').text, '```text\n- 代码\n');
     expect(enter('```text\r\n- 代码').text, '```text\r\n- 代码\r\n');
+    expect(
+      enter('- Item\n\n  ```text\n  - literal').text,
+      '- Item\n\n  ```text\n  - literal\n',
+    );
+    expect(enter('> ```text\n> - literal').text, '> ```text\n> - literal\n');
+    expect(enter('    - indented code').text, '    - indented code\n');
+    expect(
+      enter('- Item\r\n\r\n  ```text\r\n  - literal').text,
+      '- Item\r\n\r\n  ```text\r\n  - literal\r\n',
+    );
     expect(enter('前文\r\n后文').text, '前文\r\n后文\r\n');
     const before = TextEditingValue(
       text: '- 中文',
