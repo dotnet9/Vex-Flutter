@@ -46,6 +46,13 @@ delete the table. Header rows cannot move into the body, and the final column
 cannot be deleted. Every structural change is one undo step and restores the
 selection to the affected cell. Escaped pipes, code spans and CRLF are retained.
 
+Unfocused cells render inline Markdown with the same formula, chemistry and
+text-mark preferences as the document. Focus reveals the original cell source;
+Tab/Shift+Tab keep native traversal and editing retains the shared history.
+Cells wrap long text and preserve column alignment in both states. Leading
+heading/list markers remain literal cell content, not nested block elements.
+Coverage: `table_rich_test.dart` at phone and desktop widths.
+
 Desktop cells use an anchored secondary-click menu. Phone/tablet long-press
 opens the fixed-header touch sheet. Reading mode only permits copying a table.
 Commands captured before a document change or switch cannot modify new content.

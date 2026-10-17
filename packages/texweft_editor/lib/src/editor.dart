@@ -195,6 +195,10 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
         end: block.range.end,
         style: _reader.styleSheet(context).p!,
         onContextMenu: widget.onContextMenu,
+        preferences: widget.preferences,
+        editingPreferences: widget.editingPreferences,
+        imageBuilder: widget.imageBuilder,
+        labels: widget.labels,
       );
     }
     return AnimatedOpacity(

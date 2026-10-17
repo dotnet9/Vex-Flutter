@@ -25,7 +25,7 @@ void main() {
     await vm.initialize(watchFiles: false);
     const source =
         '# 表格操作\n\n| 名称 | 进度 |\n| --- | --- |\n'
-        '| 原型 | 已确认 |\n| 功能实现 | 进行中 |\n';
+        '| **原型** | `已确认` |\n| 功能实现 | 进行中 |\n';
     vm.editor.session.replace(source);
     vm.editor.session.markSaved();
     vm.setLayout(WorkspaceLayout.instant);
@@ -68,6 +68,10 @@ void main() {
       for (final mode in [ThemeMode.light, ThemeMode.dark]) {
         vm.updateAppearance(mode: mode);
         await tester.pumpAndSettle();
+        FocusManager.instance.primaryFocus?.unfocus();
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('table-display-1-0')), findsOneWidget);
+        await capture('${size.width.toInt()}-${mode.name}-table-rich-cells');
         final cell = find.byKey(const ValueKey('table-cell-1-1'));
         await tester.tap(cell, buttons: kSecondaryMouseButton);
         await tester.pumpAndSettle();

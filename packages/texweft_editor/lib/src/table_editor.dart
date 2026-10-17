@@ -5,6 +5,10 @@ import 'package:texweft_markdown_core/texweft_markdown_core.dart';
 
 import 'context_request.dart';
 import 'controller.dart';
+import 'editing_preferences.dart';
+import 'labels.dart';
+import 'markdown_preferences.dart';
+import 'reader.dart';
 import 'table_model.dart';
 
 class MarkdownTableEditor extends StatefulWidget {
@@ -15,11 +19,19 @@ class MarkdownTableEditor extends StatefulWidget {
     required this.end,
     required this.style,
     this.onContextMenu,
+    this.preferences = const MarkdownPreferences(),
+    this.editingPreferences,
+    this.imageBuilder,
+    this.labels = const MarkdownEditorLabels(),
   });
   final MarkdownEditorController controller;
   final int start, end;
   final TextStyle style;
   final ValueChanged<MarkdownContextRequest>? onContextMenu;
+  final MarkdownPreferences preferences;
+  final MarkdownEditingPreferences? editingPreferences;
+  final Widget Function(Uri uri, String? title, String? alt)? imageBuilder;
+  final MarkdownEditorLabels labels;
   @override
   State<MarkdownTableEditor> createState() => _MarkdownTableEditorState();
 }
@@ -200,45 +212,96 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
                   );
                 }
               },
-        child: TextField(
-          key: ValueKey('table-cell-$row-$col'),
-          controller: input,
-          focusNode: focus,
-          style: widget.style.copyWith(
-            fontWeight: row == 0 ? FontWeight.w600 : FontWeight.w400,
-          ),
-          textAlign: switch (alignment) {
-            MarkdownTableAlignment.center => TextAlign.center,
-            MarkdownTableAlignment.right => TextAlign.right,
-            _ => TextAlign.left,
-          },
-          contextMenuBuilder: widget.onContextMenu == null
-              ? null
-              : (context, editable) {
-                  final anchor = editable.contextMenuAnchors.primaryAnchor;
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (!mounted) return;
-                    editable.hideToolbar();
-                    widget.onContextMenu!(
-                      MarkdownContextRequest(
-                        offset: cell.range.start,
-                        position: anchor,
-                        tableRow: row,
-                        tableColumn: col,
+        child: ListenableBuilder(
+          listenable: focus,
+          builder: (context, _) => Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              Opacity(
+                opacity: focus.hasFocus ? 1 : 0,
+                alwaysIncludeSemantics: true,
+                child: TextField(
+                  key: ValueKey('table-cell-$row-$col'),
+                  controller: input,
+                  focusNode: focus,
+                  maxLines: null,
+                  textInputAction: TextInputAction.next,
+                  style: widget.style.copyWith(
+                    fontWeight: row == 0 ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                  textAlign: switch (alignment) {
+                    MarkdownTableAlignment.center => TextAlign.center,
+                    MarkdownTableAlignment.right => TextAlign.right,
+                    _ => TextAlign.left,
+                  },
+                  contextMenuBuilder: widget.onContextMenu == null
+                      ? null
+                      : (context, editable) {
+                          final anchor =
+                              editable.contextMenuAnchors.primaryAnchor;
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!mounted) return;
+                            editable.hideToolbar();
+                            widget.onContextMenu!(
+                              MarkdownContextRequest(
+                                offset: cell.range.start,
+                                position: anchor,
+                                tableRow: row,
+                                tableColumn: col,
+                              ),
+                            );
+                          });
+                          return const SizedBox.shrink();
+                        },
+                  inputFormatters: [
+                    FilteringTextInputFormatter.singleLineFormatter,
+                  ],
+                  onSubmitted: (_) => focus.nextFocus(),
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    filled: false,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                  ),
+                ),
+              ),
+              if (!focus.hasFocus)
+                IgnorePointer(
+                  child: ExcludeSemantics(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
                       ),
-                    );
-                  });
-                  return const SizedBox.shrink();
-                },
-          inputFormatters: [FilteringTextInputFormatter.singleLineFormatter],
-          onSubmitted: (_) => focus.nextFocus(),
-          decoration: const InputDecoration(
-            isDense: true,
-            filled: false,
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
+                      child: MarkdownReader(
+                        key: ValueKey('table-display-$row-$col'),
+                        data: cell.text,
+                        inline: true,
+                        selectable: false,
+                        bodyStyle: widget.style.copyWith(
+                          fontWeight: row == 0
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
+                        inlineAlignment: switch (alignment) {
+                          MarkdownTableAlignment.center => WrapAlignment.center,
+                          MarkdownTableAlignment.right => WrapAlignment.end,
+                          _ => WrapAlignment.start,
+                        },
+                        preferences: widget.preferences,
+                        editingPreferences: widget.editingPreferences,
+                        imageBuilder: widget.imageBuilder,
+                        labels: widget.labels,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),

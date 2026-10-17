@@ -52,6 +52,9 @@ class MarkdownReader extends StatelessWidget {
     this.preferences = const MarkdownPreferences(),
     this.labels = const MarkdownEditorLabels(),
     this.onMediaContext,
+    this.inline = false,
+    this.bodyStyle,
+    this.inlineAlignment = WrapAlignment.start,
   });
   final String data;
   final MarkdownTypography typography;
@@ -63,6 +66,9 @@ class MarkdownReader extends StatelessWidget {
   final void Function(String text, String? href, String title)? onTapLink;
   final Widget Function(Uri uri, String? title, String? alt)? imageBuilder;
   final MarkdownMediaContextCallback? onMediaContext;
+  final bool inline;
+  final TextStyle? bodyStyle;
+  final WrapAlignment inlineAlignment;
   MarkdownStyleSheet styleSheet(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final accent = typography == MarkdownTypography.column
@@ -77,35 +83,40 @@ class MarkdownReader extends StatelessWidget {
         (font == MarkdownBodyFont.system &&
             typography == MarkdownTypography.book);
     final mono = font == MarkdownBodyFont.mono;
-    final body = Theme.of(context).textTheme.bodyMedium!.copyWith(
-      fontSize: compact ? fontSize * .93 : fontSize,
-      height: compact
-          ? 1.65
-          : typography == MarkdownTypography.book
-          ? 2.05
-          : switch (typography) {
-              MarkdownTypography.document ||
-              MarkdownTypography.technical => 1.85,
-              MarkdownTypography.column => 1.95,
-              MarkdownTypography.editorial => 2,
-              _ => 1.9,
-            },
-      letterSpacing: 0,
-      color: colors.onSurface,
-      fontFamily: mono
-          ? fonts.monospace
-          : book
-          ? fonts.serif
-          : null,
-      fontFamilyFallback: mono
-          ? fonts.monospaceFallback
-          : book
-          ? fonts.serifFallback
-          : null,
-    );
+    final body = Theme.of(context).textTheme.bodyMedium!
+        .copyWith(
+          fontSize: compact ? fontSize * .93 : fontSize,
+          height: compact
+              ? 1.65
+              : typography == MarkdownTypography.book
+              ? 2.05
+              : switch (typography) {
+                  MarkdownTypography.document ||
+                  MarkdownTypography.technical => 1.85,
+                  MarkdownTypography.column => 1.95,
+                  MarkdownTypography.editorial => 2,
+                  _ => 1.9,
+                },
+          letterSpacing: 0,
+          color: colors.onSurface,
+          fontFamily: mono
+              ? fonts.monospace
+              : book
+              ? fonts.serif
+              : null,
+          fontFamilyFallback: mono
+              ? fonts.monospaceFallback
+              : book
+              ? fonts.serifFallback
+              : null,
+        )
+        .merge(bodyStyle);
     return MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
       p: body,
-      pPadding: EdgeInsets.only(bottom: compact ? 9 : fontSize, right: 3),
+      pPadding: inline
+          ? EdgeInsets.zero
+          : EdgeInsets.only(bottom: compact ? 9 : fontSize, right: 3),
+      textAlign: inlineAlignment,
       blockSpacing: 0,
       h1: body.copyWith(
         fontSize:
@@ -193,7 +204,9 @@ class MarkdownReader extends StatelessWidget {
       selectable: selectable,
       softLineBreak: preferences.softBreak,
       extensionSet: MarkdownSyntax.extensions(preferences),
-      blockSyntaxes: MarkdownSyntax.blocks(preferences),
+      blockSyntaxes: inline
+          ? const [MarkdownInlineBlockSyntax()]
+          : MarkdownSyntax.blocks(preferences),
       inlineSyntaxes: MarkdownSyntax.inlines(preferences),
       styleSheet: sheet,
       onTapLink: onTapLink,

@@ -5,6 +5,19 @@ import 'package:val_latex_flutter/val_latex_flutter.dart' as latex;
 
 import 'markdown_preferences.dart';
 
+/// Table cells accept inline Markdown, never headings, lists or fenced blocks.
+final class MarkdownInlineBlockSyntax extends md.BlockSyntax {
+  const MarkdownInlineBlockSyntax();
+  @override
+  RegExp get pattern => RegExp(r'.');
+  @override
+  md.Node parse(md.BlockParser parser) {
+    final text = parser.current.content;
+    parser.advance();
+    return md.Element('p', [md.UnparsedContent(text)]);
+  }
+}
+
 /// One syntax configuration for instant editing, reading and all encoders.
 abstract final class MarkdownSyntax {
   static md.ExtensionSet extensions(MarkdownPreferences preferences) =>
