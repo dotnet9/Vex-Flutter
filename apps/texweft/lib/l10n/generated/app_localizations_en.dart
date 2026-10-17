@@ -10,6 +10,9 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get typewriterMode => 'Typewriter mode';
+
+  @override
   String get mapLayoutRight => 'Right tree';
 
   @override

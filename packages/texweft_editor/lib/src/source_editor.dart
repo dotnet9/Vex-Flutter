@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:re_editor/re_editor.dart';
 
 import 'code_block.dart';
@@ -15,10 +16,12 @@ class MarkdownSourceEditor extends StatefulWidget {
     required this.controller,
     this.lineNumbers = true,
     this.fontSize = 14,
+    this.typewriter = false,
   });
   final MarkdownEditorController controller;
   final bool lineNumbers;
   final double fontSize;
+  final bool typewriter;
   @override
   State<MarkdownSourceEditor> createState() =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.windows
@@ -30,6 +33,7 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
   late MarkdownSourceEditingController _code;
   late _SourceViewport _viewport;
   bool _restoringScroll = false;
+  double _viewportHeight = 0;
   late final _vertical = ScrollController(
     initialScrollOffset: _viewport.vertical,
     keepScrollOffset: false,
@@ -114,6 +118,7 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
         _restoringScroll = false;
       });
     }
+    if (oldWidget.typewriter != widget.typewriter) _revealSelection();
   }
 
   void _rememberScroll() {
@@ -137,6 +142,16 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && widget.controller.sourceFocus.hasFocus) {
         _code.makeCursorVisible();
+        if (widget.typewriter && _vertical.hasClients) {
+          final height =
+              MediaQuery.textScalerOf(context).scale(widget.fontSize) * 1.9;
+          final position = _vertical.position;
+          final target = (_code.selection.extentIndex * height).clamp(
+            position.minScrollExtent,
+            position.maxScrollExtent,
+          );
+          _vertical.jumpTo(target);
+        }
       }
     });
   }
@@ -156,51 +171,67 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme;
     final font = MarkdownCodeBlock.textStyle(context, widget.fontSize);
-    return CodeEditor(
-      key: PageStorageKey(('source', widget.controller)),
-      controller: _code,
-      scrollController: _scroll,
-      focusNode: widget.controller.sourceFocus,
-      toolbarController: _toolbar,
-      autofocus: false,
-      wordWrap: false,
-      autocompleteSymbols: false,
-      chunkAnalyzer: const NonCodeChunkAnalyzer(),
-      shortcutsActivatorsBuilder: const _SourceShortcuts(),
-      style: CodeEditorStyle(
-        fontFamily: font.fontFamily,
-        fontFamilyFallback: font.fontFamilyFallback,
-        fontSize: MediaQuery.textScalerOf(context).scale(widget.fontSize),
-        fontHeight: 1.9,
-        textColor: color.onSurface,
-        backgroundColor: Colors.transparent,
-        cursorColor: color.primary,
-        selectionColor: color.primary.withValues(alpha: .18),
-      ),
-      padding: EdgeInsets.fromLTRB(widget.lineNumbers ? 4 : 28, 26, 28, 70),
-      indicatorBuilder: widget.lineNumbers
-          ? (context, editing, chunks, notifier) => SizedBox(
-              width: 48,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: DefaultCodeLineNumber(
-                    controller: editing,
-                    notifier: notifier,
-                    textStyle: font.copyWith(
-                      fontSize: 10,
-                      color: color.onSurfaceVariant,
-                    ),
-                    focusedTextStyle: font.copyWith(
-                      fontSize: 10,
-                      color: color.primary,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        _viewportHeight = constraints.maxHeight;
+        final inset = widget.typewriter
+            ? (_viewportHeight -
+                      MediaQuery.textScalerOf(context).scale(widget.fontSize) *
+                          1.9) /
+                  2
+            : null;
+        return CodeEditor(
+          key: PageStorageKey(('source', widget.controller)),
+          controller: _code,
+          scrollController: _scroll,
+          focusNode: widget.controller.sourceFocus,
+          toolbarController: _toolbar,
+          autofocus: false,
+          wordWrap: false,
+          autocompleteSymbols: false,
+          chunkAnalyzer: const NonCodeChunkAnalyzer(),
+          shortcutsActivatorsBuilder: const _SourceShortcuts(),
+          style: CodeEditorStyle(
+            fontFamily: font.fontFamily,
+            fontFamilyFallback: font.fontFamilyFallback,
+            fontSize: MediaQuery.textScalerOf(context).scale(widget.fontSize),
+            fontHeight: 1.9,
+            textColor: color.onSurface,
+            backgroundColor: Colors.transparent,
+            cursorColor: color.primary,
+            selectionColor: color.primary.withValues(alpha: .18),
+          ),
+          padding: EdgeInsets.fromLTRB(
+            widget.lineNumbers ? 4 : 28,
+            inset ?? 26,
+            28,
+            inset ?? 70,
+          ),
+          indicatorBuilder: widget.lineNumbers
+              ? (context, editing, chunks, notifier) => SizedBox(
+                  width: 48,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: DefaultCodeLineNumber(
+                        controller: editing,
+                        notifier: notifier,
+                        textStyle: font.copyWith(
+                          fontSize: 10,
+                          color: color.onSurfaceVariant,
+                        ),
+                        focusedTextStyle: font.copyWith(
+                          fontSize: 10,
+                          color: color.primary,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-            )
-          : null,
+                )
+              : null,
+        );
+      },
     );
   }
 }
@@ -226,8 +257,75 @@ class _SourceShortcuts extends DefaultCodeShortcutsActivatorsBuilder {
 // Keep the platform TextField input path until native platform validation.
 class _MobileSourceEditorState extends State<MarkdownSourceEditor> {
   final _scroll = ScrollController();
+  final _viewport = GlobalKey();
+  bool _centerScheduled = false;
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.source.addListener(_center);
+    widget.controller.sourceFocus.addListener(_center);
+  }
+
+  @override
+  void didUpdateWidget(covariant MarkdownSourceEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.source.removeListener(_center);
+      oldWidget.controller.sourceFocus.removeListener(_center);
+      widget.controller.source.addListener(_center);
+      widget.controller.sourceFocus.addListener(_center);
+    }
+    if (oldWidget.typewriter != widget.typewriter) _center();
+  }
+
+  void _center() {
+    if (!widget.typewriter ||
+        _centerScheduled ||
+        !widget.controller.sourceFocus.hasFocus) {
+      return;
+    }
+    _centerScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _centerScheduled = false;
+      if (!mounted ||
+          !widget.typewriter ||
+          !widget.controller.sourceFocus.hasFocus ||
+          !_scroll.hasClients) {
+        return;
+      }
+      final viewport =
+          _viewport.currentContext?.findRenderObject() as RenderBox?;
+      if (viewport == null) return;
+      RenderEditable? editable;
+      void visit(RenderObject object) {
+        if (object is RenderEditable) {
+          editable = object;
+        } else {
+          object.visitChildren(visit);
+        }
+      }
+
+      visit(viewport);
+      final selection = widget.controller.source.selection;
+      if (editable == null || !selection.isValid) return;
+      final rect = editable!.getLocalRectForCaret(selection.extent);
+      final center = viewport
+          .globalToLocal(editable!.localToGlobal(rect.center))
+          .dy;
+      final position = _scroll.position;
+      _scroll.jumpTo(
+        (_scroll.offset + center - viewport.size.height / 2).clamp(
+          position.minScrollExtent,
+          position.maxScrollExtent,
+        ),
+      );
+    });
+  }
+
   @override
   void dispose() {
+    widget.controller.source.removeListener(_center);
+    widget.controller.sourceFocus.removeListener(_center);
     _scroll.dispose();
     super.dispose();
   }
@@ -240,69 +338,79 @@ class _MobileSourceEditorState extends State<MarkdownSourceEditor> {
       builder: (context, _) {
         final height =
             MediaQuery.textScalerOf(context).scale(widget.fontSize) * 1.9;
-        return Row(
+        return LayoutBuilder(
           key: PageStorageKey(('source', widget.controller)),
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (widget.lineNumbers)
-              SizedBox(
-                width: 48,
-                child: ClipRect(
-                  child: CustomPaint(
-                    painter: _SourceLineNumbers(
-                      scroll: _scroll,
-                      count:
-                          widget.controller.document.lineStarts.length +
-                          (widget.controller.source.text.endsWith('\n')
-                              ? 1
-                              : 0),
-                      lineHeight: height,
-                      style: MarkdownCodeBlock.textStyle(context, 10).copyWith(
-                        height: height / 10,
-                        color: color.onSurfaceVariant,
+          builder: (context, constraints) {
+            final top = widget.typewriter
+                ? (constraints.maxHeight - height) / 2
+                : 26.0;
+            return Row(
+              key: _viewport,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (widget.lineNumbers)
+                  SizedBox(
+                    width: 48,
+                    child: ClipRect(
+                      child: CustomPaint(
+                        painter: _SourceLineNumbers(
+                          scroll: _scroll,
+                          count:
+                              widget.controller.document.lineStarts.length +
+                              (widget.controller.source.text.endsWith('\n')
+                                  ? 1
+                                  : 0),
+                          lineHeight: height,
+                          top: top,
+                          style: MarkdownCodeBlock.textStyle(context, 10)
+                              .copyWith(
+                                height: height / 10,
+                                color: color.onSurfaceVariant,
+                              ),
+                          direction: Directionality.of(context),
+                          scaler: MediaQuery.textScalerOf(context),
+                        ),
                       ),
-                      direction: Directionality.of(context),
-                      scaler: MediaQuery.textScalerOf(context),
+                    ),
+                  ),
+                Expanded(
+                  child: TextField(
+                    controller: widget.controller.source,
+                    focusNode: widget.controller.sourceFocus,
+                    scrollController: _scroll,
+                    keyboardType: TextInputType.multiline,
+                    expands: true,
+                    minLines: null,
+                    maxLines: null,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    inputFormatters: [MarkdownTypingFormatter()],
+                    smartDashesType: SmartDashesType.disabled,
+                    smartQuotesType: SmartQuotesType.disabled,
+                    style: MarkdownCodeBlock.textStyle(context, widget.fontSize)
+                        .copyWith(
+                          fontSize: widget.fontSize,
+                          height: 1.9,
+                          color: color.onSurface,
+                        ),
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      filled: false,
+                      isCollapsed: true,
+                      contentPadding: EdgeInsets.fromLTRB(
+                        widget.lineNumbers ? 4 : 28,
+                        top,
+                        28,
+                        widget.typewriter ? top : 70,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            Expanded(
-              child: TextField(
-                controller: widget.controller.source,
-                focusNode: widget.controller.sourceFocus,
-                scrollController: _scroll,
-                keyboardType: TextInputType.multiline,
-                expands: true,
-                minLines: null,
-                maxLines: null,
-                autocorrect: false,
-                enableSuggestions: false,
-                inputFormatters: [MarkdownTypingFormatter()],
-                smartDashesType: SmartDashesType.disabled,
-                smartQuotesType: SmartQuotesType.disabled,
-                style: MarkdownCodeBlock.textStyle(context, widget.fontSize)
-                    .copyWith(
-                      fontSize: widget.fontSize,
-                      height: 1.9,
-                      color: color.onSurface,
-                    ),
-                decoration: InputDecoration(
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  filled: false,
-                  isCollapsed: true,
-                  contentPadding: EdgeInsets.fromLTRB(
-                    widget.lineNumbers ? 4 : 28,
-                    26,
-                    28,
-                    70,
-                  ),
-                ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
     );
@@ -319,18 +427,20 @@ class _SourceLineNumbers extends CustomPainter {
     required this.style,
     required this.direction,
     required this.scaler,
+    this.top = 26,
   }) : super(repaint: scroll);
   final ScrollController scroll;
   final int count;
   final double lineHeight;
+  final double top;
   final TextStyle style;
   final TextDirection direction;
   final TextScaler scaler;
   @override
   void paint(Canvas canvas, Size size) {
     final offset = scroll.hasClients ? scroll.offset : 0.0;
-    final first = ((offset - 26) / lineHeight).floor().clamp(0, count);
-    final last = ((offset + size.height - 26) / lineHeight).ceil().clamp(
+    final first = ((offset - top) / lineHeight).floor().clamp(0, count);
+    final last = ((offset + size.height - top) / lineHeight).ceil().clamp(
       0,
       count,
     );
@@ -340,7 +450,7 @@ class _SourceLineNumbers extends CustomPainter {
       painter.layout();
       painter.paint(
         canvas,
-        Offset(size.width - 12 - painter.width, 26 + i * lineHeight - offset),
+        Offset(size.width - 12 - painter.width, top + i * lineHeight - offset),
       );
     }
     painter.dispose();
@@ -349,6 +459,7 @@ class _SourceLineNumbers extends CustomPainter {
   @override
   bool shouldRepaint(_SourceLineNumbers oldDelegate) =>
       count != oldDelegate.count ||
+      top != oldDelegate.top ||
       lineHeight != oldDelegate.lineHeight ||
       style != oldDelegate.style ||
       direction != oldDelegate.direction ||

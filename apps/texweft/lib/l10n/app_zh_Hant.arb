@@ -1,5 +1,6 @@
 {
   "@@locale": "zh_Hant",
+  "typewriterMode": "打字機模式",
   "mapLayoutRight": "單側樹形",
   "mapLayoutBalanced": "雙側平衡",
   "mapLayoutRadial": "中心放射",

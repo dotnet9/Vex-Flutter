@@ -10,6 +10,9 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get typewriterMode => 'タイプライターモード';
+
+  @override
   String get mapLayoutRight => '右向きツリー';
 
   @override

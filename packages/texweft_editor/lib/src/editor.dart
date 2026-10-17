@@ -24,6 +24,8 @@ class MarkdownInstantEditor extends StatefulWidget {
     this.padding = const EdgeInsets.fromLTRB(56, 36, 56, 70),
     this.labels = const MarkdownEditorLabels(),
     this.imageBuilder,
+    this.typewriter = false,
+    this.focusMode = false,
   });
   final MarkdownEditorLabels labels;
   final MarkdownEditorController controller;
@@ -32,6 +34,7 @@ class MarkdownInstantEditor extends StatefulWidget {
   final double fontSize;
   final EdgeInsets padding;
   final Widget Function(Uri uri, String? title, String? alt)? imageBuilder;
+  final bool typewriter, focusMode;
   @override
   State<MarkdownInstantEditor> createState() => _MarkdownInstantEditorState();
 }
@@ -42,6 +45,9 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
   final _focus = FocusNode();
   final _languageFocus = FocusNode();
   final _bodyRegion = GlobalKey();
+  final _viewportRegion = GlobalKey();
+  final _scroll = ScrollController();
+  bool _centerScheduled = false;
   MarkdownCodeFence? _codeFence;
   MarkdownSnapshot? _checkpoint;
   MarkdownBlockKind _kind = MarkdownBlockKind.paragraph;
@@ -77,30 +83,36 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
         style: _reader.styleSheet(context).p!,
       );
     }
-    return Listener(
-      onPointerDown: (event) {
-        if (event.kind != PointerDeviceKind.mouse ||
-            event.buttons != kPrimaryMouseButton) {
-          return;
-        }
-        _begin(block, tapPosition: event.position);
-        _dragOrigin = event.position;
-        _dragBase = null;
-      },
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapUp: (details) {
-          if (details.kind != PointerDeviceKind.mouse) {
-            _begin(block, tapPosition: details.globalPosition);
+    return AnimatedOpacity(
+      opacity: widget.focusMode && _checkpoint != null ? .32 : 1,
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : const Duration(milliseconds: 140),
+      child: Listener(
+        onPointerDown: (event) {
+          if (event.kind != PointerDeviceKind.mouse ||
+              event.buttons != kPrimaryMouseButton) {
+            return;
           }
+          _begin(block, tapPosition: event.position);
+          _dragOrigin = event.position;
+          _dragBase = null;
         },
-        child: MarkdownReader(
-          data: block.range.slice(source),
-          typography: widget.typography,
-          compact: widget.compact,
-          fontSize: widget.fontSize,
-          selectable: false,
-          imageBuilder: widget.imageBuilder,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapUp: (details) {
+            if (details.kind != PointerDeviceKind.mouse) {
+              _begin(block, tapPosition: details.globalPosition);
+            }
+          },
+          child: MarkdownReader(
+            data: block.range.slice(source),
+            typography: widget.typography,
+            compact: widget.compact,
+            fontSize: widget.fontSize,
+            selectable: false,
+            imageBuilder: widget.imageBuilder,
+          ),
         ),
       ),
     );
@@ -111,6 +123,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
     super.initState();
     _input.addListener(_update);
     _language.addListener(_update);
+    _focus.addListener(_scheduleCenter);
     widget.controller.session.addListener(_externalChange);
   }
 
@@ -122,6 +135,38 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
       widget.controller.session.addListener(_externalChange);
       _checkpoint = null;
     }
+    if (oldWidget.typewriter != widget.typewriter) _scheduleCenter();
+  }
+
+  void _scheduleCenter() {
+    if (!widget.typewriter || _centerScheduled || !_focus.hasFocus) return;
+    _centerScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _centerScheduled = false;
+      if (!mounted ||
+          !widget.typewriter ||
+          !_focus.hasFocus ||
+          !_scroll.hasClients ||
+          _checkpoint == null) {
+        return;
+      }
+      final editable = _editable();
+      final viewport =
+          _viewportRegion.currentContext?.findRenderObject() as RenderBox?;
+      if (editable == null || viewport == null || !_input.selection.isValid) {
+        return;
+      }
+      final caret = editable.getLocalRectForCaret(_input.selection.extent);
+      final center = viewport
+          .globalToLocal(editable.localToGlobal(caret.center))
+          .dy;
+      final position = _scroll.position;
+      final target = (_scroll.offset + center - viewport.size.height / 2).clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      );
+      if ((target - _scroll.offset).abs() > .5) _scroll.jumpTo(target);
+    });
   }
 
   void _externalChange() {
@@ -201,6 +246,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
   }
 
   void _update() {
+    _scheduleCenter();
     if (_checkpoint == null ||
         (_input.value.composing.isValid &&
             !_input.value.composing.isCollapsed) ||
@@ -323,6 +369,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
     _language.dispose();
     _focus.dispose();
     _languageFocus.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -533,48 +580,59 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
             _dragOrigin = null;
             _dragBase = null;
           },
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: widget.typography.width),
-              child: SuperListView(
-                key: PageStorageKey(widget.controller),
-                padding: widget.padding,
-                children: [
-                  for (final block in blocks.where(
-                    (b) => _checkpoint == null || b.range.end <= _start,
-                  ))
-                    _displayBlock(block, source),
-                  if (_checkpoint != null) _field(colors),
-                  if (_checkpoint != null)
+          child: LayoutBuilder(
+            builder: (context, constraints) => Align(
+              key: _viewportRegion,
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: widget.typography.width),
+                child: SuperListView(
+                  key: PageStorageKey(widget.controller),
+                  controller: _scroll,
+                  padding: widget.padding.copyWith(
+                    top: widget.typewriter
+                        ? constraints.maxHeight / 2
+                        : widget.padding.top,
+                    bottom: widget.typewriter
+                        ? constraints.maxHeight / 2
+                        : widget.padding.bottom,
+                  ),
+                  children: [
                     for (final block in blocks.where(
-                      (b) => b.range.start >= _end && b.range.start > _start,
+                      (b) => _checkpoint == null || b.range.end <= _start,
                     ))
                       _displayBlock(block, source),
-                  if (_checkpoint == null)
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        final current = widget.controller.session.text;
-                        final newline = widget.controller.document.newline;
-                        if (current.isNotEmpty &&
-                            !current.endsWith('$newline$newline')) {
-                          widget.controller.session.replace(
-                            '$current${current.endsWith(newline) ? '' : newline}$newline',
-                            label: widget.labels.newParagraph,
-                          );
-                        }
-                        _begin(null);
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 24),
-                        child: Text(
-                          blocks.isEmpty ? widget.labels.placeholder : '',
-                          style: TextStyle(color: colors.onSurfaceVariant),
+                    if (_checkpoint != null) _field(colors),
+                    if (_checkpoint != null)
+                      for (final block in blocks.where(
+                        (b) => b.range.start >= _end && b.range.start > _start,
+                      ))
+                        _displayBlock(block, source),
+                    if (_checkpoint == null)
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          final current = widget.controller.session.text;
+                          final newline = widget.controller.document.newline;
+                          if (current.isNotEmpty &&
+                              !current.endsWith('$newline$newline')) {
+                            widget.controller.session.replace(
+                              '$current${current.endsWith(newline) ? '' : newline}$newline',
+                              label: widget.labels.newParagraph,
+                            );
+                          }
+                          _begin(null);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          child: Text(
+                            blocks.isEmpty ? widget.labels.placeholder : '',
+                            style: TextStyle(color: colors.onSurfaceVariant),
+                          ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

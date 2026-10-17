@@ -59,6 +59,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   String palette = 'weft', language;
   bool sidebar = true, outline = false, compact = false, lineNumbers = true;
   bool findVisible = false, replaceVisible = false, focusMode = false;
+  bool typewriter = false;
   PresentationController? presenter;
   bool get presentation => presenter != null;
   bool paragraphs = true, lists = true, blocks = false;
@@ -108,6 +109,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
       guideSeen = preferences['guideSeen'] == true;
       compact = preferences['compact'] == true;
       lineNumbers = preferences['lineNumbers'] != false;
+      typewriter = preferences['typewriter'] == true;
+      focusMode = preferences['focusMode'] == true;
       sidebarWidth = (preferences['sidebarWidth'] as num? ?? 226)
           .toDouble()
           .clamp(200, 560);
@@ -366,6 +369,13 @@ final class WorkspaceViewModel extends ChangeNotifier {
   void toggleFocus() {
     focusMode = !focusMode;
     _notify();
+    persist();
+  }
+
+  void toggleTypewriter() {
+    typewriter = !typewriter;
+    _notify();
+    persist();
   }
 
   void togglePresentation({bool outline = true}) {
@@ -673,6 +683,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
             'language': language,
             'compact': compact,
             'lineNumbers': lineNumbers,
+            'typewriter': typewriter,
+            'focusMode': focusMode,
             'fontSize': fontSize,
             'sidebarWidth': sidebarWidth,
             'summaryLength': summaryLength,

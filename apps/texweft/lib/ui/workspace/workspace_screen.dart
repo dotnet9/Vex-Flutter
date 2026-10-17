@@ -514,6 +514,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         vm.toggleSidebar();
       case 'focus':
         vm.toggleFocus();
+      case 'typewriter':
+        vm.toggleTypewriter();
       case 'presentation':
         unawaited(_run(_togglePresentation));
       case 'exit':
@@ -1006,6 +1008,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             (context.l10n.sourceLineNumbers, 'lines', ''),
             ('', '-', ''),
             (context.l10n.focusMode, 'focus', 'F8'),
+            (context.l10n.typewriterMode, 'typewriter', ''),
             (context.l10n.presentationMode, 'presentation', 'F5'),
             ('', '-', ''),
             (context.l10n.appearanceMenu, '@appearance', ''),
@@ -1229,6 +1232,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     'sidebar' => vm.sidebar,
     'compact' => vm.compact,
     'focus' => vm.focusMode,
+    'typewriter' => vm.typewriter,
     _ =>
       action == 'layout:${vm.layout.name}' ||
           action == 'theme:${vm.themeMode.name}' ||

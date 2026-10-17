@@ -1,5 +1,6 @@
 {
   "@@locale": "en",
+  "typewriterMode": "Typewriter mode",
   "mapLayoutRight": "Right tree",
   "mapLayoutBalanced": "Balanced",
   "mapLayoutRadial": "Radial",

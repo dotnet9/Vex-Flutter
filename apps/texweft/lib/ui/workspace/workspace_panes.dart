@@ -101,6 +101,7 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                 key: widget.editingKey,
                 controller: vm.editor,
                 lineNumbers: vm.lineNumbers,
+                typewriter: vm.typewriter,
                 fontSize: 14,
               ),
               'read' => _DocumentReading(vm: vm),
@@ -116,6 +117,8 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                 labels: context.l10n.editorLabels,
                 typography: vm.typography,
                 compact: vm.compact,
+                typewriter: vm.typewriter,
+                focusMode: vm.focusMode,
                 fontSize: vm.fontSize,
                 padding: EdgeInsets.fromLTRB(
                   titled ? 34 : 44,

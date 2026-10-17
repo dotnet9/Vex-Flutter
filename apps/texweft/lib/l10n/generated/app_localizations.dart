@@ -101,6 +101,12 @@ abstract class AppLocalizations {
     Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
   ];
 
+  /// No description provided for @typewriterMode.
+  ///
+  /// In zh, this message translates to:
+  /// **'打字机模式'**
+  String get typewriterMode;
+
   /// No description provided for @mapLayoutRight.
   ///
   /// In zh, this message translates to:

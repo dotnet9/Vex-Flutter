@@ -1,5 +1,6 @@
 {
   "@@locale": "ja",
+  "typewriterMode": "タイプライターモード",
   "mapLayoutRight": "右向きツリー",
   "mapLayoutBalanced": "両側バランス",
   "mapLayoutRadial": "放射状",

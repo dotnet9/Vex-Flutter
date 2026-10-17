@@ -10,6 +10,9 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get typewriterMode => '打字机模式';
+
+  @override
   String get mapLayoutRight => '单侧树形';
 
   @override
@@ -1073,6 +1076,9 @@ class AppLocalizationsZh extends AppLocalizations {
 /// The translations for Chinese, using the Han script (`zh_Hant`).
 class AppLocalizationsZhHant extends AppLocalizationsZh {
   AppLocalizationsZhHant() : super('zh_Hant');
+
+  @override
+  String get typewriterMode => '打字機模式';
 
   @override
   String get mapLayoutRight => '單側樹形';
