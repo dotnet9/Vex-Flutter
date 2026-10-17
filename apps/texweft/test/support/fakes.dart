@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:texweft/data/repositories/recovery_repository.dart';
 import 'package:texweft/data/repositories/settings_repository.dart';
 import 'package:texweft/data/services/file_service.dart';
+import 'package:texweft/data/services/document_codec.dart';
+import 'package:texweft/domain/file_preferences.dart';
 import 'package:texweft/ui/workspace/workspace_view_model.dart';
 
 final class MemorySettings implements SettingsRepository {
@@ -34,13 +36,14 @@ final class MemoryFiles implements DocumentFileService {
   @override
   Future<OpenedDocument?> pick() async => null;
   @override
-  Future<OpenedFolder?> folder() async => folderPath == null
-      ? null
-      : OpenedFolder(
-          folderPath!,
-          files: content.keys.toList(),
-          directories: folderDirectories,
-        );
+  Future<OpenedFolder?> folder() async =>
+      folderPath == null ? null : readFolder(folderPath!);
+  @override
+  Future<OpenedFolder> readFolder(String path) async => OpenedFolder(
+    path,
+    files: content.keys.toList(),
+    directories: folderDirectories,
+  );
   @override
   Future<OpenedDocument> read(String path) async =>
       OpenedDocument(path.split('/').last, content[path]!, path);
@@ -50,12 +53,19 @@ final class MemoryFiles implements DocumentFileService {
     Uint8List bytes, {
     String? dialogTitle,
   }) async {
-    if (nextSave != null) content[nextSave!] = String.fromCharCodes(bytes);
+    if (nextSave != null) {
+      content[nextSave!] = (await decodeDocument(bytes)).text;
+    }
     return nextSave;
   }
 
   @override
-  Future<void> write(String path, String text, {String? expected}) async {
+  Future<void> write(
+    String path,
+    String text, {
+    String? expected,
+    TextFileFormat format = const TextFileFormat(),
+  }) async {
     if (content[path] != expected) throw const FileConflict();
     await beforeWrite?.call();
     content[path] = text;

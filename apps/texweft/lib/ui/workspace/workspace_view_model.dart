@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
@@ -12,6 +10,8 @@ import 'package:texweft_mindmap/texweft_mindmap.dart';
 import '../../data/repositories/recovery_repository.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../data/services/file_service.dart';
+import '../../data/services/document_codec.dart';
+import '../../domain/file_preferences.dart';
 import '../../domain/presentation.dart';
 import '../../domain/workspace.dart';
 import '../../l10n/l10n.dart';
@@ -46,6 +46,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   final DocumentFileService files;
   final SettingsRepository settings;
   final RecoveryRepository recovery;
+  final filePreferences = FilePreferences();
   final documents = <WorkspaceDocument>[];
   final recent = <String>[];
   OpenedFolder? folder;
@@ -76,13 +77,17 @@ final class WorkspaceViewModel extends ChangeNotifier {
   String? selectedHeadingId;
   OpenedDocument? externalChange;
   bool ready = false, busy = false, _disposed = false, _checking = false;
-  Timer? _autosave, _externalTimer;
+  Timer? _recoveryTimer, _externalTimer;
+  final _saveTimers = <WorkspaceDocument, Timer>{};
+  final _saveQueues = <WorkspaceDocument, Future<bool>>{};
   final _headingForNode = <String, String>{};
   List<Map<String, Object?>> recoverable = [];
 
   Future<void> initialize({bool watchFiles = true}) async {
     try {
       final preferences = await settings.load();
+      filePreferences.load(preferences['files']);
+      _blank.format = filePreferences.newDocumentFormat;
       final savedPalette = preferences['palette'];
       if (savedPalette is String && paletteNames.containsKey(savedPalette)) {
         palette = savedPalette;
@@ -132,7 +137,11 @@ final class WorkspaceViewModel extends ChangeNotifier {
       );
       final paths = preferences['recent'];
       if (paths is List) recent.addAll(paths.whereType<String>().take(20));
-      recoverable = await recovery.load();
+      if (filePreferences.recovery) recoverable = await recovery.load();
+      if (filePreferences.restoreWorkspace) {
+        final workspace = preferences['workspace'];
+        if (workspace is Map) await _restoreWorkspace(workspace);
+      }
       await mcp.load(preferences['mcp']);
     } catch (error) {
       _statusMessage = (l) => l.preferencesLoadFailed(error.toString());
@@ -170,12 +179,15 @@ final class WorkspaceViewModel extends ChangeNotifier {
     if (_mapDocument != current.id || _mapRevision != editor.session.revision) {
       _refreshMap();
       search(findQuery);
-      _autosave?.cancel();
+      _recoveryTimer?.cancel();
       if (!_guiding) {
-        _autosave = Timer(
-          const Duration(milliseconds: 600),
-          () => unawaited(flushRecovery()),
-        );
+        if (filePreferences.recovery) {
+          _recoveryTimer = Timer(
+            const Duration(milliseconds: 600),
+            () => unawaited(flushRecovery()),
+          );
+        }
+        _scheduleSave(current);
       }
     }
     _notify();
@@ -472,12 +484,18 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _refreshMap();
     search(findQuery);
     _notify();
+    persist();
   }
 
   void newDocument() {
     endGuide();
     final id = DateTime.now().microsecondsSinceEpoch.toString();
-    final doc = WorkspaceDocument(id: id, name: strings.untitledFile, text: '');
+    final doc = WorkspaceDocument(
+      id: id,
+      name: strings.untitledFile,
+      text: '',
+      format: filePreferences.newDocumentFormat,
+    );
     _add(doc);
     switchDocument(doc);
   }
@@ -506,6 +524,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
       text: opened.text,
       path: opened.path,
       persistedText: opened.text,
+      format: opened.format,
     );
     _add(doc);
     switchDocument(doc);
@@ -519,21 +538,157 @@ final class WorkspaceViewModel extends ChangeNotifier {
     sidebar = true;
     outline = false;
     _notify();
+    persist();
   }
 
-  Future<bool> save({bool saveAs = false}) async {
+  Future<void> _restoreWorkspace(Map workspace) async {
+    final paths = workspace['paths'];
+    if (paths is List) {
+      for (final path in paths.whereType<String>().take(40)) {
+        try {
+          final opened = await files.read(path);
+          _add(
+            WorkspaceDocument(
+              id: 'restored-${documents.length}',
+              name: opened.name,
+              path: opened.path,
+              text: opened.text,
+              persistedText: opened.text,
+              format: opened.format,
+            ),
+          );
+        } on FileSystemException {
+          // Missing recent files must not prevent other documents restoring.
+        } on FormatException {
+          // Leave unrecognized files untouched rather than loading replacements.
+        }
+      }
+    }
+    current =
+        documents.where((d) => d.path == workspace['active']).firstOrNull ??
+        documents.firstOrNull ??
+        _blank;
+    final folderPath = workspace['folder'];
+    if (folderPath is String) {
+      try {
+        folder = await files.readFolder(folderPath);
+      } on FileSystemException {
+        // The directory may have moved since the previous run.
+      }
+    }
+  }
+
+  Future<void> updateFilePreferences({
+    bool? autoSave,
+    bool? recovery,
+    bool? restoreWorkspace,
+    int? saveDelay,
+    DocumentEncoding? encoding,
+    DocumentNewline? newline,
+  }) async {
+    final prefs = filePreferences;
+    prefs.autoSave = autoSave ?? prefs.autoSave;
+    prefs.recovery = recovery ?? prefs.recovery;
+    prefs.restoreWorkspace = restoreWorkspace ?? prefs.restoreWorkspace;
+    if (saveDelay != null && [2, 5, 10].contains(saveDelay)) {
+      prefs.saveDelay = saveDelay;
+    }
+    prefs.newDocumentFormat = TextFileFormat(
+      encoding: encoding ?? prefs.newDocumentFormat.encoding,
+      newline: newline ?? prefs.newDocumentFormat.newline,
+    );
+    if (documents.isEmpty) _blank.format = prefs.newDocumentFormat;
+    for (final timer in _saveTimers.values) {
+      timer.cancel();
+    }
+    _saveTimers.clear();
+    for (final doc in documents) {
+      _scheduleSave(doc);
+    }
+    _recoveryTimer?.cancel();
+    _notify();
+    persist();
+    if (!prefs.recovery) recoverable.clear();
+    await flushRecovery();
+  }
+
+  void _scheduleSave(WorkspaceDocument doc) {
+    _saveTimers.remove(doc)?.cancel();
+    if (!filePreferences.autoSave ||
+        doc.path == null ||
+        !doc.editor.session.isDirty ||
+        _guiding) {
+      return;
+    }
+    _saveTimers[doc] = Timer(Duration(seconds: filePreferences.saveDelay), () {
+      _saveTimers.remove(doc);
+      if (_disposed || !documents.contains(doc)) return;
+      unawaited(
+        _saveDocument(doc).catchError((Object error) {
+          _statusMessage = error is FileConflict
+              ? (l) => l.fileConflict
+              : (l) => l.operationFailed(error.toString());
+          if (identical(doc, current)) unawaited(checkExternal());
+          _notify();
+          return false;
+        }),
+      );
+    });
+  }
+
+  Future<bool> save({bool saveAs = false}) =>
+      _saveDocument(current, saveAs: saveAs);
+
+  Future<void> finishPendingSaves() async {
+    for (final timer in _saveTimers.values) {
+      timer.cancel();
+    }
+    _saveTimers.clear();
+    await Future.wait(_saveQueues.values.toList());
+  }
+
+  Future<bool> _saveDocument(WorkspaceDocument doc, {bool saveAs = false}) {
+    final text = doc.editor.text;
+    _saveTimers.remove(doc)?.cancel();
+    // A manual save and a pending autosave share one ordered queue per document.
+    final task = (_saveQueues[doc] ?? Future.value(true))
+        .catchError((Object _) => false)
+        .then((_) => _writeDocument(doc, text, saveAs: saveAs));
+    _saveQueues[doc] = task;
+    unawaited(
+      task.then(
+        (_) {
+          if (identical(_saveQueues[doc], task)) _saveQueues.remove(doc);
+        },
+        onError: (Object _, StackTrace _) {
+          if (identical(_saveQueues[doc], task)) _saveQueues.remove(doc);
+        },
+      ),
+    );
+    return task;
+  }
+
+  Future<bool> _writeDocument(
+    WorkspaceDocument doc,
+    String text, {
+    required bool saveAs,
+  }) async {
     if (_guiding) {
       _statusMessage = (l) => l.finishGuideBeforeSaving;
       _notify();
       return false;
     }
-    final doc = current, text = editor.session.text;
     if (!saveAs && doc.path != null) {
-      await files.write(doc.path!, text, expected: doc.persistedText);
+      await files.write(
+        doc.path!,
+        text,
+        expected: doc.persistedText,
+        format: doc.format,
+      );
     } else {
       final path = await files.saveAs(
         doc.name,
-        Uint8List.fromList(utf8.encode(text)),
+        await encodeDocument(text, doc.format),
         dialogTitle: strings.saveNamedFile(doc.name),
       );
       if (path == null) return false;
@@ -546,9 +701,10 @@ final class WorkspaceViewModel extends ChangeNotifier {
     doc.persistedText = text;
     if (!documents.contains(doc)) documents.add(doc);
     doc.editor.session.markSaved(savedText: text);
-    externalChange = null;
+    if (identical(doc, current)) externalChange = null;
     final savedName = doc.name;
     _statusMessage = (l) => l.savedFile(savedName);
+    persist();
     await flushRecovery();
     _notify();
     return true;
@@ -565,12 +721,15 @@ final class WorkspaceViewModel extends ChangeNotifier {
   Future<void> closeCurrent({bool keepDraft = false}) async {
     endGuide();
     final document = current;
-    if (keepDraft && editor.session.isDirty) {
+    _saveTimers.remove(document)?.cancel();
+    await _saveQueues[document]?.catchError((Object _) => false);
+    if (keepDraft && filePreferences.recovery && editor.session.isDirty) {
       recoverable.add({
         'name': document.name,
         'path': document.path,
         'text': editor.text,
         'saved': document.persistedText ?? '',
+        ...document.format.toJson(),
       });
     }
     documents.remove(document);
@@ -581,6 +740,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
         id: 'empty-workspace',
         name: strings.untitledFile,
         text: '',
+        format: filePreferences.newDocumentFormat,
       );
       _blank.editor.addListener(_changed);
     }
@@ -590,6 +750,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _refreshMap();
     search(findQuery);
     _notify();
+    persist();
     await flushRecovery(throwOnError: true);
   }
 
@@ -600,14 +761,16 @@ final class WorkspaceViewModel extends ChangeNotifier {
     try {
       final latest = await files.read(doc.path!);
       if (!_disposed && identical(doc, current)) {
-        final next = latest.text != doc.persistedText ? latest : null;
+        final next = latest.text != normalizeNewlines(doc.persistedText ?? '')
+            ? latest
+            : null;
         if (next?.text != externalChange?.text) {
           externalChange = next;
           _notify();
         }
       }
-    } on FileSystemException catch (error) {
-      _statusMessage = (l) => l.fileReadFailed(error.message);
+    } catch (error) {
+      _statusMessage = (l) => l.fileReadFailed(error.toString());
       _notify();
     } finally {
       _checking = false;
@@ -620,6 +783,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     editor.session.replace(change.text, label: '载入外部修改');
     editor.session.markSaved();
     current.persistedText = change.text;
+    current.format = change.format;
     externalChange = null;
     _notify();
   }
@@ -634,11 +798,14 @@ final class WorkspaceViewModel extends ChangeNotifier {
             'path': d.path,
             'text': d.editor.session.text,
             'saved': d.persistedText ?? '',
+            ...d.format.toJson(),
           },
         )
         .toList();
     try {
-      await recovery.save([...recoverable, ...snapshots]);
+      await recovery.save(
+        filePreferences.recovery ? [...recoverable, ...snapshots] : [],
+      );
     } catch (error) {
       _statusMessage = (l) => l.recoverySaveFailed(error.toString());
       _notify();
@@ -655,6 +822,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
         path: draft['path'] as String?,
         text: draft['saved'] as String? ?? '',
         persistedText: draft['saved'] as String?,
+        format: TextFileFormat.fromJson(draft),
       );
       doc.editor.session.replace(draft['text']! as String, label: '恢复草稿');
       _add(doc);
@@ -695,6 +863,15 @@ final class WorkspaceViewModel extends ChangeNotifier {
             'recent': List.of(recent),
             'guideSeen': guideSeen,
             'mcp': mcp.preferences,
+            'files': filePreferences.toJson(),
+            'workspace': {
+              'paths': documents
+                  .map((d) => d.path)
+                  .whereType<String>()
+                  .toList(),
+              'active': current.path,
+              'folder': folder?.path,
+            },
           })
           .catchError((Object error) {
             _statusMessage = (l) => l.preferencesSaveFailed(error.toString());
@@ -750,6 +927,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _guiding = false;
     guideSeen = true;
     _guideSnapshot = null;
+    _scheduleSave(current);
     persist();
     _notify();
   }
@@ -759,7 +937,10 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _disposed = true;
     mcp.dispose();
     presenter?.dispose();
-    _autosave?.cancel();
+    _recoveryTimer?.cancel();
+    for (final timer in _saveTimers.values) {
+      timer.cancel();
+    }
     _externalTimer?.cancel();
     for (final doc in documents) {
       doc.editor.removeListener(_changed);

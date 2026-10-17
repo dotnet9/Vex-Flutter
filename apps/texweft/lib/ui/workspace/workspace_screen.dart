@@ -194,8 +194,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                 onPressed: () => Navigator.pop(context),
               ),
               AppButton(
-                label: context.l10n.keepDraftClose,
-                onPressed: () => Navigator.pop(context, 'draft'),
+                label: vm.filePreferences.recovery
+                    ? context.l10n.keepDraftClose
+                    : context.l10n.discard,
+                onPressed: () => Navigator.pop(
+                  context,
+                  vm.filePreferences.recovery ? 'draft' : 'discard',
+                ),
               ),
               AppButton(
                 label: context.l10n.saveAll,
@@ -229,6 +234,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           }
         }
       }
+      await vm.finishPendingSaves();
       await vm.flushRecovery(throwOnError: true);
       if (widget.windowIntegration && _desktop) {
         // Let the native window process WM_CLOSE before its message loop exits.
@@ -549,8 +555,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
               onPressed: () => Navigator.pop(context),
             ),
             AppButton(
-              label: context.l10n.keepDraftClose,
-              onPressed: () => Navigator.pop(context, 'draft'),
+              label: vm.filePreferences.recovery
+                  ? context.l10n.keepDraftClose
+                  : context.l10n.discard,
+              onPressed: () => Navigator.pop(
+                context,
+                vm.filePreferences.recovery ? 'draft' : 'discard',
+              ),
             ),
             AppButton(
               label: context.l10n.save,

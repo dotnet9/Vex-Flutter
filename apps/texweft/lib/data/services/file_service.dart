@@ -1,14 +1,22 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 
+import '../../domain/file_preferences.dart';
+import 'document_codec.dart';
+
 final class OpenedDocument {
-  const OpenedDocument(this.name, this.text, this.path);
+  const OpenedDocument(
+    this.name,
+    this.text,
+    this.path, {
+    this.format = const TextFileFormat(),
+  });
   final String name, text;
   final String? path;
+  final TextFileFormat format;
 }
 
 final class OpenedFolder {
@@ -32,8 +40,14 @@ abstract interface class DocumentFileService {
   Future<OpenedDocument?> pick();
   Future<OpenedDocument> read(String path);
   Future<OpenedFolder?> folder();
+  Future<OpenedFolder> readFolder(String path);
   Future<String?> saveAs(String name, Uint8List bytes, {String? dialogTitle});
-  Future<void> write(String path, String text, {String? expected});
+  Future<void> write(
+    String path,
+    String text, {
+    String? expected,
+    TextFileFormat format = const TextFileFormat(),
+  });
 }
 
 final class NativeDocumentFileService implements DocumentFileService {
@@ -45,21 +59,27 @@ final class NativeDocumentFileService implements DocumentFileService {
     );
     if (file == null) return null;
     final bytes = await file.readAsBytes();
+    final decoded = await decodeDocument(bytes);
     // Mobile pickers return a cache copy. Save through the system document picker.
     final path = Platform.isAndroid || Platform.isIOS ? null : file.path;
     return OpenedDocument(
       file.name,
-      utf8.decode(bytes).replaceFirst('\uFEFF', ''),
+      decoded.text,
       path,
+      format: decoded.format,
     );
   }
 
   @override
-  Future<OpenedDocument> read(String path) async => OpenedDocument(
-    p.basename(path),
-    (await File(path).readAsString()).replaceFirst('\uFEFF', ''),
-    path,
-  );
+  Future<OpenedDocument> read(String path) async {
+    final decoded = await decodeDocument(await File(path).readAsBytes());
+    return OpenedDocument(
+      p.basename(path),
+      decoded.text,
+      path,
+      format: decoded.format,
+    );
+  }
 
   @override
   Future<OpenedFolder?> folder() async {
@@ -68,6 +88,7 @@ final class NativeDocumentFileService implements DocumentFileService {
     return readFolder(path);
   }
 
+  @override
   Future<OpenedFolder> readFolder(String path) async {
     final files = <String>[];
     final directories = <String>[];
@@ -107,14 +128,19 @@ final class NativeDocumentFileService implements DocumentFileService {
   }
 
   @override
-  Future<void> write(String path, String text, {String? expected}) async {
+  Future<void> write(
+    String path,
+    String text, {
+    String? expected,
+    TextFileFormat format = const TextFileFormat(),
+  }) async {
+    final bytes = await encodeDocument(text, format);
     if (expected != null &&
-        await File(path).exists() &&
-        (await File(path).readAsString()).replaceFirst('\uFEFF', '') !=
-            expected) {
+        (!await File(path).exists() ||
+            (await read(path)).text != normalizeNewlines(expected))) {
       throw const FileConflict();
     }
-    await _atomicWrite(path, utf8.encode(text));
+    await _atomicWrite(path, bytes);
   }
 
   Future<void> _atomicWrite(String path, List<int> bytes) async {

@@ -1,5 +1,7 @@
 import 'package:texweft_editor/texweft_editor.dart';
 
+import 'file_preferences.dart';
+
 enum WorkspaceLayout {
   instant(['instant']),
   source(['source']),
@@ -22,11 +24,13 @@ final class WorkspaceDocument {
     this.path,
     this.persistedText,
     this.demo = false,
+    this.format = const TextFileFormat(),
   }) : editor = MarkdownEditorController(text: text);
   final String id;
   String name;
   String? path, persistedText;
   final bool demo;
+  TextFileFormat format;
   final MarkdownEditorController editor;
   void dispose() => editor.dispose();
 }
