@@ -124,8 +124,9 @@ final class MindMapController extends ChangeNotifier {
     for (final ancestor in path.take(path.length - 1)) {
       revealed = _collapsed.remove(ancestor) || revealed;
     }
-    if (revealed)
+    if (revealed) {
       _layout = MindMapLayout.compute(root, collapsed: _collapsed, mode: _mode);
+    }
     final target = layout.rects[id];
     if (target == null) return;
     _selected = id;
