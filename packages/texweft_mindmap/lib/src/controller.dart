@@ -19,7 +19,12 @@ final class MindMapController extends ChangeNotifier {
   MindMapLayout get layout => _layout;
   Set<String> get collapsed => Set.unmodifiable(_collapsed);
   String? get selectedId => _selected;
-  double get scale => transformation.value.getMaxScaleOnAxis();
+  double get scale {
+    // This is a 2D transform; the unchanged Z axis is 1 even below 100% zoom.
+    final matrix = transformation.value;
+    return math.sqrt(matrix[0] * matrix[0] + matrix[1] * matrix[1]);
+  }
+
   void _transformed() => notifyListeners();
   void setRoot(MindMapNode value) {
     final changed = value.id != _root.id;
@@ -61,17 +66,22 @@ final class MindMapController extends ChangeNotifier {
     notifyListeners();
   }
 
+  double _fitScale(Size viewport) => math
+      .min(
+        1.0,
+        math.min(
+          (viewport.width - 48) / layout.size.width,
+          (viewport.height - 48) / layout.size.height,
+        ),
+      )
+      .clamp(.000001, 3.0);
+
+  /// Keep the entire tree reachable even when a large map needs less than 15%.
+  double minimumScaleFor(Size viewport) => math.min(.15, _fitScale(viewport));
+
   void fit(Size viewport) {
     if (viewport.isEmpty) return;
-    final factor = math
-        .min(
-          1.0,
-          math.min(
-            (viewport.width - 48) / layout.size.width,
-            (viewport.height - 48) / layout.size.height,
-          ),
-        )
-        .clamp(.15, 3.0);
+    final factor = _fitScale(viewport);
     transformation.value = Matrix4.diagonal3Values(factor, factor, 1)
       ..setTranslationRaw(
         (viewport.width - layout.size.width * factor) / 2,
@@ -81,8 +91,41 @@ final class MindMapController extends ChangeNotifier {
     fitRequested = false;
   }
 
+  /// Reveal collapsed ancestors and center a node at a readable scale.
+  void focusNode(String id, Size viewport, {double scale = 1}) {
+    if (viewport.isEmpty) return;
+    final path = <String>[];
+    bool locate(MindMapNode node) {
+      path.add(node.id);
+      if (node.id == id) return true;
+      for (final child in node.children) {
+        if (locate(child)) return true;
+      }
+      path.removeLast();
+      return false;
+    }
+
+    if (!locate(root)) return;
+    var revealed = false;
+    for (final ancestor in path.take(path.length - 1)) {
+      revealed = _collapsed.remove(ancestor) || revealed;
+    }
+    if (revealed) _layout = MindMapLayout.compute(root, collapsed: _collapsed);
+    final target = layout.rects[id];
+    if (target == null) return;
+    _selected = id;
+    fitRequested = false;
+    final factor = scale.clamp(.15, 3.0);
+    transformation.value = Matrix4.diagonal3Values(factor, factor, 1)
+      ..setTranslationRaw(
+        viewport.width / 2 - target.center.dx * factor,
+        viewport.height / 2 - target.center.dy * factor,
+        0,
+      );
+  }
+
   void zoom(double factor, Size viewport) {
-    final nextScale = (scale * factor).clamp(.15, 3.0),
+    final nextScale = (scale * factor).clamp(minimumScaleFor(viewport), 3.0),
         ratio = nextScale / scale;
     final position = transformation.value.getTranslation();
     transformation.value = Matrix4.diagonal3Values(nextScale, nextScale, 1)

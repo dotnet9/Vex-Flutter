@@ -232,6 +232,14 @@
     if (state.presentation) setView('read');
   }
   function startPresentation() {
+    if (window.TexweftPresentation) {
+      TexweftPresentation.open({
+        text: function () { return input.value; }, title: function () { return docs[state.doc].name; },
+        finish: function () { instant.finish(); closeLayers(); }, language: function () { return state.language; },
+        background: document.querySelector('.app-window'), mapMode: function () { return state.view === 'mindmap'; }
+      });
+      return;
+    }
     if (state.presentation) return;
     state.presentation = true; state.presentationScale = 1.5;
     instant.finish(); applyPresentation();
@@ -753,6 +761,7 @@
   if ($('mcp-save')) $('mcp-save').onclick = function () { closeLayers(); TexweftProto.toast('MCP 设置已保存（演示）'); };
   if ($('mcp-gen')) $('mcp-gen').onclick = function () { $('mcp-token').value = 'vx_' + crypto.randomUUID().replace(/-/g, ''); };
   document.addEventListener('keydown', function (event) {
+    if (event.key === 'F5' && !event.isComposing) { event.preventDefault(); startPresentation(); return; }
     if (event.key === 'Escape') { if (state.presentation) { stopPresentation(); return; } closeLayers(); pendingSwitch = null; $('findbar').hidden = true; $('node-inspector').hidden = true; $('map-settings').hidden = true; $('map-settings-button').setAttribute('aria-expanded', 'false'); }
     if ((event.ctrlKey || event.metaKey) && ['s', 'f', 'h', 'o', 'n', 'w', 'p'].includes(event.key.toLowerCase())) {
       event.preventDefault(); TexweftProto.handleAction(event.key.toLowerCase() === 'p' ? (event.shiftKey ? 'print' : 'quick-open') : { s: 'save', f: 'find', h: 'replace', o: 'open', n: 'new', w: 'close' }[event.key.toLowerCase()]);

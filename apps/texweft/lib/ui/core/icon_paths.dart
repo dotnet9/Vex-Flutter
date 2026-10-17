@@ -42,4 +42,6 @@ const appIconPaths = <String, String>{
   "plus": "<path d=\"M12 5v14M5 12h14\"/>",
   "fit": "<path d=\"M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5\"/><rect x=\"8\" y=\"8\" width=\"8\" height=\"8\" rx=\"1\"/>",
   "chevron": "<path d=\"m9 5 7 7-7 7\"/>",
+  "arrow-left": "<path d=\"m15 5-7 7 7 7\"/>",
+  "restore": "<rect x=\"4\" y=\"8\" width=\"12\" height=\"12\" rx=\"1\"/><path d=\"M8 8V4h12v12h-4\"/>",
 };

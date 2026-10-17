@@ -27,10 +27,13 @@ for operation in data['operations']:
     if 'error' in operation:
         operation['error'] = sanitize(operation['error'])
 data['pending'] = sanitize(data.get('pending'))
-data['runStatus'] = 'aborted' if args.aborted else 'completed' if data['pending'] is None else 'incomplete'
+errors = sum('error' in row for row in data['operations'])
+data['runStatus'] = ('aborted' if args.aborted else 'failed' if errors else
+                     'completed' if data['pending'] is None and data.get('testCompleted') is not False
+                     else 'incomplete')
 data['summary'] = {'operations': len(data['operations']),
                    'sampledPeakRssMiB': max(row['rssMiB'] for row in data['operations']),
-                   'errors': sum('error' in row for row in data['operations'])}
+                   'errors': errors}
 args.output.parent.mkdir(parents=True, exist_ok=True)
 args.output.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 print(json.dumps(data['summary']))

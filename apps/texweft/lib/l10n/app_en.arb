@@ -271,5 +271,12 @@
   "sampleReading": "# Reading notes\n\n## Writing is thinking\n\nWriting helps you see the missing links in an idea.\n\n> Good tools make ideas clearer.\n\n## From notes to an article\n\n### Collect material\n\nKeep the original material and its sources.\n\n### Organize the structure\n\nGroup related ideas. Set the hierarchy first, then add supporting evidence.",
   "sampleStart": "# Getting started\n\n## Edit\n\nClick the document to edit it, or switch to source. All views share the same content and undo history.\n\n## Read\n\nEight palettes and six typography styles are saved independently of the content.\n\n## Map\n\nDouble-click a node to edit a section. Long-press and drag it onto another section to change its parent.\n\n## Local files\n\nOpen your Markdown from the File menu. Save with Ctrl+S. Unsaved changes are kept as recovery drafts.",
   "sampleExport": "# Export guide\n\n## Markdown\n\nSave as standard UTF-8 text to continue in other editors.\n\n## HTML\n\nExport a standalone page with the current typography and colors.\n\n## PDF and Word\n\nExport documents for reading and sharing.\n\n## Map image\n\nExport the complete tree structure as PNG.",
-  "guideDocument": "# Welcome to Texweft\n\nClick the document and write your first idea.\n\n## From content to structure\n\nArrange sections in the map and the text follows.\n\n## Share your work\n\nChoose a style and export your document."
+  "guideDocument": "# Welcome to Texweft\n\nClick the document and write your first idea.\n\n## From content to structure\n\nArrange sections in the map and the text follows.\n\n## Share your work\n\nChoose a style and export your document.",
+  "presentationOutline": "Presentation outline",
+  "presentationPrevious": "Previous slide",
+  "presentationNext": "Next slide",
+  "presentationSmaller": "Decrease presentation text size",
+  "presentationLarger": "Increase presentation text size",
+  "presentationKeys": "← / →, PageUp / PageDown: slides · Home / End: first / last · Esc: exit",
+  "presentationMarkdown": "Markdown"
 }

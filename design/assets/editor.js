@@ -24,10 +24,18 @@
     const special = l => /^(#{1,6}\s|```|~~~|>\s?|\s*[-*+]\s|\s*\d+[.)]\s|\s*(?:---+|\*\*\*+)\s*$)/.test(l);
     for (let i = 0; i < lines.length;) {
       const start = i, line = lines[i]; let match;
+      if (i === 0 && line.trim() === '---') {
+        const end = lines.findIndex((l, n) => n > 0 && /^(---|\.\.\.)\s*$/.test(l));
+        if (end > 0) { i = end + 1; continue; }
+      }
       if (!line.trim()) { i++; continue; }
       if ((match = /^(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line))) {
         const level = match[1].length, title = match[2];
         add('heading', i, ++i, `<h${level}>${inline(title)}</h${level}>`, { level, title, id: `heading-${start}` }); continue;
+      }
+      if (i + 1 < lines.length && /^ {0,3}(=+|-+)\s*$/.test(lines[i + 1]) && !/^\s{4}|^\s*[>*+-]\s/.test(line)) {
+        const level = lines[i + 1].trim().startsWith('=') ? 1 : 2, title = line.trim();
+        i += 2; add('heading', start, i, `<h${level}>${inline(title)}</h${level}>`, { level, title, id: `heading-${start}` }); continue;
       }
       if ((match = /^ {0,3}(`{3,}|~{3,})(.*)/.exec(line))) {
         const marker = match[1], language = match[2].trim(); i++;

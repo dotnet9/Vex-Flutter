@@ -295,7 +295,7 @@ class _DocumentReadingState extends State<_DocumentReading> {
               data: block.range.slice(vm.editor.session.text),
               typography: vm.typography,
               compact: vm.compact,
-              fontSize: vm.presentation ? vm.fontSize * 1.5 : vm.fontSize,
+              fontSize: vm.fontSize,
               onTapLink: (_, href, _) {
                 final uri = Uri.tryParse(href ?? '');
                 if (uri != null &&

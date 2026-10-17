@@ -119,6 +119,57 @@ class AppCloseButton extends StatelessWidget {
   );
 }
 
+/// Native window chrome uses full rectangular targets, matching the prototype.
+class AppCaptionButton extends StatelessWidget {
+  const AppCaptionButton({
+    super.key,
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+    this.close = false,
+  });
+  final String icon, tooltip;
+  final VoidCallback onPressed;
+  final bool close;
+  @override
+  Widget build(BuildContext context) {
+    final c = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: tooltip,
+      child: TextButton(
+        onPressed: onPressed,
+        style: ButtonStyle(
+          fixedSize: const WidgetStatePropertyAll(Size(42, 39)),
+          minimumSize: const WidgetStatePropertyAll(Size(42, 39)),
+          padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+          visualDensity: VisualDensity.standard,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
+          overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+          backgroundColor: WidgetStateProperty.resolveWith(
+            (states) =>
+                states.contains(WidgetState.hovered) ||
+                    states.contains(WidgetState.pressed)
+                ? close
+                      ? const Color(0xffdc2626)
+                      : c.surfaceContainerHigh
+                : Colors.transparent,
+          ),
+          iconColor: WidgetStateProperty.resolveWith(
+            (states) =>
+                close &&
+                    (states.contains(WidgetState.hovered) ||
+                        states.contains(WidgetState.pressed))
+                ? Colors.white
+                : c.onSurfaceVariant,
+          ),
+        ),
+        child: AppGlyph(icon, size: 12),
+      ),
+    );
+  }
+}
+
 class PanelHeader extends StatelessWidget {
   const PanelHeader({
     super.key,

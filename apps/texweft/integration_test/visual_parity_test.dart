@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:texweft/app.dart';
+import 'package:texweft/data/services/desktop_window.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../test/support/fakes.dart';
@@ -16,12 +17,7 @@ void main() {
   testWidgets('measure native geometry and editing displacement', (
     tester,
   ) async {
-    await windowManager.ensureInitialized();
-    await windowManager.setTitleBarStyle(
-      TitleBarStyle.hidden,
-      windowButtonVisibility: false,
-    );
-    await windowManager.setSize(const Size(1230, 750));
+    await initializeDesktopWindow(size: const Size(1230, 750));
     final vm = fakeWorkspace();
     vm.editor.session.replace(
       '# 代码示例\n\n```text\nS-FlowC.slnx\n├─ 01 Application\n│  ├─ SFlowC\n└─ 99 External Dependencies\n```\n\n点击这里继续写作。\n',

@@ -271,5 +271,12 @@
   "sampleReading": "# 讀書摘錄\n\n## 寫作就是思考\n\n寫下來，才能看清一個想法裡缺失的環節。\n\n> 好的工具應該讓想法更清楚。\n\n## 從筆記到文章\n\n### 收集素材\n\n先保留原始材料與出處。\n\n### 整理結構\n\n把相近的觀點放在一起，先確定層級，再補充論據。",
   "sampleStart": "# 快速開始\n\n## 編輯\n\n點選內文直接編輯，或切換原始碼。所有檢視共享同一份內容與復原歷史。\n\n## 閱讀\n\n八套配色、六套排版，與內容獨立儲存。\n\n## 心智圖\n\n按兩下節點編輯章節；長按拖到另一個章節可調整層級。\n\n## 本地檔案\n\n從檔案選單開啟自己的 Markdown。使用 Ctrl+S 儲存。未儲存內容會保留復原草稿。",
   "sampleExport": "# 匯出指南\n\n## Markdown\n\n儲存為標準 UTF-8 文字，其他編輯器也可繼續使用。\n\n## HTML\n\n匯出包含目前排版與配色的獨立頁面。\n\n## PDF 與 Word\n\n匯出用於閱讀與分享的文件。\n\n## 心智圖圖片\n\n匯出完整樹形結構的 PNG。",
-  "guideDocument": "# 歡迎使用箋緯\n\n點選內文，寫下第一個想法。\n\n## 從內容到結構\n\n在心智圖中整理章節，內文會同步變化。\n\n## 分享你的作品\n\n選擇排版，把內容匯出為文件。"
+  "guideDocument": "# 歡迎使用箋緯\n\n點選內文，寫下第一個想法。\n\n## 從內容到結構\n\n在心智圖中整理章節，內文會同步變化。\n\n## 分享你的作品\n\n選擇排版，把內容匯出為文件。",
+  "presentationOutline": "簡報大綱",
+  "presentationPrevious": "上一頁",
+  "presentationNext": "下一頁",
+  "presentationSmaller": "縮小簡報字級",
+  "presentationLarger": "放大簡報字級",
+  "presentationKeys": "← / →、PageUp / PageDown 換頁 · Home / End 首末頁 · Esc 結束",
+  "presentationMarkdown": "正文"
 }

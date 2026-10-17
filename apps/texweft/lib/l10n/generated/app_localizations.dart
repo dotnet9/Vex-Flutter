@@ -1732,6 +1732,48 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'# 欢迎使用笺纬\n\n点击正文，写下第一个想法。\n\n## 从内容到结构\n\n在导图中整理章节，正文会同步变化。\n\n## 分享你的作品\n\n选择排版，把内容导出为文档。'**
   String get guideDocument;
+
+  /// No description provided for @presentationOutline.
+  ///
+  /// In zh, this message translates to:
+  /// **'演示大纲'**
+  String get presentationOutline;
+
+  /// No description provided for @presentationPrevious.
+  ///
+  /// In zh, this message translates to:
+  /// **'上一页'**
+  String get presentationPrevious;
+
+  /// No description provided for @presentationNext.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一页'**
+  String get presentationNext;
+
+  /// No description provided for @presentationSmaller.
+  ///
+  /// In zh, this message translates to:
+  /// **'减小演示字号'**
+  String get presentationSmaller;
+
+  /// No description provided for @presentationLarger.
+  ///
+  /// In zh, this message translates to:
+  /// **'增大演示字号'**
+  String get presentationLarger;
+
+  /// No description provided for @presentationKeys.
+  ///
+  /// In zh, this message translates to:
+  /// **'← / →、PageUp / PageDown 翻页 · Home / End 首尾页 · Esc 退出'**
+  String get presentationKeys;
+
+  /// No description provided for @presentationMarkdown.
+  ///
+  /// In zh, this message translates to:
+  /// **'正文'**
+  String get presentationMarkdown;
 }
 
 class _AppLocalizationsDelegate

@@ -22,6 +22,8 @@ class MindMapView extends StatelessWidget {
     this.onMove,
     this.nodeBuilder,
     this.showControls = true,
+    this.enableKeyboardNavigation = true,
+    this.overviewThreshold = .2,
     this.labels = const MindMapLabels(),
   });
   final MindMapLabels labels;
@@ -29,7 +31,11 @@ class MindMapView extends StatelessWidget {
   final ValueChanged<MindMapNode>? onSelect, onActivate;
   final void Function(String sourceId, String targetId)? onMove;
   final MindMapNodeBuilder? nodeBuilder;
-  final bool showControls;
+  final bool showControls, enableKeyboardNavigation;
+
+  /// Below this scale, large maps paint cards without unreadable text or per-node
+  /// drag widgets. Use zero to keep a custom node builder at every scale.
+  final double overviewThreshold;
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
@@ -49,6 +55,7 @@ class MindMapView extends StatelessWidget {
           return Focus(
             autofocus: false,
             onKeyEvent: (_, event) {
+              if (!enableKeyboardNavigation) return KeyEventResult.ignored;
               if (event is! KeyDownEvent) return KeyEventResult.ignored;
               final node = layout.nodes[controller.selectedId];
               if (node == null) return KeyEventResult.ignored;
@@ -88,7 +95,7 @@ class MindMapView extends StatelessWidget {
                 Positioned.fill(
                   child: InteractiveViewer.builder(
                     transformationController: controller.transformation,
-                    minScale: .15,
+                    minScale: controller.minimumScaleFor(viewport),
                     maxScale: 3,
                     boundaryMargin: const EdgeInsets.all(800),
                     builder: (context, quad) {
@@ -104,31 +111,78 @@ class MindMapView extends StatelessWidget {
                         points.map((p) => p.x).reduce(math.max),
                         points.map((p) => p.y).reduce(math.max),
                       ).inflate(100 / controller.scale);
+                      final overview =
+                          layout.nodes.length > 300 &&
+                          controller.scale < overviewThreshold;
+                      var doubleTapPosition = Offset.zero;
+                      void selectAt(Offset point, {bool activate = false}) {
+                        for (final entry in layout.rects.entries) {
+                          if (!entry.value.contains(point)) continue;
+                          final node = layout.nodes[entry.key]!;
+                          controller.select(node.id);
+                          if (activate) {
+                            onActivate?.call(node);
+                          } else {
+                            onSelect?.call(node);
+                          }
+                          return;
+                        }
+                      }
+
                       return SizedBox(
                         width: layout.size.width,
                         height: layout.size.height,
-                        child: Stack(
-                          children: [
-                            Positioned.fill(
-                              child: CustomPaint(
-                                painter: _EdgesPainter(
-                                  layout,
-                                  color.primary,
-                                  visible,
-                                ),
-                              ),
-                            ),
-                            for (final entry in layout.rects.entries)
-                              if (entry.value.overlaps(visible))
-                                Positioned.fromRect(
-                                  key: ValueKey(entry.key),
-                                  rect: entry.value,
-                                  child: _node(
-                                    context,
-                                    layout.nodes[entry.key]!,
+                        child: GestureDetector(
+                          behavior: overview
+                              ? HitTestBehavior.opaque
+                              : HitTestBehavior.deferToChild,
+                          onTapUp: overview
+                              ? (details) => selectAt(details.localPosition)
+                              : null,
+                          onDoubleTapDown: overview
+                              ? (details) =>
+                                    doubleTapPosition = details.localPosition
+                              : null,
+                          onDoubleTap: overview
+                              ? () =>
+                                    selectAt(doubleTapPosition, activate: true)
+                              : null,
+                          child: Stack(
+                            children: [
+                              Positioned.fill(
+                                child: CustomPaint(
+                                  painter: _EdgesPainter(
+                                    layout,
+                                    color.primary,
+                                    visible,
                                   ),
                                 ),
-                          ],
+                              ),
+                              if (overview)
+                                Positioned.fill(
+                                  child: CustomPaint(
+                                    painter: _OverviewPainter(
+                                      layout,
+                                      color,
+                                      controller.selectedId,
+                                      controller.root.id,
+                                      visible,
+                                    ),
+                                  ),
+                                )
+                              else
+                                for (final entry in layout.rects.entries)
+                                  if (entry.value.overlaps(visible))
+                                    Positioned.fromRect(
+                                      key: ValueKey(entry.key),
+                                      rect: entry.value,
+                                      child: _node(
+                                        context,
+                                        layout.nodes[entry.key]!,
+                                      ),
+                                    ),
+                            ],
+                          ),
                         ),
                       );
                     },
@@ -307,6 +361,50 @@ class MindMapView extends StatelessWidget {
       ),
     );
   }
+}
+
+class _OverviewPainter extends CustomPainter {
+  const _OverviewPainter(
+    this.layout,
+    this.colors,
+    this.selectedId,
+    this.rootId,
+    this.visible,
+  );
+  final MindMapLayout layout;
+  final ColorScheme colors;
+  final String? selectedId;
+  final String rootId;
+  final Rect visible;
+  @override
+  void paint(Canvas canvas, Size size) {
+    final fill = Paint(), border = Paint()..style = PaintingStyle.stroke;
+    for (final entry in layout.rects.entries) {
+      if (!entry.value.overlaps(visible)) continue;
+      final selected = entry.key == selectedId;
+      fill.color = entry.key == rootId
+          ? colors.primary
+          : selected
+          ? colors.primaryContainer
+          : colors.surfaceContainerLow;
+      border.color = selected ? colors.primary : colors.outlineVariant;
+      border.strokeWidth = selected ? 2 : .7;
+      final card = RRect.fromRectAndRadius(
+        entry.value,
+        const Radius.circular(7),
+      );
+      canvas.drawRRect(card, fill);
+      canvas.drawRRect(card, border);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_OverviewPainter oldDelegate) =>
+      oldDelegate.layout != layout ||
+      oldDelegate.colors != colors ||
+      oldDelegate.selectedId != selectedId ||
+      oldDelegate.visible != visible ||
+      oldDelegate.rootId != rootId;
 }
 
 class _GridPainter extends CustomPainter {

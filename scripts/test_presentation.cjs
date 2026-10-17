@@ -1,0 +1,24 @@
+// Parser checks run without opening a browser or accessing external documents.
+const { readFileSync } = require('node:fs');
+const { resolve } = require('node:path');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const root = resolve(__dirname, '..');
+const context = vm.createContext({ window: {} });
+vm.runInContext(readFileSync(resolve(root, 'design/assets/editor.js'), 'utf8'), context);
+context.TexEditor = context.window.TexEditor;
+vm.runInContext(readFileSync(resolve(root, 'design/assets/presentation.js'), 'utf8'), context);
+const deck = context.window.TexweftPresentation.buildDeck;
+let pages = deck('---\ntitle: Demo\n---\n\nIntro\n\n# Cover\n\n## Detail\n\n```md\n# Literal\n---\n```\n\n---\n\nTail\n\n## Detail\n\nEnd', 'Demo');
+assert.deepEqual(Array.from(pages, p => p.title), ['Demo', 'Cover', 'Detail', 'Detail', 'Detail']);
+assert.ok(pages[2].html.includes('# Literal\n---'));
+assert.ok(!pages.some(p => p.html.includes('title: Demo')));
+assert.ok(pages[3].html.includes('Tail'));
+for (const text of ['', '\n\n', 'Only text', '---\n\n---']) assert.equal(deck(text, 'Notes').length, 1);
+pages = deck('Title\n=====\n\nText\n\nSubtitle\n--------\n\n**Bold**\n\n| A | B |\n| --- | --- |\n| 1 | 2 |', 'Notes');
+assert.equal(pages.length, 2);
+assert.equal(pages[0].title, 'Title');
+assert.equal(pages[1].level, 2);
+assert.ok(pages[1].html.includes('<strong>Bold</strong>'));
+assert.ok(pages[1].html.includes('<table>'));
+console.log('Prototype deck checks passed: headings, fences, separators, metadata, empty documents, Setext, tables and inline rendering.');

@@ -203,6 +203,37 @@ void main() {
     }
   }
 
+  testWidgets('titlebar language and three-state appearance preserve writing', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 800);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final vm = fakeWorkspace();
+    await tester.pumpWidget(TexweftApp(viewModel: vm));
+    await tester.pumpAndSettle();
+    final source = vm.editor.text;
+    for (final mode in [ThemeMode.dark, ThemeMode.system, ThemeMode.light]) {
+      await tester.tap(find.byKey(const ValueKey('titlebar-theme')));
+      await tester.pumpAndSettle();
+      expect(vm.themeMode, mode);
+    }
+    for (final language in ['en', 'zh_Hant', 'ja', 'zh']) {
+      await tester.tap(find.byKey(const ValueKey('titlebar-language')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey('titlebar-language-$language')));
+      await tester.pumpAndSettle();
+      expect(vm.language, language);
+      expect(find.byTooltip(vm.strings.language), findsOneWidget);
+      expect(vm.editor.text, source);
+      expect(vm.editor.session.isDirty, isFalse);
+      expect(tester.takeException(), isNull);
+    }
+    await tester.pumpWidget(const SizedBox());
+    vm.dispose();
+  });
+
   testWidgets('settings changes language immediately and keeps its selection', (
     tester,
   ) async {

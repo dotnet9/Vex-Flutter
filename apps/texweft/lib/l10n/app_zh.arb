@@ -452,5 +452,12 @@
   "sampleReading": "# 读书摘录\n\n## 写作就是思考\n\n写下来，才能看清一个想法里缺失的环节。\n\n> 好的工具应该让想法更清楚。\n\n## 从笔记到文章\n\n### 收集素材\n\n先保留原始材料与出处。\n\n### 整理结构\n\n把相近的观点放在一起，先确定层级，再补充论据。",
   "sampleStart": "# 快速开始\n\n## 编辑\n\n点击正文直接编辑，或切换源码。所有视图共享同一份内容与撤销历史。\n\n## 阅读\n\n八套配色、六套排版，与内容独立保存。\n\n## 导图\n\n双击节点编辑章节；长按拖到另一个章节可调整层级。\n\n## 本地文件\n\n从文件菜单打开自己的 Markdown。使用 Ctrl+S 保存。未保存内容会保留恢复草稿。",
   "sampleExport": "# 导出指南\n\n## Markdown\n\n保存为标准 UTF-8 文本，其他编辑器也可继续使用。\n\n## HTML\n\n导出包含当前排版与配色的独立页面。\n\n## PDF 与 Word\n\n导出用于阅读与分享的文档。\n\n## 导图图片\n\n导出完整树形结构的 PNG。",
-  "guideDocument": "# 欢迎使用笺纬\n\n点击正文，写下第一个想法。\n\n## 从内容到结构\n\n在导图中整理章节，正文会同步变化。\n\n## 分享你的作品\n\n选择排版，把内容导出为文档。"
+  "guideDocument": "# 欢迎使用笺纬\n\n点击正文，写下第一个想法。\n\n## 从内容到结构\n\n在导图中整理章节，正文会同步变化。\n\n## 分享你的作品\n\n选择排版，把内容导出为文档。",
+  "presentationOutline": "演示大纲",
+  "presentationPrevious": "上一页",
+  "presentationNext": "下一页",
+  "presentationSmaller": "减小演示字号",
+  "presentationLarger": "增大演示字号",
+  "presentationKeys": "← / →、PageUp / PageDown 翻页 · Home / End 首尾页 · Esc 退出",
+  "presentationMarkdown": "正文"
 }

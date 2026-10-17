@@ -923,6 +923,28 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get guideDocument =>
       '# 欢迎使用笺纬\n\n点击正文，写下第一个想法。\n\n## 从内容到结构\n\n在导图中整理章节，正文会同步变化。\n\n## 分享你的作品\n\n选择排版，把内容导出为文档。';
+
+  @override
+  String get presentationOutline => '演示大纲';
+
+  @override
+  String get presentationPrevious => '上一页';
+
+  @override
+  String get presentationNext => '下一页';
+
+  @override
+  String get presentationSmaller => '减小演示字号';
+
+  @override
+  String get presentationLarger => '增大演示字号';
+
+  @override
+  String get presentationKeys =>
+      '← / →、PageUp / PageDown 翻页 · Home / End 首尾页 · Esc 退出';
+
+  @override
+  String get presentationMarkdown => '正文';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -1843,4 +1865,26 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String get guideDocument =>
       '# 歡迎使用箋緯\n\n點選內文，寫下第一個想法。\n\n## 從內容到結構\n\n在心智圖中整理章節，內文會同步變化。\n\n## 分享你的作品\n\n選擇排版，把內容匯出為文件。';
+
+  @override
+  String get presentationOutline => '簡報大綱';
+
+  @override
+  String get presentationPrevious => '上一頁';
+
+  @override
+  String get presentationNext => '下一頁';
+
+  @override
+  String get presentationSmaller => '縮小簡報字級';
+
+  @override
+  String get presentationLarger => '放大簡報字級';
+
+  @override
+  String get presentationKeys =>
+      '← / →、PageUp / PageDown 換頁 · Home / End 首末頁 · Esc 結束';
+
+  @override
+  String get presentationMarkdown => '正文';
 }

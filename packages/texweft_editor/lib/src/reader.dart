@@ -104,6 +104,11 @@ class MarkdownReader extends StatelessWidget {
       ),
       h3Padding: EdgeInsets.zero,
       h4: body.copyWith(fontWeight: FontWeight.w600),
+      h5: body.copyWith(fontWeight: FontWeight.w600),
+      h6: body.copyWith(
+        fontWeight: FontWeight.w600,
+        color: colors.onSurfaceVariant,
+      ),
       listBullet: body.copyWith(color: accent),
       listIndent: 24,
       listBulletPadding: const EdgeInsets.only(right: 8),
@@ -152,7 +157,10 @@ class MarkdownReader extends StatelessWidget {
       styleSheet: sheet,
       onTapLink: onTapLink,
       builders: {
-        'pre': _CodeBlockBuilder(selectable, compact ? 13 : 14),
+        'pre': _CodeBlockBuilder(
+          selectable,
+          fontSize / 15 * (compact ? 13 : 14),
+        ),
         for (var level = 1; level <= 6; level++)
           'h$level': _HeadingBuilder(this, level, switch (level) {
             1 => sheet.h1!,

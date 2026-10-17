@@ -17,6 +17,7 @@ import 'insert_table_dialog.dart';
 import 'workspace_dialogs.dart';
 import 'workspace_panes.dart';
 import 'workspace_pickers.dart';
+import 'workspace_presentation.dart';
 import 'workspace_sidebar.dart';
 import 'workspace_view_model.dart';
 
@@ -34,6 +35,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   final _findFocus = FocusNode();
   final _layoutsMenu = MenuController(), _typographyMenu = MenuController();
   bool _dragging = false, _closing = false, _nativeCloseApproved = false;
+  bool _changingPresentation = false;
+  bool _maximized = false;
+  bool? _presentationWasFullscreen;
+  FocusNode? _presentationPreviousFocus;
   WorkspaceViewModel get vm => context.read<WorkspaceViewModel>();
   bool get _desktop =>
       Platform.isWindows || Platform.isLinux || Platform.isMacOS;
@@ -41,7 +46,14 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    if (widget.windowIntegration && _desktop) windowManager.addListener(this);
+    if (widget.windowIntegration && _desktop) {
+      windowManager.addListener(this);
+      unawaited(
+        windowManager.isMaximized().then((value) {
+          if (mounted) setState(() => _maximized = value);
+        }),
+      );
+    }
   }
 
   @override
@@ -73,6 +85,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
 
   @override
   void onWindowFocus() => unawaited(vm.checkExternal());
+  @override
+  void onWindowMaximize() => setState(() => _maximized = true);
+  @override
+  void onWindowUnmaximize() => setState(() => _maximized = false);
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -316,7 +332,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       case 'focus':
         vm.toggleFocus();
       case 'presentation':
-        vm.togglePresentation();
+        unawaited(_run(_togglePresentation));
       case 'exit':
         unawaited(_close());
       case 'export':
@@ -328,6 +344,38 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     await showExportDialog(context, vm);
   }
 
+  Future<void> _togglePresentation() async {
+    if (_changingPresentation) return;
+    _changingPresentation = true;
+    try {
+      if (!vm.presentation) {
+        _presentationPreviousFocus = FocusManager.instance.primaryFocus;
+        FocusManager.instance.primaryFocus?.unfocus();
+        if (widget.windowIntegration && _desktop) {
+          _presentationWasFullscreen = await windowManager.isFullScreen();
+          if (!_presentationWasFullscreen!) {
+            await windowManager.setFullScreen(true);
+          }
+        }
+        if (!mounted) return;
+        vm.togglePresentation(outline: MediaQuery.sizeOf(context).width >= 700);
+      } else {
+        vm.togglePresentation();
+        if (widget.windowIntegration &&
+            _desktop &&
+            _presentationWasFullscreen != null) {
+          await windowManager.setFullScreen(_presentationWasFullscreen!);
+        }
+        _presentationWasFullscreen = null;
+        final previous = _presentationPreviousFocus;
+        if (previous?.context != null) previous!.requestFocus();
+        _presentationPreviousFocus = null;
+      }
+    } finally {
+      _changingPresentation = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch<WorkspaceViewModel>(),
@@ -336,57 +384,99 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       builder: (context, constraints) {
         final phone = constraints.maxWidth < 700;
         final desktop = _desktop && !phone;
-        final showSidebar =
-            !phone && state.sidebar && !state.focusMode && !state.presentation;
+        final showSidebar = !phone && state.sidebar && !state.focusMode;
         final width = state.sidebarWidth.clamp(
           200.0,
           (constraints.maxWidth - 420).clamp(200.0, 560.0),
         );
         return CallbackShortcuts(
-          bindings: {
-            const SingleActivator(LogicalKeyboardKey.keyN, control: true): () =>
-                _action('new'),
-            const SingleActivator(LogicalKeyboardKey.keyO, control: true): () =>
-                _action('open'),
-            const SingleActivator(LogicalKeyboardKey.keyS, control: true): () =>
-                _action('save'),
-            const SingleActivator(
-              LogicalKeyboardKey.keyS,
-              control: true,
-              shift: true,
-            ): () =>
-                _action('save-as'),
-            const SingleActivator(LogicalKeyboardKey.keyF, control: true): () =>
-                _action('find'),
-            const SingleActivator(LogicalKeyboardKey.keyH, control: true): () =>
-                _action('replace'),
-            const SingleActivator(LogicalKeyboardKey.keyZ, control: true): () =>
-                _action('undo'),
-            const SingleActivator(LogicalKeyboardKey.keyY, control: true): () =>
-                _action('redo'),
-            const SingleActivator(
-              LogicalKeyboardKey.keyZ,
-              control: true,
-              shift: true,
-            ): () =>
-                _action('redo'),
-            const SingleActivator(LogicalKeyboardKey.keyB, control: true): () =>
-                _action('format:bold'),
-            const SingleActivator(LogicalKeyboardKey.keyI, control: true): () =>
-                _action('format:italic'),
-            const SingleActivator(LogicalKeyboardKey.keyS, meta: true): () =>
-                _action('save'),
-            const SingleActivator(LogicalKeyboardKey.keyO, meta: true): () =>
-                _action('open'),
-            const SingleActivator(LogicalKeyboardKey.keyF, meta: true): () =>
-                _action('find'),
-            const SingleActivator(LogicalKeyboardKey.keyZ, meta: true): () =>
-                _action('undo'),
-            const SingleActivator(LogicalKeyboardKey.escape): () {
-              state.closeFind();
-              if (state.guiding) state.endGuide();
-            },
-          },
+          bindings: state.presentation
+              ? {}
+              : {
+                  const SingleActivator(LogicalKeyboardKey.f5): () =>
+                      _action('presentation'),
+                  const SingleActivator(
+                    LogicalKeyboardKey.keyN,
+                    control: true,
+                  ): () =>
+                      _action('new'),
+                  const SingleActivator(
+                    LogicalKeyboardKey.keyO,
+                    control: true,
+                  ): () =>
+                      _action('open'),
+                  const SingleActivator(
+                    LogicalKeyboardKey.keyS,
+                    control: true,
+                  ): () =>
+                      _action('save'),
+                  const SingleActivator(
+                    LogicalKeyboardKey.keyS,
+                    control: true,
+                    shift: true,
+                  ): () =>
+                      _action('save-as'),
+                  const SingleActivator(
+                    LogicalKeyboardKey.keyF,
+                    control: true,
+                  ): () =>
+                      _action('find'),
+                  const SingleActivator(
+                    LogicalKeyboardKey.keyH,
+                    control: true,
+                  ): () =>
+                      _action('replace'),
+                  const SingleActivator(
+                    LogicalKeyboardKey.keyZ,
+                    control: true,
+                  ): () =>
+                      _action('undo'),
+                  const SingleActivator(
+                    LogicalKeyboardKey.keyY,
+                    control: true,
+                  ): () =>
+                      _action('redo'),
+                  const SingleActivator(
+                    LogicalKeyboardKey.keyZ,
+                    control: true,
+                    shift: true,
+                  ): () =>
+                      _action('redo'),
+                  const SingleActivator(
+                    LogicalKeyboardKey.keyB,
+                    control: true,
+                  ): () =>
+                      _action('format:bold'),
+                  const SingleActivator(
+                    LogicalKeyboardKey.keyI,
+                    control: true,
+                  ): () =>
+                      _action('format:italic'),
+                  const SingleActivator(
+                    LogicalKeyboardKey.keyS,
+                    meta: true,
+                  ): () =>
+                      _action('save'),
+                  const SingleActivator(
+                    LogicalKeyboardKey.keyO,
+                    meta: true,
+                  ): () =>
+                      _action('open'),
+                  const SingleActivator(
+                    LogicalKeyboardKey.keyF,
+                    meta: true,
+                  ): () =>
+                      _action('find'),
+                  const SingleActivator(
+                    LogicalKeyboardKey.keyZ,
+                    meta: true,
+                  ): () =>
+                      _action('undo'),
+                  const SingleActivator(LogicalKeyboardKey.escape): () {
+                    state.closeFind();
+                    if (state.guiding) state.endGuide();
+                  },
+                },
           child: Focus(
             autofocus: true,
             child: Scaffold(
@@ -414,146 +504,160 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                   onDragExited: (_) => setState(() => _dragging = false),
                   onDragDone: (details) {
                     setState(() => _dragging = false);
+                    if (state.presentation) return;
                     for (final file in details.files) {
                       unawaited(_run(() => state.openPath(file.path)));
                     }
                   },
                   child: Stack(
+                    fit: StackFit.expand,
                     children: [
-                      Column(
-                        children: [
-                          if (desktop && !state.presentation)
-                            _titlebar(state, constraints.maxWidth),
-                          if (!state.presentation)
-                            _workbar(state, phone, constraints.maxWidth),
-                          if (state.recoverable.isNotEmpty)
-                            _banner(
-                              context.l10n.recoveryDraftCount(
-                                state.recoverable.length,
-                              ),
-                              [
-                                AppButton(
-                                  label: context.l10n.restore,
-                                  onPressed: state.restoreDrafts,
+                      Offstage(
+                        offstage: state.presentation,
+                        child: TickerMode(
+                          enabled: !state.presentation,
+                          child: Column(
+                            children: [
+                              if (desktop)
+                                _titlebar(state, constraints.maxWidth),
+                              _workbar(state, phone, constraints.maxWidth),
+                              if (state.recoverable.isNotEmpty)
+                                _banner(
+                                  context.l10n.recoveryDraftCount(
+                                    state.recoverable.length,
+                                  ),
+                                  [
+                                    AppButton(
+                                      label: context.l10n.restore,
+                                      onPressed: state.restoreDrafts,
+                                    ),
+                                    AppButton(
+                                      label: context.l10n.discard,
+                                      onPressed: () =>
+                                          unawaited(_run(state.discardDrafts)),
+                                    ),
+                                  ],
                                 ),
-                                AppButton(
-                                  label: context.l10n.discard,
-                                  onPressed: () =>
-                                      unawaited(_run(state.discardDrafts)),
-                                ),
-                              ],
-                            ),
-                          if (state.externalChange != null)
-                            _banner(context.l10n.externalChange, [
-                              AppButton(
-                                label: context.l10n.reload,
-                                onPressed: () async {
-                                  if (state.editor.session.isDirty) {
-                                    final yes = await showDialog<bool>(
-                                      context: context,
-                                      builder: (context) => AppDialog(
-                                        title: context.l10n.loadExternalChanges,
-                                        actions: [
-                                          AppButton(
-                                            label: context.l10n.cancel,
-                                            onPressed: () =>
-                                                Navigator.pop(context, false),
+                              if (state.externalChange != null)
+                                _banner(context.l10n.externalChange, [
+                                  AppButton(
+                                    label: context.l10n.reload,
+                                    onPressed: () async {
+                                      if (state.editor.session.isDirty) {
+                                        final yes = await showDialog<bool>(
+                                          context: context,
+                                          builder: (context) => AppDialog(
+                                            title: context
+                                                .l10n
+                                                .loadExternalChanges,
+                                            actions: [
+                                              AppButton(
+                                                label: context.l10n.cancel,
+                                                onPressed: () => Navigator.pop(
+                                                  context,
+                                                  false,
+                                                ),
+                                              ),
+                                              AppButton(
+                                                label: context.l10n.load,
+                                                onPressed: () => Navigator.pop(
+                                                  context,
+                                                  true,
+                                                ),
+                                              ),
+                                            ],
+                                            child: Text(
+                                              context.l10n.loadExternalHint,
+                                            ),
                                           ),
-                                          AppButton(
-                                            label: context.l10n.load,
-                                            onPressed: () =>
-                                                Navigator.pop(context, true),
+                                        );
+                                        if (yes != true) return;
+                                      }
+                                      state.reloadExternal();
+                                    },
+                                  ),
+                                  AppButton(
+                                    label: context.l10n.saveCurrentAs,
+                                    onPressed: () => _action('save-as'),
+                                  ),
+                                ]),
+                              if (state.findVisible) _findbar(state, phone),
+                              Expanded(
+                                child: Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    if (showSidebar)
+                                      SizedBox(
+                                        width: width,
+                                        child: WorkspaceSidebar(
+                                          vm: state,
+                                          onOpenPath: (path) => unawaited(
+                                            _run(() => state.openPath(path)),
                                           ),
-                                        ],
-                                        child: Text(
-                                          context.l10n.loadExternalHint,
+                                          onFolder: () => _action('folder'),
                                         ),
                                       ),
-                                    );
-                                    if (yes != true) return;
-                                  }
-                                  state.reloadExternal();
-                                },
-                              ),
-                              AppButton(
-                                label: context.l10n.saveCurrentAs,
-                                onPressed: () => _action('save-as'),
-                              ),
-                            ]),
-                          if (state.findVisible) _findbar(state, phone),
-                          Expanded(
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                if (showSidebar)
-                                  SizedBox(
-                                    width: width,
-                                    child: WorkspaceSidebar(
-                                      vm: state,
-                                      onOpenPath: (path) => unawaited(
-                                        _run(() => state.openPath(path)),
-                                      ),
-                                      onFolder: () => _action('folder'),
-                                    ),
-                                  ),
-                                if (showSidebar)
-                                  MouseRegion(
-                                    cursor: SystemMouseCursors.resizeLeftRight,
-                                    child: GestureDetector(
-                                      behavior: HitTestBehavior.opaque,
-                                      onHorizontalDragUpdate: (d) => state
-                                          .resizeSidebar(width + d.delta.dx),
-                                      onHorizontalDragEnd: (_) =>
-                                          state.persist(),
-                                      child: Container(
-                                        width: 3,
-                                        decoration: BoxDecoration(
-                                          border: Border(
-                                            left: BorderSide(
-                                              color: c.outlineVariant,
+                                    if (showSidebar)
+                                      MouseRegion(
+                                        cursor:
+                                            SystemMouseCursors.resizeLeftRight,
+                                        child: GestureDetector(
+                                          behavior: HitTestBehavior.opaque,
+                                          onHorizontalDragUpdate: (d) =>
+                                              state.resizeSidebar(
+                                                width + d.delta.dx,
+                                              ),
+                                          onHorizontalDragEnd: (_) =>
+                                              state.persist(),
+                                          child: Container(
+                                            width: 3,
+                                            decoration: BoxDecoration(
+                                              border: Border(
+                                                left: BorderSide(
+                                                  color: c.outlineVariant,
+                                                ),
+                                              ),
                                             ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ),
-                                Expanded(
-                                  child: Column(
-                                    children: [
-                                      if (!state.presentation &&
-                                          state.layout.panes.any(
+                                    Expanded(
+                                      child: Column(
+                                        children: [
+                                          if (state.layout.panes.any(
                                             (p) =>
                                                 p == 'source' || p == 'instant',
                                           ))
-                                        _formatbar(state, phone),
-                                      Expanded(
-                                        child: WorkspacePanes(
-                                          vm: state,
-                                          onAction: _action,
-                                          onError: _error,
-                                        ),
+                                            _formatbar(state, phone),
+                                          Expanded(
+                                            child: WorkspacePanes(
+                                              vm: state,
+                                              onAction: _action,
+                                              onError: _error,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+                              if (state.guiding) _guide(state),
+                              if (!phone)
+                                _statusbar(state, constraints.maxWidth),
+                              if (phone) _mobileNav(state),
+                            ],
                           ),
-                          if (state.guiding) _guide(state),
-                          if (!phone && !state.presentation)
-                            _statusbar(state, constraints.maxWidth),
-                          if (phone && !state.presentation) _mobileNav(state),
-                        ],
+                        ),
                       ),
                       if (state.presentation)
-                        Positioned(
-                          right: 16,
-                          top: 16,
-                          child: AppButton(
-                            label: context.l10n.exitPresentation,
-                            icon: 'x',
-                            bordered: true,
-                            onPressed: state.togglePresentation,
+                        Positioned.fill(
+                          child: WorkspacePresentation(
+                            controller: state.presenter!,
+                            typography: state.typography,
+                            fontSize: state.fontSize,
+                            onExit: () => unawaited(_run(_togglePresentation)),
                           ),
                         ),
                       if (_dragging)
@@ -599,6 +703,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   Widget _titlebar(WorkspaceViewModel state, double width) {
     final c = Theme.of(context).colorScheme;
     return Container(
+      key: const ValueKey('custom-titlebar'),
       height: 40,
       decoration: BoxDecoration(
         color: c.surfaceContainerLow,
@@ -650,7 +755,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             (context.l10n.workspaceLayoutMenu, 'layouts', ''),
             (context.l10n.toggleSidebar, 'sidebar', ''),
             (context.l10n.focusMode, 'focus', ''),
-            (context.l10n.presentationMode, 'presentation', ''),
+            (context.l10n.presentationMode, 'presentation', 'F5'),
             (context.l10n.appearanceMenu, 'appearance', ''),
           ]),
           _menu(context.l10n.menuTools, [
@@ -682,51 +787,105 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           ),
           if (width >= 1100) ...[
             AppButton(
-              label: Theme.of(context).brightness == Brightness.light
-                  ? '☀'
-                  : '☾',
-              tooltip: context.l10n.toggleTheme,
+              key: const ValueKey('titlebar-theme'),
+              label: switch (state.themeMode) {
+                ThemeMode.light => '☀',
+                ThemeMode.dark => '☾',
+                ThemeMode.system => '◐',
+              },
+              tooltip:
+                  '${context.l10n.themeMode} · ${switch (state.themeMode) {
+                    ThemeMode.light => context.l10n.light,
+                    ThemeMode.dark => context.l10n.dark,
+                    ThemeMode.system => context.l10n.followSystem,
+                  }}',
+              bordered: true,
               padding: 7,
               onPressed: () => state.updateAppearance(
-                mode: Theme.of(context).brightness == Brightness.light
-                    ? ThemeMode.dark
-                    : ThemeMode.light,
+                mode: switch (state.themeMode) {
+                  ThemeMode.light => ThemeMode.dark,
+                  ThemeMode.dark => ThemeMode.system,
+                  ThemeMode.system => ThemeMode.light,
+                },
               ),
             ),
             for (final palette in paletteNames.entries)
               Tooltip(
                 message: context.l10n.paletteName(palette.key),
-                child: InkWell(
-                  onTap: () => state.updateAppearance(palette: palette.key),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(5),
-                    child: Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: paletteSchemes['${palette.key}-light']!.primary,
-                        border: state.palette == palette.key
-                            ? Border.all(color: c.primary, width: 2)
-                            : null,
+                child: Semantics(
+                  button: true,
+                  selected: state.palette == palette.key,
+                  child: InkWell(
+                    onTap: () => state.updateAppearance(palette: palette.key),
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      width: 22,
+                      height: 32,
+                      child: Center(
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Container(
+                              width: 22,
+                              height: 22,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: state.palette == palette.key
+                                    ? Border.all(color: c.primary, width: 2)
+                                    : null,
+                              ),
+                            ),
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: paletteSchemes['${palette.key}-light']!
+                                    .primary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
           ],
+          MenuAnchor(
+            menuChildren: [
+              for (final language in languageNames.entries)
+                MenuItemButton(
+                  key: ValueKey('titlebar-language-${language.key}'),
+                  leadingIcon: SizedBox(
+                    width: 16,
+                    child: state.language == language.key
+                        ? const AppGlyph('check')
+                        : null,
+                  ),
+                  onPressed: () =>
+                      state.updateAppearance(language: language.key),
+                  child: Text(language.value),
+                ),
+            ],
+            builder: (context, controller, _) => AppButton(
+              key: const ValueKey('titlebar-language'),
+              label: '文ᴬ',
+              tooltip: context.l10n.language,
+              selected: controller.isOpen,
+              onPressed: () =>
+                  controller.isOpen ? controller.close() : controller.open(),
+            ),
+          ),
           const SizedBox(width: 8),
           if (widget.windowIntegration) ...[
-            AppButton(
+            AppCaptionButton(
               icon: 'min',
               tooltip: context.l10n.minimize,
               onPressed: () => windowManager.minimize(),
-              height: 39,
-              padding: 14,
             ),
-            AppButton(
-              icon: 'max',
+            AppCaptionButton(
+              icon: _maximized ? 'restore' : 'max',
               tooltip: context.l10n.maximizeRestore,
               onPressed: () async {
                 if (await windowManager.isMaximized()) {
@@ -735,16 +894,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                   await windowManager.maximize();
                 }
               },
-              height: 39,
-              padding: 14,
             ),
           ],
-          AppButton(
+          AppCaptionButton(
             icon: 'x',
             tooltip: context.l10n.close,
             onPressed: () => unawaited(_close()),
-            height: 39,
-            padding: 14,
+            close: true,
           ),
         ],
       ),

@@ -928,4 +928,26 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get guideDocument =>
       '# Texweft へようこそ\n\n本文をクリックして最初のアイデアを書いてみましょう。\n\n## 内容から構造へ\n\nマップで節を整理すると本文にも反映されます。\n\n## 作品を共有する\n\n書式を選んで文書を書き出します。';
+
+  @override
+  String get presentationOutline => 'プレゼンテーションのアウトライン';
+
+  @override
+  String get presentationPrevious => '前のスライド';
+
+  @override
+  String get presentationNext => '次のスライド';
+
+  @override
+  String get presentationSmaller => '文字を小さくする';
+
+  @override
+  String get presentationLarger => '文字を大きくする';
+
+  @override
+  String get presentationKeys =>
+      '← / →、PageUp / PageDown：移動 · Home / End：最初 / 最後 · Esc：終了';
+
+  @override
+  String get presentationMarkdown => '本文';
 }

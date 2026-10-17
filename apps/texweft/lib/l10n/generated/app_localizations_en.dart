@@ -968,4 +968,26 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get guideDocument =>
       '# Welcome to Texweft\n\nClick the document and write your first idea.\n\n## From content to structure\n\nArrange sections in the map and the text follows.\n\n## Share your work\n\nChoose a style and export your document.';
+
+  @override
+  String get presentationOutline => 'Presentation outline';
+
+  @override
+  String get presentationPrevious => 'Previous slide';
+
+  @override
+  String get presentationNext => 'Next slide';
+
+  @override
+  String get presentationSmaller => 'Decrease presentation text size';
+
+  @override
+  String get presentationLarger => 'Increase presentation text size';
+
+  @override
+  String get presentationKeys =>
+      '← / →, PageUp / PageDown: slides · Home / End: first / last · Esc: exit';
+
+  @override
+  String get presentationMarkdown => 'Markdown';
 }

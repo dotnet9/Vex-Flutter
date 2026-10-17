@@ -33,6 +33,7 @@ void main() {
       call,
     ) async {
       calls.add(call);
+      if (call.method == 'isMaximized') return false;
       return null;
     });
     addTearDown(

@@ -13,8 +13,10 @@ import '../../data/repositories/recovery_repository.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../data/services/file_service.dart';
 import '../../domain/workspace.dart';
+import '../../domain/presentation.dart';
 import '../../l10n/l10n.dart';
 import '../core/palette_tokens.dart';
+import 'presentation_controller.dart';
 
 final class WorkspaceViewModel extends ChangeNotifier {
   WorkspaceViewModel({
@@ -62,10 +64,9 @@ final class WorkspaceViewModel extends ChangeNotifier {
   ThemeMode themeMode = ThemeMode.light;
   String palette = 'weft', language;
   bool sidebar = true, outline = false, compact = false, lineNumbers = true;
-  bool findVisible = false,
-      replaceVisible = false,
-      focusMode = false,
-      presentation = false;
+  bool findVisible = false, replaceVisible = false, focusMode = false;
+  PresentationController? presenter;
+  bool get presentation => presenter != null;
   bool paragraphs = true, lists = true, blocks = false;
   int summaryLength = 30;
   double sidebarWidth = 226, fontSize = 15;
@@ -133,7 +134,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
       paragraphs = preferences['paragraphs'] != false;
       lists = preferences['lists'] != false;
       blocks = preferences['blocks'] == true;
-      fontSize = (preferences['fontSize'] as num? ?? 14).toDouble().clamp(
+      fontSize = (preferences['fontSize'] as num? ?? 15).toDouble().clamp(
         12,
         22,
       );
@@ -359,8 +360,19 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _notify();
   }
 
-  void togglePresentation() {
-    presentation = !presentation;
+  void togglePresentation({bool outline = true}) {
+    if (presenter != null) {
+      presenter!.dispose();
+      presenter = null;
+    } else {
+      if (_guiding) endGuide();
+      presenter = PresentationController(
+        PresentationDeck.fromDocument(editor.document, title: current.name),
+        headingId: selectedHeadingId,
+        mapMode: layout == WorkspaceLayout.map,
+      );
+      if (!outline) presenter!.toggleOutline();
+    }
     _notify();
   }
 
@@ -433,6 +445,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
 
   void switchDocument(WorkspaceDocument document) {
     if (_guiding) endGuide();
+    presenter?.dispose();
+    presenter = null;
     current = document;
     selectedHeadingId = null;
     externalChange = null;
@@ -673,6 +687,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    presenter?.dispose();
     _autosave?.cancel();
     _externalTimer?.cancel();
     for (final doc in documents) {
