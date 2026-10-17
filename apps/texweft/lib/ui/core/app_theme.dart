@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'palette_tokens.dart';
+import 'app_fonts.dart';
 
 ThemeData appTheme(String palette, Brightness brightness) {
   final c = paletteSchemes['$palette-${brightness.name}']!;
@@ -8,16 +9,16 @@ ThemeData appTheme(String palette, Brightness brightness) {
     useMaterial3: true,
     colorScheme: c,
     scaffoldBackgroundColor: c.surface,
-    fontFamily: 'Segoe UI',
-    fontFamilyFallback: const [
-      'Microsoft YaHei UI',
-      'PingFang SC',
-      'Noto Sans CJK SC',
-      'sans-serif',
-    ],
+    fontFamily: AppFonts.interface,
+    fontFamilyFallback: AppFonts.fallback,
+    extensions: [AppFonts.markdown],
     visualDensity: VisualDensity.compact,
-    textTheme: ThemeData(useMaterial3: true).textTheme
-        .apply(bodyColor: c.onSurface, displayColor: c.onSurface),
+    textTheme: ThemeData(useMaterial3: true).textTheme.apply(
+      fontFamily: AppFonts.interface,
+      fontFamilyFallback: AppFonts.fallback,
+      bodyColor: c.onSurface,
+      displayColor: c.onSurface,
+    ),
     dividerColor: c.outlineVariant,
     dividerTheme: DividerThemeData(
       color: c.outlineVariant,

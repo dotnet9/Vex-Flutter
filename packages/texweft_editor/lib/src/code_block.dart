@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'font_families.dart';
+
 /// Shared, quiet code surface for reading and instant editing.
 /// The language editor belongs below this surface, never in its header.
 class MarkdownCodeBlock extends StatelessWidget {
@@ -16,18 +18,21 @@ class MarkdownCodeBlock extends StatelessWidget {
   final double fontSize;
   final Widget? child;
 
-  static TextStyle textStyle(ColorScheme colors, double fontSize) => TextStyle(
-    fontFamily: 'Consolas',
-    fontFamilyFallback: const ['Cascadia Code', 'Menlo', 'monospace'],
-    fontSize: fontSize,
-    height: 22 / 14,
-    color: colors.onSurface,
-  );
+  static TextStyle textStyle(BuildContext context, double fontSize) {
+    final fonts = MarkdownFontFamilies.of(context);
+    return TextStyle(
+      fontFamily: fonts.monospace,
+      fontFamilyFallback: fonts.monospaceFallback,
+      fontSize: fontSize,
+      height: 22 / 14,
+      color: Theme.of(context).colorScheme.onSurface,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final style = textStyle(colors, fontSize);
+    final style = textStyle(context, fontSize);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

@@ -9,3 +9,5 @@
 源码与即时编辑的 Enter 支持列表、任务与引用续写，空项退出，粘贴文本块和代码围栏保持原样。即时编辑保留选区两端及 CRLF 映射，点击定位光标，方向键在块首尾切换；ATX 标题回车转入正文。保存时保留正在编辑的块；若保存后按 Esc 回退，文档会正确标记为尚未保存。
 
 即时编辑仍处于完善阶段，跨块拖选、行内语法隐藏、复杂列表与长文档性能尚需继续实现和验证。
+
+组件不携带字体字库。普通正文继承宿主 `TextTheme`；宿主可通过 `ThemeData.extensions` 注入 `MarkdownFontFamilies`，统一书卷衬线、源码及代码字体和各自回退链。例如 `const MarkdownFontFamilies(serif: 'SimSun', monospace: 'MyBundledCodeFont', monospaceFallback: ['Microsoft YaHei UI'])`。字体资源与许可证由宿主负责，默认使用系统 serif／monospace。

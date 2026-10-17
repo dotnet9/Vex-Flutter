@@ -17,6 +17,9 @@ Future<void> main(List<String> arguments) async {
     yield LicenseEntryWithLineBreaks(const [
       'Noto Sans SC',
     ], await rootBundle.loadString('assets/fonts/OFL.txt'));
+    yield LicenseEntryWithLineBreaks(const [
+      'Cascadia Code',
+    ], await rootBundle.loadString('assets/fonts/CascadiaCode-OFL.txt'));
   });
   if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
     await windowManager.ensureInitialized();

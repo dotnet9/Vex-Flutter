@@ -335,7 +335,10 @@ class _TypographySample extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 fontFamily: type == MarkdownTypography.book
-                    ? 'NotoSerifSC'
+                    ? MarkdownFontFamilies.of(context).serif
+                    : null,
+                fontFamilyFallback: type == MarkdownTypography.book
+                    ? MarkdownFontFamilies.of(context).serifFallback
                     : null,
                 color:
                     type == MarkdownTypography.simple ||

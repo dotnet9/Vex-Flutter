@@ -3,6 +3,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:markdown/markdown.dart' as md;
 
 import 'code_block.dart';
+import 'font_families.dart';
 
 enum MarkdownTypography {
   simple('简约', '日常写作 · 清爽留白'),
@@ -46,8 +47,9 @@ class MarkdownReader extends StatelessWidget {
               ? const Color(0xffeba88d)
               : const Color(0xffa04d35))
         : colors.primary;
-    final font = typography == MarkdownTypography.book ? 'SimSun' : null;
-    final body = TextStyle(
+    final fonts = MarkdownFontFamilies.of(context);
+    final book = typography == MarkdownTypography.book;
+    final body = Theme.of(context).textTheme.bodyMedium!.copyWith(
       fontSize: compact ? fontSize * .93 : fontSize,
       height: compact
           ? 1.65
@@ -55,7 +57,8 @@ class MarkdownReader extends StatelessWidget {
           ? 2.05
           : 1.95,
       color: colors.onSurface,
-      fontFamily: font,
+      fontFamily: book ? fonts.serif : null,
+      fontFamilyFallback: book ? fonts.serifFallback : null,
     );
     final sheet = MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
       p: body,
@@ -99,8 +102,8 @@ class MarkdownReader extends StatelessWidget {
         borderRadius: const BorderRadius.horizontal(right: Radius.circular(5)),
       ),
       code: TextStyle(
-        fontFamily: 'Consolas',
-        fontFamilyFallback: const ['monospace'],
+        fontFamily: fonts.monospace,
+        fontFamilyFallback: fonts.monospaceFallback,
         fontSize: fontSize * .87,
         height: 1.8,
         color: accent,

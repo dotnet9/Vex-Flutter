@@ -5,6 +5,7 @@ import 'package:texweft_markdown_core/texweft_markdown_core.dart';
 
 import 'code_block.dart';
 import 'controller.dart';
+import 'font_families.dart';
 import 'reader.dart';
 import 'typing_formatter.dart';
 
@@ -71,12 +72,15 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
                                   height: height,
                                   child: Text(
                                     '${i + 1}',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      height: height / 10,
-                                      color: color.onSurfaceVariant,
-                                      fontFamily: 'Consolas',
-                                    ),
+                                    style:
+                                        MarkdownCodeBlock.textStyle(
+                                          context,
+                                          10,
+                                        ).copyWith(
+                                          fontSize: 10,
+                                          height: height / 10,
+                                          color: color.onSurfaceVariant,
+                                        ),
                                   ),
                                 ),
                             ],
@@ -101,13 +105,12 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
                 inputFormatters: [MarkdownTypingFormatter()],
                 smartDashesType: SmartDashesType.disabled,
                 smartQuotesType: SmartQuotesType.disabled,
-                style: TextStyle(
-                  fontFamily: 'Consolas',
-                  fontFamilyFallback: const ['monospace'],
-                  fontSize: widget.fontSize,
-                  height: 1.9,
-                  color: color.onSurface,
-                ),
+                style: MarkdownCodeBlock.textStyle(context, widget.fontSize)
+                    .copyWith(
+                      fontSize: widget.fontSize,
+                      height: 1.9,
+                      color: color.onSurface,
+                    ),
                 decoration: InputDecoration(
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
@@ -453,7 +456,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
                           inputFormatters: [
                             FilteringTextInputFormatter.deny(RegExp(r'[\s`]')),
                           ],
-                          style: MarkdownCodeBlock.textStyle(colors, 12),
+                          style: MarkdownCodeBlock.textStyle(context, 12),
                           textAlign: TextAlign.center,
                           decoration: InputDecoration(
                             hintText: 'text',
@@ -493,7 +496,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
       final painter = TextPainter(
         text: TextSpan(
           text: _input.text,
-          style: MarkdownCodeBlock.textStyle(colors, widget.compact ? 13 : 14),
+          style: MarkdownCodeBlock.textStyle(context, widget.compact ? 13 : 14),
         ),
         textDirection: Directionality.of(context),
         textScaler: MediaQuery.textScalerOf(context),
@@ -525,8 +528,14 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
       smartQuotesType: SmartQuotesType.disabled,
       onTapOutside: (_) => _finish(),
       style: _codeFence != null
-          ? MarkdownCodeBlock.textStyle(colors, widget.compact ? 13 : 14)
-          : TextStyle(
+          ? MarkdownCodeBlock.textStyle(context, widget.compact ? 13 : 14)
+          : Theme.of(context).textTheme.bodyMedium!.copyWith(
+              fontFamily: widget.typography == MarkdownTypography.book
+                  ? MarkdownFontFamilies.of(context).serif
+                  : null,
+              fontFamilyFallback: widget.typography == MarkdownTypography.book
+                  ? MarkdownFontFamilies.of(context).serifFallback
+                  : null,
               fontSize: _kind == MarkdownBlockKind.heading
                   ? widget.fontSize * (_prefix.trim() == '#' ? 2 : 1.4)
                   : widget.fontSize,
