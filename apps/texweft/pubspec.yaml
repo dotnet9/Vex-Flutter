@@ -1,7 +1,7 @@
 name: texweft
 description: 笺纬 Texweft · 落笔成文，思路成形。
 publish_to: none
-version: 0.2.1+3
+version: 0.2.2+4
 resolution: workspace
 environment:
   sdk: ^3.13.0
