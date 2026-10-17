@@ -98,11 +98,20 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: subosito/flutter-action@v2
+        if: matrix.target != 'linux-arm64'
         with:
           flutter-version: ${{ needs.metadata.outputs.flutter }}
           channel: stable
           architecture: ${{ matrix.architecture }}
           cache: true
+      - name: 从固定版本源码引导 Linux ARM64 Flutter
+        if: matrix.target == 'linux-arm64'
+        env:
+          FLUTTER_VERSION: ${{ needs.metadata.outputs.flutter }}
+        run: |
+          git clone --depth 1 --branch "$FLUTTER_VERSION" https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter-sdk"
+          echo "$RUNNER_TEMP/flutter-sdk/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/flutter-sdk/bin/flutter" --version
       - name: 安装 Linux 原生构建依赖
         if: runner.os == 'Linux'
         run: |
@@ -191,6 +200,9 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ needs.metadata.outputs.flutter }}
