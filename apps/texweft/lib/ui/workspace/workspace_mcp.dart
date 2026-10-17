@@ -317,7 +317,7 @@ final class WorkspaceMcp extends ChangeNotifier {
       },
       'get_operation_audit' => List.of(audit),
       _ => {
-        'name': 'Texweft',
+        'name': 'Vex',
         'layout': vm.layout.name,
         'palette': vm.palette,
         'language': vm.language,

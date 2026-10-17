@@ -158,7 +158,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get openSourceLicenses => '开源组件许可';
 
   @override
-  String get appTitle => '笺纬 Texweft';
+  String get appTitle => '维刻 Vex';
 
   @override
   String get checking => '正在检查…';
@@ -170,10 +170,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get githubUnavailable => '暂时无法连接 GitHub，可稍后重试。';
 
   @override
-  String get about => '关于笺纬';
+  String get about => '关于';
 
   @override
-  String get slogan => '落笔成文，思路成形。';
+  String get slogan => '写下想法，看见脉络';
 
   @override
   String get nativeApplication => 'Flutter 原生应用';
@@ -442,7 +442,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get quickStart => '快速上手';
 
   @override
-  String get aboutUpdates => '关于笺纬 / 检查更新';
+  String get aboutUpdates => '关于 / 检查更新';
 
   @override
   String get toggleTheme => '切换明暗模式';
@@ -940,7 +940,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get guideDocument =>
-      '# 欢迎使用笺纬\n\n点击正文，写下第一个想法。\n\n## 从内容到结构\n\n在导图中整理章节，正文会同步变化。\n\n## 分享你的作品\n\n选择排版，把内容导出为文档。';
+      '# 欢迎使用维刻 Vex\n\n点击正文，写下第一个想法。\n\n## 从内容到结构\n\n在导图中整理章节，正文会同步变化。\n\n## 分享你的作品\n\n选择排版，把内容导出为文档。';
 
   @override
   String get presentationOutline => '演示大纲';
@@ -1223,7 +1223,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get openSourceLicenses => '開放原始碼元件授權';
 
   @override
-  String get appTitle => '箋緯 Texweft';
+  String get appTitle => '維刻 Vex';
 
   @override
   String get checking => '正在檢查…';
@@ -1235,10 +1235,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get githubUnavailable => '暫時無法連線 GitHub，可稍後重試。';
 
   @override
-  String get about => '關於箋緯';
+  String get about => '關於';
 
   @override
-  String get slogan => '落筆成文，思路成形。';
+  String get slogan => '寫下想法，看見脈絡';
 
   @override
   String get nativeApplication => 'Flutter 原生應用程式';
@@ -1507,7 +1507,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get quickStart => '快速上手';
 
   @override
-  String get aboutUpdates => '關於箋緯 / 檢查更新';
+  String get aboutUpdates => '關於 / 檢查更新';
 
   @override
   String get toggleTheme => '切換明暗模式';
@@ -2005,7 +2005,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get guideDocument =>
-      '# 歡迎使用箋緯\n\n點選內文，寫下第一個想法。\n\n## 從內容到結構\n\n在心智圖中整理章節，內文會同步變化。\n\n## 分享你的作品\n\n選擇排版，把內容匯出為文件。';
+      '# 歡迎使用維刻 Vex\n\n點選內文，寫下第一個想法。\n\n## 從內容到結構\n\n在心智圖中整理章節，內文會同步變化。\n\n## 分享你的作品\n\n選擇排版，把內容匯出為文件。';
 
   @override
   String get presentationOutline => '簡報大綱';

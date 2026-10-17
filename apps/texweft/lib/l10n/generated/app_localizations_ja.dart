@@ -160,7 +160,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get openSourceLicenses => 'オープンソースライセンス';
 
   @override
-  String get appTitle => 'Texweft';
+  String get appTitle => 'Vex';
 
   @override
   String get checking => '確認中…';
@@ -172,7 +172,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get githubUnavailable => 'GitHub に接続できません。しばらくしてから再試行してください。';
 
   @override
-  String get about => 'Texweft について';
+  String get about => 'このアプリについて';
 
   @override
   String get slogan => '言葉を綴り、思考をかたちに。';
@@ -945,7 +945,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get guideDocument =>
-      '# Texweft へようこそ\n\n本文をクリックして最初のアイデアを書いてみましょう。\n\n## 内容から構造へ\n\nマップで節を整理すると本文にも反映されます。\n\n## 作品を共有する\n\n書式を選んで文書を書き出します。';
+      '# Vex へようこそ\n\n本文をクリックして最初のアイデアを書いてみましょう。\n\n## 内容から構造へ\n\nマップで節を整理すると本文にも反映されます。\n\n## 作品を共有する\n\n書式を選んで文書を書き出します。';
 
   @override
   String get presentationOutline => 'プレゼンテーションのアウトライン';

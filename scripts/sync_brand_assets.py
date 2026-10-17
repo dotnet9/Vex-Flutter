@@ -15,6 +15,17 @@ ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "apps/texweft/assets/brand"
 
 
+def background_colors(svg):
+    ns = {'svg': 'http://www.w3.org/2000/svg'}
+    colors = [stop.attrib['stop-color'] for stop in svg.findall('.//svg:stop', ns)]
+    if colors:
+        return colors
+    tile = svg.find('svg:rect', ns)
+    if tile is None or not tile.get('fill', '').startswith('#'):
+        raise ValueError('Brand SVG needs a solid tile or gradient stops')
+    return [tile.attrib['fill']]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -49,7 +60,7 @@ def main():
     # mark inside the adaptive icon safe zone rather than nesting a second tile.
     svg = ET.parse(ROOT / 'logo.svg').getroot()
     ns = {'svg': 'http://www.w3.org/2000/svg'}
-    colors = [stop.attrib['stop-color'] for stop in svg.findall('.//svg:stop', ns)]
+    colors = background_colors(svg)
     android = 'http://schemas.android.com/apk/res/android'
     ET.register_namespace('android', android)
     def attr(key):
@@ -74,9 +85,12 @@ def main():
         write(app / f'android/app/src/main/res/drawable/{name}.xml',
               ET.tostring(vector, encoding='utf-8', xml_declaration=True))
     background = ET.Element('shape', {attr('shape'): 'rectangle'})
-    ET.SubElement(background, 'gradient', {
-        attr('startColor'): colors[0], attr('endColor'): colors[-1], attr('angle'): '315',
-    })
+    if len(colors) == 1:
+        ET.SubElement(background, 'solid', {attr('color'): colors[0]})
+    else:
+        ET.SubElement(background, 'gradient', {
+            attr('startColor'): colors[0], attr('endColor'): colors[-1], attr('angle'): '315',
+        })
     write(app / 'android/app/src/main/res/drawable/ic_launcher_background.xml',
           ET.tostring(background, encoding='utf-8', xml_declaration=True))
     for version in (26, 33):

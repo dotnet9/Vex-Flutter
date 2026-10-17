@@ -398,7 +398,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In zh, this message translates to:
-  /// **'笺纬 Texweft'**
+  /// **'维刻 Vex'**
   String get appTitle;
 
   /// No description provided for @checking.
@@ -422,13 +422,13 @@ abstract class AppLocalizations {
   /// No description provided for @about.
   ///
   /// In zh, this message translates to:
-  /// **'关于笺纬'**
+  /// **'关于'**
   String get about;
 
   /// No description provided for @slogan.
   ///
   /// In zh, this message translates to:
-  /// **'落笔成文，思路成形。'**
+  /// **'写下想法，看见脉络'**
   String get slogan;
 
   /// No description provided for @nativeApplication.
@@ -962,7 +962,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutUpdates.
   ///
   /// In zh, this message translates to:
-  /// **'关于笺纬 / 检查更新'**
+  /// **'关于 / 检查更新'**
   String get aboutUpdates;
 
   /// No description provided for @toggleTheme.
@@ -1766,7 +1766,7 @@ abstract class AppLocalizations {
   /// No description provided for @guideDocument.
   ///
   /// In zh, this message translates to:
-  /// **'# 欢迎使用笺纬\n\n点击正文，写下第一个想法。\n\n## 从内容到结构\n\n在导图中整理章节，正文会同步变化。\n\n## 分享你的作品\n\n选择排版，把内容导出为文档。'**
+  /// **'# 欢迎使用维刻 Vex\n\n点击正文，写下第一个想法。\n\n## 从内容到结构\n\n在导图中整理章节，正文会同步变化。\n\n## 分享你的作品\n\n选择排版，把内容导出为文档。'**
   String get guideDocument;
 
   /// No description provided for @presentationOutline.

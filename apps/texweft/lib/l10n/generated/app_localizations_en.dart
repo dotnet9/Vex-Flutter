@@ -162,7 +162,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openSourceLicenses => 'Open source licenses';
 
   @override
-  String get appTitle => 'Texweft';
+  String get appTitle => 'Vex';
 
   @override
   String get checking => 'Checking…';
@@ -175,10 +175,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Cannot reach GitHub. Please try again later.';
 
   @override
-  String get about => 'About Texweft';
+  String get about => 'About';
 
   @override
-  String get slogan => 'Write your words. Shape your thoughts.';
+  String get slogan => 'Write ideas. See connections.';
 
   @override
   String get nativeApplication => 'Native Flutter application';
@@ -985,7 +985,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get guideDocument =>
-      '# Welcome to Texweft\n\nClick the document and write your first idea.\n\n## From content to structure\n\nArrange sections in the map and the text follows.\n\n## Share your work\n\nChoose a style and export your document.';
+      '# Welcome to Vex\n\nClick the document and write your first idea.\n\n## From content to structure\n\nArrange sections in the map and the text follows.\n\n## Share your work\n\nChoose a style and export your document.';
 
   @override
   String get presentationOutline => 'Presentation outline';
