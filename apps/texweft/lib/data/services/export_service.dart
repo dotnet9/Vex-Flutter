@@ -12,6 +12,7 @@ import 'package:texweft_editor/texweft_editor.dart';
 import 'package:texweft_mindmap/texweft_mindmap.dart';
 
 import '../../domain/export_preferences.dart';
+import 'export_images.dart';
 
 /// Native document encoders. No browser engine or HTML-to-PDF WebView.
 final class DocumentExportService {
@@ -94,6 +95,7 @@ final class DocumentExportService {
     required String title,
     required ColorScheme colors,
     required MarkdownTypography typography,
+    String? documentPath,
     bool compact = false,
     bool styled = true,
     WatermarkPreferences watermark = const WatermarkPreferences(),
@@ -128,6 +130,8 @@ final class DocumentExportService {
     );
     MarkdownHeadingIds().assign(parsed, encodedHtml: true);
     final formulas = await _formulaImages(parsed, markdown, colors.onSurface);
+    final images = await ExportImages(documentPath: documentPath)
+        .collect(parsed);
     md.Node resolve(md.Node node) {
       if (_formula(node)) {
         final image = formulas[node];
@@ -143,6 +147,21 @@ final class DocumentExportService {
             'style':
                 'width:${image.size.width / 18}em;height:${image.size.height / 18}em',
           });
+      }
+      if (node is md.Element &&
+          node.tag == 'img' &&
+          node.attributes['class'] != 'vex-diagram') {
+        final image = images[node];
+        if (image == null) {
+          return md.Element.text('span', node.attributes['alt'] ?? 'Image')
+            ..attributes['class'] = 'vex-missing-image';
+        }
+        return md.Element.empty('img')
+          ..attributes.addAll(node.attributes)
+          ..attributes['src'] =
+              'data:image/png;base64,${base64Encode(image.bytes)}'
+          ..attributes['width'] = image.size.width.round().toString()
+          ..attributes['height'] = image.size.height.round().toString();
       }
       if (node is md.Element && node.children != null) {
         return md.Element(node.tag, node.children!.map(resolve).toList())
@@ -165,7 +184,7 @@ final class DocumentExportService {
         : 1.95} ${typography == MarkdownTypography.book ? 'Georgia,"Noto Serif CJK SC",SimSun,serif' : 'system-ui,"Microsoft YaHei UI","PingFang SC",sans-serif'}}
 article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80px;overflow-wrap:anywhere}h1{font-size:2em;line-height:1.45;margin:0 0 30px}h2{font-size:1.4em;line-height:1.6;margin:32px 0 16px;$section}h3{font-size:1.15em;margin-top:26px}p{margin:0 0 ${compact ? 10 : 18}px}a{color:$accent}blockquote{margin:18px 0;padding:12px 18px;border-left:3px solid $accent;background:$panel}pre{white-space:pre;overflow-x:auto;padding:8px 12px;background:$panel;border:1px solid $border;border-radius:3px}pre code{font:14px/22px Consolas,Menlo,monospace;color:$fg;background:transparent}code{font:0.9em/1.8 Consolas,monospace;background:$panel}table{border-collapse:collapse;width:100%;margin:18px 0}td,th{border:1px solid $border;padding:9px 12px;text-align:left}th{background:$panel}img{max-width:100%}hr{border:0;border-top:1px solid $border;margin:28px 0}li{margin:6px 0}@media(max-width:600px){article{padding:28px 22px}}@media print{body{color:#222;background:white}article{padding:0;max-width:none}h1,h2,h3{break-after:avoid}pre,blockquote,tr{break-inside:avoid}}
 .vex-watermark{position:fixed;inset:0;z-index:10;pointer-events:none;user-select:none;overflow:hidden}.vex-watermark svg{width:100%;height:100%;display:block}
-.vex-math{vertical-align:middle;object-fit:contain;max-width:100%;height:auto!important}.vex-math-block{display:block;margin:20px auto;max-width:100%;height:auto!important;font-size:1.15em}mark{color:inherit;background:#ffe49b}
+img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:1px dashed $border;color:$fg}.vex-math{vertical-align:middle;object-fit:contain;max-width:100%;height:auto!important}.vex-math-block{display:block;margin:20px auto;max-width:100%;height:auto!important;font-size:1.15em}mark{color:inherit;background:#ffe49b}
 </style></head><body><article>$body</article>${watermark.export && watermark.visible ? _htmlWatermark(watermark.copyWith()) : ''}</body></html>''';
   }
 
@@ -177,6 +196,7 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
     required String title,
     required ColorScheme colors,
     required MarkdownTypography typography,
+    String? documentPath,
     bool compact = false,
     ExportPreferences preferences = const ExportPreferences(),
     WatermarkPreferences watermark = const WatermarkPreferences(),
@@ -202,6 +222,18 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
         ? ColorScheme.fromSeed(seedColor: colors.primary)
         : colors;
     final parsed = _parse(source, markdown);
+    final images = await ExportImages(documentPath: documentPath)
+        .collect(parsed);
+    final imageProviders = <ExportImage, pw.MemoryImage>{};
+    for (final image in images.values) {
+      imageProviders.putIfAbsent(image, () => pw.MemoryImage(image.bytes));
+    }
+    final contentWidth =
+        format.width - 2 * preferences.margin.clamp(10, 30) * PdfPageFormat.mm;
+    final imageHeight =
+        format.height -
+        2 * preferences.margin.clamp(10, 30) * PdfPageFormat.mm -
+        100;
     final formulas = await _formulaImages(
       parsed,
       markdown,
@@ -307,7 +339,11 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
                     node.children ?? [],
                     headingStyle,
                     accent,
-                    formulas,
+                    formulas: formulas,
+                    images: images,
+                    imageProviders: imageProviders,
+                    imageWidth: contentWidth,
+                    imageHeight: imageHeight,
                   ),
                   style: headingStyle,
                 ),
@@ -427,7 +463,11 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
                             item.children ?? [],
                             base,
                             accent,
-                            formulas,
+                            formulas: formulas,
+                            images: images,
+                            imageProviders: imageProviders,
+                            imageWidth: contentWidth - depth * 12 - 18,
+                            imageHeight: imageHeight,
                           ),
                         ),
                       ),
@@ -475,7 +515,12 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
                                     [cell],
                                     base,
                                     accent,
-                                    formulas,
+                                    formulas: formulas,
+                                    images: images,
+                                    imageProviders: imageProviders,
+                                    imageWidth:
+                                        contentWidth / rows[row].length - 16,
+                                    imageHeight: math.min(imageHeight, 250),
                                   ),
                                 ),
                               ),
@@ -500,7 +545,11 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
                     node.children ?? [md.Text(node.textContent)],
                     base,
                     accent,
-                    formulas,
+                    formulas: formulas,
+                    images: images,
+                    imageProviders: imageProviders,
+                    imageWidth: contentWidth - depth * 12,
+                    imageHeight: imageHeight,
                   ),
                 ),
               ),
@@ -578,13 +627,41 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
   List<pw.InlineSpan> _pdfInline(
     List<md.Node> nodes,
     pw.TextStyle style,
-    PdfColor accent, [
+    PdfColor accent, {
     Map<md.Node, ({ui.Size size, Uint8List bytes})> formulas = const {},
-  ]) => nodes.map((node) {
+    Map<md.Node, ExportImage> images = const {},
+    Map<ExportImage, pw.MemoryImage> imageProviders = const {},
+    double imageWidth = 450,
+    double imageHeight = 600,
+  }) => nodes.map((node) {
     if (node is! md.Element) {
       return pw.TextSpan(text: node.textContent, style: style);
     }
     if (node.tag == 'br') return const pw.TextSpan(text: '\n');
+    if (node.tag == 'img') {
+      final image = images[node];
+      if (image == null) {
+        return pw.TextSpan(
+          text: node.attributes['alt'] ?? 'Image',
+          style: style,
+        );
+      }
+      final scale = math.min(
+        .75,
+        math.min(
+          imageWidth / image.size.width,
+          imageHeight / image.size.height,
+        ),
+      );
+      return pw.WidgetSpan(
+        child: pw.Image(
+          imageProviders[image]!,
+          width: image.size.width * scale,
+          height: image.size.height * scale,
+          fit: pw.BoxFit.contain,
+        ),
+      );
+    }
     final formula = formulas[node];
     if (formula != null) {
       return pw.WidgetSpan(
@@ -635,7 +712,11 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
         node.children ?? [md.Text(node.attributes['alt'] ?? node.textContent)],
         next,
         accent,
-        formulas,
+        formulas: formulas,
+        images: images,
+        imageProviders: imageProviders,
+        imageWidth: imageWidth,
+        imageHeight: imageHeight,
       ),
     );
   }).toList();
@@ -643,10 +724,13 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
   Future<Uint8List> docx({
     required String source,
     required String title,
+    String? documentPath,
     MarkdownPreferences markdown = const MarkdownPreferences(),
   }) async {
     final archive = Archive();
     final parsed = _parse(source, markdown);
+    final images = await ExportImages(documentPath: documentPath)
+        .collect(parsed);
     final formulas = await _formulaImages(
       parsed,
       markdown,
@@ -655,6 +739,37 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
     final formulaIds = <md.Node, int>{};
     final diagrams = <md.Node, (int, double, double)>{};
     final imageRelationships = StringBuffer();
+    final imageIds = <ExportImage, int>{};
+    for (final image in images.values) {
+      if (imageIds.containsKey(image)) continue;
+      final index = imageIds.length + 1;
+      imageIds[image] = index;
+      archive.addFile(
+        ArchiveFile(
+          'word/media/image-$index.png',
+          image.bytes.length,
+          image.bytes,
+        ),
+      );
+      imageRelationships.write(
+        '<Relationship Id="rIdImage$index" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image-$index.png"/>',
+      );
+    }
+    var imageOccurrence = 0;
+    String imageDrawing(md.Element node, double imageWidth) {
+      final image = images[node];
+      if (image == null) return '';
+      final index = imageIds[image]!, id = 200000 + ++imageOccurrence;
+      final scale = math.min(
+        9525,
+        math.min(imageWidth / image.size.width, 7000000 / image.size.height),
+      );
+      final cx = (image.size.width * scale).round(),
+          cy = (image.size.height * scale).round();
+      final alt = _escape(node.attributes['alt'] ?? '');
+      return '<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="$cx" cy="$cy"/><wp:docPr id="$id" name="Image $index" descr="$alt"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="$id" name="Image $index" descr="$alt"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdImage$index"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="$cx" cy="$cy"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
+    }
+
     final diagramColors = ColorScheme.fromSeed(
       seedColor: const Color(0xff24766b),
     );
@@ -737,6 +852,7 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
 
     String inline(
       md.Node node, {
+      double imageWidth = 5600000,
       bool bold = false,
       bool italic = false,
       bool code = false,
@@ -756,6 +872,11 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
         );
       }
       if (formulas.containsKey(node)) return formulaDrawing(node);
+      if (node.tag == 'img') {
+        return images.containsKey(node)
+            ? imageDrawing(node, imageWidth)
+            : run(node.attributes['alt'] ?? 'Image');
+      }
       if (node.tag == 'br') return '<w:r><w:br/></w:r>';
       if (node.tag == 'input') {
         return run(node.attributes.containsKey('checked') ? '[x] ' : '[ ] ');
@@ -765,6 +886,7 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
           .map(
             (child) => inline(
               child,
+              imageWidth: imageWidth,
               bold: bold || node.tag == 'strong',
               italic: italic || node.tag == 'em',
               code: code || node.tag == 'code',
@@ -818,7 +940,9 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
           if (n.tag == 'tr') {
             body.write('<w:tr>');
             for (final cell in n.children ?? <md.Node>[]) {
-              body.write('<w:tc><w:p>${inline(cell)}</w:p></w:tc>');
+              body.write(
+                '<w:tc><w:p>${inline(cell, imageWidth: 5600000 / n.children!.length - 140000)}</w:p></w:tc>',
+              );
             }
             body.write('</w:tr>');
           } else {

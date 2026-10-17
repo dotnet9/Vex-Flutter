@@ -74,6 +74,7 @@ class _ExportDialogState extends State<_ExportDialog> {
               await _service.html(
                 source: source,
                 title: stem,
+                documentPath: vm.current.path,
                 colors: colors,
                 typography: typography,
                 compact: compact,
@@ -87,6 +88,7 @@ class _ExportDialogState extends State<_ExportDialog> {
           bytes = await _service.docx(
             source: source,
             title: stem,
+            documentPath: vm.current.path,
             markdown: vm.markdownPreferences,
           );
         case 'png':
@@ -99,6 +101,7 @@ class _ExportDialogState extends State<_ExportDialog> {
           bytes = await _service.pdf(
             source: source,
             title: stem,
+            documentPath: vm.current.path,
             colors: colors,
             typography: typography,
             compact: compact,
@@ -211,6 +214,7 @@ class _ExportDialogState extends State<_ExportDialog> {
                       text: await _service.html(
                         source: vm.editor.session.text,
                         title: vm.current.name,
+                        documentPath: vm.current.path,
                         colors: Theme.of(context).colorScheme,
                         typography: vm.typography,
                         compact: vm.compact,
