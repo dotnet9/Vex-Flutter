@@ -26,6 +26,18 @@ and the native Windows integration capture `integration_test/menus_test.dart`.
 The macOS menu structure and shortcuts are widget-tested on this Windows host;
 native macOS appearance still requires a macOS runner/device check.
 
+Viewport limits also apply to restored layouts, the layout picker, find results
+and guided exercises. Phones remain single-pane in landscape; tablets never
+show the desktop three-pane arrangement. Resizing projects the saved layout
+without overwriting it, so a narrow desktop window regains its arrangement when
+expanded. Guide cards sit beside the highlighted area with an 8px triangular
+pointer and respect reduced motion. Shared dialogs keep the title/footer fixed
+and scroll only the body, with right-aligned actions.
+
+Coverage: `adaptive_workspace_test.dart` and native Windows guide screenshots
+from `integration_test/adaptive_workspace_test.dart`. Phone/tablet platforms and
+phone rotation are widget-tested, not physical iOS-device certification.
+
 ## Tables
 
 Paragraph > Table and the table-cell context menu share the same commands:

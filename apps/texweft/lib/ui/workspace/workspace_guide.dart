@@ -29,6 +29,14 @@ class _WorkspaceGuideState extends State<WorkspaceGuide> {
   final _root = GlobalKey(), _card = GlobalKey();
   Rect? _target;
   double _cardHeight = 280;
+  @override
+  void didUpdateWidget(WorkspaceGuide oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.target != widget.target || oldWidget.step != widget.step) {
+      _target = null;
+    }
+  }
+
   void _measure() {
     final box = _root.currentContext?.findRenderObject();
     final target = widget.target.currentContext?.findRenderObject();
@@ -58,12 +66,17 @@ class _WorkspaceGuideState extends State<WorkspaceGuide> {
       var x = constraints.maxWidth - width - 24, y = 150.0;
       if (target != null) {
         if (target.width < constraints.maxWidth * .7 &&
-            target.left > width + 40) {
-          x = target.left - width - 24;
-          y = target.top + 32;
+            target.left > width + 28) {
+          x = target.left - width - 10;
+          y = target.top;
         } else {
-          x = target.left + 24;
-          y = target.height < 120 ? target.bottom + 28 : target.top + 64;
+          x = target.left + 12;
+          y = target.height < 120 ? target.bottom + 10 : target.top + 18;
+          if (target.height < 120 &&
+              y + _cardHeight > constraints.maxHeight - 16 &&
+              target.top > _cardHeight + 26) {
+            y = target.top - _cardHeight - 10;
+          }
         }
       }
       x = x.clamp(16, math.max(16, constraints.maxWidth - width - 16));
@@ -76,12 +89,23 @@ class _WorkspaceGuideState extends State<WorkspaceGuide> {
           Positioned.fill(
             child: IgnorePointer(
               child: CustomPaint(
-                key: const ValueKey('guide-arrow'),
-                painter: _GuidePainter(target, cardRect, colors.primary),
+                key: const ValueKey('guide-pointer'),
+                painter: _GuidePainter(
+                  target,
+                  cardRect,
+                  colors.primary,
+                  colors.surfaceContainerLow,
+                  colors.outlineVariant,
+                ),
               ),
             ),
           ),
-          Positioned(
+          AnimatedPositioned(
+            key: const ValueKey('guide-card'),
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Duration.zero
+                : const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
             left: x,
             top: y,
             width: width,
@@ -90,7 +114,7 @@ class _WorkspaceGuideState extends State<WorkspaceGuide> {
               elevation: 12,
               color: colors.surfaceContainerLow,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(8),
                 side: BorderSide(color: colors.outlineVariant),
               ),
               child: ConstrainedBox(
@@ -190,10 +214,16 @@ class _WorkspaceGuideState extends State<WorkspaceGuide> {
 }
 
 class _GuidePainter extends CustomPainter {
-  _GuidePainter(this.target, this.card, this.accent);
+  _GuidePainter(
+    this.target,
+    this.card,
+    this.accent,
+    this.surface,
+    this.outline,
+  );
   final Rect? target;
   final Rect card;
-  final Color accent;
+  final Color accent, surface, outline;
   @override
   void paint(Canvas canvas, Size size) {
     final rect = target;
@@ -214,61 +244,38 @@ class _GuidePainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2,
     );
-    // Choose the closest card edge and target boundary. This remains stable at
-    // arbitrary window sizes and does not depend on screenshot coordinates.
-    final center = rect.center;
-    final start = Offset(
-      center.dx.clamp(card.left + 14, card.right - 14),
-      center.dy < card.top ? card.top : card.bottom,
-    );
-    var end = Offset(
-      start.dx.clamp(rect.left + 8, rect.right - 8),
-      start.dy < rect.top ? rect.top : rect.bottom,
-    );
-    if (card.right < rect.left || card.left > rect.right) {
-      end = Offset(
-        card.right < rect.left ? rect.left : rect.right,
-        card.center.dy.clamp(rect.top + 8, rect.bottom - 8),
-      );
-    }
-    var from = start;
-    if (card.right < rect.left || card.left > rect.right) {
-      from = Offset(
-        card.right < rect.left ? card.right : card.left,
-        end.dy.clamp(card.top + 14, card.bottom - 14),
-      );
-    }
-    if (card.overlaps(rect)) {
-      end = Offset(rect.right - 16, rect.top + 12);
-      from = Offset(card.right - 18, card.top);
-    }
-    final direction = (end - from) / math.max(1, (end - from).distance);
-    end -= direction * 6;
-    canvas.drawLine(
-      from,
-      end,
-      Paint()
-        ..color = accent
-        ..strokeWidth = 2.5,
-    );
-    final normal = Offset(-direction.dy, direction.dx);
+    final horizontal = rect.right <= card.left || rect.left >= card.right;
+    final base = horizontal
+        ? Offset(
+            rect.right <= card.left ? card.left : card.right,
+            rect.center.dy.clamp(card.top + 20, card.bottom - 20),
+          )
+        : Offset(
+            rect.center.dx.clamp(card.left + 20, card.right - 20),
+            rect.top >= card.bottom ? card.bottom : card.top,
+          );
+    final direction = horizontal
+        ? Offset(rect.right <= card.left ? -1 : 1, 0)
+        : Offset(0, rect.top >= card.bottom ? 1 : -1);
+    final normal = Offset(-direction.dy, direction.dx) * 7;
+    final triangle = Path()
+      ..moveTo((base + normal).dx, (base + normal).dy)
+      ..lineTo((base + direction * 8).dx, (base + direction * 8).dy)
+      ..lineTo((base - normal).dx, (base - normal).dy);
+    canvas.drawPath(triangle, Paint()..color = surface);
     canvas.drawPath(
-      Path()
-        ..moveTo(end.dx, end.dy)
-        ..lineTo(
-          (end - direction * 12 + normal * 5).dx,
-          (end - direction * 12 + normal * 5).dy,
-        )
-        ..lineTo(
-          (end - direction * 12 - normal * 5).dx,
-          (end - direction * 12 - normal * 5).dy,
-        )
-        ..close(),
-      Paint()..color = accent,
+      triangle,
+      Paint()
+        ..color = outline
+        ..style = PaintingStyle.stroke,
     );
   }
 
   @override
   bool shouldRepaint(_GuidePainter old) =>
-      target != old.target || card != old.card || accent != old.accent;
+      target != old.target ||
+      card != old.card ||
+      accent != old.accent ||
+      surface != old.surface ||
+      outline != old.outline;
 }

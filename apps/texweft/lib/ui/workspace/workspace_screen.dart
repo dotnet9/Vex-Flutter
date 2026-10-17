@@ -47,6 +47,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       _guideMap = GlobalKey(),
       _guideMapToolbar = GlobalKey();
   final _guideTypography = GlobalKey(), _guideFileMenu = GlobalKey();
+  final _guideSave = GlobalKey();
   final _find = TextEditingController(), _replace = TextEditingController();
   final _findFocus = FocusNode();
   final _layoutsMenu = MenuController(), _typographyMenu = MenuController();
@@ -67,11 +68,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     vm,
     macOS: _macOS && _desktop && width >= 700,
     desktop: _desktop && width >= 700,
-    maxPanes: width < 700
-        ? 1
-        : _desktop
-        ? 3
-        : 2,
+    maxPanes: vm.viewport.maxPanes,
   );
   @override
   void initState() {
@@ -742,7 +739,14 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         c = Theme.of(context).colorScheme;
     final workspace = LayoutBuilder(
       builder: (context, constraints) {
-        final phone = constraints.maxWidth < 700;
+        // Constraints rebuild all panes; deriving the viewport must neither
+        // notify Provider during layout nor overwrite the saved arrangement.
+        state.viewport = WorkspaceViewport.forWindow(
+          width: constraints.maxWidth,
+          height: constraints.maxHeight,
+          desktop: _desktop,
+        );
+        final phone = state.viewport == WorkspaceViewport.phone;
         final desktop = _desktop && !phone;
         final showSidebar = !phone && state.sidebar && !state.focusMode;
         final width = state.sidebarWidth.clamp(
@@ -1396,6 +1400,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           ),
           const SizedBox(width: 6),
           AppButton(
+            key: _guideSave,
             icon: 'save',
             label: width < 1100 ? null : context.l10n.save,
             bordered: true,
@@ -1403,12 +1408,15 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             onPressed: () => _action('save'),
           ),
           if (phone || (!_desktop && width >= 700))
-            AppButton(
-              key: const ValueKey('workspace-more-menu'),
-              icon: 'more',
-              tooltip: context.l10n.menuMore,
-              height: 40,
-              onPressed: () => unawaited(_touchMenu(width)),
+            KeyedSubtree(
+              key: _guideFileMenu,
+              child: AppButton(
+                key: const ValueKey('workspace-more-menu'),
+                icon: 'more',
+                tooltip: context.l10n.menuMore,
+                height: 40,
+                onPressed: () => unawaited(_touchMenu(width)),
+              ),
             ),
         ],
       );
@@ -1779,7 +1787,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       2 => _guideMap,
       3 => _guideMapToolbar,
       4 => _guideTypography,
-      5 => _guideFileMenu,
+      5 =>
+        _macOS && state.viewport != WorkspaceViewport.phone
+            ? _guideSave
+            : _guideFileMenu,
       _ => _guideEditing,
     };
     return WorkspaceGuide(

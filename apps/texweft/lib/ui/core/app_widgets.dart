@@ -236,6 +236,7 @@ class AppDialog extends StatelessWidget {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
             key: const ValueKey('dialog-titlebar'),
@@ -261,6 +262,7 @@ class AppDialog extends StatelessWidget {
           const Divider(height: 1),
           Flexible(
             child: SingleChildScrollView(
+              primary: false,
               padding: const EdgeInsets.all(22),
               child: child,
             ),

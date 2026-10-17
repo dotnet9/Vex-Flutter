@@ -2,6 +2,26 @@ import 'package:texweft_editor/texweft_editor.dart';
 
 import 'file_preferences.dart';
 
+enum WorkspaceViewport {
+  phone(1),
+  tablet(2),
+  desktop(3);
+
+  const WorkspaceViewport(this.maxPanes);
+  final int maxPanes;
+
+  static WorkspaceViewport forWindow({
+    required double width,
+    required double height,
+    required bool desktop,
+  }) {
+    if (width < 700 || (!desktop && (width < 600 || height < 600))) {
+      return phone;
+    }
+    return desktop ? WorkspaceViewport.desktop : tablet;
+  }
+}
+
 enum WorkspaceLayout {
   instant(['instant']),
   source(['source']),
@@ -14,6 +34,14 @@ enum WorkspaceLayout {
 
   const WorkspaceLayout(this.panes);
   final List<String> panes;
+
+  WorkspaceLayout constrainedTo(WorkspaceViewport viewport) {
+    if (panes.length <= viewport.maxPanes) return this;
+    if (viewport == WorkspaceViewport.tablet) return sourceRender;
+    return values.firstWhere(
+      (layout) => layout.panes.length == 1 && layout.panes.first == panes.first,
+    );
+  }
 }
 
 final class WorkspaceDocument {

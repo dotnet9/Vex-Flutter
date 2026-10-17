@@ -227,7 +227,9 @@ class LayoutChoices extends StatelessWidget {
       spacing: 8,
       runSpacing: 8,
       children: [
-        for (final layout in WorkspaceLayout.values)
+        for (final layout in WorkspaceLayout.values.where(
+          (layout) => layout.panes.length <= vm.viewport.maxPanes,
+        ))
           _ChoiceCard(
             key: ValueKey('layout-${layout.name}'),
             width: (width - (columns - 1) * 8) / columns,

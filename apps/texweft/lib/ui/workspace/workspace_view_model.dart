@@ -63,7 +63,10 @@ final class WorkspaceViewModel extends ChangeNotifier {
   late final MindMapController _map;
   MindMapController get map => _map;
   MarkdownEditorController get editor => current.editor;
-  WorkspaceLayout layout = WorkspaceLayout.instant;
+  WorkspaceLayout _layout = WorkspaceLayout.instant;
+  WorkspaceViewport viewport = WorkspaceViewport.desktop;
+  WorkspaceLayout get layout => _layout.constrainedTo(viewport);
+  set layout(WorkspaceLayout value) => _layout = value;
   MarkdownTypography typography = MarkdownTypography.simple;
   ThemeMode themeMode = ThemeMode.light;
   String palette = 'weft', language;
@@ -1011,7 +1014,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
         .save({
           'palette': palette,
           'theme': themeMode.name,
-          'layout': layout.name,
+          'layout': _layout.name,
           'typography': typography.name,
           'language': language,
           'compact': compact,
@@ -1073,7 +1076,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _guideSelection = editor.selection;
     _guideTypography = typography;
     _guideCompact = compact;
-    _guideLayout = layout;
+    _guideLayout = _layout;
     _guiding = true;
     guideStep = 0;
     editor.session.replace(strings.guideDocument, label: '引导演练');
@@ -1085,7 +1088,10 @@ final class WorkspaceViewModel extends ChangeNotifier {
     guideStep = step.clamp(0, 5);
     layout = switch (guideStep) {
       1 => WorkspaceLayout.sourceRender,
-      2 || 3 => WorkspaceLayout.instantMap,
+      2 || 3 =>
+        viewport == WorkspaceViewport.phone
+            ? WorkspaceLayout.map
+            : WorkspaceLayout.instantMap,
       4 => WorkspaceLayout.read,
       _ => WorkspaceLayout.instant,
     };
