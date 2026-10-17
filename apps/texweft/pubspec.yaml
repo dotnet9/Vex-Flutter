@@ -29,6 +29,7 @@ dependencies:
   window_manager: ^0.5.1
   desktop_drop: ^0.8.4
   package_info_plus: ^10.2.2
+  super_sliver_list: ^0.4.1
 dev_dependencies:
   flutter_test:
     sdk: flutter

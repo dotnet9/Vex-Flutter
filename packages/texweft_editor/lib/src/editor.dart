@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:super_sliver_list/super_sliver_list.dart';
 import 'package:texweft_markdown_core/texweft_markdown_core.dart';
 
 import 'code_block.dart';
@@ -37,56 +38,31 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
     return ListenableBuilder(
       listenable: widget.controller,
       builder: (context, _) {
-        final height = widget.fontSize * 1.9;
+        final height =
+            MediaQuery.textScalerOf(context).scale(widget.fontSize) * 1.9;
         return Row(
+          key: PageStorageKey(('source', widget.controller)),
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (widget.lineNumbers)
               SizedBox(
                 width: 48,
                 child: ClipRect(
-                  child: AnimatedBuilder(
-                    animation: _scroll,
-                    builder: (context, _) => OverflowBox(
-                      alignment: Alignment.topRight,
-                      maxHeight: double.infinity,
-                      child: Transform.translate(
-                        offset: Offset(
-                          0,
-                          -(_scroll.hasClients ? _scroll.offset : 0.0),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 26, right: 12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              for (
-                                var i = 0;
-                                i <
-                                    widget.controller.source.text
-                                        .split('\n')
-                                        .length;
-                                i++
-                              )
-                                SizedBox(
-                                  height: height,
-                                  child: Text(
-                                    '${i + 1}',
-                                    style:
-                                        MarkdownCodeBlock.textStyle(
-                                          context,
-                                          10,
-                                        ).copyWith(
-                                          fontSize: 10,
-                                          height: height / 10,
-                                          color: color.onSurfaceVariant,
-                                        ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
+                  child: CustomPaint(
+                    painter: _SourceLineNumbers(
+                      scroll: _scroll,
+                      count:
+                          widget.controller.document.lineStarts.length +
+                          (widget.controller.source.text.endsWith('\n')
+                              ? 1
+                              : 0),
+                      lineHeight: height,
+                      style: MarkdownCodeBlock.textStyle(context, 10).copyWith(
+                        height: height / 10,
+                        color: color.onSurfaceVariant,
                       ),
+                      direction: Directionality.of(context),
+                      scaler: MediaQuery.textScalerOf(context),
                     ),
                   ),
                 ),
@@ -131,6 +107,53 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
       },
     );
   }
+}
+
+/// Paint only visible line labels. Scrolling never splits the entire source or
+/// creates a widget for each line.
+class _SourceLineNumbers extends CustomPainter {
+  _SourceLineNumbers({
+    required this.scroll,
+    required this.count,
+    required this.lineHeight,
+    required this.style,
+    required this.direction,
+    required this.scaler,
+  }) : super(repaint: scroll);
+  final ScrollController scroll;
+  final int count;
+  final double lineHeight;
+  final TextStyle style;
+  final TextDirection direction;
+  final TextScaler scaler;
+  @override
+  void paint(Canvas canvas, Size size) {
+    final offset = scroll.hasClients ? scroll.offset : 0.0;
+    final first = ((offset - 26) / lineHeight).floor().clamp(0, count);
+    final last = ((offset + size.height - 26) / lineHeight).ceil().clamp(
+      0,
+      count,
+    );
+    final painter = TextPainter(textDirection: direction, textScaler: scaler);
+    for (var i = first; i < last; i++) {
+      painter.text = TextSpan(text: '${i + 1}', style: style);
+      painter.layout();
+      painter.paint(
+        canvas,
+        Offset(size.width - 12 - painter.width, 26 + i * lineHeight - offset),
+      );
+    }
+    painter.dispose();
+  }
+
+  @override
+  bool shouldRepaint(_SourceLineNumbers oldDelegate) =>
+      count != oldDelegate.count ||
+      lineHeight != oldDelegate.lineHeight ||
+      style != oldDelegate.style ||
+      direction != oldDelegate.direction ||
+      scaler != oldDelegate.scaler ||
+      scroll != oldDelegate.scroll;
 }
 
 class MarkdownInstantEditor extends StatefulWidget {
@@ -610,7 +633,8 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: widget.typography.width),
-            child: ListView(
+            child: SuperListView(
+              key: PageStorageKey(widget.controller),
               padding: widget.padding,
               children: [
                 for (final block in blocks.where(

@@ -192,19 +192,24 @@ final class WorkspaceViewModel extends ChangeNotifier {
     final doc = current.editor.document;
     final first = doc.headings.firstOrNull;
     final rootHeading = first?.level == 1 ? first : null;
+    final contentByHeading = <String?, List<MarkdownBlock>>{};
+    final childrenByHeading = <String?, List<MarkdownHeading>>{};
+    for (final heading in doc.headings) {
+      (childrenByHeading[heading.parentId] ??= []).add(heading);
+    }
+    var headingIndex = -1;
+    for (final block in doc.blocks) {
+      while (headingIndex + 1 < doc.headings.length &&
+          doc.headings[headingIndex + 1].header.start <= block.range.start) {
+        headingIndex++;
+      }
+      if (block.kind == MarkdownBlockKind.heading) continue;
+      final owner = headingIndex < 0 ? null : doc.headings[headingIndex].id;
+      (contentByHeading[owner] ??= []).add(block);
+    }
     List<MindMapNode> content(MarkdownHeading? heading) {
-      final range =
-          heading?.body ??
-          SourceRange(
-            0,
-            doc.headings.firstOrNull?.header.start ?? doc.source.length,
-          );
       final result = <MindMapNode>[];
-      for (final block in doc.blocks.where(
-        (b) =>
-            range.contains(b.range.start) &&
-            b.kind != MarkdownBlockKind.heading,
-      )) {
+      for (final block in contentByHeading[heading?.id] ?? <MarkdownBlock>[]) {
         final include = switch (block.kind) {
           MarkdownBlockKind.paragraph => paragraphs,
           MarkdownBlockKind.list => lists,
@@ -242,7 +247,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
         subtitle: strings.sectionLevel(heading.level),
         children: [
           ...content(heading),
-          ...doc.headings.where((h) => h.parentId == heading.id).map(node),
+          ...?childrenByHeading[heading.id]?.map(node),
         ],
       );
     }

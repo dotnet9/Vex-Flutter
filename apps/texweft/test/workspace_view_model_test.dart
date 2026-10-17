@@ -9,6 +9,24 @@ import 'support/fakes.dart';
 
 void main() {
   test(
+    'mind map assigns each block to its section with duplicate headings',
+    () {
+      final vm = fakeWorkspace();
+      addTearDown(vm.dispose);
+      vm.editor.session.replace(
+        '# Root\n\nRoot body\n\n## Same\n\nFirst body\n\n### Child\n\nChild body\n\n## Same\n\nSecond body\n',
+      );
+      final root = vm.map.root;
+      expect(root.title, 'Root');
+      expect(root.children.map((n) => n.title), ['Root body', 'Same', 'Same']);
+      final first = root.children[1], second = root.children[2];
+      expect(first.id, isNot(second.id));
+      expect(first.children.map((n) => n.title), ['First body', 'Child']);
+      expect(first.children.last.children.single.title, 'Child body');
+      expect(second.children.single.title, 'Second body');
+    },
+  );
+  test(
     'save marks only the written snapshot as saved when typing continues',
     () async {
       final vm = fakeWorkspace();

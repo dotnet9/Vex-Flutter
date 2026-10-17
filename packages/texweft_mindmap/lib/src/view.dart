@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -84,30 +86,52 @@ class MindMapView extends StatelessWidget {
                   ),
                 ),
                 Positioned.fill(
-                  child: InteractiveViewer(
+                  child: InteractiveViewer.builder(
                     transformationController: controller.transformation,
-                    constrained: false,
                     minScale: .15,
                     maxScale: 3,
                     boundaryMargin: const EdgeInsets.all(800),
-                    child: SizedBox(
-                      width: layout.size.width,
-                      height: layout.size.height,
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: CustomPaint(
-                              painter: _EdgesPainter(layout, color.primary),
+                    builder: (context, quad) {
+                      final points = [
+                        quad.point0,
+                        quad.point1,
+                        quad.point2,
+                        quad.point3,
+                      ];
+                      final visible = Rect.fromLTRB(
+                        points.map((p) => p.x).reduce(math.min),
+                        points.map((p) => p.y).reduce(math.min),
+                        points.map((p) => p.x).reduce(math.max),
+                        points.map((p) => p.y).reduce(math.max),
+                      ).inflate(100 / controller.scale);
+                      return SizedBox(
+                        width: layout.size.width,
+                        height: layout.size.height,
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
+                              child: CustomPaint(
+                                painter: _EdgesPainter(
+                                  layout,
+                                  color.primary,
+                                  visible,
+                                ),
+                              ),
                             ),
-                          ),
-                          for (final entry in layout.rects.entries)
-                            Positioned.fromRect(
-                              rect: entry.value,
-                              child: _node(context, layout.nodes[entry.key]!),
-                            ),
-                        ],
-                      ),
-                    ),
+                            for (final entry in layout.rects.entries)
+                              if (entry.value.overlaps(visible))
+                                Positioned.fromRect(
+                                  key: ValueKey(entry.key),
+                                  rect: entry.value,
+                                  child: _node(
+                                    context,
+                                    layout.nodes[entry.key]!,
+                                  ),
+                                ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ),
                 if (showControls)
@@ -303,9 +327,10 @@ class _GridPainter extends CustomPainter {
 }
 
 class _EdgesPainter extends CustomPainter {
-  const _EdgesPainter(this.layout, this.color);
+  const _EdgesPainter(this.layout, this.color, this.visible);
   final MindMapLayout layout;
   final Color color;
+  final Rect visible;
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -314,6 +339,12 @@ class _EdgesPainter extends CustomPainter {
       ..strokeWidth = 1;
     for (final edge in layout.edges) {
       final from = layout.rects[edge.from]!, to = layout.rects[edge.to]!;
+      if (!Rect.fromPoints(
+        Offset(from.right, from.center.dy),
+        Offset(to.left, to.center.dy),
+      ).inflate(2).overlaps(visible)) {
+        continue;
+      }
       final x = (from.right + to.left) / 2;
       canvas.drawPath(
         Path()
@@ -326,5 +357,7 @@ class _EdgesPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_EdgesPainter oldDelegate) =>
-      oldDelegate.layout != layout || oldDelegate.color != color;
+      oldDelegate.layout != layout ||
+      oldDelegate.color != color ||
+      oldDelegate.visible != visible;
 }

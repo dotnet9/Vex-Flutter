@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:super_sliver_list/super_sliver_list.dart';
 import 'package:texweft_editor/texweft_editor.dart';
 import 'package:texweft_mindmap/texweft_mindmap.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -243,61 +244,67 @@ class _DocumentReading extends StatefulWidget {
 }
 
 class _DocumentReadingState extends State<_DocumentReading> {
-  final _anchors = <int, GlobalKey>{};
+  final _scroll = ScrollController();
+  final _list = ListController();
   String? _lastSelection;
+
+  @override
+  void dispose() {
+    _list.dispose();
+    _scroll.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final vm = widget.vm, selected = widget.vm.selectedHeading;
+    final blocks = vm.editor.document.blocks;
     if (selected?.id != _lastSelection) {
       _lastSelection = selected?.id;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final target = _anchors[selected?.header.start]?.currentContext;
-        if (mounted && target != null) {
-          Scrollable.ensureVisible(
-            target,
-            duration: const Duration(milliseconds: 200),
+      final index = blocks.indexWhere(
+        (b) => b.range.start == selected?.header.start,
+      );
+      if (index >= 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || !_list.isAttached || !_scroll.hasClients) return;
+          _list.animateToItem(
+            index: index,
+            scrollController: _scroll,
             alignment: .08,
+            duration: (_) => const Duration(milliseconds: 200),
+            curve: (_) => Curves.easeInOut,
           );
-        }
-      });
+        });
+      }
     }
-    final valid = vm.editor.document.blocks.map((b) => b.range.start).toSet();
-    _anchors.removeWhere((start, _) => !valid.contains(start));
-    return SingleChildScrollView(
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: vm.typography.width),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(44, 34, 44, 70),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final block in vm.editor.document.blocks)
-                  Padding(
-                    key: _anchors.putIfAbsent(block.range.start, GlobalKey.new),
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: MarkdownReader(
-                      data: block.range.slice(vm.editor.session.text),
-                      typography: vm.typography,
-                      compact: vm.compact,
-                      fontSize: vm.presentation
-                          ? vm.fontSize * 1.5
-                          : vm.fontSize,
-                      onTapLink: (_, href, _) {
-                        final uri = Uri.tryParse(href ?? '');
-                        if (uri != null &&
-                            ['https', 'http', 'mailto'].contains(uri.scheme)) {
-                          launchUrl(uri, mode: LaunchMode.externalApplication);
-                        }
-                      },
-                    ),
-                  ),
-                if (vm.editor.session.text.isEmpty)
-                  Text(context.l10n.emptyDocument),
-              ],
-            ),
-          ),
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: vm.typography.width),
+        child: SuperListView.builder(
+          key: PageStorageKey('read:${vm.current.id}'),
+          controller: _scroll,
+          listController: _list,
+          padding: const EdgeInsets.fromLTRB(44, 34, 44, 70),
+          itemCount: blocks.isEmpty ? 1 : blocks.length,
+          itemBuilder: (context, index) {
+            if (blocks.isEmpty) return Text(context.l10n.emptyDocument);
+            final block = blocks[index];
+            return MarkdownReader(
+              key: ValueKey(block.range.start),
+              data: block.range.slice(vm.editor.session.text),
+              typography: vm.typography,
+              compact: vm.compact,
+              fontSize: vm.presentation ? vm.fontSize * 1.5 : vm.fontSize,
+              onTapLink: (_, href, _) {
+                final uri = Uri.tryParse(href ?? '');
+                if (uri != null &&
+                    ['https', 'http', 'mailto'].contains(uri.scheme)) {
+                  launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              },
+            );
+          },
         ),
       ),
     );
