@@ -555,7 +555,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _notify();
   }
 
-  Future<void> flushRecovery() async {
+  Future<void> flushRecovery({bool throwOnError = false}) async {
     if (_guiding) return;
     final snapshots = documents
         .where((d) => d.editor.session.isDirty)
@@ -573,6 +573,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     } catch (error) {
       _statusMessage = (l) => l.recoverySaveFailed(error.toString());
       _notify();
+      if (throwOnError) rethrow;
     }
   }
 

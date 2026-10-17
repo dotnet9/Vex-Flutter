@@ -33,7 +33,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   final _find = TextEditingController(), _replace = TextEditingController();
   final _findFocus = FocusNode();
   final _layoutsMenu = MenuController(), _typographyMenu = MenuController();
-  bool _dragging = false, _closing = false;
+  bool _dragging = false, _closing = false, _nativeCloseApproved = false;
   WorkspaceViewModel get vm => context.read<WorkspaceViewModel>();
   bool get _desktop =>
       Platform.isWindows || Platform.isLinux || Platform.isMacOS;
@@ -58,6 +58,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_nativeCloseApproved) return;
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused) {
       unawaited(vm.flushRecovery());
@@ -66,7 +67,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   }
 
   @override
-  void onWindowClose() => unawaited(_close());
+  void onWindowClose() {
+    if (!_nativeCloseApproved) unawaited(_close());
+  }
+
   @override
   void onWindowFocus() => unawaited(vm.checkExternal());
   @override
@@ -103,62 +107,78 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   Future<void> _close() async {
     if (_closing) return;
     _closing = true;
-    vm.endGuide();
-    final dirty = vm.documents.where((d) => d.editor.session.isDirty).toList();
-    if (dirty.isNotEmpty) {
-      final decision = await showDialog<String>(
-        context: context,
-        builder: (context) => AppDialog(
-          title: context.l10n.unsavedContent,
-          width: 460,
-          actions: [
-            AppButton(
-              label: context.l10n.cancel,
-              onPressed: () => Navigator.pop(context),
+    try {
+      vm.endGuide();
+      final dirty = vm.documents
+          .where((d) => d.editor.session.isDirty)
+          .toList();
+      if (dirty.isNotEmpty) {
+        final decision = await showDialog<String>(
+          context: context,
+          builder: (context) => AppDialog(
+            title: context.l10n.unsavedContent,
+            width: 460,
+            actions: [
+              AppButton(
+                label: context.l10n.cancel,
+                onPressed: () => Navigator.pop(context),
+              ),
+              AppButton(
+                label: context.l10n.keepDraftClose,
+                onPressed: () => Navigator.pop(context, 'draft'),
+              ),
+              AppButton(
+                label: context.l10n.saveAll,
+                primary: true,
+                onPressed: () => Navigator.pop(context, 'save'),
+              ),
+            ],
+            child: Text(
+              context.l10n.unsavedDocuments(dirty.length),
+              style: const TextStyle(fontSize: 13, height: 1.8),
             ),
-            AppButton(
-              label: context.l10n.keepDraftClose,
-              onPressed: () => Navigator.pop(context, 'draft'),
-            ),
-            AppButton(
-              label: context.l10n.saveAll,
-              primary: true,
-              onPressed: () => Navigator.pop(context, 'save'),
-            ),
-          ],
-          child: Text(
-            context.l10n.unsavedDocuments(dirty.length),
-            style: const TextStyle(fontSize: 13, height: 1.8),
           ),
-        ),
-      );
-      if (decision == null) {
-        _closing = false;
-        return;
-      }
-      if (decision == 'save') {
-        try {
-          for (final doc in dirty) {
-            vm.switchDocument(doc);
-            if (!await vm.save()) {
-              _closing = false;
-              return;
-            }
-          }
-        } catch (e) {
-          _error(e);
+        );
+        if (decision == null) {
           _closing = false;
           return;
         }
+        if (decision == 'save') {
+          try {
+            for (final doc in dirty) {
+              vm.switchDocument(doc);
+              if (!await vm.save()) {
+                _closing = false;
+                return;
+              }
+            }
+          } catch (e) {
+            _error(e);
+            _closing = false;
+            return;
+          }
+        }
       }
+      await vm.flushRecovery(throwOnError: true);
+      if (widget.windowIntegration && _desktop) {
+        // Let the native window process WM_CLOSE before its message loop exits.
+        // On Windows destroy() only posts WM_QUIT, leaving a live HWND while the
+        // Flutter engine and COM plugins are being torn down.
+        _nativeCloseApproved = true;
+        await windowManager.setPreventClose(false);
+        await windowManager.close();
+      } else if (Platform.isAndroid) {
+        await SystemNavigator.pop();
+      }
+    } catch (error) {
+      _nativeCloseApproved = false;
+      if (widget.windowIntegration && _desktop) {
+        await windowManager.setPreventClose(true);
+      }
+      _error(error);
+    } finally {
+      _closing = false;
     }
-    await vm.flushRecovery();
-    if (widget.windowIntegration && _desktop) {
-      await windowManager.destroy();
-    } else if (Platform.isAndroid) {
-      await SystemNavigator.pop();
-    }
-    _closing = false;
   }
 
   void _format(String command) {
