@@ -22,3 +22,26 @@ html,body{min-height:100%;height:100%}body{overflow:auto}.scene{min-height:100dv
 @media(max-width:600px){.linux-window{height:100dvh;min-height:540px}.linux-main{padding:30px 25px 25px}.linux-main>.install-actions{padding-top:20px}.linux-main>.package-info{grid-template-columns:65px minmax(0,1fr);gap:10px;font-size:10px}.package-info dd{overflow-wrap:anywhere}}
 
 .linux-main>.install-actions[style]{border-top:0}.linux-main>.terms-note{margin-top:auto}
+
+.system-dialog { border-radius:14px; padding:28px; }
+.system-dialog h2 { font-size:22px; }
+.system-dialog p { font-size:14px; line-height:1.8; }
+.system-dialog .btn { font-size:14px; min-height:38px; }
+/* 软件自己的品牌页面共用可读字号；移动系统权限页仍按系统流程呈现。 */
+.mac-content h1 { font-size:28px; line-height:1.6; }
+.mac-content>p,.mac-drag-area button { font-size:14px; line-height:1.8; }
+.mac-note { font-size:12px!important; }
+.mac-content { background:radial-gradient(ellipse at 15% 100%,#24766b0d,transparent 65%),var(--surface); }
+.linux-app-header h1 { font-size:32px; }
+.linux-main>p,.linux-app-header p,.package-info,.linux-main .btn { font-size:14px; }
+.linux-main .terms-note { font-size:12px; }
+.store-copy p,.store-app p { font-size:14px; line-height:1.8; }
+.store-art { border:1px solid #24766b18; }
+.system-install-page>p,.permission-row,.android-sheet p { font-size:14px; line-height:1.8; }
+.system-install-page>.version,.permission-row small,.android-app small { font-size:12px; }
+@property --install-progress { syntax:'<percentage>'; inherits:true; initial-value:0%; }
+.progress-wrap { transition:--install-progress .2s linear; margin-bottom:20px; }
+.progress-header { position:relative; height:20px; margin:24px 0 8px; font-size:13px; }
+.progress-header strong { position:absolute; left:clamp(20px,var(--install-progress),calc(100% - 20px)); width:40px; line-height:20px; text-align:center; white-space:nowrap; font-variant-numeric:tabular-nums; transform:translateX(-50%); }
+.progress-track span { transition:none; }
+@media(prefers-reduced-motion:reduce) { .progress-wrap { transition:none; } }
