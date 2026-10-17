@@ -230,7 +230,9 @@ jobs:
         if: runner.os == 'macOS'
         env:
           APP_VERSION: ${{ needs.metadata.outputs.version }}
-        run: bash scripts/package_macos.sh "$APP_VERSION"
+        run: |
+          python -m pip install --require-hashes -r scripts/macos-dmg-requirements.txt
+          bash scripts/package_macos.sh "$APP_VERSION"
       - name: 生成并校验安装包 SHA-256
         env:
           TARGET: ${{ matrix.target }}

@@ -1,5 +1,6 @@
 """Check public package branding while keeping installed upgrade identities stable."""
 from pathlib import Path
+import importlib.util
 import struct
 import unittest
 
@@ -7,6 +8,26 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class InstallerContractTest(unittest.TestCase):
+    def test_finder_drag_layout_and_retina_assets(self):
+        spec = importlib.util.spec_from_file_location('macos_dmg', ROOT / 'scripts/build_macos_dmg.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        layout = module.layout_settings(Path('/temporary/Vex.app'))
+        self.assertEqual(layout['symlinks'], {'Applications': '/Applications'})
+        self.assertEqual(layout['hide_extensions'], ['Vex.app'])
+        self.assertFalse(layout['show_toolbar'])
+        self.assertFalse(layout['show_sidebar'])
+        self.assertEqual(layout['arrange_by'], None)
+        for x, y in layout['icon_locations'].values():
+            self.assertGreater(x - module.ICON_SIZE / 2, 0)
+            self.assertLess(x + module.ICON_SIZE / 2, module.WINDOW_SIZE[0])
+            self.assertGreater(y - module.ICON_SIZE / 2, 110)
+            self.assertLess(y + module.ICON_SIZE / 2 + 40, 310)
+        for scale, suffix in ((1, ''), (2, '@2x')):
+            data = (ROOT / f'scripts/installer/assets/macos-background{suffix}.png').read_bytes()
+            self.assertEqual(data[:8], b'\x89PNG\r\n\x1a\n')
+            self.assertEqual(struct.unpack_from('>II', data, 16), tuple(n * scale for n in module.WINDOW_SIZE))
+
     def test_windows_uses_native_controls_and_only_brand_bitmaps(self):
         script = (ROOT / 'scripts/installer/Texweft.Setup.iss').read_text(encoding='utf-8-sig')
         self.assertIn('TNewButton.Create', script)

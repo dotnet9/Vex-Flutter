@@ -10,23 +10,27 @@ app="$root/apps/texweft/build/macos/Build/Products/Release/texweft.app"
 for binary in "$app/Contents/MacOS/texweft" "$app/Contents/Frameworks/App.framework/App" "$app/Contents/Frameworks/FlutterMacOS.framework/FlutterMacOS"; do
   lipo "$binary" -verify_arch x86_64 arm64
 done
-codesign --force --deep --sign - "$app"
-codesign --verify --deep --strict --verbose=2 "$app"
 stage="$(mktemp -d)"
-trap 'rm -rf "$stage"' EXIT
+mount=''
+cleanup() {
+  if [[ -n "$mount" ]]; then hdiutil detach "$mount" >/dev/null 2>&1 || true; fi
+  rm -rf "$stage"
+}
+trap cleanup EXIT
 ditto "$app" "$stage/Vex.app"
-cp "$root/LICENSE" "$stage/LICENSE.txt"
-ln -s /Applications "$stage/Applications"
+cp "$root/LICENSE" "$stage/Vex.app/Contents/Resources/LICENSE.txt"
+codesign --force --deep --sign - "$stage/Vex.app"
+codesign --verify --deep --strict --verbose=2 "$stage/Vex.app"
 mkdir -p "$root/artifacts/release"
 dmg="$root/artifacts/release/Vex-v$version-macos-universal.dmg"
-hdiutil create -volname 'Vex' -srcfolder "$stage" -ov -format UDZO "$dmg"
+python "$root/scripts/build_macos_dmg.py" build --app "$stage/Vex.app" --output "$dmg" --version "$version"
 hdiutil verify "$dmg"
 # Mount the finished image and verify the actual shipped bundle, not just staging.
 mount="$stage/mount"
 mkdir "$mount"
 hdiutil attach "$dmg" -mountpoint "$mount" -nobrowse -readonly
-trap 'hdiutil detach "$mount" >/dev/null 2>&1 || true; rm -rf "$stage"' EXIT
 codesign --verify --deep --strict "$mount/Vex.app"
-test -L "$mount/Applications"
+python "$root/scripts/build_macos_dmg.py" verify --mount "$mount"
 hdiutil detach "$mount"
+mount=''
 echo "$dmg"
