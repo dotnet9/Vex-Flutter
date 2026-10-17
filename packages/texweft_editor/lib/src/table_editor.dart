@@ -40,6 +40,7 @@ class MarkdownTableEditor extends StatefulWidget {
 class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
   final _inputs = <String, TextEditingController>{};
   final _focus = <String, FocusNode>{};
+  final _compositions = <String, (MarkdownEditorController, int)>{};
   bool _syncing = false, _writing = false;
   List<List<TableCellSource>> get _rows => parseTableCells(
     widget.controller.text,
@@ -50,9 +51,21 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
   void _changed(String key, int row, int column) {
     if (_syncing) return;
     final input = _inputs[key]!;
-    if (input.value.composing.isValid && !input.value.composing.isCollapsed) {
+    final composingBase = _compositions[key];
+    if (composingBase != null &&
+        composingBase !=
+            (widget.controller, widget.controller.session.revision)) {
+      // A stale IME commit must not overwrite a changed/switched document.
       return;
     }
+    if (input.value.composing.isValid && !input.value.composing.isCollapsed) {
+      _compositions.putIfAbsent(
+        key,
+        () => (widget.controller, widget.controller.session.revision),
+      );
+      return;
+    }
+    _compositions.remove(key);
     final rows = _rows;
     if (row >= rows.length || column >= rows[row].length) return;
     final cell = rows[row][column];
@@ -158,19 +171,28 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
       input.addListener(() => _changed(key, row, col));
       return input;
     });
-    if (!_writing && input.text != cell.text) {
-      _syncing = true;
-      input.value = TextEditingValue(
-        text: cell.text,
-        selection: TextSelection.collapsed(
-          offset: input.selection.extentOffset.clamp(0, cell.text.length),
-        ),
-      );
-      _syncing = false;
+    final composing = !input.value.composing.isCollapsed;
+    final preserveComposition =
+        composing &&
+        _compositions[key] ==
+            (widget.controller, widget.controller.session.revision);
+    if (!_writing && !preserveComposition) {
+      _compositions.remove(key);
+      if (input.text != cell.text || composing) {
+        _syncing = true;
+        input.value = TextEditingValue(
+          text: cell.text,
+          selection: TextSelection.collapsed(
+            offset: input.selection.extentOffset.clamp(0, cell.text.length),
+          ),
+        );
+        _syncing = false;
+      }
     }
     final focus = _focus.putIfAbsent(key, FocusNode.new);
     final selection = widget.controller.selection;
     if (!_writing &&
+        !preserveComposition &&
         _focus.values.any((node) => node.hasFocus) &&
         selection.isValid &&
         selection.start >= cell.range.start &&
