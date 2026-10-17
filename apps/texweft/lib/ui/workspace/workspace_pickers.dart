@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:texweft_editor/texweft_editor.dart';
+import 'package:texweft_mindmap/texweft_mindmap.dart';
 
 import '../../domain/workspace.dart';
 import '../../l10n/l10n.dart';
@@ -9,6 +10,105 @@ import '../core/app_widgets.dart';
 import 'workspace_view_model.dart';
 
 enum WorkspacePicker { layout, typography }
+
+class MindMapLayoutChoices extends StatelessWidget {
+  const MindMapLayoutChoices({
+    super.key,
+    required this.vm,
+    required this.width,
+  });
+  final WorkspaceViewModel vm;
+  final double width;
+  static const _sample = MindMapNode(
+    id: 'root',
+    title: '',
+    children: [
+      MindMapNode(
+        id: 'a',
+        title: '',
+        children: [MindMapNode(id: 'a1', title: '')],
+      ),
+      MindMapNode(id: 'b', title: ''),
+      MindMapNode(id: 'c', title: ''),
+      MindMapNode(id: 'd', title: ''),
+    ],
+  );
+  @override
+  Widget build(BuildContext context) => Wrap(
+    spacing: 8,
+    runSpacing: 8,
+    children: [
+      for (final mode in MindMapLayoutMode.values)
+        _ChoiceCard(
+          key: ValueKey('map-layout-${mode.name}'),
+          width: (width - 8) / 2,
+          height: 86,
+          selected: vm.map.mode == mode,
+          label: context.l10n.mapLayoutName(mode),
+          onTap: () => vm.setSummary(mode: mode),
+          child: Column(
+            children: [
+              Expanded(
+                child: SizedBox.expand(
+                  child: CustomPaint(
+                    painter: _MapMiniature(
+                      MindMapLayout.compute(_sample, mode: mode),
+                      Theme.of(context).colorScheme,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                context.l10n.mapLayoutName(mode),
+                maxLines: 1,
+                style: const TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+    ],
+  );
+}
+
+class _MapMiniature extends CustomPainter {
+  const _MapMiniature(this.layout, this.colors);
+  final MindMapLayout layout;
+  final ColorScheme colors;
+  @override
+  void paint(Canvas canvas, Size size) {
+    final scale = math.min(
+      size.width / layout.size.width,
+      size.height / layout.size.height,
+    );
+    canvas.translate(
+      (size.width - layout.size.width * scale) / 2,
+      (size.height - layout.size.height * scale) / 2,
+    );
+    canvas.scale(scale);
+    final paint = Paint()
+      ..color = colors.onSurfaceVariant
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1 / scale;
+    for (final path in layout.paths) {
+      canvas.drawPath(path, paint);
+    }
+    paint.style = PaintingStyle.fill;
+    for (final entry in layout.rects.entries) {
+      paint.color = entry.key == 'root'
+          ? colors.primary
+          : colors.primaryContainer;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(entry.value, const Radius.circular(6)),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_MapMiniature old) =>
+      old.layout != layout || old.colors != colors;
+}
 
 /// An anchored, non-modal panel: the document stays visible and interactive.
 class WorkspacePickerAnchor extends StatelessWidget {

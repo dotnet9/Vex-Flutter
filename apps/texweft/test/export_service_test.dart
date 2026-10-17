@@ -110,4 +110,27 @@ void main() {
     frame.image.dispose();
     codec.dispose();
   });
+  test('PNG uses the selected layout and visible branches', () async {
+    const root = MindMapNode(
+      id: 'root',
+      title: 'Root',
+      children: [
+        MindMapNode(
+          id: 'a',
+          title: 'A',
+          children: [MindMapNode(id: 'b', title: 'B')],
+        ),
+      ],
+    );
+    for (final mode in MindMapLayoutMode.values) {
+      final layout = MindMapLayout.compute(root, mode: mode, collapsed: {'a'});
+      final bytes = await service.mindMapPng(root, colors, layout: layout);
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      expect(frame.image.width, (layout.size.width * 2).ceil());
+      expect(frame.image.height, (layout.size.height * 2).ceil());
+      frame.image.dispose();
+      codec.dispose();
+    }
+  });
 }

@@ -1,5 +1,11 @@
 {
   "@@locale": "ja",
+  "mapLayoutRight": "右向きツリー",
+  "mapLayoutBalanced": "両側バランス",
+  "mapLayoutRadial": "放射状",
+  "mapLayoutDown": "下向きツリー",
+  "mapLayoutOutline": "アウトライン",
+  "mapLayoutFishbone": "フィッシュボーン",
   "close": "閉じる",
   "insertTable": "表を挿入",
   "cancel": "キャンセル",

@@ -117,6 +117,12 @@ final class WorkspaceViewModel extends ChangeNotifier {
       paragraphs = preferences['paragraphs'] != false;
       lists = preferences['lists'] != false;
       blocks = preferences['blocks'] == true;
+      _map.setMode(
+        MindMapLayoutMode.values
+                .where((mode) => mode.name == preferences['mapMode'])
+                .firstOrNull ??
+            MindMapLayoutMode.right,
+      );
       fontSize = (preferences['fontSize'] as num? ?? 16).toDouble().clamp(
         12,
         22,
@@ -320,11 +326,18 @@ final class WorkspaceViewModel extends ChangeNotifier {
     persist();
   }
 
-  void setSummary({int? length, bool? paragraphs, bool? lists, bool? blocks}) {
+  void setSummary({
+    int? length,
+    bool? paragraphs,
+    bool? lists,
+    bool? blocks,
+    MindMapLayoutMode? mode,
+  }) {
     summaryLength = (length ?? summaryLength).clamp(1, 120);
     this.paragraphs = paragraphs ?? this.paragraphs;
     this.lists = lists ?? this.lists;
     this.blocks = blocks ?? this.blocks;
+    if (mode != null) _map.setMode(mode);
     _refreshMap();
     _notify();
     persist();
@@ -666,6 +679,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
             'paragraphs': paragraphs,
             'lists': lists,
             'blocks': blocks,
+            'mapMode': _map.mode.name,
             'recent': List.of(recent),
             'guideSeen': guideSeen,
             'mcp': mcp.preferences,

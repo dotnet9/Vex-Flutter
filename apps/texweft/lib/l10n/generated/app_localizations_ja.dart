@@ -10,6 +10,24 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get mapLayoutRight => '右向きツリー';
+
+  @override
+  String get mapLayoutBalanced => '両側バランス';
+
+  @override
+  String get mapLayoutRadial => '放射状';
+
+  @override
+  String get mapLayoutDown => '下向きツリー';
+
+  @override
+  String get mapLayoutOutline => 'アウトライン';
+
+  @override
+  String get mapLayoutFishbone => 'フィッシュボーン';
+
+  @override
   String get close => '閉じる';
 
   @override

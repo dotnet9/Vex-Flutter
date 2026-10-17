@@ -45,6 +45,14 @@ extension LocalizedContext on BuildContext {
 }
 
 extension LocalizedChoices on AppLocalizations {
+  String mapLayoutName(MindMapLayoutMode mode) => switch (mode) {
+    MindMapLayoutMode.right => mapLayoutRight,
+    MindMapLayoutMode.balanced => mapLayoutBalanced,
+    MindMapLayoutMode.radial => mapLayoutRadial,
+    MindMapLayoutMode.down => mapLayoutDown,
+    MindMapLayoutMode.outline => mapLayoutOutline,
+    MindMapLayoutMode.fishbone => mapLayoutFishbone,
+  };
   String layoutName(WorkspaceLayout layout) => switch (layout) {
     WorkspaceLayout.instant => instantEditing,
     WorkspaceLayout.source => source,

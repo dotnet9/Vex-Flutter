@@ -101,6 +101,42 @@ abstract class AppLocalizations {
     Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
   ];
 
+  /// No description provided for @mapLayoutRight.
+  ///
+  /// In zh, this message translates to:
+  /// **'单侧树形'**
+  String get mapLayoutRight;
+
+  /// No description provided for @mapLayoutBalanced.
+  ///
+  /// In zh, this message translates to:
+  /// **'双侧平衡'**
+  String get mapLayoutBalanced;
+
+  /// No description provided for @mapLayoutRadial.
+  ///
+  /// In zh, this message translates to:
+  /// **'中心放射'**
+  String get mapLayoutRadial;
+
+  /// No description provided for @mapLayoutDown.
+  ///
+  /// In zh, this message translates to:
+  /// **'向下树形'**
+  String get mapLayoutDown;
+
+  /// No description provided for @mapLayoutOutline.
+  ///
+  /// In zh, this message translates to:
+  /// **'目录树'**
+  String get mapLayoutOutline;
+
+  /// No description provided for @mapLayoutFishbone.
+  ///
+  /// In zh, this message translates to:
+  /// **'鱼骨图'**
+  String get mapLayoutFishbone;
+
   /// No description provided for @close.
   ///
   /// In zh, this message translates to:

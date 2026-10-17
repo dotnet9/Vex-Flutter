@@ -1,5 +1,11 @@
 {
   "@@locale": "en",
+  "mapLayoutRight": "Right tree",
+  "mapLayoutBalanced": "Balanced",
+  "mapLayoutRadial": "Radial",
+  "mapLayoutDown": "Downward tree",
+  "mapLayoutOutline": "Outline",
+  "mapLayoutFishbone": "Fishbone",
   "close": "Close",
   "insertTable": "Insert table",
   "cancel": "Cancel",

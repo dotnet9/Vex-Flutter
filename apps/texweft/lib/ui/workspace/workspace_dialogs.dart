@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:printing/printing.dart';
+import 'package:texweft_mindmap/texweft_mindmap.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/services/export_service.dart';
@@ -79,7 +80,11 @@ class _ExportDialogState extends State<_ExportDialog> {
         case 'docx':
           bytes = _service.docx(source: source, title: stem);
         case 'png':
-          bytes = await _service.mindMapPng(vm.map.root, colors);
+          bytes = await _service.mindMapPng(
+            vm.map.root,
+            colors,
+            layout: vm.map.layout,
+          );
         default:
           bytes = await _service.pdf(
             source: source,
@@ -293,6 +298,11 @@ Future<void> showSummarySettings(BuildContext context, WorkspaceViewModel vm) =>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              LayoutBuilder(
+                builder: (context, constraints) =>
+                    MindMapLayoutChoices(vm: vm, width: constraints.maxWidth),
+              ),
+              const SizedBox(height: 20),
               Text(
                 context.l10n.summaryLength(vm.summaryLength),
                 style: const TextStyle(fontSize: 14),
@@ -333,6 +343,7 @@ Future<void> showSummarySettings(BuildContext context, WorkspaceViewModel vm) =>
                   paragraphs: true,
                   lists: true,
                   blocks: false,
+                  mode: MindMapLayoutMode.right,
                 ),
               ),
             ],

@@ -469,8 +469,12 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
     return Uint8List.fromList(ZipEncoder().encode(archive));
   }
 
-  Future<Uint8List> mindMapPng(MindMapNode root, ColorScheme colors) async {
-    final layout = MindMapLayout.compute(root);
+  Future<Uint8List> mindMapPng(
+    MindMapNode root,
+    ColorScheme colors, {
+    MindMapLayout? layout,
+  }) async {
+    layout ??= MindMapLayout.compute(root);
     final longest = math.max(layout.size.width, layout.size.height);
     final scale = math.min(
       2.0,
@@ -490,15 +494,8 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
       ..color = colors.primary.withValues(alpha: .45)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.3;
-    for (final edge in layout.edges) {
-      final from = layout.rects[edge.from]!, to = layout.rects[edge.to]!;
-      final x = (from.right + to.left) / 2;
-      drawing.drawPath(
-        Path()
-          ..moveTo(from.right, from.center.dy)
-          ..cubicTo(x, from.center.dy, x, to.center.dy, to.left, to.center.dy),
-        edgePaint,
-      );
+    for (final path in layout.paths) {
+      drawing.drawPath(path, edgePaint);
     }
     for (final entry in layout.rects.entries) {
       final node = layout.nodes[entry.key]!,

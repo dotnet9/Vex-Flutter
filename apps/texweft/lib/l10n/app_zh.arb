@@ -1,5 +1,11 @@
 {
   "@@locale": "zh",
+  "mapLayoutRight": "单侧树形",
+  "mapLayoutBalanced": "双侧平衡",
+  "mapLayoutRadial": "中心放射",
+  "mapLayoutDown": "向下树形",
+  "mapLayoutOutline": "目录树",
+  "mapLayoutFishbone": "鱼骨图",
   "close": "关闭",
   "insertTable": "插入表格",
   "cancel": "取消",

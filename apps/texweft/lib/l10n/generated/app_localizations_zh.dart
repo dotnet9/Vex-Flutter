@@ -10,6 +10,24 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get mapLayoutRight => '单侧树形';
+
+  @override
+  String get mapLayoutBalanced => '双侧平衡';
+
+  @override
+  String get mapLayoutRadial => '中心放射';
+
+  @override
+  String get mapLayoutDown => '向下树形';
+
+  @override
+  String get mapLayoutOutline => '目录树';
+
+  @override
+  String get mapLayoutFishbone => '鱼骨图';
+
+  @override
   String get close => '关闭';
 
   @override
@@ -1055,6 +1073,24 @@ class AppLocalizationsZh extends AppLocalizations {
 /// The translations for Chinese, using the Han script (`zh_Hant`).
 class AppLocalizationsZhHant extends AppLocalizationsZh {
   AppLocalizationsZhHant() : super('zh_Hant');
+
+  @override
+  String get mapLayoutRight => '單側樹形';
+
+  @override
+  String get mapLayoutBalanced => '雙側平衡';
+
+  @override
+  String get mapLayoutRadial => '中心放射';
+
+  @override
+  String get mapLayoutDown => '向下樹形';
+
+  @override
+  String get mapLayoutOutline => '目錄樹';
+
+  @override
+  String get mapLayoutFishbone => '魚骨圖';
 
   @override
   String get close => '關閉';

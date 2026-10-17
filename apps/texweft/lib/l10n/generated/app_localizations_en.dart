@@ -10,6 +10,24 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get mapLayoutRight => 'Right tree';
+
+  @override
+  String get mapLayoutBalanced => 'Balanced';
+
+  @override
+  String get mapLayoutRadial => 'Radial';
+
+  @override
+  String get mapLayoutDown => 'Downward tree';
+
+  @override
+  String get mapLayoutOutline => 'Outline';
+
+  @override
+  String get mapLayoutFishbone => 'Fishbone';
+
+  @override
   String get close => 'Close';
 
   @override
