@@ -13,6 +13,7 @@ import 'context_shortcuts.dart';
 import 'controller.dart';
 import 'editing_preferences.dart';
 import 'element_target.dart';
+import 'inline_editing_controller.dart';
 import 'labels.dart';
 import 'list_navigation.dart';
 import 'markdown_preferences.dart';
@@ -59,7 +60,7 @@ class MarkdownInstantEditor extends StatefulWidget {
 
 class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
     with SingleTickerProviderStateMixin {
-  final _input = TextEditingController();
+  final _input = MarkdownInlineEditingController();
   final _language = TextEditingController();
   final _focus = FocusNode();
   final _languageFocus = FocusNode();
@@ -840,91 +841,97 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
     },
   );
 
-  Widget _bodyField(ColorScheme colors) => KeyedSubtree(
-    key: _bodyRegion,
-    child: MarkdownContextShortcuts(
-      onShow: widget.onContextMenu == null ? null : _showKeyboardContext,
-      child: CallbackShortcuts(
-        bindings: {
-          const SingleActivator(LogicalKeyboardKey.keyA, control: true):
-              _selectWholeDocument,
-          const SingleActivator(LogicalKeyboardKey.keyA, meta: true):
-              _selectWholeDocument,
-          const SingleActivator(LogicalKeyboardKey.tab): () =>
-              indentMarkdownSelection(
-                _input,
-                widget.editingPreferences?.indent ?? 2,
-              ),
-          const SingleActivator(LogicalKeyboardKey.tab, shift: true): () =>
-              indentMarkdownSelection(
-                _input,
-                widget.editingPreferences?.indent ?? 2,
-                reverse: true,
-              ),
-        },
-        child: TextField(
-          key: const ValueKey('instant-active-input'),
-          groupId: this,
-          controller: _input,
-          focusNode: _focus,
-          contextMenuBuilder: widget.onContextMenu == null
-              ? null
-              : (context, editable) {
-                  final position = editable.contextMenuAnchors.primaryAnchor;
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (!mounted) return;
-                    editable.hideToolbar();
-                    final selection = widget.controller.selection;
-                    widget.onContextMenu!(
-                      MarkdownContextRequest(
-                        offset: selection.isValid ? selection.start : _start,
-                        selection: selection,
-                        position: position,
-                        onEdit: () => _focus.requestFocus(),
-                        onEditAt: _editAt,
-                      ),
-                    );
-                  });
-                  return const SizedBox.shrink();
-                },
-          maxLines: null,
-          autocorrect: _codeFence == null,
-          enableSuggestions: _codeFence == null,
-          inputFormatters: [
-            if (widget.editingPreferences?.autoPair == true)
-              const MarkdownPairFormatter(),
-            if (_codeFence == null) MarkdownTypingFormatter(),
-          ],
-          smartDashesType: SmartDashesType.disabled,
-          smartQuotesType: SmartQuotesType.disabled,
-          onTapOutside: (_) => _finish(),
-          style: _codeFence != null
-              ? MarkdownCodeBlock.textStyle(context, _codeFontSize)
-              : _activeStyle,
-          textAlign:
-              _kind == MarkdownBlockKind.heading &&
-                  widget.typography == MarkdownTypography.editorial
-              ? TextAlign.center
-              : TextAlign.start,
-          scrollPadding: EdgeInsets.zero,
-          cursorHeight: _codeFence == null ? _activeStyle.fontSize : null,
+  Widget _bodyField(ColorScheme colors) {
+    _input.presentationEnabled =
+        _codeFence == null && _kind != MarkdownBlockKind.math;
+    _input.preferences = widget.preferences;
+    return KeyedSubtree(
+      key: _bodyRegion,
+      child: MarkdownContextShortcuts(
+        onShow: widget.onContextMenu == null ? null : _showKeyboardContext,
+        child: CallbackShortcuts(
+          bindings: {
+            const SingleActivator(LogicalKeyboardKey.keyA, control: true):
+                _selectWholeDocument,
+            const SingleActivator(LogicalKeyboardKey.keyA, meta: true):
+                _selectWholeDocument,
+            const SingleActivator(LogicalKeyboardKey.tab): () =>
+                indentMarkdownSelection(
+                  _input,
+                  widget.editingPreferences?.indent ?? 2,
+                ),
+            const SingleActivator(LogicalKeyboardKey.tab, shift: true): () =>
+                indentMarkdownSelection(
+                  _input,
+                  widget.editingPreferences?.indent ?? 2,
+                  reverse: true,
+                ),
+          },
+          child: TextField(
+            key: const ValueKey('instant-active-input'),
+            groupId: this,
+            controller: _input,
+            focusNode: _focus,
+            contextMenuBuilder: widget.onContextMenu == null
+                ? null
+                : (context, editable) {
+                    final position = editable.contextMenuAnchors.primaryAnchor;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted) return;
+                      editable.hideToolbar();
+                      final selection = widget.controller.selection;
+                      widget.onContextMenu!(
+                        MarkdownContextRequest(
+                          offset: selection.isValid ? selection.start : _start,
+                          selection: selection,
+                          position: position,
+                          onEdit: () => _focus.requestFocus(),
+                          onEditAt: _editAt,
+                        ),
+                      );
+                    });
+                    return const SizedBox.shrink();
+                  },
+            maxLines: null,
+            autocorrect: _codeFence == null,
+            enableSuggestions: _codeFence == null,
+            inputFormatters: [
+              if (widget.editingPreferences?.autoPair == true)
+                const MarkdownPairFormatter(),
+              if (_codeFence == null) MarkdownTypingFormatter(),
+            ],
+            smartDashesType: SmartDashesType.disabled,
+            smartQuotesType: SmartQuotesType.disabled,
+            onTapOutside: (_) => _finish(),
+            style: _codeFence != null
+                ? MarkdownCodeBlock.textStyle(context, _codeFontSize)
+                : _activeStyle,
+            textAlign:
+                _kind == MarkdownBlockKind.heading &&
+                    widget.typography == MarkdownTypography.editorial
+                ? TextAlign.center
+                : TextAlign.start,
+            scrollPadding: EdgeInsets.zero,
+            cursorHeight: _codeFence == null ? _activeStyle.fontSize : null,
 
-          decoration: InputDecoration(
-            hintText: _codeFence == null && _input.text.isEmpty
-                ? widget.labels.placeholder
-                : null,
-            maintainHintSize: false,
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            filled: false,
-            isCollapsed: true,
-            contentPadding: EdgeInsets.zero,
+            decoration: InputDecoration(
+              hintText: _codeFence == null && _input.text.isEmpty
+                  ? widget.labels.placeholder
+                  : null,
+              maintainHintSize: false,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              filled: false,
+              isCollapsed: true,
+              contentPadding: EdgeInsets.zero,
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;

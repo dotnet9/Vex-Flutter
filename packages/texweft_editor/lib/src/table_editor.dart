@@ -7,6 +7,7 @@ import 'context_request.dart';
 import 'context_shortcuts.dart';
 import 'controller.dart';
 import 'editing_preferences.dart';
+import 'inline_editing_controller.dart';
 import 'labels.dart';
 import 'markdown_preferences.dart';
 import 'reader.dart';
@@ -40,7 +41,7 @@ class MarkdownTableEditor extends StatefulWidget {
 }
 
 class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
-  final _inputs = <String, TextEditingController>{};
+  final _inputs = <String, MarkdownInlineEditingController>{};
   final _focus = <String, FocusNode>{};
   final _compositions = <String, (MarkdownEditorController, int)>{};
   bool _syncing = false, _writing = false;
@@ -176,10 +177,12 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
   ) {
     final key = '$row-$col';
     final input = _inputs.putIfAbsent(key, () {
-      final input = TextEditingController(text: cell.text);
+      final input = MarkdownInlineEditingController(text: cell.text);
       input.addListener(() => _changed(key, row, col));
       return input;
     });
+    input.preferences = widget.preferences;
+    input.inlineOnly = true;
     final composing = !input.value.composing.isCollapsed;
     final preserveComposition =
         composing &&

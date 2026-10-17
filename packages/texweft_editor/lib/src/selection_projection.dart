@@ -5,6 +5,8 @@ import 'markdown_preferences.dart';
 import 'markdown_syntax.dart';
 import 'table_model.dart';
 
+part 'inline_presentation.dart';
+
 /// Coordinates for rendered text. CommonMark still owns syntax recognition;
 /// lightweight wrapper nodes retain positions while it resolves delimiters.
 final class MarkdownSelectionProjection {
@@ -120,6 +122,14 @@ class _PositionedDocument extends md.Document {
       );
   final String raw;
   final positions = Map<md.Node, MarkdownSelectionProjection>.identity();
+  final syntaxRanges = Map<md.Node, SourceRange>.identity();
+  final labels = Map<md.Node, SourceRange>.identity();
+  late final _positionedSyntaxes = <md.InlineSyntax>[
+    _ProjectionLink(),
+    ...super.inlineSyntaxes,
+  ];
+  @override
+  Iterable<md.InlineSyntax> get inlineSyntaxes => _positionedSyntaxes;
   int _cursor = 0;
 
   void skipFence() {
@@ -171,6 +181,10 @@ class _PositionedDocument extends md.Document {
     final nodes = parser.parse();
     for (final entry in parser.ranges.entries) {
       final node = entry.key, range = entry.value;
+      syntaxRanges[node] = SourceRange(
+        input.characters[range.start].start,
+        input.characters[range.end - 1].end,
+      );
       final visible = _visible(node);
       final local = _tokenProjection(
         text.substring(range.start, range.end),
@@ -184,6 +198,17 @@ class _PositionedDocument extends md.Document {
             input.characters[range.start + char.end - 1].end,
           ),
       ]);
+    }
+    for (final entry in parser.links.entries) {
+      final (range, label) = entry.value;
+      syntaxRanges[entry.key] = SourceRange(
+        input.characters[range.start].start,
+        input.characters[range.end - 1].end,
+      );
+      labels[entry.key] = SourceRange(
+        input.characters[label.start].start,
+        input.characters[label.end - 1].end,
+      );
     }
     return nodes;
   }
@@ -235,6 +260,7 @@ class _PositionedInlineParser extends md.InlineParser {
   _PositionedInlineParser(super.source, super.document);
   final ranges = Map<md.Node, SourceRange>.identity();
   final literals = Set<md.Node>.identity();
+  final links = Map<md.Node, (SourceRange, SourceRange)>.identity();
   final _delimiters = <(md.Delimiter, int, int)>[];
   final _pending = <md.Node>[];
 
@@ -339,5 +365,36 @@ class _PositionedInlineParser extends md.InlineParser {
       }
     }
     return nodes;
+  }
+}
+
+class _ProjectionLink extends md.LinkSyntax {
+  @override
+  Iterable<md.Node>? close(
+    md.InlineParser parser,
+    covariant md.SimpleDelimiter opener,
+    md.Delimiter? closer, {
+    String? tag,
+    required List<md.Node> Function() getChildren,
+  }) {
+    final labelEnd = parser.pos;
+    final result = super.close(
+      parser,
+      opener,
+      closer,
+      tag: tag,
+      getChildren: getChildren,
+    );
+    if (parser is _PositionedInlineParser &&
+        result != null &&
+        labelEnd > opener.endPos) {
+      for (final node in result) {
+        parser.links[node] = (
+          SourceRange(opener.endPos - opener.length, parser.pos + 1),
+          SourceRange(opener.endPos, labelEnd),
+        );
+      }
+    }
+    return result;
   }
 }
