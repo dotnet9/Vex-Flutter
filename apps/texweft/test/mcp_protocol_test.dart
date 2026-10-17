@@ -3,12 +3,15 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:texweft/data/services/mcp_server.dart';
 
 import 'support/fakes.dart';
 
 void main() {
+  setUp(() => debugDefaultTargetPlatformOverride = TargetPlatform.windows);
+  tearDown(() => debugDefaultTargetPlatformOverride = null);
   test('HTTP MCP negotiates protocols, rejects invalid transport and rotates credentials', () async {
     final vm = fakeWorkspace();
     addTearDown(vm.dispose);

@@ -14,11 +14,10 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../data/services/export_service.dart';
 import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
-import '../core/palette_tokens.dart';
 import 'workspace_pickers.dart';
 import 'workspace_view_model.dart';
 import 'builtin_documents.dart';
-import 'document_watermark.dart';
+import 'preferences_dialog.dart';
 
 Future<void> showExportDialog(
   BuildContext context,
@@ -237,140 +236,8 @@ class _ExportDialogState extends State<_ExportDialog> {
   );
 }
 
-Future<void> showAppearance(
-  BuildContext context,
-  WorkspaceViewModel vm,
-) => showDialog<void>(
-  context: context,
-  builder: (context) => ListenableBuilder(
-    listenable: vm,
-    builder: (context, _) => AppDialog(
-      title: context.l10n.appearance,
-      width: 720,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            context.l10n.themeMode,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            children: [
-              for (final item in [
-                (ThemeMode.light, context.l10n.light),
-                (ThemeMode.dark, context.l10n.dark),
-                (ThemeMode.system, context.l10n.followSystem),
-              ])
-                AppButton(
-                  label: item.$2,
-                  bordered: true,
-                  selected: vm.themeMode == item.$1,
-                  onPressed: () => vm.updateAppearance(mode: item.$1),
-                ),
-            ],
-          ),
-          const SizedBox(height: 22),
-          Text(
-            context.l10n.interfaceColors,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final entry in paletteNames.entries)
-                AppButton(
-                  label: context.l10n.paletteName(entry.key),
-                  selected: vm.palette == entry.key,
-                  bordered: true,
-                  onPressed: () => vm.updateAppearance(palette: entry.key),
-                ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Text(
-            context.l10n.bodyTypography,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 12),
-          LayoutBuilder(
-            builder: (context, constraints) =>
-                TypographyChoices(vm: vm, width: constraints.maxWidth),
-          ),
-          const SizedBox(height: 16),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            title: Text(
-              context.l10n.compactSpacing,
-              style: const TextStyle(fontSize: 14),
-            ),
-            subtitle: Text(
-              context.l10n.appearancePreservesSource,
-              style: const TextStyle(fontSize: 12),
-            ),
-            value: vm.compact,
-            onChanged: (v) => vm.updateAppearance(compact: v),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            context.l10n.documentWatermark,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            title: Text(context.l10n.watermarkPreview),
-            value: vm.watermark.preview,
-            onChanged: (value) => vm.updateWatermark(preview: value),
-          ),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            title: Text(context.l10n.watermarkExport),
-            value: vm.watermark.export,
-            onChanged: (value) => vm.updateWatermark(export: value),
-          ),
-          TextFormField(
-            key: const ValueKey('watermark-text'),
-            initialValue: vm.watermark.text,
-            maxLength: 60,
-            decoration: InputDecoration(labelText: context.l10n.watermarkText),
-            onChanged: (value) => vm.updateWatermark(text: value),
-          ),
-          Row(
-            children: [
-              Text(context.l10n.watermarkOpacity),
-              Expanded(
-                child: Slider(
-                  value: vm.watermark.opacity,
-                  min: 0,
-                  max: .5,
-                  divisions: 50,
-                  label: '${(vm.watermark.opacity * 100).round()}%',
-                  onChanged: (value) => vm.updateWatermark(opacity: value),
-                ),
-              ),
-              SizedBox(
-                width: 40,
-                child: Text('${(vm.watermark.opacity * 100).round()}%'),
-              ),
-            ],
-          ),
-          SizedBox(
-            height: 150,
-            child: ClipRect(
-              child: DocumentWatermark(
-                preferences: vm.watermark.copyWith(preview: true),
-                child: Center(child: Text(context.l10n.slogan)),
-              ),
-            ),
-          ),
-        ],
-      ),
-    ),
-  ),
-);
+Future<void> showAppearance(BuildContext context, WorkspaceViewModel vm) =>
+    showPreferences(context, vm, category: PreferenceCategory.appearance);
 
 Future<void> showSummarySettings(BuildContext context, WorkspaceViewModel vm) =>
     showDialog<void>(
@@ -438,82 +305,7 @@ Future<void> showSummarySettings(BuildContext context, WorkspaceViewModel vm) =>
     );
 
 Future<void> showSettings(BuildContext context, WorkspaceViewModel vm) =>
-    showDialog<void>(
-      context: context,
-      builder: (context) => ListenableBuilder(
-        listenable: vm,
-        builder: (context, _) => AppDialog(
-          title: context.l10n.settings,
-          width: 500,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              DropdownButtonFormField<String>(
-                key: const ValueKey('language-setting'),
-                initialValue: vm.language,
-                isExpanded: true,
-                decoration: InputDecoration(labelText: context.l10n.language),
-                items: [
-                  for (final entry in languageNames.entries)
-                    DropdownMenuItem(
-                      value: entry.key,
-                      child: Text(entry.value),
-                    ),
-                ],
-                onChanged: (value) => vm.updateAppearance(language: value),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                context.l10n.languageHint,
-                style: const TextStyle(fontSize: 12, height: 1.7),
-              ),
-              const SizedBox(height: 22),
-              Text(
-                context.l10n.editor,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: Text(
-                  context.l10n.sourceLineNumbers,
-                  style: const TextStyle(fontSize: 14),
-                ),
-                value: vm.lineNumbers,
-                onChanged: (v) => vm.updateAppearance(lineNumbers: v),
-              ),
-              Text(
-                context.l10n.bodyFontSize(vm.fontSize.round()),
-                style: const TextStyle(fontSize: 14),
-              ),
-              Slider(
-                value: vm.fontSize,
-                min: 12,
-                max: 22,
-                divisions: 10,
-                onChanged: (v) => vm.updateAppearance(fontSize: v),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                context.l10n.localFiles,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                context.l10n.localFilesDescription,
-                style: const TextStyle(fontSize: 14, height: 1.9),
-              ),
-              const SizedBox(height: 18),
-              AppButton(
-                label: context.l10n.openSourceLicenses,
-                icon: 'info',
-                bordered: true,
-                onPressed: () => _showLicenses(context),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    showPreferences(context, vm);
 
 Future<void> showAbout(BuildContext context) => showDialog<void>(
   context: context,
@@ -672,7 +464,12 @@ class _AboutDialogState extends State<_AboutDialog> {
         ),
         _row(
           context.l10n.aboutLicenseLabel,
-          const Text('MIT License', style: TextStyle(fontSize: 14)),
+          AppButton(
+            label: 'MIT License',
+            height: 28,
+            padding: 0,
+            onPressed: () => _showLicenses(context),
+          ),
         ),
         _row(
           context.l10n.aboutLinksLabel,

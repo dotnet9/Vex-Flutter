@@ -90,6 +90,10 @@ final class WorkspaceViewModel extends ChangeNotifier {
   String? selectedHeadingId;
   OpenedDocument? externalChange;
   bool ready = false, busy = false, _disposed = false, _checking = false;
+  bool preferencesSaving = false;
+  String? preferencesError;
+  int _preferencesRevision = 0;
+  Future<void>? _preferencesWrite;
   Timer? _recoveryTimer, _externalTimer;
   final _saveTimers = <WorkspaceDocument, Timer>{};
   final _saveQueues = <WorkspaceDocument, Future<bool>>{};
@@ -774,6 +778,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     }
     _saveTimers.clear();
     await Future.wait(_saveQueues.values.toList());
+    await _preferencesWrite;
   }
 
   Future<bool> _saveDocument(WorkspaceDocument doc, {bool saveAs = false}) {
@@ -970,50 +975,57 @@ final class WorkspaceViewModel extends ChangeNotifier {
 
   void persist() {
     if (_guiding) return;
-    unawaited(
-      settings
-          .save({
-            'palette': palette,
-            'theme': themeMode.name,
-            'layout': layout.name,
-            'typography': typography.name,
-            'language': language,
-            'compact': compact,
-            'lineNumbers': lineNumbers,
-            'typewriter': typewriter,
-            'focusMode': focusMode,
-            'fontSize': fontSize,
-            'editor': editingPreferences.toJson(),
-            'contentZoom': contentZoom,
-            'statusbar': statusbar,
-            'motion': motion,
-            'sidebarWidth': sidebarWidth,
-            'summaryLength': summaryLength,
-            'paragraphs': paragraphs,
-            'lists': lists,
-            'blocks': blocks,
-            'mapMode': _map.mode.name,
-            'recent': List.of(recent),
-            'guideSeen': guideSeen,
-            'mcp': mcp.preferences,
-            'files': filePreferences.toJson(),
-            'export': exportPreferences.toJson(),
-            'watermark': watermark.toJson(),
-            'images': imagePreferences.toJson(),
-            'workspace': {
-              'paths': documents
-                  .map((d) => d.path)
-                  .whereType<String>()
-                  .toList(),
-              'active': current.path,
-              'folder': folder?.path,
-            },
-          })
-          .catchError((Object error) {
-            _statusMessage = (l) => l.preferencesSaveFailed(error.toString());
-            _notify();
-          }),
-    );
+    final revision = ++_preferencesRevision;
+    preferencesSaving = true;
+    preferencesError = null;
+    _preferencesWrite = settings
+        .save({
+          'palette': palette,
+          'theme': themeMode.name,
+          'layout': layout.name,
+          'typography': typography.name,
+          'language': language,
+          'compact': compact,
+          'lineNumbers': lineNumbers,
+          'typewriter': typewriter,
+          'focusMode': focusMode,
+          'fontSize': fontSize,
+          'editor': editingPreferences.toJson(),
+          'contentZoom': contentZoom,
+          'statusbar': statusbar,
+          'motion': motion,
+          'sidebarWidth': sidebarWidth,
+          'summaryLength': summaryLength,
+          'paragraphs': paragraphs,
+          'lists': lists,
+          'blocks': blocks,
+          'mapMode': _map.mode.name,
+          'recent': List.of(recent),
+          'guideSeen': guideSeen,
+          'mcp': mcp.preferences,
+          'files': filePreferences.toJson(),
+          'export': exportPreferences.toJson(),
+          'watermark': watermark.toJson(),
+          'images': imagePreferences.toJson(),
+          'workspace': {
+            'paths': documents.map((d) => d.path).whereType<String>().toList(),
+            'active': current.path,
+            'folder': folder?.path,
+          },
+        })
+        .then((_) {
+          if (revision != _preferencesRevision) return;
+          preferencesSaving = false;
+          _notify();
+        })
+        .catchError((Object error) {
+          if (revision != _preferencesRevision) return;
+          preferencesSaving = false;
+          preferencesError = error.toString();
+          _statusMessage = (l) => l.preferencesSaveFailed(error.toString());
+          _notify();
+        });
+    _notify();
   }
 
   bool _guiding = false;

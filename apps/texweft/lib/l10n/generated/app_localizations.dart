@@ -320,7 +320,7 @@ abstract class AppLocalizations {
   /// No description provided for @appearance.
   ///
   /// In zh, this message translates to:
-  /// **'外观与排版'**
+  /// **'外观'**
   String get appearance;
 
   /// No description provided for @themeMode.
@@ -410,7 +410,7 @@ abstract class AppLocalizations {
   /// No description provided for @settings.
   ///
   /// In zh, this message translates to:
-  /// **'设置'**
+  /// **'偏好设置'**
   String get settings;
 
   /// No description provided for @editor.
@@ -2098,6 +2098,354 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'不透明度'**
   String get watermarkOpacity;
+
+  /// No description provided for @prefExport.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出'**
+  String get prefExport;
+
+  /// No description provided for @prefMcpAudit.
+  ///
+  /// In zh, this message translates to:
+  /// **'审计'**
+  String get prefMcpAudit;
+
+  /// No description provided for @prefGeneral.
+  ///
+  /// In zh, this message translates to:
+  /// **'通用与文件'**
+  String get prefGeneral;
+
+  /// No description provided for @prefSaveRecovery.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存与恢复'**
+  String get prefSaveRecovery;
+
+  /// No description provided for @prefStartup.
+  ///
+  /// In zh, this message translates to:
+  /// **'启动时'**
+  String get prefStartup;
+
+  /// No description provided for @prefEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'空白工作区'**
+  String get prefEmpty;
+
+  /// No description provided for @prefRestore.
+  ///
+  /// In zh, this message translates to:
+  /// **'恢复上次工作区'**
+  String get prefRestore;
+
+  /// No description provided for @prefAutoSave.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动保存'**
+  String get prefAutoSave;
+
+  /// No description provided for @prefSaveDelay.
+  ///
+  /// In zh, this message translates to:
+  /// **'停止输入后保存'**
+  String get prefSaveDelay;
+
+  /// No description provided for @prefRecovery.
+  ///
+  /// In zh, this message translates to:
+  /// **'保留恢复草稿'**
+  String get prefRecovery;
+
+  /// No description provided for @prefNewDefaults.
+  ///
+  /// In zh, this message translates to:
+  /// **'新文档默认值'**
+  String get prefNewDefaults;
+
+  /// No description provided for @prefEncoding.
+  ///
+  /// In zh, this message translates to:
+  /// **'编码'**
+  String get prefEncoding;
+
+  /// No description provided for @prefNewline.
+  ///
+  /// In zh, this message translates to:
+  /// **'换行符'**
+  String get prefNewline;
+
+  /// No description provided for @prefFont.
+  ///
+  /// In zh, this message translates to:
+  /// **'正文字体'**
+  String get prefFont;
+
+  /// No description provided for @prefSystemFont.
+  ///
+  /// In zh, this message translates to:
+  /// **'系统默认'**
+  String get prefSystemFont;
+
+  /// No description provided for @prefSerifFont.
+  ///
+  /// In zh, this message translates to:
+  /// **'系统衬线'**
+  String get prefSerifFont;
+
+  /// No description provided for @prefMonoFont.
+  ///
+  /// In zh, this message translates to:
+  /// **'等宽'**
+  String get prefMonoFont;
+
+  /// No description provided for @prefBodySize.
+  ///
+  /// In zh, this message translates to:
+  /// **'正文字号'**
+  String get prefBodySize;
+
+  /// No description provided for @prefCodeSize.
+  ///
+  /// In zh, this message translates to:
+  /// **'代码字号'**
+  String get prefCodeSize;
+
+  /// No description provided for @prefIndent.
+  ///
+  /// In zh, this message translates to:
+  /// **'缩进'**
+  String get prefIndent;
+
+  /// No description provided for @prefAutoPair.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动配对符号'**
+  String get prefAutoPair;
+
+  /// No description provided for @prefCodeSource.
+  ///
+  /// In zh, this message translates to:
+  /// **'代码与源码'**
+  String get prefCodeSource;
+
+  /// No description provided for @prefCodeWrap.
+  ///
+  /// In zh, this message translates to:
+  /// **'代码自动换行'**
+  String get prefCodeWrap;
+
+  /// No description provided for @prefWriting.
+  ///
+  /// In zh, this message translates to:
+  /// **'写作'**
+  String get prefWriting;
+
+  /// No description provided for @prefImages.
+  ///
+  /// In zh, this message translates to:
+  /// **'图片'**
+  String get prefImages;
+
+  /// No description provided for @prefImageCopy.
+  ///
+  /// In zh, this message translates to:
+  /// **'插入时复制图片'**
+  String get prefImageCopy;
+
+  /// No description provided for @prefImageRelative.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用相对路径'**
+  String get prefImageRelative;
+
+  /// No description provided for @prefAssetFolder.
+  ///
+  /// In zh, this message translates to:
+  /// **'资源目录'**
+  String get prefAssetFolder;
+
+  /// No description provided for @prefFolderError.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入不含 .. 的相对目录'**
+  String get prefFolderError;
+
+  /// No description provided for @prefZoom.
+  ///
+  /// In zh, this message translates to:
+  /// **'内容缩放'**
+  String get prefZoom;
+
+  /// No description provided for @prefStatusbar.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示状态栏'**
+  String get prefStatusbar;
+
+  /// No description provided for @prefMotion.
+  ///
+  /// In zh, this message translates to:
+  /// **'界面动效'**
+  String get prefMotion;
+
+  /// No description provided for @prefDefaultFormat.
+  ///
+  /// In zh, this message translates to:
+  /// **'默认格式'**
+  String get prefDefaultFormat;
+
+  /// No description provided for @prefDefaultDirectory.
+  ///
+  /// In zh, this message translates to:
+  /// **'默认目录'**
+  String get prefDefaultDirectory;
+
+  /// No description provided for @prefDocumentDirectory.
+  ///
+  /// In zh, this message translates to:
+  /// **'文档所在目录'**
+  String get prefDocumentDirectory;
+
+  /// No description provided for @prefOpenAfterExport.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出后打开'**
+  String get prefOpenAfterExport;
+
+  /// No description provided for @prefPaper.
+  ///
+  /// In zh, this message translates to:
+  /// **'纸张'**
+  String get prefPaper;
+
+  /// No description provided for @prefMargin.
+  ///
+  /// In zh, this message translates to:
+  /// **'页边距'**
+  String get prefMargin;
+
+  /// No description provided for @prefHtmlStyle.
+  ///
+  /// In zh, this message translates to:
+  /// **'保留当前文档排版'**
+  String get prefHtmlStyle;
+
+  /// No description provided for @prefSaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'设置已保存'**
+  String get prefSaved;
+
+  /// No description provided for @prefSaving.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在保存…'**
+  String get prefSaving;
+
+  /// No description provided for @prefBack.
+  ///
+  /// In zh, this message translates to:
+  /// **'返回设置分类'**
+  String get prefBack;
+
+  /// No description provided for @prefApply.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用'**
+  String get prefApply;
+
+  /// No description provided for @prefMcpServer.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务'**
+  String get prefMcpServer;
+
+  /// No description provided for @prefMcpClients.
+  ///
+  /// In zh, this message translates to:
+  /// **'客户端'**
+  String get prefMcpClients;
+
+  /// No description provided for @prefMcpMobile.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前设备不提供常驻 MCP 服务。'**
+  String get prefMcpMobile;
+
+  /// No description provided for @prefMcpReveal.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示或隐藏令牌'**
+  String get prefMcpReveal;
+
+  /// No description provided for @prefMcpStop.
+  ///
+  /// In zh, this message translates to:
+  /// **'停止服务'**
+  String get prefMcpStop;
+
+  /// No description provided for @prefMcpCopyConfig.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制配置'**
+  String get prefMcpCopyConfig;
+
+  /// No description provided for @prefMcpTest.
+  ///
+  /// In zh, this message translates to:
+  /// **'测试连接'**
+  String get prefMcpTest;
+
+  /// No description provided for @prefMcpConnected.
+  ///
+  /// In zh, this message translates to:
+  /// **'连接成功，已完成初始化'**
+  String get prefMcpConnected;
+
+  /// No description provided for @prefMcpNotRunning.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先启动服务'**
+  String get prefMcpNotRunning;
+
+  /// No description provided for @prefMcpDirectoryError.
+  ///
+  /// In zh, this message translates to:
+  /// **'请选择有效的本地绝对目录'**
+  String get prefMcpDirectoryError;
+
+  /// No description provided for @prefMcpTime.
+  ///
+  /// In zh, this message translates to:
+  /// **'时间'**
+  String get prefMcpTime;
+
+  /// No description provided for @prefMcpAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'操作'**
+  String get prefMcpAction;
+
+  /// No description provided for @prefMcpResult.
+  ///
+  /// In zh, this message translates to:
+  /// **'结果'**
+  String get prefMcpResult;
+
+  /// No description provided for @prefSeconds.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 秒'**
+  String prefSeconds(int count);
+
+  /// No description provided for @prefSpaces.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 空格'**
+  String prefSpaces(int count);
 }
 
 class _AppLocalizationsDelegate

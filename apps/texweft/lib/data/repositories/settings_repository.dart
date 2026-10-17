@@ -9,6 +9,7 @@ abstract interface class SettingsRepository {
 
 final class NativeSettingsRepository implements SettingsRepository {
   final _preferences = SharedPreferencesAsync();
+  Future<void> _pending = Future.value();
   @override
   Future<Map<String, Object?>> load() async {
     final raw = await _preferences.getString('workspace-v1');
@@ -21,6 +22,10 @@ final class NativeSettingsRepository implements SettingsRepository {
   }
 
   @override
-  Future<void> save(Map<String, Object?> value) =>
-      _preferences.setString('workspace-v1', jsonEncode(value));
+  Future<void> save(Map<String, Object?> value) {
+    final snapshot = jsonEncode(value);
+    return _pending = _pending
+        .catchError((Object _) {})
+        .then((_) => _preferences.setString('workspace-v1', snapshot));
+  }
 }

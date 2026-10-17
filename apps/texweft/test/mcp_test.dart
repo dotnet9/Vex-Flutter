@@ -3,11 +3,49 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/foundation.dart';
 import 'package:texweft/data/services/mcp_server.dart';
 
 import 'support/fakes.dart';
 
 void main() {
+  setUp(() => debugDefaultTargetPlatformOverride = TargetPlatform.windows);
+  tearDown(() => debugDefaultTargetPlatformOverride = null);
+  test(
+    'MCP settings test authenticates a real server and records no credentials',
+    () async {
+      final vm = fakeWorkspace();
+      addTearDown(vm.dispose);
+      vm.mcp.port = 0;
+      await vm.mcp.configure(true);
+      addTearDown(vm.mcp.server.stop);
+      final configuration = jsonDecode(vm.mcp.clientConfiguration);
+      expect(configuration['mcpServers']['vex']['url'], vm.mcp.server.endpoint);
+      await vm.mcp.testConnection();
+      expect(vm.mcp.audit.first['result'], 'connected');
+      expect(jsonEncode(vm.mcp.audit), isNot(contains(vm.mcp.token)));
+      vm.mcp.token = 'x' * 32;
+      await expectLater(vm.mcp.testConnection(), throwsA(isA<HttpException>()));
+      expect(vm.mcp.audit.first['result'], 'connection failed');
+      await vm.mcp.configure(false);
+      await expectLater(vm.mcp.testConnection(), throwsStateError);
+    },
+  );
+  test(
+    'phone platforms never start a persistent MCP server from saved settings',
+    () async {
+      for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+        debugDefaultTargetPlatformOverride = platform;
+        final vm = fakeWorkspace();
+        await vm.mcp.load({'enabled': true, 'port': 17891});
+        expect(vm.mcp.available, isFalse);
+        expect(vm.mcp.enabled, isFalse);
+        expect(vm.mcp.server.running, isFalse);
+        vm.dispose();
+      }
+      debugDefaultTargetPlatformOverride = null;
+    },
+  );
   test('empty startup and a guide never populate the file list', () async {
     final vm = fakeWorkspace();
     addTearDown(vm.dispose);

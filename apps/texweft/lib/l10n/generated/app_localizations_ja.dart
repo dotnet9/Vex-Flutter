@@ -119,7 +119,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get htmlCopied => 'HTML ソースをコピーしました。';
 
   @override
-  String get appearance => '外観と書式';
+  String get appearance => '外観';
 
   @override
   String get themeMode => '表示モード';
@@ -165,7 +165,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get restoreDefaults => '既定値に戻す';
 
   @override
-  String get settings => '設定';
+  String get settings => '環境設定';
 
   @override
   String get editor => 'エディター';
@@ -1112,4 +1112,182 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get watermarkOpacity => '不透明度';
+
+  @override
+  String get prefExport => 'エクスポート';
+
+  @override
+  String get prefMcpAudit => '監査';
+
+  @override
+  String get prefGeneral => '一般とファイル';
+
+  @override
+  String get prefSaveRecovery => '保存と復元';
+
+  @override
+  String get prefStartup => '起動時';
+
+  @override
+  String get prefEmpty => '空のワークスペース';
+
+  @override
+  String get prefRestore => '前回の状態を復元';
+
+  @override
+  String get prefAutoSave => '自動保存';
+
+  @override
+  String get prefSaveDelay => '入力停止後に保存';
+
+  @override
+  String get prefRecovery => '復元用の下書きを保持';
+
+  @override
+  String get prefNewDefaults => '新規文書の既定値';
+
+  @override
+  String get prefEncoding => '文字コード';
+
+  @override
+  String get prefNewline => '改行コード';
+
+  @override
+  String get prefFont => '本文フォント';
+
+  @override
+  String get prefSystemFont => 'システム既定';
+
+  @override
+  String get prefSerifFont => 'セリフ体';
+
+  @override
+  String get prefMonoFont => '等幅';
+
+  @override
+  String get prefBodySize => '本文サイズ';
+
+  @override
+  String get prefCodeSize => 'コードサイズ';
+
+  @override
+  String get prefIndent => 'インデント';
+
+  @override
+  String get prefAutoPair => '括弧の自動補完';
+
+  @override
+  String get prefCodeSource => 'コードとソース';
+
+  @override
+  String get prefCodeWrap => 'コードの折り返し';
+
+  @override
+  String get prefWriting => '執筆';
+
+  @override
+  String get prefImages => '画像';
+
+  @override
+  String get prefImageCopy => '挿入時に画像をコピー';
+
+  @override
+  String get prefImageRelative => '相対パスを使用';
+
+  @override
+  String get prefAssetFolder => 'リソースフォルダー';
+
+  @override
+  String get prefFolderError => '.. を含まない相対フォルダーを入力';
+
+  @override
+  String get prefZoom => 'コンテンツの拡大率';
+
+  @override
+  String get prefStatusbar => 'ステータスバーを表示';
+
+  @override
+  String get prefMotion => '画面アニメーション';
+
+  @override
+  String get prefDefaultFormat => '既定の形式';
+
+  @override
+  String get prefDefaultDirectory => '既定のフォルダー';
+
+  @override
+  String get prefDocumentDirectory => '文書のフォルダー';
+
+  @override
+  String get prefOpenAfterExport => '出力後に開く';
+
+  @override
+  String get prefPaper => '用紙サイズ';
+
+  @override
+  String get prefMargin => '余白';
+
+  @override
+  String get prefHtmlStyle => '現在の書式を保持';
+
+  @override
+  String get prefSaved => '設定を保存しました';
+
+  @override
+  String get prefSaving => '保存中…';
+
+  @override
+  String get prefBack => '設定カテゴリに戻る';
+
+  @override
+  String get prefApply => '適用';
+
+  @override
+  String get prefMcpServer => 'サーバー';
+
+  @override
+  String get prefMcpClients => 'クライアント';
+
+  @override
+  String get prefMcpMobile => 'このデバイスでは常駐 MCP サーバーを利用できません。';
+
+  @override
+  String get prefMcpReveal => 'トークンの表示切替';
+
+  @override
+  String get prefMcpStop => 'サーバーを停止';
+
+  @override
+  String get prefMcpCopyConfig => '設定をコピー';
+
+  @override
+  String get prefMcpTest => '接続テスト';
+
+  @override
+  String get prefMcpConnected => '接続と初期化が完了しました';
+
+  @override
+  String get prefMcpNotRunning => '先にサーバーを起動してください';
+
+  @override
+  String get prefMcpDirectoryError => '既存のローカル絶対フォルダーを指定してください';
+
+  @override
+  String get prefMcpTime => '時刻';
+
+  @override
+  String get prefMcpAction => '操作';
+
+  @override
+  String get prefMcpResult => '結果';
+
+  @override
+  String prefSeconds(int count) {
+    return '$count 秒';
+  }
+
+  @override
+  String prefSpaces(int count) {
+    return '$count スペース';
+  }
 }

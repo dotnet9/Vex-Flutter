@@ -120,7 +120,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get htmlCopied => 'HTML source copied.';
 
   @override
-  String get appearance => 'Appearance and typography';
+  String get appearance => 'Appearance';
 
   @override
   String get themeMode => 'Theme mode';
@@ -167,7 +167,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get restoreDefaults => 'Restore defaults';
 
   @override
-  String get settings => 'Settings';
+  String get settings => 'Preferences';
 
   @override
   String get editor => 'Editor';
@@ -1155,4 +1155,184 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get watermarkOpacity => 'Opacity';
+
+  @override
+  String get prefExport => 'Export';
+
+  @override
+  String get prefMcpAudit => 'Audit';
+
+  @override
+  String get prefGeneral => 'General & Files';
+
+  @override
+  String get prefSaveRecovery => 'Saving & Recovery';
+
+  @override
+  String get prefStartup => 'On startup';
+
+  @override
+  String get prefEmpty => 'Empty workspace';
+
+  @override
+  String get prefRestore => 'Restore workspace';
+
+  @override
+  String get prefAutoSave => 'Auto-save';
+
+  @override
+  String get prefSaveDelay => 'Save after typing';
+
+  @override
+  String get prefRecovery => 'Keep recovery drafts';
+
+  @override
+  String get prefNewDefaults => 'New Document Defaults';
+
+  @override
+  String get prefEncoding => 'Encoding';
+
+  @override
+  String get prefNewline => 'Line endings';
+
+  @override
+  String get prefFont => 'Body font';
+
+  @override
+  String get prefSystemFont => 'System default';
+
+  @override
+  String get prefSerifFont => 'System serif';
+
+  @override
+  String get prefMonoFont => 'Monospace';
+
+  @override
+  String get prefBodySize => 'Body size';
+
+  @override
+  String get prefCodeSize => 'Code size';
+
+  @override
+  String get prefIndent => 'Indentation';
+
+  @override
+  String get prefAutoPair => 'Auto-pair brackets';
+
+  @override
+  String get prefCodeSource => 'Code & Source';
+
+  @override
+  String get prefCodeWrap => 'Wrap code lines';
+
+  @override
+  String get prefWriting => 'Writing';
+
+  @override
+  String get prefImages => 'Images';
+
+  @override
+  String get prefImageCopy => 'Copy inserted images';
+
+  @override
+  String get prefImageRelative => 'Use relative paths';
+
+  @override
+  String get prefAssetFolder => 'Asset folder';
+
+  @override
+  String get prefFolderError => 'Enter a relative folder without ..';
+
+  @override
+  String get prefZoom => 'Content zoom';
+
+  @override
+  String get prefStatusbar => 'Show status bar';
+
+  @override
+  String get prefMotion => 'Interface animations';
+
+  @override
+  String get prefDefaultFormat => 'Default format';
+
+  @override
+  String get prefDefaultDirectory => 'Default folder';
+
+  @override
+  String get prefDocumentDirectory => 'Document folder';
+
+  @override
+  String get prefOpenAfterExport => 'Open after export';
+
+  @override
+  String get prefPaper => 'Paper size';
+
+  @override
+  String get prefMargin => 'Page margins';
+
+  @override
+  String get prefHtmlStyle => 'Keep document styling';
+
+  @override
+  String get prefSaved => 'Settings saved';
+
+  @override
+  String get prefSaving => 'Saving…';
+
+  @override
+  String get prefBack => 'Back to categories';
+
+  @override
+  String get prefApply => 'Apply';
+
+  @override
+  String get prefMcpServer => 'Server';
+
+  @override
+  String get prefMcpClients => 'Clients';
+
+  @override
+  String get prefMcpMobile =>
+      'A persistent MCP server is not available on this device.';
+
+  @override
+  String get prefMcpReveal => 'Show or hide token';
+
+  @override
+  String get prefMcpStop => 'Stop server';
+
+  @override
+  String get prefMcpCopyConfig => 'Copy configuration';
+
+  @override
+  String get prefMcpTest => 'Test connection';
+
+  @override
+  String get prefMcpConnected => 'Connected and initialized';
+
+  @override
+  String get prefMcpNotRunning => 'Start the server first';
+
+  @override
+  String get prefMcpDirectoryError =>
+      'Choose an existing absolute local folder';
+
+  @override
+  String get prefMcpTime => 'Time';
+
+  @override
+  String get prefMcpAction => 'Operation';
+
+  @override
+  String get prefMcpResult => 'Result';
+
+  @override
+  String prefSeconds(int count) {
+    return '$count seconds';
+  }
+
+  @override
+  String prefSpaces(int count) {
+    return '$count spaces';
+  }
 }

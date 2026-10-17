@@ -118,7 +118,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get htmlCopied => '已复制 HTML 源码。';
 
   @override
-  String get appearance => '外观与排版';
+  String get appearance => '外观';
 
   @override
   String get themeMode => '明暗模式';
@@ -163,7 +163,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get restoreDefaults => '恢复默认';
 
   @override
-  String get settings => '设置';
+  String get settings => '偏好设置';
 
   @override
   String get editor => '编辑器';
@@ -1107,6 +1107,184 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get watermarkOpacity => '不透明度';
+
+  @override
+  String get prefExport => '导出';
+
+  @override
+  String get prefMcpAudit => '审计';
+
+  @override
+  String get prefGeneral => '通用与文件';
+
+  @override
+  String get prefSaveRecovery => '保存与恢复';
+
+  @override
+  String get prefStartup => '启动时';
+
+  @override
+  String get prefEmpty => '空白工作区';
+
+  @override
+  String get prefRestore => '恢复上次工作区';
+
+  @override
+  String get prefAutoSave => '自动保存';
+
+  @override
+  String get prefSaveDelay => '停止输入后保存';
+
+  @override
+  String get prefRecovery => '保留恢复草稿';
+
+  @override
+  String get prefNewDefaults => '新文档默认值';
+
+  @override
+  String get prefEncoding => '编码';
+
+  @override
+  String get prefNewline => '换行符';
+
+  @override
+  String get prefFont => '正文字体';
+
+  @override
+  String get prefSystemFont => '系统默认';
+
+  @override
+  String get prefSerifFont => '系统衬线';
+
+  @override
+  String get prefMonoFont => '等宽';
+
+  @override
+  String get prefBodySize => '正文字号';
+
+  @override
+  String get prefCodeSize => '代码字号';
+
+  @override
+  String get prefIndent => '缩进';
+
+  @override
+  String get prefAutoPair => '自动配对符号';
+
+  @override
+  String get prefCodeSource => '代码与源码';
+
+  @override
+  String get prefCodeWrap => '代码自动换行';
+
+  @override
+  String get prefWriting => '写作';
+
+  @override
+  String get prefImages => '图片';
+
+  @override
+  String get prefImageCopy => '插入时复制图片';
+
+  @override
+  String get prefImageRelative => '使用相对路径';
+
+  @override
+  String get prefAssetFolder => '资源目录';
+
+  @override
+  String get prefFolderError => '请输入不含 .. 的相对目录';
+
+  @override
+  String get prefZoom => '内容缩放';
+
+  @override
+  String get prefStatusbar => '显示状态栏';
+
+  @override
+  String get prefMotion => '界面动效';
+
+  @override
+  String get prefDefaultFormat => '默认格式';
+
+  @override
+  String get prefDefaultDirectory => '默认目录';
+
+  @override
+  String get prefDocumentDirectory => '文档所在目录';
+
+  @override
+  String get prefOpenAfterExport => '导出后打开';
+
+  @override
+  String get prefPaper => '纸张';
+
+  @override
+  String get prefMargin => '页边距';
+
+  @override
+  String get prefHtmlStyle => '保留当前文档排版';
+
+  @override
+  String get prefSaved => '设置已保存';
+
+  @override
+  String get prefSaving => '正在保存…';
+
+  @override
+  String get prefBack => '返回设置分类';
+
+  @override
+  String get prefApply => '应用';
+
+  @override
+  String get prefMcpServer => '服务';
+
+  @override
+  String get prefMcpClients => '客户端';
+
+  @override
+  String get prefMcpMobile => '当前设备不提供常驻 MCP 服务。';
+
+  @override
+  String get prefMcpReveal => '显示或隐藏令牌';
+
+  @override
+  String get prefMcpStop => '停止服务';
+
+  @override
+  String get prefMcpCopyConfig => '复制配置';
+
+  @override
+  String get prefMcpTest => '测试连接';
+
+  @override
+  String get prefMcpConnected => '连接成功，已完成初始化';
+
+  @override
+  String get prefMcpNotRunning => '请先启动服务';
+
+  @override
+  String get prefMcpDirectoryError => '请选择有效的本地绝对目录';
+
+  @override
+  String get prefMcpTime => '时间';
+
+  @override
+  String get prefMcpAction => '操作';
+
+  @override
+  String get prefMcpResult => '结果';
+
+  @override
+  String prefSeconds(int count) {
+    return '$count 秒';
+  }
+
+  @override
+  String prefSpaces(int count) {
+    return '$count 空格';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -1222,7 +1400,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get htmlCopied => '已複製 HTML 原始碼。';
 
   @override
-  String get appearance => '外觀與排版';
+  String get appearance => '外觀';
 
   @override
   String get themeMode => '明暗模式';
@@ -1267,7 +1445,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get restoreDefaults => '還原預設值';
 
   @override
-  String get settings => '設定';
+  String get settings => '偏好設定';
 
   @override
   String get editor => '編輯器';
@@ -2211,4 +2389,182 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get watermarkOpacity => '不透明度';
+
+  @override
+  String get prefExport => '匯出';
+
+  @override
+  String get prefMcpAudit => '稽核';
+
+  @override
+  String get prefGeneral => '通用與檔案';
+
+  @override
+  String get prefSaveRecovery => '儲存與復原';
+
+  @override
+  String get prefStartup => '啟動時';
+
+  @override
+  String get prefEmpty => '空白工作區';
+
+  @override
+  String get prefRestore => '復原上次工作區';
+
+  @override
+  String get prefAutoSave => '自動儲存';
+
+  @override
+  String get prefSaveDelay => '停止輸入後儲存';
+
+  @override
+  String get prefRecovery => '保留復原草稿';
+
+  @override
+  String get prefNewDefaults => '新文件預設值';
+
+  @override
+  String get prefEncoding => '編碼';
+
+  @override
+  String get prefNewline => '換行符號';
+
+  @override
+  String get prefFont => '正文字型';
+
+  @override
+  String get prefSystemFont => '系統預設';
+
+  @override
+  String get prefSerifFont => '系統襯線';
+
+  @override
+  String get prefMonoFont => '等寬';
+
+  @override
+  String get prefBodySize => '正文字號';
+
+  @override
+  String get prefCodeSize => '程式碼字號';
+
+  @override
+  String get prefIndent => '縮排';
+
+  @override
+  String get prefAutoPair => '自動配對符號';
+
+  @override
+  String get prefCodeSource => '程式碼與原始碼';
+
+  @override
+  String get prefCodeWrap => '程式碼自動換行';
+
+  @override
+  String get prefWriting => '寫作';
+
+  @override
+  String get prefImages => '圖片';
+
+  @override
+  String get prefImageCopy => '插入時複製圖片';
+
+  @override
+  String get prefImageRelative => '使用相對路徑';
+
+  @override
+  String get prefAssetFolder => '資源目錄';
+
+  @override
+  String get prefFolderError => '請輸入不含 .. 的相對目錄';
+
+  @override
+  String get prefZoom => '內容縮放';
+
+  @override
+  String get prefStatusbar => '顯示狀態列';
+
+  @override
+  String get prefMotion => '介面動效';
+
+  @override
+  String get prefDefaultFormat => '預設格式';
+
+  @override
+  String get prefDefaultDirectory => '預設目錄';
+
+  @override
+  String get prefDocumentDirectory => '文件所在目錄';
+
+  @override
+  String get prefOpenAfterExport => '匯出後開啟';
+
+  @override
+  String get prefPaper => '紙張';
+
+  @override
+  String get prefMargin => '頁邊距';
+
+  @override
+  String get prefHtmlStyle => '保留目前文件排版';
+
+  @override
+  String get prefSaved => '設定已儲存';
+
+  @override
+  String get prefSaving => '正在儲存…';
+
+  @override
+  String get prefBack => '返回設定分類';
+
+  @override
+  String get prefApply => '套用';
+
+  @override
+  String get prefMcpServer => '服務';
+
+  @override
+  String get prefMcpClients => '用戶端';
+
+  @override
+  String get prefMcpMobile => '目前裝置不提供常駐 MCP 服務。';
+
+  @override
+  String get prefMcpReveal => '顯示或隱藏權杖';
+
+  @override
+  String get prefMcpStop => '停止服務';
+
+  @override
+  String get prefMcpCopyConfig => '複製設定';
+
+  @override
+  String get prefMcpTest => '測試連線';
+
+  @override
+  String get prefMcpConnected => '連線成功，已完成初始化';
+
+  @override
+  String get prefMcpNotRunning => '請先啟動服務';
+
+  @override
+  String get prefMcpDirectoryError => '請選擇有效的本機絕對目錄';
+
+  @override
+  String get prefMcpTime => '時間';
+
+  @override
+  String get prefMcpAction => '操作';
+
+  @override
+  String get prefMcpResult => '結果';
+
+  @override
+  String prefSeconds(int count) {
+    return '$count 秒';
+  }
+
+  @override
+  String prefSpaces(int count) {
+    return '$count 空格';
+  }
 }

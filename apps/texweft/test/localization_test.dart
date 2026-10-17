@@ -248,14 +248,21 @@ void main() {
     final context = tester.element(find.byType(Scaffold).first);
     final shown = showSettings(context, vm);
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('preference-category-general')));
+    await tester.pumpAndSettle();
     for (final language in ['en', 'zh_Hant', 'ja', 'zh']) {
-      await tester.tap(find.byKey(const ValueKey('language-setting')));
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('language-setting')),
+          matching: find.byType(DropdownButtonFormField<String>),
+        ),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text(languageNames[language]!).last);
       await tester.pumpAndSettle();
       expect(vm.language, language);
-      expect(find.text(vm.strings.settings), findsOneWidget);
-      expect(find.text(vm.strings.languageHint), findsOneWidget);
+      expect(find.text(vm.strings.prefGeneral), findsOneWidget);
+      expect(find.text(vm.strings.prefStartup), findsOneWidget);
       expect(tester.takeException(), isNull);
     }
     Navigator.of(context).pop();

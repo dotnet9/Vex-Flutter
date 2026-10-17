@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -28,6 +29,67 @@ final class WorkspaceMcp extends ChangeNotifier {
   Future<bool> Function(String name)? confirm;
   final audit = <Map<String, String>>[];
   int _configurationRevision = 0;
+  bool get available => ![
+    TargetPlatform.android,
+    TargetPlatform.iOS,
+    TargetPlatform.fuchsia,
+  ].contains(defaultTargetPlatform);
+
+  String get clientConfiguration => const JsonEncoder.withIndent('  ').convert({
+    'mcpServers': {
+      'vex': {
+        'url': server.endpoint ?? 'http://127.0.0.1:$port/mcp/',
+        'headers': {'Authorization': 'Bearer $token'},
+      },
+    },
+  });
+
+  Future<void> testConnection() async {
+    if (!available || !server.running) {
+      throw StateError(vm.strings.prefMcpNotRunning);
+    }
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 5);
+    try {
+      final request = await client.postUrl(Uri.parse(server.endpoint!));
+      request.headers.contentType = ContentType.json;
+      request.headers.set('Authorization', 'Bearer $token');
+      request.write(
+        jsonEncode({
+          'jsonrpc': '2.0',
+          'id': 'vex-connection-test',
+          'method': 'initialize',
+          'params': {
+            'protocolVersion': '2025-11-25',
+            'capabilities': <String, Object?>{},
+            'clientInfo': {'name': 'Vex settings', 'version': '1'},
+          },
+        }),
+      );
+      final response = await request.close().timeout(
+        const Duration(seconds: 5),
+      );
+      final body = await utf8.decoder
+          .bind(response)
+          .join()
+          .timeout(const Duration(seconds: 5));
+      if (response.statusCode != 200) {
+        throw HttpException('HTTP ${response.statusCode}');
+      }
+      final data = jsonDecode(body);
+      if (data is! Map ||
+          data['result'] is! Map ||
+          data['result']['serverInfo'] is! Map) {
+        throw const FormatException('Invalid MCP initialization response');
+      }
+      _record('initialize', 'connected');
+    } catch (_) {
+      _record('initialize', 'connection failed');
+      rethrow;
+    } finally {
+      client.close(force: true);
+    }
+  }
+
   static const _documentActions = {
     'get_document',
     'get_outline',
@@ -66,6 +128,7 @@ final class WorkspaceMcp extends ChangeNotifier {
   Future<void> configure(bool value, {bool persist = true}) async {
     if (_disposed) throw StateError('The workspace has closed');
     final configuration = ++_configurationRevision;
+    value = value && available;
     enabled = value;
     error = '';
     var failure = '';
@@ -146,6 +209,7 @@ final class WorkspaceMcp extends ChangeNotifier {
     if (reading.contains(action)) {
       final result = await _read(action);
       checkConfiguration();
+      if (action != 'get_operation_audit') _record(name, 'completed');
       return result;
     }
     if (_mutating) {

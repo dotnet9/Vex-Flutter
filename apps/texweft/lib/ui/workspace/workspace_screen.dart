@@ -17,7 +17,7 @@ import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
 import '../core/palette_tokens.dart';
 import 'insert_table_dialog.dart';
-import 'mcp_settings_dialog.dart';
+import 'preferences_dialog.dart';
 import 'workspace_dialogs.dart';
 import 'workspace_guide.dart';
 import 'workspace_panes.dart';
@@ -416,34 +416,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         );
       case 'mcp-audit':
         unawaited(
-          showDialog<void>(
-            context: context,
-            builder: (context) => AppDialog(
-              title: context.l10n.mcpAudit,
-              width: 620,
-              child: ListenableBuilder(
-                listenable: vm.mcp,
-                builder: (context, _) => Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: vm.mcp.audit.isEmpty
-                      ? [Text(context.l10n.mcpAuditEmpty)]
-                      : [
-                          for (final item in vm.mcp.audit)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: SelectableText(
-                                '${item['time']}\n${item['tool']} · ${item['result']}',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  height: 1.6,
-                                ),
-                              ),
-                            ),
-                        ],
-                ),
-              ),
-            ),
+          showPreferences(
+            context,
+            vm,
+            category: PreferenceCategory.mcp,
+            mcpTab: 2,
           ),
         );
       case 'open':
@@ -513,7 +490,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       case 'settings':
         unawaited(showSettings(context, vm));
       case 'mcp':
-        unawaited(showMcpSettings(context, vm.mcp));
+        unawaited(
+          showPreferences(context, vm, category: PreferenceCategory.mcp),
+        );
       case 'about':
         unawaited(showAbout(context));
       case 'thanks':
@@ -1762,13 +1741,15 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           (WorkspaceLayout.read, context.l10n.read, 'eye'),
           (WorkspaceLayout.map, context.l10n.map, 'map'),
         ])
-          AppButton(
-            label: item.$2,
-            icon: item.$3,
-            height: 42,
-            padding: 20,
-            selected: state.layout == item.$1,
-            onPressed: () => state.setLayout(item.$1),
+          Expanded(
+            child: AppButton(
+              label: item.$2,
+              icon: item.$3,
+              height: 42,
+              padding: 8,
+              selected: state.layout == item.$1,
+              onPressed: () => state.setLayout(item.$1),
+            ),
           ),
       ],
     ),

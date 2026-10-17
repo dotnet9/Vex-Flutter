@@ -9,7 +9,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:texweft/app.dart';
 import 'package:texweft/data/services/desktop_window.dart';
 import 'package:texweft/domain/workspace.dart';
-import 'package:texweft/ui/workspace/mcp_settings_dialog.dart';
+import 'package:texweft/ui/workspace/preferences_dialog.dart';
 import 'package:texweft/ui/core/app_widgets.dart';
 import 'package:texweft/ui/workspace/workspace_dialogs.dart';
 import 'package:texweft/ui/workspace/workspace_sidebar.dart';
@@ -64,7 +64,9 @@ void main() {
     void checkChrome({bool dialog = false}) {
       expect(tester.getSize(titlebar).height, 33);
       final header = dialog
-          ? find.byKey(const ValueKey('dialog-titlebar'))
+          ? find.byKey(const ValueKey('dialog-titlebar')).evaluate().isNotEmpty
+                ? find.byKey(const ValueKey('dialog-titlebar'))
+                : find.byKey(const ValueKey('preferences-header'))
           : titlebar;
       if (dialog) expect(tester.getSize(header).height, 36);
       final controls = find.descendant(
@@ -187,11 +189,15 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
     expect(vm.editor.text, contains('## 原位修改章节标题'));
-    final settings = showMcpSettings(context, vm.mcp);
+    final settings = showPreferences(
+      context,
+      vm,
+      category: PreferenceCategory.mcp,
+    );
     await tester.pumpAndSettle();
     checkChrome(dialog: true);
     await capture('07-mcp-settings');
-    await tester.tap(find.text(vm.strings.cancel).last);
+    await tester.tap(find.text(vm.strings.done).last);
     await tester.pumpAndSettle();
     await settings;
     await tester.tap(find.byTooltip(vm.strings.close));
