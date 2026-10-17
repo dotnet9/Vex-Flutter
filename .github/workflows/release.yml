@@ -226,7 +226,12 @@ jobs:
         env:
           CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
         run: |
-          python scripts/collect_android.py --certificate-sha256 "$CERT_SHA256"
+          # Hosted images also contain newer Build Tools. Use the same pinned
+          # verifier as the locally validated SDK rather than selecting the newest.
+          mkdir -p "$RUNNER_TEMP/texweft-apk-sdk/build-tools"
+          ln -s "$ANDROID_HOME/build-tools/36.0.0" "$RUNNER_TEMP/texweft-apk-sdk/build-tools/36.0.0"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs apps/texweft/build/app/outputs/flutter-apk/app-armeabi-v7a-production-release.apk
+          python scripts/collect_android.py --sdk-root "$RUNNER_TEMP/texweft-apk-sdk" --certificate-sha256 "$CERT_SHA256"
           python scripts/release_tools.py checksums --targets android-armv7 android-arm64 android-x64
           python scripts/release_tools.py verify --targets android-armv7 android-arm64 android-x64
       - name: 清理临时签名文件
