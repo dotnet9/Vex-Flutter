@@ -50,6 +50,7 @@ void main() {
         int.tryParse(Platform.environment['TEXWEFT_STRESS_ROUNDS'] ?? '') ?? 6;
     final results = <Map<String, Object?>>[];
     var testCompleted = false;
+    String? testFailure;
     String? pending;
     final frames = <FrameTiming>[];
     void timings(List<FrameTiming> values) => frames.addAll(values);
@@ -71,6 +72,7 @@ void main() {
           },
           'switchRounds': rounds,
           'testCompleted': testCompleted,
+          'testFailure': ?testFailure,
           'mode': const bool.fromEnvironment('dart.vm.product')
               ? 'release'
               : const bool.fromEnvironment('dart.vm.profile')
@@ -287,6 +289,9 @@ void main() {
         }
       }
       testCompleted = true;
+    } catch (error) {
+      testFailure = error.toString();
+      rethrow;
     } finally {
       SchedulerBinding.instance.removeTimingsCallback(timings);
       await persist();

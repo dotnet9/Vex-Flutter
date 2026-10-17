@@ -1,0 +1,20 @@
+{
+  "completed": true,
+  "closes": [
+    {
+      "mode": "clean",
+      "exitCode": 0,
+      "processLifetimeMs": 1053.3,
+      "recoveryFlushed": true,
+      "cancelVerified": false
+    },
+    {
+      "mode": "draft",
+      "exitCode": 0,
+      "processLifetimeMs": 2408.2,
+      "recoveryFlushed": true,
+      "cancelVerified": true
+    }
+  ],
+  "crashEvents": 0
+}

@@ -1,0 +1,447 @@
+{
+  "runtime": "3.13.5 (stable) (Tue Sep 29 01:00:52 2026 -0700) on \"windows_x64\"",
+  "os": "\"Windows 10 Enterprise\" 10.0 (Build 26300)",
+  "window": {
+    "titleBar": "custom",
+    "maximized": true,
+    "outerWidth": 3456.0,
+    "outerHeight": 1408.0,
+    "viewportWidth": 3440.0,
+    "viewportHeight": 1392.0,
+    "devicePixelRatio": 1.0
+  },
+  "switchRounds": 6,
+  "testCompleted": false,
+  "mode": "profile",
+  "inputs": {
+    "document-1": {
+      "utf16Length": 68379
+    },
+    "document-2": {
+      "utf16Length": 882163
+    },
+    "document-3": {
+      "utf16Length": 21796
+    },
+    "document-4": {
+      "utf16Length": 435304
+    },
+    "document-5": {
+      "utf16Length": 64584
+    },
+    "document-6": {
+      "utf16Length": 30990
+    }
+  },
+  "operations": [
+    {
+      "operation": "open:document-1",
+      "wallMs": 58.582,
+      "rssMiB": 200.04296875,
+      "frameCount": 2,
+      "buildMaxMs": 10.303,
+      "rasterMaxMs": 4.085
+    },
+    {
+      "operation": "layout:document-1:instant",
+      "wallMs": 28.456,
+      "rssMiB": 204.07421875,
+      "frameCount": 1,
+      "buildMaxMs": 2.815,
+      "rasterMaxMs": 1.894
+    },
+    {
+      "operation": "scroll:document-1:instant:0",
+      "wallMs": 521.985,
+      "rssMiB": 209.83203125,
+      "frameCount": 27,
+      "buildMaxMs": 8.003,
+      "rasterMaxMs": 4.69
+    },
+    {
+      "operation": "layout:document-1:source",
+      "wallMs": 373.465,
+      "rssMiB": 216.44140625,
+      "frameCount": 17,
+      "buildMaxMs": 15.024,
+      "rasterMaxMs": 5.152
+    },
+    {
+      "operation": "scroll:document-1:source:0",
+      "wallMs": 266.491,
+      "rssMiB": 242.39453125,
+      "frameCount": 12,
+      "buildMaxMs": 49.434,
+      "rasterMaxMs": 5.281
+    },
+    {
+      "operation": "layout:document-1:read",
+      "wallMs": 235.774,
+      "rssMiB": 224.3828125,
+      "frameCount": 10,
+      "buildMaxMs": 18.382,
+      "rasterMaxMs": 2.036
+    },
+    {
+      "operation": "scroll:document-1:read:0",
+      "wallMs": 4866.6,
+      "rssMiB": 205.96484375,
+      "frameCount": 240,
+      "buildMaxMs": 25.282,
+      "rasterMaxMs": 3.772
+    },
+    {
+      "operation": "layout:document-1:map",
+      "wallMs": 246.903,
+      "rssMiB": 275.046875,
+      "frameCount": 9,
+      "buildMaxMs": 15.054,
+      "rasterMaxMs": 31.743
+    },
+    {
+      "operation": "layout:document-1:sourceRender",
+      "wallMs": 384.201,
+      "rssMiB": 229.7421875,
+      "frameCount": 17,
+      "buildMaxMs": 25.334,
+      "rasterMaxMs": 3.998
+    },
+    {
+      "operation": "scroll:document-1:sourceRender:0",
+      "wallMs": 284.263,
+      "rssMiB": 259.8203125,
+      "frameCount": 13,
+      "buildMaxMs": 45.252,
+      "rasterMaxMs": 3.862
+    },
+    {
+      "operation": "scroll:document-1:sourceRender:1",
+      "wallMs": 4866.424,
+      "rssMiB": 278.6640625,
+      "frameCount": 240,
+      "buildMaxMs": 21.648,
+      "rasterMaxMs": 7.19
+    },
+    {
+      "operation": "layout:document-1:sourceMap",
+      "wallMs": 365.549,
+      "rssMiB": 271.86328125,
+      "frameCount": 17,
+      "buildMaxMs": 15.911,
+      "rasterMaxMs": 16.173
+    },
+    {
+      "operation": "scroll:document-1:sourceMap:0",
+      "wallMs": 305.845,
+      "rssMiB": 288.01171875,
+      "frameCount": 13,
+      "buildMaxMs": 44.366,
+      "rasterMaxMs": 13.377
+    },
+    {
+      "operation": "layout:document-1:instantMap",
+      "wallMs": 222.745,
+      "rssMiB": 263.1796875,
+      "frameCount": 10,
+      "buildMaxMs": 13.617,
+      "rasterMaxMs": 12.906
+    },
+    {
+      "operation": "scroll:document-1:instantMap:0",
+      "wallMs": 511.187,
+      "rssMiB": 267.44140625,
+      "frameCount": 26,
+      "buildMaxMs": 7.19,
+      "rasterMaxMs": 15.174
+    },
+    {
+      "operation": "layout:document-1:three",
+      "wallMs": 386.644,
+      "rssMiB": 271.94140625,
+      "frameCount": 17,
+      "buildMaxMs": 24.196,
+      "rasterMaxMs": 12.972
+    },
+    {
+      "operation": "scroll:document-1:three:0",
+      "wallMs": 286.774,
+      "rssMiB": 292.765625,
+      "frameCount": 13,
+      "buildMaxMs": 44.975,
+      "rasterMaxMs": 12.972
+    },
+    {
+      "operation": "scroll:document-1:three:1",
+      "wallMs": 4263.36,
+      "rssMiB": 294.25390625,
+      "frameCount": 210,
+      "buildMaxMs": 12.619,
+      "rasterMaxMs": 14.17
+    },
+    {
+      "operation": "present:document-1:enter",
+      "wallMs": 67.769,
+      "rssMiB": 289.5859375,
+      "frameCount": 2,
+      "buildMaxMs": 18.153,
+      "rasterMaxMs": 5.12
+    },
+    {
+      "operation": "present:document-1:page:0.0",
+      "wallMs": 20.295,
+      "rssMiB": 287.8828125,
+      "frameCount": 1,
+      "buildMaxMs": 0.117,
+      "rasterMaxMs": 1.462
+    },
+    {
+      "operation": "present:document-1:page:0.5",
+      "wallMs": 361.59,
+      "rssMiB": 282.81640625,
+      "frameCount": 17,
+      "buildMaxMs": 6.337,
+      "rasterMaxMs": 3.037
+    },
+    {
+      "operation": "present:document-1:page:1.0",
+      "wallMs": 237.747,
+      "rssMiB": 291.32421875,
+      "frameCount": 10,
+      "buildMaxMs": 9.458,
+      "rasterMaxMs": 3.806
+    },
+    {
+      "operation": "present:document-1:page:0.0",
+      "wallMs": 218.41,
+      "rssMiB": 293.6171875,
+      "frameCount": 10,
+      "buildMaxMs": 4.415,
+      "rasterMaxMs": 1.506
+    },
+    {
+      "operation": "present:document-1:zoom",
+      "wallMs": 474.688,
+      "rssMiB": 286.265625,
+      "frameCount": 23,
+      "buildMaxMs": 3.277,
+      "rasterMaxMs": 3.869
+    },
+    {
+      "operation": "scroll:presentation:document-1:0",
+      "wallMs": 25.915,
+      "rssMiB": 287.26953125,
+      "frameCount": 1,
+      "buildMaxMs": 0.089,
+      "rasterMaxMs": 1.212
+    },
+    {
+      "operation": "present:document-1:map",
+      "wallMs": 233.901,
+      "rssMiB": 335.23828125,
+      "frameCount": 9,
+      "buildMaxMs": 6.051,
+      "rasterMaxMs": 25.851
+    },
+    {
+      "operation": "present:document-1:map-fit",
+      "wallMs": 35.849,
+      "rssMiB": 338.8671875,
+      "frameCount": 0,
+      "buildMaxMs": null,
+      "rasterMaxMs": null
+    },
+    {
+      "operation": "present:document-1:map-focus:0.5",
+      "wallMs": 367.007,
+      "rssMiB": 342.02734375,
+      "frameCount": 15,
+      "buildMaxMs": 8.61,
+      "rasterMaxMs": 25.873
+    },
+    {
+      "operation": "present:document-1:map-focus:1.0",
+      "wallMs": 232.498,
+      "rssMiB": 342.86328125,
+      "frameCount": 9,
+      "buildMaxMs": 6.82,
+      "rasterMaxMs": 22.851
+    },
+    {
+      "operation": "present:document-1:map-focus:0.0",
+      "wallMs": 248.272,
+      "rssMiB": 341.62890625,
+      "frameCount": 10,
+      "buildMaxMs": 8.404,
+      "rasterMaxMs": 23.449
+    },
+    {
+      "operation": "present:document-1:map-pan-zoom",
+      "wallMs": 22.057,
+      "rssMiB": 343.78125,
+      "frameCount": 0,
+      "buildMaxMs": null,
+      "rasterMaxMs": null
+    },
+    {
+      "operation": "present:document-1:markdown",
+      "wallMs": 321.173,
+      "rssMiB": 292.93359375,
+      "frameCount": 15,
+      "buildMaxMs": 6.013,
+      "rasterMaxMs": 3.329
+    },
+    {
+      "operation": "present:document-1:exit",
+      "wallMs": 73.432,
+      "rssMiB": 300.1875,
+      "frameCount": 2,
+      "buildMaxMs": 16.868,
+      "rasterMaxMs": 15.979
+    },
+    {
+      "operation": "open:document-2",
+      "wallMs": 505.601,
+      "rssMiB": 345.48828125,
+      "frameCount": 14,
+      "buildMaxMs": 66.84,
+      "rasterMaxMs": 29.645
+    },
+    {
+      "operation": "layout:document-2:instant",
+      "wallMs": 234.268,
+      "rssMiB": 278.4296875,
+      "frameCount": 10,
+      "buildMaxMs": 17.42,
+      "rasterMaxMs": 2.88
+    },
+    {
+      "operation": "scroll:document-2:instant:0",
+      "wallMs": 512.19,
+      "rssMiB": 288.82421875,
+      "frameCount": 26,
+      "buildMaxMs": 6.812,
+      "rasterMaxMs": 2.874
+    },
+    {
+      "operation": "layout:document-2:source",
+      "wallMs": 411.249,
+      "rssMiB": 297.3046875,
+      "frameCount": 17,
+      "buildMaxMs": 54.862,
+      "rasterMaxMs": 4.124
+    },
+    {
+      "operation": "scroll:document-2:source:0",
+      "wallMs": 957.222,
+      "rssMiB": 675.8203125,
+      "frameCount": 9,
+      "buildMaxMs": 674.429,
+      "rasterMaxMs": 2.874
+    },
+    {
+      "operation": "layout:document-2:read",
+      "wallMs": 237.293,
+      "rssMiB": 318.703125,
+      "frameCount": 6,
+      "buildMaxMs": 84.47,
+      "rasterMaxMs": 4.898
+    },
+    {
+      "operation": "scroll:document-2:read:0",
+      "wallMs": 4934.256,
+      "rssMiB": 282.078125,
+      "frameCount": 239,
+      "buildMaxMs": 17.284,
+      "rasterMaxMs": 4.199
+    },
+    {
+      "operation": "layout:document-2:map",
+      "wallMs": 247.473,
+      "rssMiB": 392.90234375,
+      "frameCount": 5,
+      "buildMaxMs": 14.382,
+      "rasterMaxMs": 42.583
+    },
+    {
+      "operation": "layout:document-2:sourceRender",
+      "wallMs": 435.76,
+      "rssMiB": 319.51171875,
+      "frameCount": 17,
+      "buildMaxMs": 69.454,
+      "rasterMaxMs": 4.861
+    },
+    {
+      "operation": "scroll:document-2:sourceRender:0",
+      "wallMs": 941.406,
+      "rssMiB": 699.98046875,
+      "frameCount": 9,
+      "buildMaxMs": 652.329,
+      "rasterMaxMs": 3.74
+    },
+    {
+      "operation": "scroll:document-2:sourceRender:1",
+      "wallMs": 4927.329,
+      "rssMiB": 664.39453125,
+      "frameCount": 238,
+      "buildMaxMs": 15.94,
+      "rasterMaxMs": 4.07
+    },
+    {
+      "operation": "layout:document-2:sourceMap",
+      "wallMs": 405.954,
+      "rssMiB": 331.203125,
+      "frameCount": 14,
+      "buildMaxMs": 55.601,
+      "rasterMaxMs": 14.864
+    },
+    {
+      "operation": "scroll:document-2:sourceMap:0",
+      "wallMs": 931.134,
+      "rssMiB": 681.56640625,
+      "frameCount": 9,
+      "buildMaxMs": 635.298,
+      "rasterMaxMs": 13.872
+    },
+    {
+      "operation": "layout:document-2:instantMap",
+      "wallMs": 226.622,
+      "rssMiB": 331.74609375,
+      "frameCount": 7,
+      "buildMaxMs": 21.115,
+      "rasterMaxMs": 12.029
+    },
+    {
+      "operation": "scroll:document-2:instantMap:0",
+      "wallMs": 509.069,
+      "rssMiB": 328.75,
+      "frameCount": 27,
+      "buildMaxMs": 7.07,
+      "rasterMaxMs": 12.323
+    },
+    {
+      "operation": "layout:document-2:three",
+      "wallMs": 448.383,
+      "rssMiB": 379.46484375,
+      "frameCount": 14,
+      "buildMaxMs": 84.472,
+      "rasterMaxMs": 31.298
+    },
+    {
+      "operation": "scroll:document-2:three:0",
+      "wallMs": 980.987,
+      "rssMiB": 744.36328125,
+      "frameCount": 9,
+      "buildMaxMs": 665.701,
+      "rasterMaxMs": 29.031
+    }
+  ],
+  "pending": "scroll:document-2:three:1",
+  "runStatus": "aborted",
+  "summary": {
+    "operations": 50,
+    "sampledPeakRssMiB": 744.36328125,
+    "errors": 0
+  },
+  "renderer": "Impeller GLES",
+  "failureFromDriverLog": "Process terminated with native heap corruption (0xC0000374); local dump captured."
+}

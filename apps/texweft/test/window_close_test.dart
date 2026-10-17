@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:texweft/app.dart';
 import 'package:texweft/data/repositories/recovery_repository.dart';
+import 'package:texweft/domain/workspace.dart';
 import 'package:texweft/ui/workspace/workspace_view_model.dart';
 
 import 'support/fakes.dart';
@@ -49,6 +50,7 @@ void main() {
       recovery: recovery,
     );
     vm.editor.session.replace('# 关闭测试草稿');
+    vm.setLayout(WorkspaceLayout.source);
     await tester.pumpWidget(TexweftApp(viewModel: vm, windowIntegration: true));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip(vm.strings.close));
@@ -78,5 +80,5 @@ void main() {
     expect(calls[close - 1].arguments, {'isPreventClose': false});
     await tester.pumpWidget(const SizedBox());
     vm.dispose();
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
 }

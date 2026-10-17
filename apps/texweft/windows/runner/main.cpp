@@ -18,6 +18,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   ::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
   flutter::DartProject project(L"data");
+  // Long-document stress runs hit native heap corruption in Flutter 3.47.7's
+  // Impeller GLES path on Windows. Keep packaged and test runs on Skia until
+  // an engine update passes the same stress workload with Impeller enabled.
+  project.set_impeller_switch(flutter::ImpellerSwitch::Disabled);
 
   std::vector<std::string> command_line_arguments =
       GetCommandLineArguments();
