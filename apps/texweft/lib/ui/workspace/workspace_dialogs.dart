@@ -5,15 +5,14 @@ import 'package:flutter/services.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:texweft_editor/texweft_editor.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:printing/printing.dart';
 
-import '../../domain/workspace.dart';
 import '../../data/services/export_service.dart';
 import '../core/app_widgets.dart';
 import '../core/palette_tokens.dart';
 import 'workspace_view_model.dart';
+import 'workspace_pickers.dart';
 
 Future<void> showExportDialog(BuildContext context, WorkspaceViewModel vm) =>
     showDialog<void>(
@@ -171,289 +170,83 @@ class _ExportDialogState extends State<_ExportDialog> {
   );
 }
 
-Future<void> showLayouts(BuildContext context, WorkspaceViewModel vm) =>
+Future<void> showAppearance(BuildContext context, WorkspaceViewModel vm) =>
     showDialog<void>(
       context: context,
-      builder: (context) => AppDialog(
-        title: '工作区布局',
-        width: 600,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '选择适合当前任务的视图组合，所有视图共享同一份内容。',
-              style: TextStyle(fontSize: 12),
-            ),
-            const SizedBox(height: 18),
-            LayoutBuilder(
-              builder: (context, constraints) => Wrap(
+      builder: (context) => ListenableBuilder(
+        listenable: vm,
+        builder: (context, _) => AppDialog(
+          title: '外观与排版',
+          width: 720,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '明暗模式',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
                 spacing: 8,
-                runSpacing: 8,
                 children: [
-                  for (final layout in WorkspaceLayout.values)
-                    SizedBox(
-                      width:
-                          (constraints.maxWidth -
-                              (constraints.maxWidth < 430 ? 8 : 24)) /
-                          (constraints.maxWidth < 430 ? 2 : 4),
-                      child: InkWell(
-                        onTap: () {
-                          vm.setLayout(layout);
-                          Navigator.pop(context);
-                        },
-                        borderRadius: BorderRadius.circular(7),
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                            border: Border.all(
-                              color: vm.layout == layout
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context)
-                                        .colorScheme
-                                        .outlineVariant,
-                            ),
-                            borderRadius: BorderRadius.circular(7),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                height: 47,
-                                child: _LayoutMiniature(layout),
-                              ),
-                              const SizedBox(height: 8),
-                              SizedBox(
-                                height: 32,
-                                child: Text(
-                                  layout.label,
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                '${layout.panes.length} 个视图',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                  for (final item in [
+                    (ThemeMode.light, '浅色'),
+                    (ThemeMode.dark, '深色'),
+                    (ThemeMode.system, '跟随系统'),
+                  ])
+                    AppButton(
+                      label: item.$2,
+                      bordered: true,
+                      selected: vm.themeMode == item.$1,
+                      onPressed: () => vm.updateAppearance(mode: item.$1),
                     ),
                 ],
               ),
-            ),
-            const SizedBox(height: 16),
-            const Divider(),
-            const SizedBox(height: 10),
-            const Text(
-              '拖动分隔线可调整视图比例。单窗口内完成写作、阅读和结构整理。',
-              style: TextStyle(fontSize: 11),
-            ),
-          ],
-        ),
-      ),
-    );
-
-class _LayoutMiniature extends StatelessWidget {
-  const _LayoutMiniature(this.layout);
-  final WorkspaceLayout layout;
-  @override
-  Widget build(BuildContext context) {
-    Widget panel(String type) => Container(
-      margin: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: type == 'read'
-            ? Theme.of(context).colorScheme.surfaceContainerLow
-            : Theme.of(context).colorScheme.primaryContainer,
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(3),
-      ),
-      child: Center(
-        child: AppGlyph(
-          type == 'map'
-              ? 'map'
-              : type == 'read'
-              ? 'eye'
-              : 'edit',
-          size: 11,
-        ),
-      ),
-    );
-    if (layout == WorkspaceLayout.three) {
-      return Column(
-        children: [
-          Expanded(
-            child: Row(
-              children: [
-                Expanded(child: panel('source')),
-                Expanded(child: panel('read')),
-              ],
-            ),
-          ),
-          Expanded(child: panel('map')),
-        ],
-      );
-    }
-    return Row(
-      children: [for (final type in layout.panes) Expanded(child: panel(type))],
-    );
-  }
-}
-
-Future<void> showAppearance(
-  BuildContext context,
-  WorkspaceViewModel vm, {
-  bool typographyOnly = false,
-}) => showDialog<void>(
-  context: context,
-  builder: (context) => ListenableBuilder(
-    listenable: vm,
-    builder: (context, _) => AppDialog(
-      title: typographyOnly ? 'Markdown 排版' : '外观与排版',
-      width: 720,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!typographyOnly) ...[
-            const Text(
-              '明暗模式',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              children: [
-                for (final item in [
-                  (ThemeMode.light, '浅色'),
-                  (ThemeMode.dark, '深色'),
-                  (ThemeMode.system, '跟随系统'),
-                ])
-                  AppButton(
-                    label: item.$2,
-                    bordered: true,
-                    selected: vm.themeMode == item.$1,
-                    onPressed: () => vm.updateAppearance(mode: item.$1),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 22),
-            const Text(
-              '界面配色',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final entry in paletteNames.entries)
-                  AppButton(
-                    label: entry.value,
-                    selected: vm.palette == entry.key,
-                    bordered: true,
-                    onPressed: () => vm.updateAppearance(palette: entry.key),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 24),
-          ],
-          const Text(
-            '正文排版',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 12),
-          LayoutBuilder(
-            builder: (context, constraints) => Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                for (final type in MarkdownTypography.values)
-                  SizedBox(
-                    width: (constraints.maxWidth - 10) / 2,
-                    child: InkWell(
-                      onTap: () => vm.updateAppearance(typography: type),
-                      borderRadius: BorderRadius.circular(7),
-                      child: Container(
-                        height: 150,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(7),
-                          border: Border.all(
-                            color: vm.typography == type
-                                ? Theme.of(context).colorScheme.primary
-                                : Theme.of(context).colorScheme.outlineVariant,
-                          ),
-                        ),
-                        child: ClipRect(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    type.label,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  if (vm.typography == type)
-                                    const AppGlyph('check', size: 13),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                type.description,
-                                style: const TextStyle(fontSize: 10),
-                              ),
-                              const SizedBox(height: 7),
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  child: MarkdownReader(
-                                    data: '## 让文字有自己的节奏\n\n落笔成文，思路成形。',
-                                    typography: type,
-                                    fontSize: 10,
-                                    compact: true,
-                                    selectable: false,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+              const SizedBox(height: 22),
+              const Text(
+                '界面配色',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final entry in paletteNames.entries)
+                    AppButton(
+                      label: entry.value,
+                      selected: vm.palette == entry.key,
+                      bordered: true,
+                      onPressed: () => vm.updateAppearance(palette: entry.key),
                     ),
-                  ),
-              ],
-            ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                '正文排版',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              LayoutBuilder(
+                builder: (context, constraints) =>
+                    TypographyChoices(vm: vm, width: constraints.maxWidth),
+              ),
+              const SizedBox(height: 16),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('紧凑间距', style: TextStyle(fontSize: 12)),
+                subtitle: const Text(
+                  '排版与配色不会改变 Markdown 原文。',
+                  style: TextStyle(fontSize: 11),
+                ),
+                value: vm.compact,
+                onChanged: (v) => vm.updateAppearance(compact: v),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('紧凑间距', style: TextStyle(fontSize: 12)),
-            subtitle: const Text(
-              '排版与配色不会改变 Markdown 原文。',
-              style: TextStyle(fontSize: 11),
-            ),
-            value: vm.compact,
-            onChanged: (v) => vm.updateAppearance(compact: v),
-          ),
-        ],
+        ),
       ),
-    ),
-  ),
-);
+    );
 
 Future<void> showSummarySettings(BuildContext context, WorkspaceViewModel vm) =>
     showDialog<void>(

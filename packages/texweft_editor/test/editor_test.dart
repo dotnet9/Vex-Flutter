@@ -4,6 +4,25 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:texweft_editor/texweft_editor.dart';
 
 void main() {
+  test('table insertion preserves CRLF and replaces a selection in one undo', () {
+    const original = '前文\r\n\r\n替换\r\n\r\n后文';
+    final controller = MarkdownEditorController(text: original);
+    addTearDown(controller.dispose);
+    final start = original.indexOf('替换');
+    controller.select(start + 2, start);
+    controller.insertTable(rows: 1, columns: 2);
+    expect(
+      controller.text,
+      '前文\r\n\r\n| 标题1 | 标题2 |\r\n| --- | --- |\r\n\r\n后文',
+    );
+    expect(controller.selection.textInside(controller.text), '标题1');
+    controller.session.undo();
+    expect(controller.text, original);
+    expect(controller.session.canUndo, isFalse);
+    expect(() => controller.insertTable(rows: 0, columns: 2), throwsRangeError);
+    expect(controller.text, original);
+  });
+
   testWidgets(
     'instant selection maps both ends to CRLF source for formatting',
     (tester) async {

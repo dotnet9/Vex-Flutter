@@ -87,6 +87,34 @@ final class MarkdownEditorController extends ChangeNotifier {
     select(offset + prefix.length);
   }
 
+  /// Inserts a Markdown table; [rows] includes the header row.
+  void insertTable({required int rows, required int columns}) {
+    RangeError.checkValueInInterval(rows, 1, 100, 'rows');
+    RangeError.checkValueInInterval(columns, 1, 20, 'columns');
+    final start = selection.isValid ? selection.start : text.length;
+    final end = selection.isValid ? selection.end : text.length;
+    final newline = document.newline;
+    final before = text.substring(0, start), after = text.substring(end);
+    final prefix = before.isEmpty || before.endsWith('$newline$newline')
+        ? ''
+        : before.endsWith(newline)
+        ? newline
+        : '$newline$newline';
+    final suffix = after.startsWith('$newline$newline')
+        ? ''
+        : after.startsWith(newline)
+        ? newline
+        : '$newline$newline';
+    String row(List<String> cells) => '| ${cells.join(' | ')} |';
+    final table = [
+      row(List.generate(columns, (index) => '标题${index + 1}')),
+      row(List.filled(columns, '---')),
+      for (var index = 1; index < rows; index++) row(List.filled(columns, '')),
+    ].join(newline);
+    replaceSelection('$prefix$table$suffix', label: '插入表格');
+    select(start + prefix.length + 2, start + prefix.length + 5);
+  }
+
   List<SourceRange> find(
     String query, {
     bool caseSensitive = false,

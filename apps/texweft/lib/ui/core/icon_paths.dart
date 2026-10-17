@@ -19,6 +19,8 @@ const appIconPaths = <String, String>{
   "link": "<path d=\"M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1\"/>",
   "image": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2\"/><circle cx=\"8\" cy=\"9\" r=\"1.5\"/><path d=\"m3 16 5-5 4 4 3-3 6 6\"/>",
   "code": "<path d=\"m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14\"/>",
+  "inline-code": "<path d=\"m8 8-4 4 4 4m8-8 4 4-4 4M10 12h4\"/>",
+  "code-block": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"m9 8-4 4 4 4m6-8 4 4-4 4\"/>",
   "grid": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"1\"/><path d=\"M3 10h18M3 15h18M9 4v16M16 4v16\"/>",
   "heading": "<path d=\"M5 5v14M5 12h9M14 5v14M18 5v14M18 5h2a2 2 0 0 1 2 2v2M18 19h2a2 2 0 0 0 2-2v-2\"/>",
   "list-number": "<path d=\"M9 6h12M9 12h12M9 18h12M3 5h2v3M3 11h2l-2 3h2M3 17h2l-2 3h2\"/>",

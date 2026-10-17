@@ -12,7 +12,9 @@ import '../../domain/workspace.dart';
 import '../core/app_widgets.dart';
 import '../core/palette_tokens.dart';
 import 'workspace_dialogs.dart';
+import 'insert_table_dialog.dart';
 import 'workspace_panes.dart';
+import 'workspace_pickers.dart';
 import 'workspace_sidebar.dart';
 import 'workspace_view_model.dart';
 
@@ -28,6 +30,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   final _scaffold = GlobalKey<ScaffoldState>();
   final _find = TextEditingController(), _replace = TextEditingController();
   final _findFocus = FocusNode();
+  final _layoutsMenu = MenuController(), _typographyMenu = MenuController();
   bool _dragging = false, _closing = false;
   WorkspaceViewModel get vm => context.read<WorkspaceViewModel>();
   bool get _desktop =>
@@ -168,10 +171,24 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       case 'code':
         e.surround('```\n', '\n```');
       case 'table':
-        e.replaceSelection('\n| 标题 | 内容 |\n| --- | --- |\n| 项目 | 说明 |\n');
+        unawaited(_run(_insertTable));
       case 'rule':
         e.replaceSelection('\n\n---\n\n');
     }
+  }
+
+  Future<void> _insertTable() async {
+    final document = vm.current, editor = vm.editor;
+    final source = editor.text, selection = editor.selection;
+    final dimensions = await showInsertTableDialog(context);
+    if (!mounted || dimensions == null || !vm.documents.contains(document)) {
+      return;
+    }
+    if (editor.text != source) throw StateError('文档已变化，请重新选择表格插入位置。');
+    if (selection.isValid) {
+      editor.select(selection.baseOffset, selection.extentOffset);
+    }
+    editor.insertTable(rows: dimensions.rows, columns: dimensions.columns);
   }
 
   void _action(String action) {
@@ -237,11 +254,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         vm.showFind(replace: action == 'replace');
         _findFocus.requestFocus();
       case 'layouts':
-        unawaited(showLayouts(context, vm));
+        _layoutsMenu.isOpen ? _layoutsMenu.close() : _layoutsMenu.open();
       case 'appearance':
         unawaited(showAppearance(context, vm));
       case 'typography':
-        unawaited(showAppearance(context, vm, typographyOnly: true));
+        _typographyMenu.isOpen
+            ? _typographyMenu.close()
+            : _typographyMenu.open();
       case 'summary':
         unawaited(showSummarySettings(context, vm));
       case 'settings':
@@ -751,16 +770,24 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           if (!phone) ...[
             _viewSwitch(state),
             const SizedBox(width: 14),
-            AppButton(
-              label: '布局 ⌄',
-              icon: 'columns',
-              bordered: true,
-              onPressed: () => _action('layouts'),
-            ),
             const Spacer(),
             if (width >= 1100)
               AppButton(label: '• 快速上手', onPressed: () => _action('guide')),
           ],
+          WorkspacePickerAnchor(
+            vm: state,
+            picker: WorkspacePicker.layout,
+            controller: _layoutsMenu,
+            child: AppButton(
+              label: phone ? null : '布局 ⌄',
+              icon: 'columns',
+              tooltip: '工作区布局',
+              bordered: !phone,
+              onPressed: () => _action('layouts'),
+            ),
+          ),
+          if (!state.layout.panes.any((p) => p == 'source' || p == 'instant'))
+            _typographyPicker(state, iconOnly: phone),
           AppButton(
             icon: 'search',
             tooltip: '查找 · Ctrl+F',
@@ -874,8 +901,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                     ('task', '任务列表', 'check'),
                     ('link', '链接', 'link'),
                     ('image', '图片', 'image'),
-                    ('inline-code', '行内代码', 'code'),
-                    ('code', '代码块', 'code'),
+                    ('inline-code', '行内代码', 'inline-code'),
+                    ('code', '代码块', 'code-block'),
                     ('table', '表格', 'grid'),
                   ])
                     AppButton(
@@ -897,15 +924,25 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             ),
           ),
           const SizedBox(width: 8),
-          AppButton(
-            label: '排版 ${state.typography.label} ⌄',
-            height: 28,
-            onPressed: () => _action('typography'),
-          ),
+          _typographyPicker(state),
         ],
       ),
     );
   }
+
+  Widget _typographyPicker(WorkspaceViewModel state, {bool iconOnly = false}) =>
+      WorkspacePickerAnchor(
+        vm: state,
+        picker: WorkspacePicker.typography,
+        controller: _typographyMenu,
+        child: AppButton(
+          label: iconOnly ? null : '排版 ${state.typography.label} ⌄',
+          icon: iconOnly ? 'heading' : null,
+          tooltip: 'Markdown 排版',
+          height: 28,
+          onPressed: () => _action('typography'),
+        ),
+      );
 
   Widget _findbar(WorkspaceViewModel state, bool phone) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
