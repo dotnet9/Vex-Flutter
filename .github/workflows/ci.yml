@@ -1,0 +1,57 @@
+name: 检查与测试
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+    inputs:
+      ref:
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  PUB_HOSTED_URL: https://pub.flutter-io.cn
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 读取固定 Flutter 版本
+        id: flutter
+        run: echo "version=$(cat .flutter-version)" >> "$GITHUB_OUTPUT"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.flutter.outputs.version }}
+          channel: stable
+          cache: true
+      - name: 安装锁定依赖
+        run: flutter pub get --enforce-lockfile
+      - name: 静态分析
+        run: flutter analyze --no-pub
+      - name: 核心文档与历史测试
+        working-directory: packages/texweft_markdown_core
+        run: dart test
+      - name: 编辑器测试
+        working-directory: packages/texweft_editor
+        run: flutter test --no-pub
+      - name: 导图测试
+        working-directory: packages/texweft_mindmap
+        run: flutter test --no-pub
+      - name: 应用测试
+        working-directory: apps/texweft
+        run: flutter test --no-pub
+      - name: 安装包发布边界测试
+        run: |
+          python -m unittest discover -s scripts/tests -v
+          bash -n scripts/package_linux.sh scripts/package_macos.sh

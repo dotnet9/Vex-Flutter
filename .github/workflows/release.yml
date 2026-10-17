@@ -1,0 +1,286 @@
+name: 构建并发布安装包
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 已存在的版本标签，例如 v0.2.0（重试不会移动标签）
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  PUB_HOSTED_URL: https://pub.flutter-io.cn
+
+jobs:
+  metadata:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      commit: ${{ steps.commit.outputs.commit }}
+      flutter: ${{ steps.version.outputs.flutter }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+          fetch-depth: 0
+      - name: 校验版本与现有标签
+        id: version
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          git show-ref --verify "refs/tags/$RELEASE_TAG"
+          python scripts/release_tools.py metadata --tag "$RELEASE_TAG" --github-output
+          test -f ".github/release-notes/$RELEASE_TAG.md"
+      - name: 固定全部构建的源码提交
+        id: commit
+        run: echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: 检查 Android 发行签名配置
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
+        run: |
+          for name in KEYSTORE STORE_PASSWORD KEY_ALIAS KEY_PASSWORD CERT_SHA256; do
+            if [ -z "${!name}" ]; then echo "::error::Missing Android release signing setting: $name"; exit 1; fi
+          done
+          echo 'iOS 当前仅做无签名编译检查；HarmonyOS 尚缺兼容 SDK、原生工程及签名，不产出 IPA/HAP。' >> "$GITHUB_STEP_SUMMARY"
+
+  checks:
+    needs: metadata
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ needs.metadata.outputs.commit }}
+
+  desktop:
+    name: 安装包 ${{ matrix.target }}
+    needs: [metadata, checks]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: windows-x64
+            os: windows-latest
+            architecture: x64
+          - target: linux-x64
+            os: ubuntu-24.04
+            architecture: x64
+          - target: linux-arm64
+            os: ubuntu-24.04-arm
+            architecture: arm64
+          - target: macos-universal
+            os: macos-15
+            architecture: arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.metadata.outputs.commit }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@v4
+        if: runner.os == 'Linux'
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ needs.metadata.outputs.flutter }}
+          channel: stable
+          architecture: ${{ matrix.architecture }}
+          cache: true
+      - name: 安装 Linux 原生构建依赖
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libxrandr-dev libayatana-appindicator3-dev dpkg-dev desktop-file-utils xvfb
+      - name: 安装锁定依赖
+        run: flutter pub get --enforce-lockfile
+      - name: 构建 Windows 正式入口
+        if: runner.os == 'Windows'
+        working-directory: apps/texweft
+        run: flutter build windows --release --target lib/main.dart
+      - name: 制作并安装卸载验证 Windows 安装器
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ needs.metadata.outputs.version }}
+        run: |
+          $compiler = ./scripts/install_inno.ps1
+          ./scripts/package_windows.ps1 -Version $env:APP_VERSION -Compiler $compiler
+          ./scripts/test_windows_installer.ps1 -Installer "artifacts/release/Texweft-v$env:APP_VERSION-windows-x64-setup.exe" -Version $env:APP_VERSION
+      - name: 构建 Linux 正式入口
+        if: runner.os == 'Linux'
+        working-directory: apps/texweft
+        run: flutter build linux --release --target lib/main.dart
+      - name: 制作并安装验证 Linux DEB
+        if: runner.os == 'Linux'
+        env:
+          APP_VERSION: ${{ needs.metadata.outputs.version }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          bash scripts/package_linux.sh "$APP_VERSION" "${TARGET#linux-}"
+          sudo apt-get install -y "./artifacts/release/Texweft-v$APP_VERSION-$TARGET.deb"
+          test -x /usr/bin/texweft
+          test -f /usr/share/applications/com.codewf.texweft.desktop
+          if ldd /usr/lib/texweft/texweft | grep 'not found'; then exit 1; fi
+          set +e
+          xvfb-run -a timeout 15s texweft > "$RUNNER_TEMP/texweft-startup.log" 2>&1
+          result=$?
+          set -e
+          cat "$RUNNER_TEMP/texweft-startup.log"
+          test "$result" -eq 124
+          sudo apt-get remove -y texweft
+          test ! -f /usr/lib/texweft/texweft
+      - name: 构建 macOS 通用正式入口
+        if: runner.os == 'macOS'
+        working-directory: apps/texweft
+        env:
+          CI: 'true'
+        run: |
+          flutter config --no-enable-macos-arm64-only
+          flutter build macos --release --target lib/main.dart
+      - name: 制作并挂载验证 macOS DMG
+        if: runner.os == 'macOS'
+        env:
+          APP_VERSION: ${{ needs.metadata.outputs.version }}
+        run: bash scripts/package_macos.sh "$APP_VERSION"
+      - name: 生成并校验安装包 SHA-256
+        env:
+          TARGET: ${{ matrix.target }}
+        shell: bash
+        run: |
+          python scripts/release_tools.py checksums --targets "$TARGET"
+          python scripts/release_tools.py verify --targets "$TARGET"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.target }}
+          path: artifacts/release/*
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  android:
+    name: Android 正式签名安装包
+    needs: [metadata, checks]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.metadata.outputs.commit }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ needs.metadata.outputs.flutter }}
+          channel: stable
+          cache: true
+      - name: 安装 Android SDK 与 NDK
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358'
+      - name: 准备发行签名
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: python scripts/configure_android_signing.py
+      - name: 安装锁定依赖
+        run: flutter pub get --enforce-lockfile
+      - name: 构建三架构 production APK
+        working-directory: apps/texweft
+        run: flutter build apk --release --flavor production --split-per-abi --target-platform android-arm,android-arm64,android-x64 --target lib/main.dart
+      - name: 验证签名、包名、版本与架构
+        env:
+          CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
+        run: |
+          python scripts/collect_android.py --certificate-sha256 "$CERT_SHA256"
+          python scripts/release_tools.py checksums --targets android-armv7 android-arm64 android-x64
+          python scripts/release_tools.py verify --targets android-armv7 android-arm64 android-x64
+      - name: 清理临时签名文件
+        if: always()
+        run: rm -f .signing/android-release.jks apps/texweft/android/key.properties
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installers-android
+          path: artifacts/release/*
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  ios-check:
+    name: iOS 无签名编译检查（无 IPA 分发）
+    needs: [metadata, checks]
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.metadata.outputs.commit }}
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ needs.metadata.outputs.flutter }}
+          channel: stable
+          architecture: arm64
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - name: 编译正式 iOS 入口
+        working-directory: apps/texweft
+        run: flutter build ios --release --no-codesign --target lib/main.dart
+
+  release:
+    name: 校验安装包并创建 GitHub 预发布
+    needs: [metadata, desktop, android, ios-check]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.metadata.outputs.commit }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: installers-*
+          path: artifacts/release
+          merge-multiple: true
+      - name: 验证全部七个安装包及校验文件
+        run: python scripts/release_tools.py verify
+      - name: 发布安装包（不发布便携压缩包）
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.metadata.outputs.tag }}
+          target_commitish: ${{ needs.metadata.outputs.commit }}
+          name: Texweft ${{ needs.metadata.outputs.tag }}
+          body_path: .github/release-notes/${{ needs.metadata.outputs.tag }}.md
+          prerelease: true
+          fail_on_unmatched_files: true
+          files: |
+            artifacts/release/*.exe
+            artifacts/release/*.dmg
+            artifacts/release/*.deb
+            artifacts/release/*.apk
+            artifacts/release/*.sha256
