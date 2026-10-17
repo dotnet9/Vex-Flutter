@@ -22,6 +22,18 @@ final class DocumentExportService {
   static String _hex(Color color) =>
       '#${(color.toARGB32() & 0xffffff).toRadixString(16).padLeft(6, '0')}';
   static String _escape(String value) => const HtmlEscape().convert(value);
+  static bool _mermaid(md.Node node) =>
+      node is md.Element &&
+      node.tag == 'pre' &&
+      node.children?.whereType<md.Element>().any(
+            (child) =>
+                child.attributes['class']
+                    ?.toLowerCase()
+                    .split(' ')
+                    .contains('language-mermaid') ==
+                true,
+          ) ==
+          true;
 
   static Future<pw.Font> _pdfFont(String name) async {
     final packed = await rootBundle.load('assets/fonts/$name.ttf.z');
@@ -63,6 +75,7 @@ final class DocumentExportService {
       source,
       extensionSet: md.ExtensionSet.gitHubFlavored,
       encodeHtml: true,
+      blockSyntaxes: [_MermaidHtmlSyntax(colors)],
     );
     return '''<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -101,6 +114,14 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
       lineSpacing: compact ? 3 : 5,
       color: PdfColors.grey900,
     );
+    final format = switch (preferences.paper) {
+      ExportPaper.a4 => PdfPageFormat.a4,
+      ExportPaper.letter => PdfPageFormat.letter,
+      ExportPaper.a5 => PdfPageFormat.a5,
+    };
+    final diagramColors = colors.brightness == Brightness.dark
+        ? ColorScheme.fromSeed(seedColor: colors.primary)
+        : colors;
     pw.Widget paragraph(String text, {double size = 10, bool bold = false}) =>
         pw.Padding(
           padding: pw.EdgeInsets.only(bottom: compact ? 6 : 10),
@@ -112,9 +133,33 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
             ),
           ),
         );
-    List<pw.Widget> render(List<md.Node> nodes, {int depth = 0}) {
+    List<pw.Widget> render(
+      List<md.Node> nodes, {
+      int depth = 0,
+      bool groupDiagrams = true,
+    }) {
       final result = <pw.Widget>[];
-      for (final node in nodes) {
+      for (var index = 0; index < nodes.length; index++) {
+        final node = nodes[index];
+        if (groupDiagrams &&
+            node is md.Element &&
+            RegExp(r'^h[1-6]$').hasMatch(node.tag) &&
+            index + 1 < nodes.length &&
+            _mermaid(nodes[index + 1])) {
+          result.add(
+            pw.Inseparable(
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: render(
+                  [node, nodes[++index]],
+                  depth: depth,
+                  groupDiagrams: false,
+                ),
+              ),
+            ),
+          );
+          continue;
+        }
         if (node is! md.Element) {
           if (node.textContent.trim().isNotEmpty) {
             result.add(paragraph(node.textContent));
@@ -154,6 +199,41 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
             ),
           );
         } else if (node.tag == 'pre') {
+          if (_mermaid(node)) {
+            try {
+              final scene = MarkdownMermaidRenderer.scene(
+                node.textContent,
+                diagramColors,
+              );
+              final availableWidth =
+                  format.width -
+                  2 * preferences.margin.clamp(10, 30) * PdfPageFormat.mm;
+              final height = math.min(
+                format.height -
+                    2 * preferences.margin.clamp(10, 30) * PdfPageFormat.mm -
+                    120,
+                availableWidth * scene.size.height / scene.size.width,
+              );
+              result.add(
+                pw.Container(
+                  width: availableWidth,
+                  height: height,
+                  margin: const pw.EdgeInsets.only(bottom: 12),
+                  child: pw.SvgImage(
+                    svg: MarkdownMermaidRenderer.svg(
+                      node.textContent,
+                      diagramColors,
+                    ),
+                    customFontLookup: (_, _, weight) =>
+                        weight == 'bold' || weight == '700' ? boldFont : font,
+                  ),
+                ),
+              );
+              continue;
+            } catch (_) {
+              // Keep the source readable when the engine rejects a diagram.
+            }
+          }
           result.add(
             pw.Table(
               border: pw.TableBorder(
@@ -296,11 +376,6 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
       return result;
     }
 
-    final format = switch (preferences.paper) {
-      ExportPaper.a4 => PdfPageFormat.a4,
-      ExportPaper.letter => PdfPageFormat.letter,
-      ExportPaper.a5 => PdfPageFormat.a5,
-    };
     document.addPage(
       pw.MultiPage(
         pageTheme: pw.PageTheme(
@@ -397,8 +472,49 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
     );
   }).toList();
 
-  Uint8List docx({required String source, required String title}) {
+  Future<Uint8List> docx({
+    required String source,
+    required String title,
+  }) async {
     final archive = Archive();
+    final parsed = _parse(source);
+    final diagrams = <md.Node, (int, double, double)>{};
+    final imageRelationships = StringBuffer();
+    final diagramColors = ColorScheme.fromSeed(
+      seedColor: const Color(0xff24766b),
+    );
+    Future<void> collect(md.Node node) async {
+      if (_mermaid(node)) {
+        try {
+          final scene = MarkdownMermaidRenderer.scene(
+            node.textContent,
+            diagramColors,
+          );
+          final png = await MarkdownMermaidRenderer.png(
+            node.textContent,
+            diagramColors,
+          );
+          final index = diagrams.length + 1;
+          diagrams[node] = (index, scene.size.width, scene.size.height);
+          archive.addFile(
+            ArchiveFile('word/media/mermaid-$index.png', png.length, png),
+          );
+          imageRelationships.write(
+            '<Relationship Id="rIdDiagram$index" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/mermaid-$index.png"/>',
+          );
+        } catch (_) {
+          // Invalid diagrams retain their complete source in the document.
+        }
+      } else if (node is md.Element) {
+        for (final child in node.children ?? <md.Node>[]) {
+          await collect(child);
+        }
+      }
+    }
+
+    for (final node in parsed) {
+      await collect(node);
+    }
     void add(String path, String content) =>
         archive.addFile(ArchiveFile.string(path, content));
     String run(
@@ -443,6 +559,16 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
 
     final body = StringBuffer();
     void block(md.Node node) {
+      final diagram = diagrams[node];
+      if (diagram != null) {
+        final (index, width, height) = diagram;
+        final scale = math.min(5600000 / width, 8000000 / height);
+        final cx = (width * scale).round(), cy = (height * scale).round();
+        body.write(
+          '<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="$cx" cy="$cy"/><wp:docPr id="$index" name="Mermaid $index" descr="Mermaid"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="$index" name="Mermaid $index"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdDiagram$index"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="$cx" cy="$cy"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>',
+        );
+        return;
+      }
       if (node is! md.Element) {
         if (node.textContent.trim().isNotEmpty) {
           body.write('<w:p>${run(node.textContent)}</w:p>');
@@ -483,6 +609,12 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
         body.write('</w:tbl>');
         return;
       }
+      if (node.tag == 'blockquote') {
+        for (final child in node.children ?? <md.Node>[]) {
+          block(child);
+        }
+        return;
+      }
       if (node.tag == 'ul' || node.tag == 'ol') {
         var i = 1;
         for (final child in node.children ?? <md.Node>[]) {
@@ -499,12 +631,12 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
       );
     }
 
-    for (final node in _parse(source)) {
+    for (final node in parsed) {
       block(node);
     }
     add(
       '[Content_Types].xml',
-      '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>',
+      '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>',
     );
     add(
       '_rels/.rels',
@@ -512,7 +644,7 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
     );
     add(
       'word/_rels/document.xml.rels',
-      '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>',
+      '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>$imageRelationships</Relationships>',
     );
     add(
       'word/styles.xml',
@@ -524,7 +656,7 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
     );
     add(
       'word/document.xml',
-      '<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>$body<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1000" w:right="1000" w:bottom="1000" w:left="1000"/></w:sectPr></w:body></w:document>',
+      '<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>$body<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1000" w:right="1000" w:bottom="1000" w:left="1000"/></w:sectPr></w:body></w:document>',
     );
     return Uint8List.fromList(ZipEncoder().encode(archive));
   }
@@ -605,5 +737,39 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
     image.dispose();
     picture.dispose();
     return bytes;
+  }
+}
+
+final class _MermaidHtmlSyntax extends md.FencedCodeBlockSyntax {
+  _MermaidHtmlSyntax(this.colors);
+  final ColorScheme colors;
+  String _source = '';
+
+  @override
+  List<md.Line> parseChildLines(
+    md.BlockParser parser, [
+    String openingMarker = '',
+    int indent = 0,
+  ]) {
+    final lines = super.parseChildLines(parser, openingMarker, indent);
+    _source = lines.map((line) => line.content).join('\n');
+    return lines;
+  }
+
+  @override
+  md.Node parse(md.BlockParser parser) {
+    final node = super.parse(parser);
+    if (!DocumentExportService._mermaid(node)) return node;
+    try {
+      final svg = MarkdownMermaidRenderer.svg(_source, colors);
+      return md.Element.empty('img')
+        ..attributes.addAll({
+          'src': 'data:image/svg+xml;base64,${base64Encode(utf8.encode(svg))}',
+          'alt': 'Mermaid',
+          'class': 'vex-diagram',
+        });
+    } catch (_) {
+      return node;
+    }
   }
 }

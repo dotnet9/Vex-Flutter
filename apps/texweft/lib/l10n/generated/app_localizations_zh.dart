@@ -1282,6 +1282,24 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get mermaidDiagrams => 'Mermaid 图表';
+
+  @override
+  String get mermaidExamples => 'Mermaid 图表示例';
+
+  @override
+  String get mermaidSource => 'Mermaid 源码';
+
+  @override
+  String get mermaidPreview => '图表预览';
+
+  @override
+  String get mermaidUnavailable => '无法生成预览';
+
+  @override
+  String get mermaidError => '图表语法有误，源码已保留。';
+
+  @override
   String prefSpaces(int count) {
     return '$count 空格';
   }
@@ -2562,6 +2580,24 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String prefSeconds(int count) {
     return '$count 秒';
   }
+
+  @override
+  String get mermaidDiagrams => 'Mermaid 圖表';
+
+  @override
+  String get mermaidExamples => 'Mermaid 圖表示例';
+
+  @override
+  String get mermaidSource => 'Mermaid 原始碼';
+
+  @override
+  String get mermaidPreview => '圖表預覽';
+
+  @override
+  String get mermaidUnavailable => '無法產生預覽';
+
+  @override
+  String get mermaidError => '圖表語法有誤，原始碼已保留。';
 
   @override
   String prefSpaces(int count) {

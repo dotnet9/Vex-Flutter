@@ -572,6 +572,12 @@
   "prefMcpResult": "结果",
   "prefSeconds": "{count} 秒",
   "@prefSeconds": {"placeholders":{"count":{"type":"int"}}},
+  "mermaidDiagrams": "Mermaid 图表",
+  "mermaidExamples": "Mermaid 图表示例",
+  "mermaidSource": "Mermaid 源码",
+  "mermaidPreview": "图表预览",
+  "mermaidUnavailable": "无法生成预览",
+  "mermaidError": "图表语法有误，源码已保留。",
   "prefSpaces": "{count} 空格",
   "@prefSpaces": {"placeholders":{"count":{"type":"int"}}}
 }

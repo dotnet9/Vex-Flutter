@@ -83,7 +83,7 @@ class _ExportDialogState extends State<_ExportDialog> {
             ),
           );
         case 'docx':
-          bytes = _service.docx(source: source, title: stem);
+          bytes = await _service.docx(source: source, title: stem);
         case 'png':
           bytes = await _service.mindMapPng(
             vm.map.root,

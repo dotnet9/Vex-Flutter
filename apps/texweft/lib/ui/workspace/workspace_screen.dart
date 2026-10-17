@@ -17,6 +17,7 @@ import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
 import '../core/palette_tokens.dart';
 import 'insert_table_dialog.dart';
+import 'mermaid_picker.dart';
 import 'preferences_dialog.dart';
 import 'workspace_dialogs.dart';
 import 'workspace_guide.dart';
@@ -302,7 +303,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     final document = vm.current, editor = vm.editor;
     final source = editor.text, selection = editor.selection;
     final dimensions = await showInsertTableDialog(context);
-    if (!mounted || dimensions == null || !vm.documents.contains(document)) {
+    if (!mounted ||
+        dimensions == null ||
+        (!identical(vm.current, document) &&
+            !vm.documents.contains(document))) {
       return;
     }
     if (editor.text != source) throw StateError(context.l10n.documentChanged);
@@ -317,6 +321,12 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   }
 
   void _action(String action) {
+    if (action.startsWith('mermaid:')) {
+      vm.editor.insertMermaid(
+        MermaidTemplate.values.byName(action.substring(8)).source,
+      );
+      return;
+    }
     if (action.startsWith('layout:')) {
       vm.setLayout(WorkspaceLayout.values.byName(action.substring(7)));
       return;
@@ -505,6 +515,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         );
       case 'guide':
         vm.startGuide();
+      case 'mermaid-examples':
+        vm.openMermaidExamples();
+      case 'mermaid-picker':
+        unawaited(_run(_insertMermaid));
       case 'sidebar':
         vm.toggleSidebar();
       case 'focus':
@@ -564,6 +578,23 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
 
   Future<void> _export() async {
     await showExportDialog(context, vm);
+  }
+
+  Future<void> _insertMermaid() async {
+    final document = vm.current, editor = vm.editor;
+    final source = editor.text, selection = editor.selection;
+    final template = await showMermaidPicker(context);
+    if (!mounted ||
+        template == null ||
+        (!identical(vm.current, document) &&
+            !vm.documents.contains(document))) {
+      return;
+    }
+    if (editor.text != source) throw StateError(context.l10n.documentChanged);
+    if (selection.isValid) {
+      editor.select(selection.baseOffset, selection.extentOffset);
+    }
+    editor.insertMermaid(template.source);
   }
 
   Future<void> _togglePresentation() async {
@@ -994,6 +1025,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             ('', '-', ''),
             (context.l10n.table, 'format:table', ''),
             (context.l10n.codeBlock, 'format:code', ''),
+            (context.l10n.mermaidDiagrams, '@mermaid', ''),
             (context.l10n.horizontalRule, 'format:rule', ''),
             (context.l10n.link, 'format:link', ''),
             (context.l10n.image, 'format:image', ''),
@@ -1029,6 +1061,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           ]),
           _menu(context.l10n.menuHelp, [
             (context.l10n.quickStart, 'guide', ''),
+            (context.l10n.mermaidExamples, 'mermaid-examples', ''),
             ('', '-', ''),
             (context.l10n.officialWebsite, 'website', ''),
             (context.l10n.feedback, 'feedback', ''),
@@ -1244,6 +1277,22 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   };
   List<Widget> _submenu(String name) {
     final l = context.l10n;
+    final chinese = vm.language.startsWith('zh');
+    if (name == '@mermaid') {
+      return [
+        for (var group = 0; group < 4; group++)
+          SubmenuButton(
+            leadingIcon: const SizedBox(width: 16),
+            menuChildren: _menuChildren([
+              for (final template in MermaidTemplate.values.where(
+                (t) => t.group == group,
+              ))
+                (template.label(chinese), 'mermaid:${template.name}', ''),
+            ]),
+            child: Text(MermaidTemplate.groupLabel(group, chinese)),
+          ),
+      ];
+    }
     if (name == '@recent') {
       return [
         if (vm.recent.isEmpty) MenuItemButton(child: Text(l.noRecent)),
@@ -1403,6 +1452,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
               (context.l10n.layout, 'layouts', ''),
               (context.l10n.settings, 'settings', ''),
               (context.l10n.quickStart, 'guide', ''),
+              (context.l10n.mermaidExamples, 'mermaid-examples', ''),
               (context.l10n.about, 'about', ''),
             ]),
         ],
@@ -1504,6 +1554,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                       padding: 7,
                       onPressed: () => _action('format:${item.$1}'),
                     ),
+                  AppButton(
+                    icon: 'map',
+                    tooltip: context.l10n.mermaidDiagrams,
+                    onPressed: () => _action('mermaid-picker'),
+                    padding: 7,
+                    height: 28,
+                  ),
                   AppButton(
                     icon: 'more',
                     tooltip: context.l10n.moreFormatting,

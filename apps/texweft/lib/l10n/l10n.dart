@@ -97,6 +97,10 @@ extension LocalizedChoices on AppLocalizations {
     codeLanguage: codeLanguage,
     placeholder: writingPlaceholder,
     newParagraph: newParagraph,
+    diagramSource: mermaidSource,
+    diagramPreview: mermaidPreview,
+    diagramUnavailable: mermaidUnavailable,
+    diagramError: mermaidError,
   );
 
   MindMapLabels get mapLabels => MindMapLabels(

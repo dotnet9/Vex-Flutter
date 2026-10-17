@@ -333,6 +333,7 @@ class _DocumentReadingState extends State<_DocumentReading> {
               ),
               key: ValueKey(block.range.start),
               data: block.range.slice(vm.editor.session.text),
+              labels: context.l10n.editorLabels,
               typography: vm.typography,
               compact: vm.compact,
               fontSize: vm.fontSize,

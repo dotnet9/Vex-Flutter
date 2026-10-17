@@ -1287,6 +1287,24 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get mermaidDiagrams => 'Mermaid 図表';
+
+  @override
+  String get mermaidExamples => 'Mermaid のサンプル';
+
+  @override
+  String get mermaidSource => 'Mermaid ソース';
+
+  @override
+  String get mermaidPreview => '図表プレビュー';
+
+  @override
+  String get mermaidUnavailable => 'プレビューを生成できません';
+
+  @override
+  String get mermaidError => '図表の構文に誤りがあります。ソースは保持されています。';
+
+  @override
   String prefSpaces(int count) {
     return '$count スペース';
   }

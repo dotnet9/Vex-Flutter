@@ -633,6 +633,24 @@ final class WorkspaceViewModel extends ChangeNotifier {
     switchDocument(doc);
   }
 
+  void openMermaidExamples() {
+    newDocument();
+    current.name = '${strings.mermaidExamples}.md';
+    final chinese = language.startsWith('zh');
+    final content = StringBuffer('# ${strings.mermaidExamples}\n');
+    for (var group = 0; group < 4; group++) {
+      content.writeln('\n## ${MermaidTemplate.groupLabel(group, chinese)}');
+      for (final template in MermaidTemplate.values.where(
+        (t) => t.group == group,
+      )) {
+        content.writeln('\n### ${template.label(chinese)}${template.markdown}');
+      }
+    }
+    editor.session.replace(content.toString(), label: strings.mermaidExamples);
+    editor.select(0);
+    setLayout(WorkspaceLayout.instant);
+  }
+
   Future<void> open() async {
     final opened = await files.pick();
     if (opened != null) acceptOpened(opened);

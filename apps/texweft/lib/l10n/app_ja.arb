@@ -391,6 +391,12 @@
   "prefMcpResult": "結果",
   "prefSeconds": "{count} 秒",
   "@prefSeconds": {"placeholders":{"count":{"type":"int"}}},
+  "mermaidDiagrams": "Mermaid 図表",
+  "mermaidExamples": "Mermaid のサンプル",
+  "mermaidSource": "Mermaid ソース",
+  "mermaidPreview": "図表プレビュー",
+  "mermaidUnavailable": "プレビューを生成できません",
+  "mermaidError": "図表の構文に誤りがあります。ソースは保持されています。",
   "prefSpaces": "{count} スペース",
   "@prefSpaces": {"placeholders":{"count":{"type":"int"}}}
 }

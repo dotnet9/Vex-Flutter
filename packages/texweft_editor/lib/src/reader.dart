@@ -5,6 +5,8 @@ import 'package:markdown/markdown.dart' as md;
 import 'code_block.dart';
 import 'editing_preferences.dart';
 import 'font_families.dart';
+import 'labels.dart';
+import 'mermaid_block.dart';
 
 enum MarkdownTypography {
   simple('简约', '日常写作 · 清爽留白'),
@@ -36,12 +38,14 @@ class MarkdownReader extends StatelessWidget {
     this.onTapLink,
     this.imageBuilder,
     this.editingPreferences,
+    this.labels = const MarkdownEditorLabels(),
   });
   final String data;
   final MarkdownTypography typography;
   final bool compact, selectable;
   final double fontSize;
   final MarkdownEditingPreferences? editingPreferences;
+  final MarkdownEditorLabels labels;
   final void Function(String text, String? href, String title)? onTapLink;
   final Widget Function(Uri uri, String? title, String? alt)? imageBuilder;
   MarkdownStyleSheet styleSheet(BuildContext context) {
@@ -180,6 +184,7 @@ class MarkdownReader extends StatelessWidget {
           selectable,
           fontSize / 15 * (compact ? 13 : 14),
           editingPreferences,
+          labels,
         ),
         for (var level = 1; level <= 6; level++)
           'h$level': _HeadingBuilder(this, level, switch (level) {
@@ -196,10 +201,16 @@ class MarkdownReader extends StatelessWidget {
 }
 
 class _CodeBlockBuilder extends MarkdownElementBuilder {
-  _CodeBlockBuilder(this.selectable, this.fontSize, this.preferences);
+  _CodeBlockBuilder(
+    this.selectable,
+    this.fontSize,
+    this.preferences,
+    this.labels,
+  );
   final bool selectable;
   final double fontSize;
   final MarkdownEditingPreferences? preferences;
+  final MarkdownEditorLabels labels;
 
   @override
   bool isBlockElement() => true;
@@ -210,15 +221,25 @@ class _CodeBlockBuilder extends MarkdownElementBuilder {
     md.Element element,
     TextStyle? preferredStyle,
     TextStyle? parentStyle,
-  ) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 10),
-    child: MarkdownCodeBlock(
-      code: element.textContent.replaceFirst(RegExp(r'\n$'), ''),
-      selectable: selectable,
-      fontSize: preferences?.codeSize ?? fontSize,
-      wrap: preferences?.codeWrap ?? false,
-    ),
-  );
+  ) {
+    final code = element.children?.whereType<md.Element>().firstOrNull;
+    if (code?.attributes['class']?.split(' ').contains('language-mermaid') ==
+        true) {
+      return MarkdownMermaidBlock(
+        source: element.textContent.replaceFirst(RegExp(r'\n$'), ''),
+        labels: labels,
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: MarkdownCodeBlock(
+        code: element.textContent.replaceFirst(RegExp(r'\n$'), ''),
+        selectable: selectable,
+        fontSize: preferences?.codeSize ?? fontSize,
+        wrap: preferences?.codeWrap ?? false,
+      ),
+    );
+  }
 }
 
 /// The same frame surrounds a heading in display and editing states.

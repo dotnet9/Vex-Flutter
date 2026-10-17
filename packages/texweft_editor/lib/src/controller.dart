@@ -77,6 +77,30 @@ final class MarkdownEditorController extends ChangeNotifier {
     );
   }
 
+  void insertMermaid(String source) {
+    final start = selection.isValid ? selection.start : text.length;
+    final end = selection.isValid ? selection.end : text.length;
+    final newline = document.newline;
+    final before = text.substring(0, start), after = text.substring(end);
+    final prefix = before.isEmpty || before.endsWith('$newline$newline')
+        ? ''
+        : before.endsWith(newline)
+        ? newline
+        : '$newline$newline';
+    final suffix = after.startsWith('$newline$newline')
+        ? ''
+        : after.startsWith(newline)
+        ? newline
+        : '$newline$newline';
+    final normalized = source.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+    final fence = MarkdownCodeFence.parse('```mermaid\n\n```')!;
+    final block = fence
+        .replace(code: normalized, language: 'mermaid')
+        .replaceAll('\n', newline);
+    replaceSelection('$prefix$block$suffix', label: '插入 Mermaid 图表');
+    select(start + prefix.length + '```mermaid$newline'.length);
+  }
+
   void linePrefix(String prefix) {
     final offset = selection.isValid ? selection.start : text.length;
     final lineStart = offset == 0 ? 0 : text.lastIndexOf('\n', offset - 1) + 1;

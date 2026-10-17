@@ -2441,6 +2441,42 @@ abstract class AppLocalizations {
   /// **'{count} 秒'**
   String prefSeconds(int count);
 
+  /// No description provided for @mermaidDiagrams.
+  ///
+  /// In zh, this message translates to:
+  /// **'Mermaid 图表'**
+  String get mermaidDiagrams;
+
+  /// No description provided for @mermaidExamples.
+  ///
+  /// In zh, this message translates to:
+  /// **'Mermaid 图表示例'**
+  String get mermaidExamples;
+
+  /// No description provided for @mermaidSource.
+  ///
+  /// In zh, this message translates to:
+  /// **'Mermaid 源码'**
+  String get mermaidSource;
+
+  /// No description provided for @mermaidPreview.
+  ///
+  /// In zh, this message translates to:
+  /// **'图表预览'**
+  String get mermaidPreview;
+
+  /// No description provided for @mermaidUnavailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法生成预览'**
+  String get mermaidUnavailable;
+
+  /// No description provided for @mermaidError.
+  ///
+  /// In zh, this message translates to:
+  /// **'图表语法有误，源码已保留。'**
+  String get mermaidError;
+
   /// No description provided for @prefSpaces.
   ///
   /// In zh, this message translates to:

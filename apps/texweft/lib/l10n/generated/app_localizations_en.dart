@@ -1332,6 +1332,24 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get mermaidDiagrams => 'Mermaid Diagrams';
+
+  @override
+  String get mermaidExamples => 'Mermaid Examples';
+
+  @override
+  String get mermaidSource => 'Mermaid source';
+
+  @override
+  String get mermaidPreview => 'Diagram preview';
+
+  @override
+  String get mermaidUnavailable => 'Preview unavailable';
+
+  @override
+  String get mermaidError => 'Invalid diagram syntax. Source preserved.';
+
+  @override
   String prefSpaces(int count) {
     return '$count spaces';
   }

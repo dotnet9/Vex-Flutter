@@ -14,6 +14,8 @@ dependencies:
   markdown: ^7.3.1
   super_sliver_list: ^0.4.1
   re_editor: ^0.10.0
+  mermaid_flutter: ^0.3.0
+  mermaid_core: ^0.3.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

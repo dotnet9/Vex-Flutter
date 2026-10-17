@@ -9,6 +9,7 @@ import 'code_block.dart';
 import 'controller.dart';
 import 'editing_preferences.dart';
 import 'labels.dart';
+import 'mermaid_block.dart';
 import 'reader.dart';
 import 'table_editor.dart';
 import 'typing_formatter.dart';
@@ -77,6 +78,18 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
   }
 
   Widget _displayBlock(MarkdownBlock block, String source) {
+    if (block.kind == MarkdownBlockKind.code) {
+      final fence = MarkdownCodeFence.parse(block.range.slice(source));
+      if (fence?.language.toLowerCase() == 'mermaid') {
+        return MarkdownMermaidBlock(
+          key: ValueKey('diagram-${block.range.start}'),
+          source: fence!.code,
+          labels: widget.labels,
+          onEdit: () => _begin(block),
+          tapGroup: this,
+        );
+      }
+    }
     if (block.kind == MarkdownBlockKind.table) {
       return MarkdownTableEditor(
         key: ValueKey('table-${block.range.start}'),
@@ -116,6 +129,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
             selectable: false,
             imageBuilder: widget.imageBuilder,
             editingPreferences: widget.editingPreferences,
+            labels: widget.labels,
           ),
         ),
       ),
@@ -377,7 +391,23 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
     super.dispose();
   }
 
-  Widget _field(ColorScheme colors) => TextFieldTapRegion(
+  bool get _isMermaid =>
+      _codeFence != null && _language.text.toLowerCase() == 'mermaid';
+
+  Widget _field(ColorScheme colors) {
+    if (!_isMermaid) return _fieldRegion(colors);
+    return MarkdownMermaidBlock(
+      key: ValueKey('diagram-$_start'),
+      source: _input.text,
+      labels: widget.labels,
+      tapGroup: this,
+      composing:
+          _input.value.composing.isValid && !_input.value.composing.isCollapsed,
+      sourceEditor: _fieldRegion(colors),
+    );
+  }
+
+  Widget _fieldRegion(ColorScheme colors) => TextFieldTapRegion(
     groupId: this,
     child: Focus(
       onKeyEvent: (_, event) {
@@ -389,7 +419,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
         }
         if (event is! KeyDownEvent) return KeyEventResult.ignored;
         if (event.logicalKey == LogicalKeyboardKey.escape) {
-          _cancel();
+          _isMermaid ? _finish() : _cancel();
           return KeyEventResult.handled;
         }
         if ((HardwareKeyboard.instance.isControlPressed ||
@@ -418,7 +448,9 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
         }
         return KeyEventResult.ignored;
       },
-      child: _codeFence == null
+      child: _isMermaid
+          ? _codeBody(colors)
+          : _codeFence == null
           ? _proseField(colors)
           : Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),

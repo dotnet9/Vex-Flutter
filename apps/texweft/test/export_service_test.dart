@@ -31,23 +31,26 @@ void main() {
       expect(html, isNot(contains('<script')));
     },
   );
-  test('DOCX contains real OOXML structure, heading styles and a table', () {
+  test(
+    'DOCX contains real OOXML structure, heading styles and a table',
+    () async {
+      final archive = ZipDecoder().decodeBytes(
+        await service.docx(source: source, title: '中文标题'),
+      );
+      final xml = utf8.decode(archive.findFile('word/document.xml')!.content);
+      expect(archive.findFile('[Content_Types].xml'), isNotNull);
+      expect(xml, contains('w:pStyle w:val="Heading1"'));
+      expect(xml, contains('中文标题'));
+      expect(xml, contains('<w:tbl>'));
+      expect(xml, contains('<w:b/>'));
+      expect(xml, contains('[x]'));
+      expect(xml, contains('print(&quot;hello&quot;);'));
+      expect(xml, isNot(contains('&amp;quot;')));
+    },
+  );
+  test('DOCX code retains newlines, tabs and literal XML characters', () async {
     final archive = ZipDecoder().decodeBytes(
-      service.docx(source: source, title: '中文标题'),
-    );
-    final xml = utf8.decode(archive.findFile('word/document.xml')!.content);
-    expect(archive.findFile('[Content_Types].xml'), isNotNull);
-    expect(xml, contains('w:pStyle w:val="Heading1"'));
-    expect(xml, contains('中文标题'));
-    expect(xml, contains('<w:tbl>'));
-    expect(xml, contains('<w:b/>'));
-    expect(xml, contains('[x]'));
-    expect(xml, contains('print(&quot;hello&quot;);'));
-    expect(xml, isNot(contains('&amp;quot;')));
-  });
-  test('DOCX code retains newlines, tabs and literal XML characters', () {
-    final archive = ZipDecoder().decodeBytes(
-      service.docx(
+      await service.docx(
         source: '```text\nfirst <tag> & value\n\tsecond\n```',
         title: 'Code',
       ),

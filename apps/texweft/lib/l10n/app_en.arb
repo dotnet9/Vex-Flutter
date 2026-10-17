@@ -391,6 +391,12 @@
   "prefMcpResult": "Result",
   "prefSeconds": "{count} seconds",
   "@prefSeconds": {"placeholders":{"count":{"type":"int"}}},
+  "mermaidDiagrams": "Mermaid Diagrams",
+  "mermaidExamples": "Mermaid Examples",
+  "mermaidSource": "Mermaid source",
+  "mermaidPreview": "Diagram preview",
+  "mermaidUnavailable": "Preview unavailable",
+  "mermaidError": "Invalid diagram syntax. Source preserved.",
   "prefSpaces": "{count} spaces",
   "@prefSpaces": {"placeholders":{"count":{"type":"int"}}}
 }
