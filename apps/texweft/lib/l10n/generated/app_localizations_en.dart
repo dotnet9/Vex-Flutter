@@ -1350,6 +1350,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mermaidError => 'Invalid diagram syntax. Source preserved.';
 
   @override
+  String get menuParagraph => 'Paragraph';
+
+  @override
+  String get menuFormat => 'Format';
+
+  @override
+  String get menuMore => 'Menu';
+
+  @override
+  String get menuDisplay => 'Editor display';
+
+  @override
+  String get menuWriting => 'Writing aids';
+
+  @override
+  String get mathBlock => 'Math block';
+
+  @override
+  String get footnote => 'Footnote';
+
+  @override
+  String get highlight => 'Highlight';
+
+  @override
+  String get superscript => 'Superscript';
+
+  @override
+  String get subscript => 'Subscript';
+
+  @override
+  String get clearFormatting => 'Clear formatting';
+
+  @override
+  String get quitApp => 'Quit Vex';
+
+  @override
   String get prefMath => 'Math formulas';
 
   @override

@@ -95,7 +95,7 @@ class AppButton extends StatelessWidget {
             ),
           if (trailingIcon != null) ...[
             const SizedBox(width: 7),
-            AppGlyph(trailingIcon!, size: 14, color: foreground),
+            AppGlyph(trailingIcon!, size: 16, color: foreground),
           ],
         ],
       ),
@@ -163,7 +163,7 @@ class AppCaptionButton extends StatelessWidget {
                 : c.onSurfaceVariant,
           ),
         ),
-        child: AppGlyph(icon, size: 14),
+        child: AppGlyph(icon),
       ),
     );
   }

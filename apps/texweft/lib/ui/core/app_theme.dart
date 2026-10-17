@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_fonts.dart';
+import 'app_widgets.dart';
 import 'palette_tokens.dart';
 
 ThemeData appTheme(
@@ -62,6 +63,7 @@ ThemeData appTheme(
       ),
     ),
     menuTheme: MenuThemeData(
+      submenuIcon: const WidgetStatePropertyAll(AppGlyph('chevron')),
       style: MenuStyle(
         backgroundColor: WidgetStatePropertyAll(c.surfaceContainerLow),
         elevation: const WidgetStatePropertyAll(6),

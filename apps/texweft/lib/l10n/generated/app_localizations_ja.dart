@@ -1305,6 +1305,42 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mermaidError => '図表の構文に誤りがあります。ソースは保持されています。';
 
   @override
+  String get menuParagraph => '段落';
+
+  @override
+  String get menuFormat => '書式';
+
+  @override
+  String get menuMore => 'メニュー';
+
+  @override
+  String get menuDisplay => 'エディター表示';
+
+  @override
+  String get menuWriting => '執筆支援';
+
+  @override
+  String get mathBlock => '数式ブロック';
+
+  @override
+  String get footnote => '脚注';
+
+  @override
+  String get highlight => 'ハイライト';
+
+  @override
+  String get superscript => '上付き';
+
+  @override
+  String get subscript => '下付き';
+
+  @override
+  String get clearFormatting => '書式をクリア';
+
+  @override
+  String get quitApp => 'Vex を終了';
+
+  @override
   String get prefMath => '数式';
 
   @override

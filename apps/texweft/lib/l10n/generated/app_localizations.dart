@@ -2477,6 +2477,78 @@ abstract class AppLocalizations {
   /// **'图表语法有误，源码已保留。'**
   String get mermaidError;
 
+  /// No description provided for @menuParagraph.
+  ///
+  /// In zh, this message translates to:
+  /// **'段落'**
+  String get menuParagraph;
+
+  /// No description provided for @menuFormat.
+  ///
+  /// In zh, this message translates to:
+  /// **'格式'**
+  String get menuFormat;
+
+  /// No description provided for @menuMore.
+  ///
+  /// In zh, this message translates to:
+  /// **'菜单'**
+  String get menuMore;
+
+  /// No description provided for @menuDisplay.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑显示'**
+  String get menuDisplay;
+
+  /// No description provided for @menuWriting.
+  ///
+  /// In zh, this message translates to:
+  /// **'写作辅助'**
+  String get menuWriting;
+
+  /// No description provided for @mathBlock.
+  ///
+  /// In zh, this message translates to:
+  /// **'公式块'**
+  String get mathBlock;
+
+  /// No description provided for @footnote.
+  ///
+  /// In zh, this message translates to:
+  /// **'脚注'**
+  String get footnote;
+
+  /// No description provided for @highlight.
+  ///
+  /// In zh, this message translates to:
+  /// **'高亮'**
+  String get highlight;
+
+  /// No description provided for @superscript.
+  ///
+  /// In zh, this message translates to:
+  /// **'上标'**
+  String get superscript;
+
+  /// No description provided for @subscript.
+  ///
+  /// In zh, this message translates to:
+  /// **'下标'**
+  String get subscript;
+
+  /// No description provided for @clearFormatting.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除格式'**
+  String get clearFormatting;
+
+  /// No description provided for @quitApp.
+  ///
+  /// In zh, this message translates to:
+  /// **'退出 Vex'**
+  String get quitApp;
+
   /// No description provided for @prefMath.
   ///
   /// In zh, this message translates to:

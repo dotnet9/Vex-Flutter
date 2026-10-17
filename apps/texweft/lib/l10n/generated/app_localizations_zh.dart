@@ -1300,6 +1300,42 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mermaidError => '图表语法有误，源码已保留。';
 
   @override
+  String get menuParagraph => '段落';
+
+  @override
+  String get menuFormat => '格式';
+
+  @override
+  String get menuMore => '菜单';
+
+  @override
+  String get menuDisplay => '编辑显示';
+
+  @override
+  String get menuWriting => '写作辅助';
+
+  @override
+  String get mathBlock => '公式块';
+
+  @override
+  String get footnote => '脚注';
+
+  @override
+  String get highlight => '高亮';
+
+  @override
+  String get superscript => '上标';
+
+  @override
+  String get subscript => '下标';
+
+  @override
+  String get clearFormatting => '清除格式';
+
+  @override
+  String get quitApp => '退出 Vex';
+
+  @override
   String get prefMath => '数学公式';
 
   @override
@@ -2619,6 +2655,42 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get mermaidError => '圖表語法有誤，原始碼已保留。';
+
+  @override
+  String get menuParagraph => '段落';
+
+  @override
+  String get menuFormat => '格式';
+
+  @override
+  String get menuMore => '選單';
+
+  @override
+  String get menuDisplay => '編輯顯示';
+
+  @override
+  String get menuWriting => '寫作輔助';
+
+  @override
+  String get mathBlock => '公式區塊';
+
+  @override
+  String get footnote => '註腳';
+
+  @override
+  String get highlight => '醒目提示';
+
+  @override
+  String get superscript => '上標';
+
+  @override
+  String get subscript => '下標';
+
+  @override
+  String get clearFormatting => '清除格式';
+
+  @override
+  String get quitApp => '結束 Vex';
 
   @override
   String get prefMath => '數學公式';

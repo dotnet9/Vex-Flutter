@@ -45,7 +45,9 @@ Future<void> main(List<String> arguments) async {
     );
     return;
   }
-  await initializeDesktopWindow();
+  await initializeDesktopWindow(
+    nativeTitleBar: defaultTargetPlatform == TargetPlatform.macOS,
+  );
   final vm = WorkspaceViewModel(
     files: NativeDocumentFileService(),
     settings: NativeSettingsRepository(),

@@ -233,7 +233,7 @@ void main() {
     }
     await tester.pumpWidget(const SizedBox());
     vm.dispose();
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
 
   testWidgets('settings changes language immediately and keeps its selection', (
     tester,

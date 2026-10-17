@@ -1,0 +1,262 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:texweft/app.dart';
+import 'package:texweft/domain/workspace.dart';
+import 'package:texweft/ui/core/app_widgets.dart';
+import 'package:texweft/ui/workspace/workspace_menu.dart';
+
+import 'support/fakes.dart';
+
+Iterable<WorkspaceMenuEntry> flatten(List<WorkspaceMenuEntry> entries) sync* {
+  for (final entry in entries) {
+    yield entry;
+    yield* flatten(entry.children);
+  }
+}
+
+void main() {
+  testWidgets(
+    'Alt menu access and delayed paste never modify a switched document',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final vm = fakeWorkspace();
+      vm.editor.session.replace('Original');
+      vm.editor.select(0, 8);
+      final original = vm.current;
+      await tester.pumpWidget(TexweftApp(viewModel: vm));
+      await tester.pumpAndSettle();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyE);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('menu-paste')), findsOneWidget);
+      final pending = Completer<Object?>();
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.getData') return pending.future;
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('menu-paste')));
+      await tester.pump();
+      vm.newDocument();
+      pending.complete({'text': 'Delayed paste'});
+      await tester.pumpAndSettle();
+      expect(original.editor.text, 'Original');
+      expect(vm.editor.text, isEmpty);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      vm.dispose();
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.windows),
+  );
+  test('seven shared menus contain complete paragraph and format commands', () {
+    final vm = fakeWorkspace();
+    addTearDown(vm.dispose);
+    final menus = workspaceMenus(vm, macOS: false, desktop: true, maxPanes: 3);
+    expect(menus.map((menu) => menu.id), [
+      'file',
+      'edit',
+      'paragraph',
+      'format',
+      'view',
+      'tools',
+      'help',
+    ]);
+    final commands = flatten(menus).map((entry) => entry.id).toSet();
+    expect(
+      commands,
+      containsAll([
+        'format:math',
+        'format:footnote',
+        'format:highlight',
+        'format:superscript',
+        'format:subscript',
+        'format:clear',
+        'watermark',
+        'pairs',
+        'statusbar',
+        'motion',
+      ]),
+    );
+    expect(commands.where((id) => id.startsWith('mermaid:')), hasLength(22));
+    expect(
+      flatten(menus).firstWhere((item) => item.id == 'undo').enabled,
+      isFalse,
+    );
+    vm.editor.replaceSelection('edit');
+    expect(
+      flatten(workspaceMenus(vm, macOS: false, desktop: true, maxPanes: 3))
+          .firstWhere((item) => item.id == 'undo')
+          .enabled,
+      isTrue,
+    );
+  });
+
+  test(
+    'touch layouts respect pane limits and macOS uses Command conventions',
+    () {
+      final vm = fakeWorkspace();
+      addTearDown(vm.dispose);
+      for (final limit in [1, 2]) {
+        final entries = flatten(
+          workspaceMenus(vm, macOS: false, desktop: false, maxPanes: limit),
+        );
+        final layouts = entries.where((item) => item.id.startsWith('layout:'));
+        expect(
+          layouts.every(
+            (item) =>
+                WorkspaceLayout.values
+                    .byName(item.id.substring(7))
+                    .panes
+                    .length <=
+                limit,
+          ),
+          isTrue,
+        );
+        expect(entries.any((item) => item.id == 'exit'), isFalse);
+      }
+      final entries = flatten(
+        workspaceMenus(vm, macOS: true, desktop: true, maxPanes: 3),
+      ).toList();
+      final redo = entries.firstWhere((item) => item.id == 'redo').shortcut!;
+      expect(redo.meta, isTrue);
+      expect(redo.control, isFalse);
+      expect(redo.shift, isTrue);
+      expect(redo.trigger, LogicalKeyboardKey.keyZ);
+      expect(
+        entries.any((item) => ['settings', 'about', 'exit'].contains(item.id)),
+        isFalse,
+      );
+    },
+  );
+
+  testWidgets('desktop menus have aligned 16px arrows and execute formatting', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final vm = fakeWorkspace();
+    vm.editor.session.replace('Text');
+    vm.editor.select(0, 4);
+    await tester.pumpWidget(TexweftApp(viewModel: vm));
+    await tester.pumpAndSettle();
+    expect(find.text('Texweft'), findsNothing);
+    expect(find.text('Vex'), findsOneWidget);
+    await tester.tap(find.text('格式(O)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('menu-format:highlight')));
+    await tester.pumpAndSettle();
+    expect(vm.editor.text, '==Text==');
+    await tester.tap(find.text('视图(V)'));
+    await tester.pumpAndSettle();
+    final submenuContext = tester.element(
+      find.byKey(const ValueKey('menu-writing')),
+    );
+    final arrow =
+        MenuTheme.of(submenuContext).submenuIcon!.resolve({})! as AppGlyph;
+    expect(arrow.size, 16);
+    expect(
+      tester
+          .widget<SubmenuButton>(find.byKey(const ValueKey('menu-writing')))
+          .trailingIcon,
+      isNull,
+    );
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    vm.dispose();
+  }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+
+  testWidgets(
+    'phone sheet navigates deeply, scrolls only its body and returns an action',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final vm = fakeWorkspace();
+      await tester.pumpWidget(TexweftApp(viewModel: vm));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('workspace-more-menu')));
+      await tester.pumpAndSettle();
+      final sheet = find.byKey(const ValueKey('touch-workspace-menu'));
+      expect(
+        find.descendant(of: sheet, matching: find.byType(Scrollable)),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('touch-menu-paragraph')));
+      await tester.pumpAndSettle();
+      final header = tester.getTopLeft(
+        find.byKey(const ValueKey('touch-menu-heading')),
+      );
+      final mermaid = find.byKey(const ValueKey('touch-menu-mermaid'));
+      await tester.scrollUntilVisible(
+        mermaid,
+        180,
+        scrollable: find.descendant(
+          of: sheet,
+          matching: find.byType(Scrollable),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester.getTopLeft(find.byKey(const ValueKey('touch-menu-heading'))),
+        header,
+      );
+      await tester.tap(mermaid);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('touch-menu-mermaid-group-0')),
+      );
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('touch-menu-mermaid-group-0')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byTooltip(vm.strings.close).hitTestable().last);
+      await tester.pumpAndSettle();
+      expect(sheet, findsNothing);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      vm.dispose();
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+  );
+
+  testWidgets('macOS exposes native menus without duplicate custom chrome', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final vm = fakeWorkspace();
+    await tester.pumpWidget(TexweftApp(viewModel: vm));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('custom-titlebar')), findsNothing);
+    final bar = tester.widget<PlatformMenuBar>(find.byType(PlatformMenuBar));
+    expect(bar.menus.whereType<PlatformMenu>().map((menu) => menu.label), [
+      'Vex',
+      '文件',
+      '编辑',
+      '段落',
+      '格式',
+      '视图',
+      '工具',
+      '帮助',
+      '窗口',
+    ]);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    vm.dispose();
+  }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
+}

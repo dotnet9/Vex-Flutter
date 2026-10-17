@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:desktop_drop/desktop_drop.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -22,6 +23,8 @@ import 'preferences_dialog.dart';
 import 'workspace_dialogs.dart';
 import 'workspace_guide.dart';
 import 'workspace_panes.dart';
+import 'workspace_menu.dart';
+import 'workspace_touch_menu.dart';
 import 'workspace_pickers.dart';
 import 'workspace_presentation.dart';
 import 'workspace_sidebar.dart';
@@ -53,8 +56,22 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   bool? _presentationWasFullscreen;
   FocusNode? _presentationPreviousFocus;
   WorkspaceViewModel get vm => context.read<WorkspaceViewModel>();
-  bool get _desktop =>
-      Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+  bool get _macOS => defaultTargetPlatform == TargetPlatform.macOS;
+  bool get _desktop => const [
+    TargetPlatform.windows,
+    TargetPlatform.linux,
+    TargetPlatform.macOS,
+  ].contains(defaultTargetPlatform);
+  List<WorkspaceMenuEntry> _menus(double width) => workspaceMenus(
+    vm,
+    macOS: _macOS && _desktop && width >= 700,
+    desktop: _desktop && width >= 700,
+    maxPanes: width < 700
+        ? 1
+        : _desktop
+        ? 3
+        : 2,
+  );
   @override
   void initState() {
     super.initState();
@@ -262,40 +279,52 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   void _format(String command) {
     final e = vm.editor;
     if (command.startsWith('heading-')) {
-      e.linePrefix('${'#' * int.parse(command.substring(8))} ');
+      e.setParagraph('${'#' * int.parse(command.substring(8))} ');
       return;
     }
     switch (command) {
       case 'bold':
-        e.surround('**');
+        e.toggleInline('**');
       case 'italic':
-        e.surround('*');
+        e.toggleInline('*');
       case 'strike':
-        e.surround('~~');
+        e.toggleInline('~~');
+      case 'highlight':
+        e.toggleInline('==');
+      case 'superscript':
+        e.toggleInline('^');
+      case 'subscript':
+        e.toggleInline('~');
+      case 'clear':
+        e.clearFormatting();
       case 'heading':
-        e.linePrefix('## ');
+        e.setParagraph('## ');
       case 'quote':
-        e.linePrefix('> ');
+        e.setParagraph('> ');
       case 'list':
-        e.linePrefix('- ');
+        e.setParagraph('- ');
       case 'ordered':
-        e.linePrefix('1. ');
+        e.setParagraph('1. ');
       case 'task':
-        e.linePrefix('- [ ] ');
+        e.setParagraph('- [ ] ');
       case 'link':
         e.surround('[', '](https://)');
       case 'image':
         unawaited(_run(vm.insertImage));
       case 'inline-code':
-        e.surround('`');
+        e.toggleInline('`');
       case 'code':
-        e.surround('```\n', '\n```');
+        e.insertCodeBlock();
+      case 'math':
+        e.insertCodeBlock(math: true);
+      case 'footnote':
+        e.insertFootnote();
       case 'table':
         unawaited(_run(_insertTable));
       case 'rule':
-        e.replaceSelection('\n\n---\n\n');
+        e.insertBlock('---', label: '插入水平分割线');
       case 'paragraph':
-        e.replaceSelection('\n\n');
+        e.setParagraph('');
     }
   }
 
@@ -383,6 +412,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       case 'files' || 'outline':
         if (!vm.sidebar) vm.toggleSidebar();
         vm.setOutline(action == 'outline');
+        if (MediaQuery.sizeOf(context).width < 700) {
+          _scaffold.currentState?.openDrawer();
+        }
       case 'fullscreen':
         if (widget.windowIntegration) {
           unawaited(
@@ -413,6 +445,14 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         );
       case 'lines':
         vm.updateAppearance(lineNumbers: !vm.lineNumbers);
+      case 'watermark':
+        vm.updateWatermark(preview: !vm.watermark.preview);
+      case 'pairs':
+        vm.updateEditorPreferences(autoPair: !vm.editingPreferences.autoPair);
+      case 'statusbar':
+        vm.updateAppearance(statusbar: !vm.statusbar);
+      case 'motion':
+        vm.updateAppearance(motion: !vm.motion);
       case 'website' || 'feedback':
         unawaited(
           launchUrl(
@@ -454,6 +494,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       case 'redo':
         vm.editor.session.redo();
       case 'copy':
+        if (_focusedClipboardAction(action)) return;
         unawaited(
           Clipboard.setData(
             ClipboardData(
@@ -466,23 +507,43 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           ),
         );
       case 'cut':
-        final selection = vm.editor.selection;
+        if (_focusedClipboardAction(action)) return;
+        final editor = vm.editor, document = vm.current;
+        final selection = editor.selection, source = editor.text;
         if (selection.isValid && !selection.isCollapsed) {
           unawaited(
-            Clipboard.setData(
-              ClipboardData(text: selection.textInside(vm.editor.source.text)),
-            ),
+            _run(() async {
+              await Clipboard.setData(
+                ClipboardData(text: selection.textInside(source)),
+              );
+              if (!mounted ||
+                  !identical(vm.current, document) ||
+                  editor.text != source ||
+                  editor.selection != selection) {
+                return;
+              }
+              editor.replaceSelection('');
+            }),
           );
-          vm.editor.replaceSelection('');
         }
       case 'paste':
+        if (_focusedClipboardAction(action)) return;
+        final editor = vm.editor, document = vm.current;
+        final selection = editor.selection, source = editor.text;
         unawaited(
           _run(() async {
             final data = await Clipboard.getData(Clipboard.kTextPlain);
-            if (data != null) vm.editor.replaceSelection(data.text ?? '');
+            if (!mounted ||
+                !identical(vm.current, document) ||
+                editor.text != source ||
+                editor.selection != selection) {
+              return;
+            }
+            if (data?.text != null) editor.replaceSelection(data!.text!);
           }),
         );
       case 'select-all':
+        if (_focusedClipboardAction(action)) return;
         vm.editor.select(0, vm.editor.session.text.length);
       case 'find' || 'replace':
         vm.showFind(replace: action == 'replace');
@@ -532,6 +593,30 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       case 'export':
         unawaited(_export());
     }
+  }
+
+  bool _focusedClipboardAction(String action) {
+    final focusContext = FocusManager.instance.primaryFocus?.context;
+    if (focusContext == null) return false;
+    final editable = focusContext.findAncestorStateOfType<EditableTextState>();
+    // Document commands use the shared controller/history, not Flutter's local buffer.
+    if (editable == null ||
+        editable.widget.controller == vm.editor.source ||
+        editable.context.findAncestorWidgetOfExactType<WorkspacePanes>() !=
+            null) {
+      return false;
+    }
+    final intent = switch (action) {
+      'copy' => CopySelectionTextIntent.copy,
+      'cut' => const CopySelectionTextIntent.cut(SelectionChangedCause.toolbar),
+      'paste' => const PasteTextIntent(SelectionChangedCause.toolbar),
+      _ => const SelectAllTextIntent(SelectionChangedCause.toolbar),
+    };
+    if (Actions.maybeFind<Intent>(editable.context, intent: intent) == null) {
+      return false;
+    }
+    Actions.invoke(editable.context, intent);
+    return true;
   }
 
   Future<void> _closeDocument() async {
@@ -633,7 +718,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   Widget build(BuildContext context) {
     final state = context.watch<WorkspaceViewModel>(),
         c = Theme.of(context).colorScheme;
-    return LayoutBuilder(
+    final workspace = LayoutBuilder(
       builder: (context, constraints) {
         final phone = constraints.maxWidth < 700;
         final desktop = _desktop && !phone;
@@ -646,85 +731,26 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           bindings: state.presentation
               ? {}
               : {
-                  const SingleActivator(LogicalKeyboardKey.f5): () =>
-                      _action('presentation'),
-                  const SingleActivator(
-                    LogicalKeyboardKey.keyN,
-                    control: true,
-                  ): () =>
-                      _action('new'),
-                  const SingleActivator(
-                    LogicalKeyboardKey.keyO,
-                    control: true,
-                  ): () =>
-                      _action('open'),
-                  const SingleActivator(
-                    LogicalKeyboardKey.keyS,
-                    control: true,
-                  ): () =>
-                      _action('save'),
-                  const SingleActivator(
-                    LogicalKeyboardKey.keyS,
-                    control: true,
-                    shift: true,
-                  ): () =>
-                      _action('save-as'),
-                  const SingleActivator(
-                    LogicalKeyboardKey.keyF,
-                    control: true,
-                  ): () =>
-                      _action('find'),
-                  const SingleActivator(
-                    LogicalKeyboardKey.keyH,
-                    control: true,
-                  ): () =>
-                      _action('replace'),
-                  const SingleActivator(
-                    LogicalKeyboardKey.keyZ,
-                    control: true,
-                  ): () =>
-                      _action('undo'),
-                  const SingleActivator(
-                    LogicalKeyboardKey.keyY,
-                    control: true,
-                  ): () =>
-                      _action('redo'),
-                  const SingleActivator(
-                    LogicalKeyboardKey.keyZ,
-                    control: true,
-                    shift: true,
-                  ): () =>
-                      _action('redo'),
-                  const SingleActivator(
-                    LogicalKeyboardKey.keyB,
-                    control: true,
-                  ): () =>
-                      _action('format:bold'),
-                  const SingleActivator(
-                    LogicalKeyboardKey.keyI,
-                    control: true,
-                  ): () =>
-                      _action('format:italic'),
-                  const SingleActivator(
-                    LogicalKeyboardKey.keyS,
-                    meta: true,
-                  ): () =>
-                      _action('save'),
-                  const SingleActivator(
-                    LogicalKeyboardKey.keyO,
-                    meta: true,
-                  ): () =>
-                      _action('open'),
-                  const SingleActivator(
-                    LogicalKeyboardKey.keyF,
-                    meta: true,
-                  ): () =>
-                      _action('find'),
-                  const SingleActivator(
-                    LogicalKeyboardKey.keyZ,
-                    meta: true,
-                  ): () =>
-                      _action('undo'),
+                  ..._menuShortcuts(_menus(constraints.maxWidth)),
+                  if (desktop && !_macOS)
+                    for (final (key, id) in const [
+                      (LogicalKeyboardKey.keyF, 'file'),
+                      (LogicalKeyboardKey.keyE, 'edit'),
+                      (LogicalKeyboardKey.keyP, 'paragraph'),
+                      (LogicalKeyboardKey.keyO, 'format'),
+                      (LogicalKeyboardKey.keyV, 'view'),
+                      (LogicalKeyboardKey.keyT, 'tools'),
+                      (LogicalKeyboardKey.keyH, 'help'),
+                    ])
+                      SingleActivator(key, alt: true): () =>
+                          _topMenus[id]?.open(),
+                  if (!_macOS)
+                    const SingleActivator(
+                      LogicalKeyboardKey.keyZ,
+                      control: true,
+                      shift: true,
+                    ): () =>
+                        _action('redo'),
                   const SingleActivator(LogicalKeyboardKey.escape): () {
                     for (final menu in _topMenus.values) {
                       menu.close();
@@ -775,7 +801,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                           enabled: !state.presentation,
                           child: Column(
                             children: [
-                              if (desktop)
+                              if (desktop && !_macOS)
                                 _titlebar(state, constraints.maxWidth),
                               _workbar(state, phone, constraints.maxWidth),
                               if (state.recoverable.isNotEmpty)
@@ -948,6 +974,101 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         );
       },
     );
+    if (!_macOS) return workspace;
+    return PlatformMenuBar(
+      menus: [
+        PlatformMenu(
+          label: 'Vex',
+          menus: [
+            PlatformMenuItemGroup(
+              members: [
+                PlatformMenuItem(
+                  label: context.l10n.about,
+                  onSelected: () => _action('about'),
+                ),
+                PlatformMenuItem(
+                  label: context.l10n.settings,
+                  shortcut: const SingleActivator(
+                    LogicalKeyboardKey.comma,
+                    meta: true,
+                  ),
+                  onSelected: () => _action('settings'),
+                ),
+              ],
+            ),
+            const PlatformMenuItemGroup(
+              members: [
+                PlatformProvidedMenuItem(
+                  type: PlatformProvidedMenuItemType.servicesSubmenu,
+                ),
+              ],
+            ),
+            const PlatformMenuItemGroup(
+              members: [
+                PlatformProvidedMenuItem(
+                  type: PlatformProvidedMenuItemType.hide,
+                ),
+                PlatformProvidedMenuItem(
+                  type: PlatformProvidedMenuItemType.hideOtherApplications,
+                ),
+                PlatformProvidedMenuItem(
+                  type: PlatformProvidedMenuItemType.showAllApplications,
+                ),
+              ],
+            ),
+            PlatformMenuItemGroup(
+              members: [
+                PlatformMenuItem(
+                  label: context.l10n.quitApp,
+                  shortcut: const SingleActivator(
+                    LogicalKeyboardKey.keyQ,
+                    meta: true,
+                  ),
+                  onSelected: () => unawaited(_close()),
+                ),
+              ],
+            ),
+          ],
+        ),
+        for (final menu in _menus(MediaQuery.sizeOf(context).width))
+          PlatformMenu(
+            label: workspaceMenuLabel(menu.label),
+            menus: state.presentation
+                ? const []
+                : workspacePlatformItems(menu.children, _action),
+          ),
+        PlatformMenu(
+          label: context.l10n.menuWindow,
+          menus: const [
+            PlatformProvidedMenuItem(
+              type: PlatformProvidedMenuItemType.minimizeWindow,
+            ),
+            PlatformProvidedMenuItem(
+              type: PlatformProvidedMenuItemType.zoomWindow,
+            ),
+            PlatformProvidedMenuItem(
+              type: PlatformProvidedMenuItemType.toggleFullScreen,
+            ),
+          ],
+        ),
+      ],
+      child: workspace,
+    );
+  }
+
+  Map<ShortcutActivator, VoidCallback> _menuShortcuts(
+    List<WorkspaceMenuEntry> menus,
+  ) {
+    final shortcuts = <ShortcutActivator, VoidCallback>{};
+    for (final item in menus) {
+      shortcuts.addAll(_menuShortcuts(item.children));
+      if (item.shortcut != null &&
+          item.enabled &&
+          !const ['cut', 'copy', 'paste', 'select-all'].contains(item.id)) {
+        shortcuts[item.shortcut!] = () => _action(item.id);
+      }
+    }
+    return shortcuts;
   }
 
   Widget _banner(String text, List<Widget> actions) => Container(
@@ -978,98 +1099,16 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           const SizedBox(width: 7),
           if (width >= 980)
             const Text(
-              'Texweft',
+              'Vex',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
-                letterSpacing: -.5,
+                letterSpacing: 0,
               ),
             ),
           const SizedBox(width: 14),
-          _menu(context.l10n.menuFile, [
-            (context.l10n.newDocument, 'new', 'Ctrl+N'),
-            ('', '-', ''),
-            (context.l10n.open, 'open', 'Ctrl+O'),
-            (context.l10n.openFolder, 'folder', ''),
-            (context.l10n.openRecent, '@recent', ''),
-            ('', '-', ''),
-            (context.l10n.save, 'save', 'Ctrl+S'),
-            (context.l10n.saveAs, 'save-as', 'Ctrl+Shift+S'),
-            (context.l10n.saveAllDocuments, 'save-all', ''),
-            (context.l10n.exportShareMenu, '@export', ''),
-            (context.l10n.printPreview, 'export:print', 'Ctrl+Shift+P'),
-            ('', '-', ''),
-            (context.l10n.closeDocument, 'close-document', 'Ctrl+W'),
-            (context.l10n.exit, 'exit', ''),
-          ], key: _guideFileMenu),
-          _menu(context.l10n.menuEdit, [
-            (context.l10n.undo, 'undo', 'Ctrl+Z'),
-            (context.l10n.redo, 'redo', 'Ctrl+Y'),
-            ('', '-', ''),
-            (context.l10n.cut, 'cut', 'Ctrl+X'),
-            (context.l10n.copy, 'copy', 'Ctrl+C'),
-            (context.l10n.paste, 'paste', 'Ctrl+V'),
-            (context.l10n.selectAll, 'select-all', 'Ctrl+A'),
-            ('', '-', ''),
-            (context.l10n.find, 'find', 'Ctrl+F'),
-            (context.l10n.replace, 'replace', 'Ctrl+H'),
-          ]),
-          _menu(context.l10n.menuInsert, [
-            (context.l10n.newParagraph, 'format:paragraph', ''),
-            for (var level = 1; level <= 6; level++)
-              ('${context.l10n.heading} $level', 'format:heading-$level', ''),
-            ('', '-', ''),
-            (context.l10n.unorderedList, 'format:list', ''),
-            (context.l10n.orderedList, 'format:ordered', ''),
-            (context.l10n.taskList, 'format:task', ''),
-            (context.l10n.quote, 'format:quote', ''),
-            ('', '-', ''),
-            (context.l10n.table, 'format:table', ''),
-            (context.l10n.codeBlock, 'format:code', ''),
-            (context.l10n.mermaidDiagrams, '@mermaid', ''),
-            (context.l10n.horizontalRule, 'format:rule', ''),
-            (context.l10n.link, 'format:link', ''),
-            (context.l10n.image, 'format:image', ''),
-            ('', '-', ''),
-            (context.l10n.bold, 'format:bold', 'Ctrl+B'),
-            (context.l10n.italic, 'format:italic', 'Ctrl+I'),
-            (context.l10n.strike, 'format:strike', ''),
-            (context.l10n.inlineCode, 'format:inline-code', ''),
-          ]),
-          _menu(context.l10n.menuView, [
-            (context.l10n.workspaceLayoutMenu, '@layouts', ''),
-            (context.l10n.menuNavigation, '@navigation', ''),
-            (context.l10n.sourceLineNumbers, 'lines', ''),
-            ('', '-', ''),
-            (context.l10n.focusMode, 'focus', 'F8'),
-            (context.l10n.typewriterMode, 'typewriter', ''),
-            (context.l10n.presentationMode, 'presentation', 'F5'),
-            ('', '-', ''),
-            (context.l10n.appearanceMenu, '@appearance', ''),
-            (context.l10n.markdownTypography, '@typography', ''),
-            ('', '-', ''),
-            (context.l10n.menuWindow, '@window', ''),
-            (context.l10n.zoomIn, 'zoom-in', ''),
-            (context.l10n.zoomOut, 'zoom-out', ''),
-            (context.l10n.actualSize, 'zoom-reset', ''),
-          ]),
-          _menu(context.l10n.menuTools, [
-            (context.l10n.summarySettings, 'summary', ''),
-            (context.l10n.settings, 'settings', ''),
-            ('', '-', ''),
-            (context.l10n.mcpSettings, 'mcp', ''),
-            (context.l10n.mcpAudit, 'mcp-audit', ''),
-          ]),
-          _menu(context.l10n.menuHelp, [
-            (context.l10n.quickStart, 'guide', ''),
-            (context.l10n.mermaidExamples, 'mermaid-examples', ''),
-            ('', '-', ''),
-            (context.l10n.officialWebsite, 'website', ''),
-            (context.l10n.feedback, 'feedback', ''),
-            (context.l10n.builtinThanks, 'thanks', ''),
-            (context.l10n.changelog, 'changelog', ''),
-            (context.l10n.about, 'about', ''),
-          ]),
+          for (final menu in _menus(width))
+            _menu(menu, key: menu.id == 'file' ? _guideFileMenu : null),
           Expanded(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -1210,146 +1249,79 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     );
   }
 
-  Widget _menu(
-    String label,
-    List<(String, String, String)> items, {
-    Key? key,
-  }) => MenuAnchor(
+  Widget _menu(WorkspaceMenuEntry menu, {Key? key}) => MenuAnchor(
     key: key,
-    controller: _topMenus.putIfAbsent(label, MenuController.new),
-    menuChildren: _menuChildren(items),
-    builder: (context, controller, _) => TextButton(
-      style: TextButton.styleFrom(
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
-        textStyle: const TextStyle(fontSize: 14, height: 1.4),
-        minimumSize: const Size(0, 28),
-        fixedSize: const Size.fromHeight(28),
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+    controller: _topMenus.putIfAbsent(menu.id, MenuController.new),
+    menuChildren: _menuChildren(menu.children),
+    builder: (context, controller, _) => MouseRegion(
+      onEnter: (_) {
+        if (!controller.isOpen && _topMenus.values.any((menu) => menu.isOpen)) {
+          for (final menu in _topMenus.values) {
+            menu.close();
+          }
+          controller.open();
+        }
+      },
+      child: TextButton(
+        style: TextButton.styleFrom(
+          foregroundColor: Theme.of(context).colorScheme.onSurface,
+          textStyle: const TextStyle(fontSize: 14, height: 1.4),
+          minimumSize: const Size(0, 28),
+          fixedSize: const Size.fromHeight(28),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+        ),
+        onPressed: () =>
+            controller.isOpen ? controller.close() : controller.open(),
+        child: Text(menu.label, maxLines: 1),
       ),
-      onPressed: () =>
-          controller.isOpen ? controller.close() : controller.open(),
-      child: Text(label, maxLines: 1),
     ),
   );
-  List<Widget> _menuChildren(List<(String, String, String)> items) => [
+
+  List<Widget> _menuChildren(List<WorkspaceMenuEntry> items) => [
     for (final item in items)
-      if (item.$2 == '-')
+      if (item.isSeparator)
         const Divider(height: 13, indent: 8, endIndent: 8)
-      else if (item.$2.startsWith('@'))
+      else if (item.children.isNotEmpty)
         SubmenuButton(
+          key: ValueKey('menu-${item.id}'),
           leadingIcon: const SizedBox(width: 16),
-          menuChildren: _submenu(item.$2),
-          child: Text(item.$1),
+          menuChildren: _menuChildren(item.children),
+          child: Text(item.label),
         )
       else
         MenuItemButton(
+          key: ValueKey('menu-${item.id}'),
           leadingIcon: SizedBox(
             width: 16,
-            child: _checked(item.$2) ? const AppGlyph('check') : null,
+            child: item.checked == true ? const AppGlyph('check') : null,
           ),
-          onPressed: () => _action(item.$2),
-          trailingIcon: SizedBox(
-            width: 104,
+          onPressed: item.enabled ? () => _action(item.id) : null,
+          trailingIcon: item.shortcut == null
+              ? null
+              : Text(
+                  workspaceShortcutLabel(item.shortcut),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 320),
             child: Text(
-              item.$3,
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+              item.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          child: Text(item.$1),
         ),
   ];
-  bool _checked(String action) => switch (action) {
-    'lines' => vm.lineNumbers,
-    'sidebar' => vm.sidebar,
-    'compact' => vm.compact,
-    'focus' => vm.focusMode,
-    'typewriter' => vm.typewriter,
-    _ =>
-      action == 'layout:${vm.layout.name}' ||
-          action == 'theme:${vm.themeMode.name}' ||
-          action == 'palette:${vm.palette}' ||
-          action == 'typography:${vm.typography.name}',
-  };
-  List<Widget> _submenu(String name) {
-    final l = context.l10n;
-    final chinese = vm.language.startsWith('zh');
-    if (name == '@mermaid') {
-      return [
-        for (var group = 0; group < 4; group++)
-          SubmenuButton(
-            leadingIcon: const SizedBox(width: 16),
-            menuChildren: _menuChildren([
-              for (final template in MermaidTemplate.values.where(
-                (t) => t.group == group,
-              ))
-                (template.label(chinese), 'mermaid:${template.name}', ''),
-            ]),
-            child: Text(MermaidTemplate.groupLabel(group, chinese)),
-          ),
-      ];
-    }
-    if (name == '@recent') {
-      return [
-        if (vm.recent.isEmpty) MenuItemButton(child: Text(l.noRecent)),
-        for (final path in vm.recent)
-          MenuItemButton(
-            onPressed: () => _action('open-path:$path'),
-            child: SizedBox(
-              width: 320,
-              child: Text(path, maxLines: 1, overflow: TextOverflow.ellipsis),
-            ),
-          ),
-        if (vm.recent.isNotEmpty) ...[
-          const Divider(),
-          MenuItemButton(
-            onPressed: () => _action('clear-recent'),
-            child: Text(l.clearRecent),
-          ),
-        ],
-      ];
-    }
-    return _menuChildren(switch (name) {
-      '@export' => [
-        ('HTML', 'export:html', ''),
-        ('PDF', 'export:pdf', ''),
-        ('Word (.docx)', 'export:docx', ''),
-        (l.mindMapPng, 'export:png', ''),
-      ],
-      '@layouts' => [
-        for (final layout in WorkspaceLayout.values)
-          (l.layoutName(layout), 'layout:${layout.name}', ''),
-      ],
-      '@navigation' => [
-        (l.toggleSidebar, 'sidebar', ''),
-        (l.files, 'files', ''),
-        (l.outline, 'outline', ''),
-      ],
-      '@appearance' => [
-        (l.followSystem, 'theme:system', ''),
-        (l.light, 'theme:light', ''),
-        (l.dark, 'theme:dark', ''),
-        ('', '-', ''),
-        for (final palette in paletteNames.keys)
-          (l.paletteName(palette), 'palette:$palette', ''),
-      ],
-      '@typography' => [
-        for (final type in MarkdownTypography.values)
-          (l.typographyName(type), 'typography:${type.name}', ''),
-        ('', '-', ''),
-        (l.compactSpacing, 'compact', ''),
-      ],
-      '@window' => [
-        (l.fullscreen, 'fullscreen', 'F11'),
-        (l.maximizeRestore, 'maximize', ''),
-      ],
-      _ => <(String, String, String)>[],
-    });
+
+  Future<void> _touchMenu(double width) async {
+    final action = await showWorkspaceTouchMenu(context, _menus(width));
+    if (!mounted || action == null) return;
+    _action(action);
   }
 
   Widget _workbar(WorkspaceViewModel state, bool phone, double width) {
@@ -1430,7 +1402,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
               ),
             ),
           if (!state.layout.panes.any((p) => p == 'source' || p == 'instant'))
-            Flexible(child: _typographyPicker(state, iconOnly: phone)),
+            Flexible(child: _typographyPicker(state, iconOnly: width < 1100)),
           AppButton(
             icon: 'search',
             tooltip: context.l10n.findTooltip,
@@ -1439,23 +1411,19 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           const SizedBox(width: 6),
           AppButton(
             icon: 'save',
-            label: phone ? null : context.l10n.save,
+            label: width < 1100 ? null : context.l10n.save,
             bordered: true,
             tooltip: context.l10n.saveTooltip,
             onPressed: () => _action('save'),
           ),
-          if (phone)
-            _menu('•••', [
-              (context.l10n.newAction, 'new', ''),
-              (context.l10n.open, 'open', ''),
-              (context.l10n.exportShare, 'export', ''),
-              (context.l10n.appearance, 'appearance', ''),
-              (context.l10n.layout, 'layouts', ''),
-              (context.l10n.settings, 'settings', ''),
-              (context.l10n.quickStart, 'guide', ''),
-              (context.l10n.mermaidExamples, 'mermaid-examples', ''),
-              (context.l10n.about, 'about', ''),
-            ]),
+          if (phone || (!_desktop && width >= 700))
+            AppButton(
+              key: const ValueKey('workspace-more-menu'),
+              icon: 'more',
+              tooltip: context.l10n.menuMore,
+              height: 40,
+              onPressed: () => unawaited(_touchMenu(width)),
+            ),
         ],
       );
 
