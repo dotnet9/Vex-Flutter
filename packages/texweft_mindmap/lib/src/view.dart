@@ -13,13 +13,14 @@ typedef MindMapNodeBuilder = Widget Function(
   bool selected,
 );
 
-class MindMapView extends StatelessWidget {
+class MindMapView extends StatefulWidget {
   const MindMapView({
     super.key,
     required this.controller,
     this.onSelect,
     this.onActivate,
     this.onMove,
+    this.onRename,
     this.nodeBuilder,
     this.showControls = true,
     this.enableKeyboardNavigation = true,
@@ -30,12 +31,75 @@ class MindMapView extends StatelessWidget {
   final MindMapController controller;
   final ValueChanged<MindMapNode>? onSelect, onActivate;
   final void Function(String sourceId, String targetId)? onMove;
+  final void Function(MindMapNode node, String title)? onRename;
   final MindMapNodeBuilder? nodeBuilder;
   final bool showControls, enableKeyboardNavigation;
 
   /// Below this scale, large maps paint cards without unreadable text or per-node
   /// drag widgets. Use zero to keep a custom node builder at every scale.
   final double overviewThreshold;
+  @override
+  State<MindMapView> createState() => _MindMapViewState();
+}
+
+class _MindMapViewState extends State<MindMapView> {
+  MindMapController get controller => widget.controller;
+  MindMapLabels get labels => widget.labels;
+  ValueChanged<MindMapNode>? get onSelect => widget.onSelect;
+  ValueChanged<MindMapNode>? get onActivate => widget.onActivate;
+  void Function(String, String)? get onMove => widget.onMove;
+  MindMapNodeBuilder? get nodeBuilder => widget.nodeBuilder;
+  bool get enableKeyboardNavigation => widget.enableKeyboardNavigation;
+  bool get showControls => widget.showControls;
+  double get overviewThreshold => widget.overviewThreshold;
+  final _title = TextEditingController();
+  final _titleFocus = FocusNode(), _canvasFocus = FocusNode();
+  MindMapNode? _editing;
+
+  void _activate(MindMapNode node) {
+    controller.select(node.id);
+    onSelect?.call(node);
+    if (widget.onRename == null || node.summary) {
+      onActivate?.call(node);
+      return;
+    }
+    _commit();
+    setState(() {
+      _editing = node;
+      _title.text = node.title;
+    });
+    _title.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: _title.text.length,
+    );
+    _titleFocus.requestFocus();
+  }
+
+  void _commit({bool cancel = false}) {
+    final node = _editing;
+    if (node == null) return;
+    setState(() => _editing = null);
+    final title = _title.text.trim();
+    if (!cancel && title.isNotEmpty && title != node.title) {
+      widget.onRename?.call(node, title);
+    }
+    _canvasFocus.requestFocus();
+  }
+
+  @override
+  void didUpdateWidget(covariant MindMapView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) _editing = null;
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _titleFocus.dispose();
+    _canvasFocus.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
@@ -53,15 +117,18 @@ class MindMapView extends StatelessWidget {
             });
           }
           return Focus(
+            focusNode: _canvasFocus,
             autofocus: false,
             onKeyEvent: (_, event) {
-              if (!enableKeyboardNavigation) return KeyEventResult.ignored;
+              if (!enableKeyboardNavigation || _editing != null) {
+                return KeyEventResult.ignored;
+              }
               if (event is! KeyDownEvent) return KeyEventResult.ignored;
               final node = layout.nodes[controller.selectedId];
               if (node == null) return KeyEventResult.ignored;
               if (event.logicalKey == LogicalKeyboardKey.enter ||
                   event.logicalKey == LogicalKeyboardKey.f2) {
-                onActivate?.call(node);
+                _activate(node);
                 return KeyEventResult.handled;
               }
               if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
@@ -121,7 +188,7 @@ class MindMapView extends StatelessWidget {
                           final node = layout.nodes[entry.key]!;
                           controller.select(node.id);
                           if (activate) {
-                            onActivate?.call(node);
+                            _activate(node);
                           } else {
                             onSelect?.call(node);
                           }
@@ -173,9 +240,16 @@ class MindMapView extends StatelessWidget {
                               else
                                 for (final entry in layout.rects.entries)
                                   if (entry.value.overlaps(visible))
-                                    Positioned.fromRect(
+                                    AnimatedPositioned.fromRect(
                                       key: ValueKey(entry.key),
                                       rect: entry.value,
+                                      duration:
+                                          MediaQuery.disableAnimationsOf(
+                                            context,
+                                          )
+                                          ? Duration.zero
+                                          : const Duration(milliseconds: 180),
+                                      curve: Curves.easeOutCubic,
                                       child: _node(
                                         context,
                                         layout.nodes[entry.key]!,
@@ -274,18 +348,50 @@ class MindMapView extends StatelessWidget {
                         : color.onSurfaceVariant,
                   ),
                 ),
-              Text(
-                node.title,
-                maxLines: node.summary ? 2 : 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: node.summary ? 11 : 12,
-                  fontWeight: node.summary
-                      ? FontWeight.normal
-                      : FontWeight.w600,
-                  color: root ? color.onPrimary : color.onSurface,
+              if (_editing?.id == node.id)
+                Focus(
+                  onKeyEvent: (_, event) {
+                    if (event is KeyDownEvent &&
+                        event.logicalKey == LogicalKeyboardKey.escape) {
+                      _commit(cancel: true);
+                      return KeyEventResult.handled;
+                    }
+                    return KeyEventResult.ignored;
+                  },
+                  child: TextField(
+                    key: const ValueKey('mindmap-inline-title'),
+                    controller: _title,
+                    focusNode: _titleFocus,
+                    onTapOutside: (_) => _commit(),
+                    onSubmitted: (_) => _commit(),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: root ? color.onPrimary : color.onSurface,
+                    ),
+                    decoration: const InputDecoration(
+                      isCollapsed: true,
+                      filled: false,
+                      contentPadding: EdgeInsets.symmetric(vertical: 3),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                    ),
+                  ),
+                )
+              else
+                Text(
+                  node.title,
+                  maxLines: node.summary ? 2 : 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: node.summary ? 12 : 14,
+                    fontWeight: node.summary
+                        ? FontWeight.normal
+                        : FontWeight.w600,
+                    color: root ? color.onPrimary : color.onSurface,
+                  ),
                 ),
-              ),
             ],
           ),
         );
@@ -300,17 +406,19 @@ class MindMapView extends StatelessWidget {
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () {
+            _canvasFocus.requestFocus();
             controller.select(node.id);
             onSelect?.call(node);
           },
-          onDoubleTap: () => onActivate?.call(node),
+          onDoubleTap: () => _activate(node),
           child: Stack(
             clipBehavior: Clip.none,
             children: [
               Positioned.fill(
                 child: LongPressDraggable<String>(
                   data: node.id,
-                  maxSimultaneousDrags: onMove == null || root || node.summary
+                  maxSimultaneousDrags:
+                      _editing != null || onMove == null || root || node.summary
                       ? 0
                       : 1,
                   feedback: Material(
@@ -435,21 +543,9 @@ class _EdgesPainter extends CustomPainter {
       ..color = color.withValues(alpha: .4)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
-    for (final edge in layout.edges) {
-      final from = layout.rects[edge.from]!, to = layout.rects[edge.to]!;
-      if (!Rect.fromPoints(
-        Offset(from.right, from.center.dy),
-        Offset(to.left, to.center.dy),
-      ).inflate(2).overlaps(visible)) {
-        continue;
-      }
-      final x = (from.right + to.left) / 2;
-      canvas.drawPath(
-        Path()
-          ..moveTo(from.right, from.center.dy)
-          ..cubicTo(x, from.center.dy, x, to.center.dy, to.left, to.center.dy),
-        paint,
-      );
+    for (final path in layout.paths) {
+      if (!path.getBounds().inflate(2).overlaps(visible)) continue;
+      canvas.drawPath(path, paint);
     }
   }
 

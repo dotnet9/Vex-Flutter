@@ -25,6 +25,59 @@ void main() {
       expect(rect.bottom, lessThanOrEqualTo(layout.size.height));
     }
   });
+  for (final mode in MindMapLayoutMode.values) {
+    test('${mode.name} preserves order, avoids overlap and stays in bounds', () {
+      final tree = MindMapNode(
+        id: 'root',
+        title: 'Root',
+        children: [
+          for (var i = 0; i < 9; i++)
+            MindMapNode(
+              id: 'b$i',
+              title: 'Branch',
+              children: [
+                for (var j = 0; j < i % 4; j++)
+                  MindMapNode(
+                    id: 'b$i-$j',
+                    title: 'Child',
+                    children: [MindMapNode(id: 'b$i-$j-leaf', title: 'Leaf')],
+                  ),
+              ],
+            ),
+        ],
+      );
+      final layout = MindMapLayout.compute(tree, mode: mode);
+      expect(layout.mode, mode);
+      expect(layout.nodes.keys, MindMapLayout.compute(tree).nodes.keys);
+      final rects = layout.rects.values.toList();
+      for (var i = 0; i < rects.length; i++) {
+        expect(rects[i].left, greaterThanOrEqualTo(0));
+        expect(rects[i].top, greaterThanOrEqualTo(0));
+        expect(rects[i].right, lessThanOrEqualTo(layout.size.width));
+        expect(rects[i].bottom, lessThanOrEqualTo(layout.size.height));
+        for (var j = i + 1; j < rects.length; j++) {
+          expect(
+            rects[i].overlaps(rects[j]),
+            isFalse,
+            reason:
+                '${layout.rects.keys.elementAt(i)} / ${layout.rects.keys.elementAt(j)}',
+          );
+        }
+      }
+      final controller = MindMapController(tree)..setMode(mode);
+      controller.toggle('b2');
+      expect(controller.layout.nodes.containsKey('b2-0'), isFalse);
+      expect(controller.layout.mode, mode);
+      controller.focusNode('b2-0', const Size(800, 600));
+      expect(controller.layout.mode, mode);
+      expect(controller.selectedId, 'b2-0');
+      controller.setRoot(tree);
+      expect(controller.layout.mode, mode);
+      controller.toggleAll();
+      expect(controller.layout.mode, mode);
+      controller.dispose();
+    });
+  }
   test('focus reveals collapsed ancestors and centers the requested node', () {
     final controller = MindMapController(root);
     controller.toggle('root');

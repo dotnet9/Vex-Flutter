@@ -13,6 +13,16 @@ final class MindMapController extends ChangeNotifier {
   late MindMapLayout _layout;
   final transformation = TransformationController();
   final _collapsed = <String>{};
+  MindMapLayoutMode _mode = MindMapLayoutMode.right;
+  MindMapLayoutMode get mode => _mode;
+  void setMode(MindMapLayoutMode value) {
+    if (_mode == value) return;
+    _mode = value;
+    _layout = MindMapLayout.compute(root, collapsed: _collapsed, mode: _mode);
+    fitRequested = true;
+    notifyListeners();
+  }
+
   String? _selected;
   bool fitRequested = true;
   MindMapNode get root => _root;
@@ -28,13 +38,17 @@ final class MindMapController extends ChangeNotifier {
   void _transformed() => notifyListeners();
   void setRoot(MindMapNode value) {
     final changed = value.id != _root.id;
-    final next = MindMapLayout.compute(value, collapsed: _collapsed);
+    final next = MindMapLayout.compute(
+      value,
+      collapsed: _collapsed,
+      mode: _mode,
+    );
     _root = value;
     _layout = next;
     if (changed) {
       _selected = null;
       _collapsed.clear();
-      _layout = MindMapLayout.compute(value);
+      _layout = MindMapLayout.compute(value, mode: _mode);
       fitRequested = true;
     }
     notifyListeners();
@@ -47,7 +61,7 @@ final class MindMapController extends ChangeNotifier {
 
   void toggle(String id) {
     if (!_collapsed.add(id)) _collapsed.remove(id);
-    _layout = MindMapLayout.compute(root, collapsed: _collapsed);
+    _layout = MindMapLayout.compute(root, collapsed: _collapsed, mode: _mode);
     notifyListeners();
   }
 
@@ -61,7 +75,7 @@ final class MindMapController extends ChangeNotifier {
             .map((n) => n.id),
       );
     }
-    _layout = MindMapLayout.compute(root, collapsed: _collapsed);
+    _layout = MindMapLayout.compute(root, collapsed: _collapsed, mode: _mode);
     fitRequested = true;
     notifyListeners();
   }
@@ -110,7 +124,8 @@ final class MindMapController extends ChangeNotifier {
     for (final ancestor in path.take(path.length - 1)) {
       revealed = _collapsed.remove(ancestor) || revealed;
     }
-    if (revealed) _layout = MindMapLayout.compute(root, collapsed: _collapsed);
+    if (revealed)
+      _layout = MindMapLayout.compute(root, collapsed: _collapsed, mode: _mode);
     final target = layout.rects[id];
     if (target == null) return;
     _selected = id;
