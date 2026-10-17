@@ -284,7 +284,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       case 'link':
         e.surround('[', '](https://)');
       case 'image':
-        e.replaceSelection(context.l10n.imageMarkdown);
+        unawaited(_run(vm.insertImage));
       case 'inline-code':
         e.surround('`');
       case 'code':

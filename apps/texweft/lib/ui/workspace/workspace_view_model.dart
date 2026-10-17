@@ -13,6 +13,8 @@ import '../../data/services/file_service.dart';
 import '../../data/services/document_codec.dart';
 import '../../domain/file_preferences.dart';
 import '../../domain/export_preferences.dart';
+import '../../domain/image_preferences.dart';
+import '../../data/services/image_asset_service.dart';
 import '../../domain/presentation.dart';
 import '../../domain/workspace.dart';
 import '../../l10n/l10n.dart';
@@ -25,8 +27,10 @@ final class WorkspaceViewModel extends ChangeNotifier {
     required this.files,
     required this.settings,
     required this.recovery,
+    ImageAssetService? imageAssets,
     String initialLanguage = 'zh',
-  }) : language = languageNames.containsKey(initialLanguage)
+  }) : imageAssets = imageAssets ?? ImageAssetService(),
+       language = languageNames.containsKey(initialLanguage)
            ? initialLanguage
            : 'en' {
     _blank = WorkspaceDocument(
@@ -47,6 +51,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
   final DocumentFileService files;
   final SettingsRepository settings;
   final RecoveryRepository recovery;
+  final ImageAssetService imageAssets;
+  ImagePreferences imagePreferences = const ImagePreferences();
   final filePreferences = FilePreferences();
   ExportPreferences exportPreferences = const ExportPreferences();
   WatermarkPreferences watermark = const WatermarkPreferences();
@@ -96,6 +102,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
       filePreferences.load(preferences['files']);
       exportPreferences = ExportPreferences.fromJson(preferences['export']);
       watermark = WatermarkPreferences.fromJson(preferences['watermark']);
+      imagePreferences = ImagePreferences.fromJson(preferences['images']);
       _blank.format = filePreferences.newDocumentFormat;
       final savedPalette = preferences['palette'];
       if (savedPalette is String && paletteNames.containsKey(savedPalette)) {
@@ -417,6 +424,50 @@ final class WorkspaceViewModel extends ChangeNotifier {
     );
     _notify();
     persist();
+  }
+
+  void updateImagePreferences({bool? copy, bool? relative, String? folder}) {
+    imagePreferences = imagePreferences.copyWith(
+      copy: copy,
+      relative: relative,
+      folder: folder,
+    );
+    _notify();
+    persist();
+  }
+
+  bool _insertingImage = false;
+  Future<void> insertImage() async {
+    if (_insertingImage) return;
+    _insertingImage = true;
+    final document = current, controller = editor;
+    final revision = controller.session.revision;
+    final selection = controller.selection;
+    try {
+      final image = await imageAssets.pick();
+      if (image == null || _disposed) return;
+      void checkDocument() {
+        if (_disposed ||
+            !identical(current, document) ||
+            controller.session.revision != revision) {
+          throw StateError(strings.documentChanged);
+        }
+      }
+
+      checkDocument();
+      final markdown = await imageAssets.markdown(
+        image,
+        documentPath: document.path,
+        preferences: imagePreferences,
+      );
+      checkDocument();
+      if (selection.isValid) {
+        controller.select(selection.baseOffset, selection.extentOffset);
+      }
+      controller.replaceSelection(markdown);
+    } finally {
+      _insertingImage = false;
+    }
   }
 
   void setSummary({
@@ -948,6 +999,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
             'files': filePreferences.toJson(),
             'export': exportPreferences.toJson(),
             'watermark': watermark.toJson(),
+            'images': imagePreferences.toJson(),
             'workspace': {
               'paths': documents
                   .map((d) => d.path)
