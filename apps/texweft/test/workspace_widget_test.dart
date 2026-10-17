@@ -3,11 +3,44 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:texweft/app.dart';
 import 'package:texweft/domain/workspace.dart';
 import 'package:texweft/ui/workspace/workspace_dialogs.dart';
+import 'package:texweft/ui/workspace/workspace_sidebar.dart';
+import 'package:texweft/ui/workspace/workspace_panes.dart';
 import 'package:texweft_editor/texweft_editor.dart';
 
 import 'support/fakes.dart';
 
 void main() {
+  for (final size in [
+    const Size(1280, 800),
+    const Size(900, 700),
+    const Size(390, 844),
+  ]) {
+    testWidgets('find and replace belong above the editor at $size', (
+      tester,
+    ) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final vm = fakeWorkspace();
+      vm.showFind(replace: true);
+      await tester.pumpWidget(TexweftApp(viewModel: vm));
+      await tester.pumpAndSettle();
+      final bar = tester.getRect(find.byKey(const ValueKey('editor-findbar')));
+      final editor = tester.getRect(find.byType(WorkspacePanes));
+      expect(bar.left, editor.left);
+      expect(bar.right, editor.right);
+      expect(bar.bottom, lessThan(editor.top));
+      if (size.width >= 700) {
+        final sidebar = tester.getRect(find.byType(WorkspaceSidebar));
+        expect(bar.left, greaterThan(sidebar.right));
+        expect(sidebar.top, bar.top);
+      }
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      vm.dispose();
+    });
+  }
   testWidgets('source scroll position survives switching layouts', (
     tester,
   ) async {

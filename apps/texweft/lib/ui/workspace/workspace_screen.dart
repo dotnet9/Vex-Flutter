@@ -807,7 +807,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                     onPressed: () => _action('save-as'),
                                   ),
                                 ]),
-                              if (state.findVisible) _findbar(state, phone),
                               Expanded(
                                 child: Row(
                                   crossAxisAlignment:
@@ -850,6 +849,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                     Expanded(
                                       child: Column(
                                         children: [
+                                          if (state.findVisible)
+                                            _findbar(state, phone),
                                           if (state.layout.panes.any(
                                             (p) =>
                                                 p == 'source' || p == 'instant',
@@ -1540,6 +1541,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       );
 
   Widget _findbar(WorkspaceViewModel state, bool phone) => Container(
+    key: const ValueKey('editor-findbar'),
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     decoration: BoxDecoration(
       color: Theme.of(context).colorScheme.surfaceContainerLow,
