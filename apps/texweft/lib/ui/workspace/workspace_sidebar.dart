@@ -23,38 +23,66 @@ class WorkspaceSidebar extends StatelessWidget {
       color: c.surfaceContainerLow,
       child: Column(
         children: [
-          SizedBox(
+          Container(
             height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
+              spacing: 18,
               children: [
-                const SizedBox(width: 12),
                 for (final entry in [
                   (false, context.l10n.files, 'folder'),
                   (true, context.l10n.outline, 'list'),
                 ])
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: vm.outline == entry.$1
-                              ? Border(
-                                  bottom: BorderSide(
-                                    color: c.primary,
-                                    width: 2,
-                                  ),
-                                )
-                              : null,
-                        ),
-                        child: AppButton(
-                          label: entry.$2,
-                          icon: entry.$3,
-                          selected: vm.outline == entry.$1,
+                  Flexible(
+                    child: Stack(
+                      children: [
+                        TextButton(
                           onPressed: () => vm.setOutline(entry.$1),
-                          height: 42,
-                          padding: 4,
+                          style: TextButton.styleFrom(
+                            foregroundColor: vm.outline == entry.$1
+                                ? c.primary
+                                : c.onSurfaceVariant,
+                            minimumSize: Size.zero,
+                            fixedSize: const Size.fromHeight(36),
+                            visualDensity: VisualDensity.standard,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            textStyle: TextStyle(
+                              fontSize: 12,
+                              fontWeight: vm.outline == entry.$1
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AppGlyph(
+                                entry.$3,
+                                size: 14,
+                                color: vm.outline == entry.$1
+                                    ? c.primary
+                                    : c.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  entry.$2,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
+                        if (vm.outline == entry.$1)
+                          Positioned(
+                            left: 10,
+                            right: 10,
+                            bottom: 0,
+                            child: Container(height: 2, color: c.primary),
+                          ),
+                      ],
                     ),
                   ),
               ],

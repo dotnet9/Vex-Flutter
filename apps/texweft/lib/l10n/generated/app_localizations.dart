@@ -398,7 +398,7 @@ abstract class AppLocalizations {
   /// No description provided for @nativeApplication.
   ///
   /// In zh, this message translates to:
-  /// **'0.1.0 · Flutter 原生应用'**
+  /// **'Flutter 原生应用'**
   String get nativeApplication;
 
   /// No description provided for @aboutDescription.
@@ -440,7 +440,7 @@ abstract class AppLocalizations {
   /// No description provided for @acknowledgements.
   ///
   /// In zh, this message translates to:
-  /// **'开源致谢：Flutter、Dart、Vex 及各开源组件。MIT License。'**
+  /// **'感谢 Flutter、Dart、flutter_markdown_plus、markdown、文件与窗口管理、导出等开源组件，以及 Cascadia Code、Noto Sans SC 字体的贡献者。各组件和字体遵循各自的许可证，完整声明见“开源组件许可”。'**
   String get acknowledgements;
 
   /// No description provided for @markdownSource.
@@ -962,7 +962,7 @@ abstract class AppLocalizations {
   /// No description provided for @layoutDropdown.
   ///
   /// In zh, this message translates to:
-  /// **'布局 ⌄'**
+  /// **'布局'**
   String get layoutDropdown;
 
   /// No description provided for @findTooltip.
@@ -1580,7 +1580,7 @@ abstract class AppLocalizations {
   /// No description provided for @typographyDropdown.
   ///
   /// In zh, this message translates to:
-  /// **'排版 {name} ⌄'**
+  /// **'排版 {name}'**
   String typographyDropdown(String name);
 
   /// No description provided for @matchCount.

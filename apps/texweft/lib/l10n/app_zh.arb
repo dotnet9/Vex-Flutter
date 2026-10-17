@@ -49,14 +49,14 @@
   "githubUnavailable": "暂时无法连接 GitHub，可稍后重试。",
   "about": "关于笺纬",
   "slogan": "落笔成文，思路成形。",
-  "nativeApplication": "0.1.0 · Flutter 原生应用",
+  "nativeApplication": "Flutter 原生应用",
   "aboutDescription": "把 Markdown 写作、阅读与思维导图放在同一个工作区。内容保存在本地，使用开放的文件格式。",
   "author": "沙漠尽头的狼 / CodeWF",
   "authorWebsite": "作者网站",
   "githubSource": "GitHub 源码",
   "releasesDownloads": "发布与下载",
   "checkUpdates": "检查更新",
-  "acknowledgements": "开源致谢：Flutter、Dart、Vex 及各开源组件。MIT License。",
+  "acknowledgements": "感谢 Flutter、Dart、flutter_markdown_plus、markdown、文件与窗口管理、导出等开源组件，以及 Cascadia Code、Noto Sans SC 字体的贡献者。各组件和字体遵循各自的许可证，完整声明见“开源组件许可”。",
   "markdownSource": "Markdown 源码",
   "bodyPreview": "正文预览",
   "mindMap": "思维导图",
@@ -143,7 +143,7 @@
   "maximizeRestore": "最大化 / 还原",
   "filesOutline": "文件与大纲",
   "quickStartBadge": "• 快速上手",
-  "layoutDropdown": "布局 ⌄",
+  "layoutDropdown": "布局",
   "findTooltip": "查找 · Ctrl+F",
   "saveTooltip": "保存 · Ctrl+S",
   "newAction": "新建",
@@ -328,7 +328,7 @@
       }
     }
   },
-  "typographyDropdown": "排版 {name} ⌄",
+  "typographyDropdown": "排版 {name}",
   "@typographyDropdown": {
     "placeholders": {
       "name": {

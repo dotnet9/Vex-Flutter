@@ -39,8 +39,7 @@ class MarkdownReader extends StatelessWidget {
   final bool compact, selectable;
   final double fontSize;
   final void Function(String text, String? href, String title)? onTapLink;
-  @override
-  Widget build(BuildContext context) {
+  MarkdownStyleSheet styleSheet(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final accent = typography == MarkdownTypography.column
         ? (colors.brightness == Brightness.dark
@@ -55,21 +54,38 @@ class MarkdownReader extends StatelessWidget {
           ? 1.65
           : typography == MarkdownTypography.book
           ? 2.05
-          : 1.95,
+          : switch (typography) {
+              MarkdownTypography.document ||
+              MarkdownTypography.technical => 1.85,
+              MarkdownTypography.column => 1.95,
+              MarkdownTypography.editorial => 2,
+              _ => 1.9,
+            },
+      letterSpacing: fontSize * .01,
       color: colors.onSurface,
       fontFamily: book ? fonts.serif : null,
       fontFamilyFallback: book ? fonts.serifFallback : null,
     );
-    final sheet = MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+    return MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
       p: body,
-      pPadding: EdgeInsets.only(bottom: compact ? 9 : 16),
+      pPadding: EdgeInsets.only(bottom: compact ? 9 : fontSize, right: 3),
+      blockSpacing: 0,
       h1: body.copyWith(
         fontSize:
             fontSize * (typography == MarkdownTypography.column ? 2.5 : 2),
-        height: 1.45,
-        fontWeight: FontWeight.w700,
+        height: typography == MarkdownTypography.column
+            ? 1.4
+            : typography == MarkdownTypography.editorial
+            ? 1.6
+            : 1.45,
+        fontWeight: typography == MarkdownTypography.column
+            ? FontWeight.w800
+            : typography == MarkdownTypography.book
+            ? FontWeight.w600
+            : FontWeight.w700,
+        letterSpacing: -fontSize * .04,
       ),
-      h1Padding: const EdgeInsets.only(top: 2, bottom: 26),
+      h1Padding: EdgeInsets.zero,
       h2: body.copyWith(
         fontSize: fontSize * 1.4,
         height: 1.6,
@@ -80,13 +96,13 @@ class MarkdownReader extends StatelessWidget {
             ? colors.onSurface
             : accent,
       ),
-      h2Padding: EdgeInsets.only(top: compact ? 17 : 30, bottom: 12),
+      h2Padding: EdgeInsets.zero,
       h3: body.copyWith(
         fontSize: fontSize * 1.15,
         height: 1.65,
         fontWeight: FontWeight.w600,
       ),
-      h3Padding: EdgeInsets.only(top: compact ? 13 : 22, bottom: 10),
+      h3Padding: EdgeInsets.zero,
       h4: body.copyWith(fontWeight: FontWeight.w600),
       listBullet: body.copyWith(color: accent),
       listIndent: 24,
@@ -123,6 +139,11 @@ class MarkdownReader extends StatelessWidget {
         border: Border(top: BorderSide(color: colors.outlineVariant)),
       ),
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sheet = styleSheet(context);
     return MarkdownBody(
       data: data,
       selectable: selectable,
@@ -132,14 +153,15 @@ class MarkdownReader extends StatelessWidget {
       onTapLink: onTapLink,
       builders: {
         'pre': _CodeBlockBuilder(selectable, compact ? 13 : 14),
-        if (typography != MarkdownTypography.simple &&
-            typography != MarkdownTypography.book)
-          'h2': _SectionBuilder(
-            typography,
-            sheet.h2!,
-            accent,
-            colors.outlineVariant,
-          ),
+        for (var level = 1; level <= 6; level++)
+          'h$level': _HeadingBuilder(this, level, switch (level) {
+            1 => sheet.h1!,
+            2 => sheet.h2!,
+            3 => sheet.h3!,
+            4 => sheet.h4!,
+            5 => sheet.h5!,
+            _ => sheet.h6!,
+          }),
       },
     );
   }
@@ -159,50 +181,124 @@ class _CodeBlockBuilder extends MarkdownElementBuilder {
     md.Element element,
     TextStyle? preferredStyle,
     TextStyle? parentStyle,
-  ) => MarkdownCodeBlock(
-    code: element.textContent.replaceFirst(RegExp(r'\n$'), ''),
-    selectable: selectable,
-    fontSize: fontSize,
+  ) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 10),
+    child: MarkdownCodeBlock(
+      code: element.textContent.replaceFirst(RegExp(r'\n$'), ''),
+      selectable: selectable,
+      fontSize: fontSize,
+    ),
   );
 }
 
-class _SectionBuilder extends MarkdownElementBuilder {
-  _SectionBuilder(this.typography, this.style, this.accent, this.line);
+/// The same frame surrounds a heading in display and editing states.
+class MarkdownHeadingFrame extends StatelessWidget {
+  const MarkdownHeadingFrame({
+    super.key,
+    required this.typography,
+    required this.level,
+    required this.style,
+    required this.child,
+    this.compact = false,
+  });
   final MarkdownTypography typography;
+  final int level;
   final TextStyle style;
-  final Color accent, line;
+  final Widget child;
+  final bool compact;
+
   @override
-  bool isBlockElement() => true;
-  @override
-  Widget visitElementAfter(md.Element element, TextStyle? preferredStyle) {
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final accent = typography == MarkdownTypography.column
+        ? (colors.brightness == Brightness.dark
+              ? const Color(0xffeba88d)
+              : const Color(0xffa04d35))
+        : colors.primary;
+    final size = style.fontSize!;
+    final decorated =
+        level == 2 &&
+        typography != MarkdownTypography.simple &&
+        typography != MarkdownTypography.book;
+    final technical = decorated && typography == MarkdownTypography.technical;
+    final column = decorated && typography == MarkdownTypography.column;
     final editorial = typography == MarkdownTypography.editorial;
-    final technical = typography == MarkdownTypography.technical;
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(top: 26, bottom: 12),
-      padding: EdgeInsets.symmetric(
-        vertical: technical || editorial ? 7 : 2,
-        horizontal: technical || typography == MarkdownTypography.column
-            ? 12
+      margin: EdgeInsets.only(
+        top: level == 1
+            ? 0
+            : size *
+                  (compact
+                      ? 1.3
+                      : level == 2
+                      ? 1.8
+                      : 1.4),
+        bottom:
+            size *
+            (level == 1
+                ? (editorial ? 1.5 : 1)
+                : level == 2
+                ? .6
+                : .5),
+      ),
+      padding: EdgeInsets.only(
+        top: technical || (decorated && editorial) ? size * .45 : 0,
+        bottom: level == 1
+            ? size * .6
+            : technical || (decorated && editorial)
+            ? size * .45
+            : decorated && !column
+            ? size * .45
             : 0,
+        left: technical || column ? size * .65 : 0,
+        right: technical ? size * .65 : 0,
       ),
       decoration: BoxDecoration(
         color: technical ? accent.withValues(alpha: .08) : null,
-        border: switch (typography) {
-          MarkdownTypography.column || MarkdownTypography.technical => Border(
-            left: BorderSide(color: accent, width: 3),
-          ),
-          MarkdownTypography.editorial => Border.symmetric(
-            horizontal: BorderSide(color: line),
-          ),
-          _ => Border(bottom: BorderSide(color: line)),
-        },
+        border: decorated
+            ? switch (typography) {
+                MarkdownTypography.column ||
+                MarkdownTypography.technical => Border(
+                  left: BorderSide(color: accent, width: column ? 4 : 3),
+                ),
+                MarkdownTypography.editorial => Border.symmetric(
+                  horizontal: BorderSide(color: colors.outlineVariant),
+                ),
+                _ => Border(bottom: BorderSide(color: colors.outlineVariant)),
+              }
+            : null,
       ),
-      child: Text(
-        element.textContent,
-        style: style,
-        textAlign: editorial ? TextAlign.center : TextAlign.start,
-      ),
+      child: child,
     );
   }
+}
+
+class _HeadingBuilder extends MarkdownElementBuilder {
+  _HeadingBuilder(this.reader, this.level, this.style);
+  final MarkdownReader reader;
+  final int level;
+  final TextStyle style;
+  @override
+  bool isBlockElement() => true;
+  @override
+  Widget visitElementAfter(md.Element element, TextStyle? preferredStyle) =>
+      MarkdownHeadingFrame(
+        typography: reader.typography,
+        compact: reader.compact,
+        level: level,
+        style: style,
+        child: Padding(
+          // RenderEditable reserves 1 px plus its 2 px caret. Keep the display
+          // line width identical, including centred and wrapped headings.
+          padding: const EdgeInsets.only(right: 3),
+          child: Text(
+            element.textContent,
+            style: style,
+            textAlign: reader.typography == MarkdownTypography.editorial
+                ? TextAlign.center
+                : TextAlign.start,
+          ),
+        ),
+      );
 }

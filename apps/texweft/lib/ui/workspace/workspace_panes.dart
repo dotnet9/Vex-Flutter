@@ -360,11 +360,7 @@ class _ChapterInspectorState extends State<ChapterInspector> {
             PanelHeader(
               title: context.l10n.sectionArrangement,
               icon: 'edit',
-              trailing: AppButton(
-                icon: 'x',
-                onPressed: widget.onClose,
-                height: 24,
-              ),
+              trailing: AppCloseButton(onPressed: widget.onClose),
             ),
             Padding(
               padding: const EdgeInsets.all(14),

@@ -163,7 +163,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get slogan => 'Write your words. Shape your thoughts.';
 
   @override
-  String get nativeApplication => '0.1.0 · Native Flutter application';
+  String get nativeApplication => 'Native Flutter application';
 
   @override
   String get aboutDescription =>
@@ -186,7 +186,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get acknowledgements =>
-      'Thanks to Flutter, Dart, Vex and all open source contributors. MIT License.';
+      'Thanks to the contributors of Flutter, Dart, flutter_markdown_plus, markdown, file and window management, export components, Cascadia Code and Noto Sans SC. Components and fonts retain their own licenses; see Open source licenses for the full notices.';
 
   @override
   String get markdownSource => 'Markdown source';
@@ -453,7 +453,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quickStartBadge => '• Quick start';
 
   @override
-  String get layoutDropdown => 'Layout ⌄';
+  String get layoutDropdown => 'Layout';
 
   @override
   String get findTooltip => 'Find · Ctrl+F';
@@ -828,7 +828,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String typographyDropdown(String name) {
-    return 'Style: $name ⌄';
+    return 'Style: $name';
   }
 
   @override

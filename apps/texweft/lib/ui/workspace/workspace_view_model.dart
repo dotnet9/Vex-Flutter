@@ -68,7 +68,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
       presentation = false;
   bool paragraphs = true, lists = true, blocks = false;
   int summaryLength = 30;
-  double sidebarWidth = 226, fontSize = 14;
+  double sidebarWidth = 226, fontSize = 15;
   String filter = '', findQuery = '', replacement = '';
   String Function(AppLocalizations)? _statusMessage;
   String get status => _statusMessage?.call(strings) ?? '';

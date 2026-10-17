@@ -28,6 +28,7 @@ dependencies:
   archive: ^4.0.7
   window_manager: ^0.5.1
   desktop_drop: ^0.8.4
+  package_info_plus: ^10.2.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

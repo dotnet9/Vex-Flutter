@@ -26,6 +26,7 @@
 </head>
 <body data-page="index">
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><defs>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></symbol>
   <symbol id="i-folder" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
   <symbol id="i-list" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></symbol>
@@ -325,9 +326,9 @@
         <div class="about-hero"><img class="about-logo" src="../logo.svg" alt="笺纬 Texweft"><div class="about-identity"><h2>笺纬 Texweft</h2><div class="slogan" data-proto-label="笺纬 Texweft · 落笔成文，思路成形。">笺纬 Texweft · 落笔成文，思路成形。</div></div></div>
         <div class="about-rows">
           <div class="about-row"><span class="k" data-l10n="AboutVersionLabel"></span><span class="v about-version"><span class="ver-badge" id="about-version"></span><button class="about-link" data-action="dlg-doc" data-proto-label="更新日志">更新日志</button></span></div>
-          <div class="about-row"><span class="k" data-l10n="AboutPlatformLabel"></span><span class="v">Flutter（规划）</span></div>
+          <div class="about-row"><span class="k" data-l10n="AboutPlatformLabel"></span><span class="v">Flutter / Dart</span></div>
           <div class="about-row"><span class="k" data-l10n="AboutAuthorLabel"></span><span class="v" data-l10n="AboutAuthorName"></span></div>
-          <div class="about-row"><span class="k">设备平台</span><span class="v">Windows / macOS / Linux<br>Android / iOS / HarmonyOS</span></div>
+          <div class="about-row"><span class="k" data-l10n="ProjectLicenseLabel"></span><span class="v">MIT License · Texweft</span></div>
           <div class="about-row"><span class="k" data-proto-label="链接">链接</span><span class="v about-links"><a href="https://codewf.com" data-proto-label="官网">官网</a><span aria-hidden="true">·</span><a href="https://github.com/dotnet9/texweft" data-proto-label="开源仓库">开源仓库</a></span></div>
         </div>
         <div class="about-footer"><div class="about-foot" id="about-copyright">Copyright © 2026 Texweft(笺纬)</div><button class="btn primary" id="texweft-update"></button><p id="texweft-update-status" role="status" hidden></p></div>
@@ -410,8 +411,8 @@
           </span>
         </div>
         <div class="doc-body">
-          <div class="md-body" id="doc-content-changelog"><h2>0.1.0 · 设计预览</h2><ul><li>桌面工作区沿用 Vex 的布局与交互，保留八种视图组合。</li><li>即时编辑、源码、阅读、导图与章节编排共享当前文档。</li><li>八套界面配色、六套排版、写作辅助、演示与六步引导。</li><li>手机和平板采用适合触控的自适应布局。</li><li>统一根目录 Logo；提供六个平台的安装或获取流程原型。</li></ul><p>这是设计评审版本；未来应用计划采用 Flutter。本页面未连接真实更新服务。</p></div>
-          <div class="md-body thanks-content" id="doc-content-thanks" hidden><h2>设计来源与鸣谢</h2><p>桌面原型参考并复用 <a href="https://github.com/dotnet9/Vex" target="_blank" rel="noopener">Vex</a> 的工作区、编辑、章节、排版与引导设计。两者由沙漠尽头的狼 / CodeWF 发起。</p><p>笺纬计划使用 Flutter。实际依赖及其许可证将在技术选型确定后列出。</p><p>当前 HTML / CSS / JavaScript 仅用于离线交互评审。</p></div>
+          <div class="md-body" id="doc-content-changelog"><h2>0.1.0 · 设计预览</h2><ul><li>单窗口工作区提供八种视图组合。</li><li>即时编辑、源码、阅读、导图与章节编排共享当前文档。</li><li>八套界面配色、六套排版、写作辅助、演示与六步引导。</li><li>手机和平板采用适合触控的自适应布局。</li><li>统一根目录 Logo；提供六个平台的安装或获取流程原型。</li></ul><p>此页面为交互原型，应用使用 Flutter 原生渲染。本页面的更新流程仅作演示，实际版本以发布页为准。</p></div>
+          <div class="md-body thanks-content" id="doc-content-thanks" hidden><h2 data-l10n="ProjectThanksTitle"></h2><p data-l10n="ProjectThanksBody"></p><p>Flutter · Dart · flutter_markdown_plus · markdown · provider · flutter_svg · file_picker · path_provider · shared_preferences · window_manager · desktop_drop · url_launcher · package_info_plus · pdf · printing · archive · Cascadia Code · Noto Sans SC</p><p><a href="Third-Party-Licenses.html" target="_blank" rel="noopener" data-l10n="ProjectLicensesLink"></a></p><p>Texweft · MIT License<br>Copyright © 2026 沙漠尽头的狼 / CodeWF</p></div>
         </div>
       </div>
     </div>
@@ -426,5 +427,5 @@
 </div>
 <input type="file" id="open-file-input" accept=".md,.markdown,.mdown,.txt" hidden>
 <input type="file" id="open-folder-input" accept=".md,.markdown,.mdown,.txt" webkitdirectory directory multiple hidden>
-<script src="assets/desktop/localization.js"></script><script src="assets/desktop/typography.js"></script><script src="assets/desktop/interact.js"></script><script src="assets/desktop/mindmap.js"></script><script src="assets/code-fence.js"></script><script src="assets/desktop/instant-editor.js"></script><script src="assets/desktop/workbench.js"></script><script src="assets/desktop/guide.js"></script>
+<script src="assets/desktop/localization.js"></script><script src="assets/project-info.js"></script><script src="assets/desktop/typography.js"></script><script src="assets/desktop/interact.js"></script><script src="assets/desktop/mindmap.js"></script><script src="assets/code-fence.js"></script><script src="assets/desktop/instant-editor.js"></script><script src="assets/desktop/workbench.js"></script><script src="assets/desktop/guide.js"></script>
 <script src="assets/desktop/about-update.js"></script><script src="assets/desktop/workspace.js"></script><script src="assets/desktop/chapter-editor.js"></script><script src="assets/desktop/preview.js"></script></body></html>

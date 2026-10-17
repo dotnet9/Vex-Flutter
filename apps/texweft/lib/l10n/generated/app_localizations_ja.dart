@@ -160,7 +160,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get slogan => '言葉を綴り、思考をかたちに。';
 
   @override
-  String get nativeApplication => '0.1.0 · Flutter ネイティブアプリ';
+  String get nativeApplication => 'Flutter ネイティブアプリ';
 
   @override
   String get aboutDescription =>
@@ -183,7 +183,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get acknowledgements =>
-      'Flutter、Dart、Vex、およびオープンソースの貢献者に感謝します。MIT License。';
+      'Flutter、Dart、flutter_markdown_plus、markdown、ファイル・ウィンドウ管理、エクスポート関連のコンポーネント、および Cascadia Code、Noto Sans SC の貢献者に感謝します。各コンポーネントとフォントにはそれぞれのライセンスが適用されます。全文は「オープンソースライセンス」をご覧ください。';
 
   @override
   String get markdownSource => 'Markdown ソース';
@@ -444,7 +444,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get quickStartBadge => '• 使い方ガイド';
 
   @override
-  String get layoutDropdown => 'レイアウト ⌄';
+  String get layoutDropdown => 'レイアウト';
 
   @override
   String get findTooltip => '検索 · Ctrl+F';
@@ -801,7 +801,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String typographyDropdown(String name) {
-    return '書式 $name ⌄';
+    return '書式 $name';
   }
 
   @override

@@ -158,7 +158,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get slogan => '落笔成文，思路成形。';
 
   @override
-  String get nativeApplication => '0.1.0 · Flutter 原生应用';
+  String get nativeApplication => 'Flutter 原生应用';
 
   @override
   String get aboutDescription =>
@@ -180,7 +180,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get checkUpdates => '检查更新';
 
   @override
-  String get acknowledgements => '开源致谢：Flutter、Dart、Vex 及各开源组件。MIT License。';
+  String get acknowledgements =>
+      '感谢 Flutter、Dart、flutter_markdown_plus、markdown、文件与窗口管理、导出等开源组件，以及 Cascadia Code、Noto Sans SC 字体的贡献者。各组件和字体遵循各自的许可证，完整声明见“开源组件许可”。';
 
   @override
   String get markdownSource => 'Markdown 源码';
@@ -441,7 +442,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get quickStartBadge => '• 快速上手';
 
   @override
-  String get layoutDropdown => '布局 ⌄';
+  String get layoutDropdown => '布局';
 
   @override
   String get findTooltip => '查找 · Ctrl+F';
@@ -795,7 +796,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String typographyDropdown(String name) {
-    return '排版 $name ⌄';
+    return '排版 $name';
   }
 
   @override
@@ -1077,7 +1078,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get slogan => '落筆成文，思路成形。';
 
   @override
-  String get nativeApplication => '0.1.0 · Flutter 原生應用';
+  String get nativeApplication => 'Flutter 原生應用程式';
 
   @override
   String get aboutDescription =>
@@ -1099,7 +1100,8 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get checkUpdates => '檢查更新';
 
   @override
-  String get acknowledgements => '開源致謝：Flutter、Dart、Vex 及各開源元件。MIT License。';
+  String get acknowledgements =>
+      '感謝 Flutter、Dart、flutter_markdown_plus、markdown、檔案與視窗管理、匯出等開源元件，以及 Cascadia Code、Noto Sans SC 字型的貢獻者。各元件與字型遵循各自的授權，完整聲明請見「開源元件授權」。';
 
   @override
   String get markdownSource => 'Markdown 原始碼';
@@ -1360,7 +1362,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get quickStartBadge => '• 快速上手';
 
   @override
-  String get layoutDropdown => '版面配置 ⌄';
+  String get layoutDropdown => '版面配置';
 
   @override
   String get findTooltip => '尋找 · Ctrl+F';
@@ -1714,7 +1716,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String typographyDropdown(String name) {
-    return '排版 $name ⌄';
+    return '排版 $name';
   }
 
   @override

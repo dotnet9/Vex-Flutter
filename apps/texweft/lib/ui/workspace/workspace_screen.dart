@@ -798,6 +798,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         children: [
           AppButton(
             icon: 'sidebar',
+            height: 30,
             selected: state.sidebar,
             tooltip: context.l10n.filesOutline,
             onPressed: () {
@@ -818,14 +819,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             ),
           ),
           if (!phone) ...[
-            _viewSwitch(state),
-            const SizedBox(width: 14),
-            const Spacer(),
-            if (width >= 1100)
-              AppButton(
-                label: context.l10n.quickStartBadge,
-                onPressed: () => _action('guide'),
-              ),
+            _viewSwitch(state, width),
+            SizedBox(width: width < 1100 ? 8 : 14),
           ],
           WorkspacePickerAnchor(
             vm: state,
@@ -834,13 +829,37 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             child: AppButton(
               label: phone ? null : context.l10n.layoutDropdown,
               icon: 'columns',
+              trailingIcon: phone ? null : 'chevron-down',
               tooltip: context.l10n.workspaceLayout,
               bordered: !phone,
+              padding: 11,
               onPressed: () => _action('layouts'),
             ),
           ),
+          if (!phone) const SizedBox(width: 14),
+          if (phone)
+            _workActions(state, phone, width)
+          else
+            Expanded(child: _workActions(state, phone, width)),
+        ],
+      ),
+    );
+  }
+
+  Widget _workActions(WorkspaceViewModel state, bool phone, double width) =>
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          if (!phone && width >= 1100)
+            Flexible(
+              child: AppButton(
+                label: context.l10n.quickStartBadge,
+                onPressed: () => _action('guide'),
+              ),
+            ),
           if (!state.layout.panes.any((p) => p == 'source' || p == 'instant'))
-            _typographyPicker(state, iconOnly: phone),
+            Flexible(child: _typographyPicker(state, iconOnly: phone)),
           AppButton(
             icon: 'search',
             tooltip: context.l10n.findTooltip,
@@ -866,11 +885,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
               (context.l10n.about, 'about', ''),
             ]),
         ],
-      ),
-    );
-  }
+      );
 
-  Widget _viewSwitch(WorkspaceViewModel state) {
+  Widget _viewSwitch(WorkspaceViewModel state, double width) {
     final c = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(3),
@@ -880,6 +897,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
+        spacing: 2,
         children: [
           for (final item in [
             (WorkspaceLayout.instant, context.l10n.edit, 'edit'),
@@ -887,7 +905,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             (WorkspaceLayout.map, context.l10n.map, 'map'),
           ])
             SizedBox(
-              width: 80,
+              width: width < 1100 ? 72 : 86,
               child: AppButton(
                 label: item.$2,
                 icon: item.$3,
@@ -995,8 +1013,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                   context.l10n.typographyName(state.typography),
                 ),
           icon: iconOnly ? 'heading' : null,
+          trailingIcon: iconOnly ? null : 'chevron-down',
           tooltip: context.l10n.markdownTypography,
-          height: 28,
+          height: 32,
           onPressed: () => _action('typography'),
         ),
       );
@@ -1056,8 +1075,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
               label: context.l10n.replace,
               onPressed: () => state.showFind(replace: !state.replaceVisible),
             ),
-            AppButton(
-              icon: 'x',
+            AppCloseButton(
               tooltip: context.l10n.closeFind,
               onPressed: state.closeFind,
             ),

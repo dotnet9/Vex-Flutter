@@ -30,15 +30,16 @@ class AppButton extends StatelessWidget {
     super.key,
     this.label,
     this.icon,
+    this.trailingIcon,
     this.onPressed,
     this.tooltip,
     this.selected = false,
     this.bordered = false,
     this.primary = false,
-    this.height = 30,
+    this.height = 32,
     this.padding = 9,
   });
-  final String? label, icon, tooltip;
+  final String? label, icon, trailingIcon, tooltip;
   final VoidCallback? onPressed;
   final bool selected, bordered, primary;
   final double height, padding;
@@ -60,9 +61,15 @@ class AppButton extends StatelessWidget {
             ? c.primaryContainer
             : null,
         minimumSize: Size(label == null ? height : 0, height),
+        fixedSize: Size.fromHeight(height),
+        visualDensity: VisualDensity.standard,
         padding: EdgeInsets.symmetric(horizontal: padding),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w400),
+        textStyle: const TextStyle(
+          fontSize: 12,
+          height: 1.2,
+          fontWeight: FontWeight.w400,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(5),
           side: bordered
@@ -79,18 +86,37 @@ class AppButton extends StatelessWidget {
               color: onPressed == null
                   ? c.onSurface.withValues(alpha: .3)
                   : foreground,
-              size: 14,
+              size: 16,
             ),
           if (icon != null && label != null) const SizedBox(width: 6),
           if (label != null)
             Flexible(
               child: Text(label!, maxLines: 1, overflow: TextOverflow.ellipsis),
             ),
+          if (trailingIcon != null) ...[
+            const SizedBox(width: 7),
+            AppGlyph(trailingIcon!, size: 11, color: foreground),
+          ],
         ],
       ),
     );
     return tooltip == null ? button : Tooltip(message: tooltip!, child: button);
   }
+}
+
+/// Shared hit area and glyph for dialog, popover and inspector dismissal.
+class AppCloseButton extends StatelessWidget {
+  const AppCloseButton({super.key, required this.onPressed, this.tooltip});
+  final VoidCallback onPressed;
+  final String? tooltip;
+  @override
+  Widget build(BuildContext context) => AppButton(
+    icon: 'x',
+    tooltip: tooltip ?? context.l10n.close,
+    onPressed: onPressed,
+    height: 32,
+    padding: 8,
+  );
 }
 
 class PanelHeader extends StatelessWidget {
@@ -172,11 +198,7 @@ class AppDialog extends StatelessWidget {
                     ),
                   ),
                 ),
-                AppButton(
-                  icon: 'x',
-                  tooltip: context.l10n.close,
-                  onPressed: () => Navigator.pop(context),
-                ),
+                AppCloseButton(onPressed: () => Navigator.pop(context)),
               ],
             ),
           ),

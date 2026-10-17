@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -396,11 +397,7 @@ Future<void> showSettings(BuildContext context, WorkspaceViewModel vm) =>
                 label: context.l10n.openSourceLicenses,
                 icon: 'info',
                 bordered: true,
-                onPressed: () => showLicensePage(
-                  context: context,
-                  applicationName: context.l10n.appTitle,
-                  applicationVersion: '0.1.0',
-                ),
+                onPressed: () => _showLicenses(context),
               ),
             ],
           ),
@@ -413,6 +410,32 @@ Future<void> showAbout(BuildContext context) => showDialog<void>(
   builder: (context) => const _AboutDialog(),
 );
 
+Future<PackageInfo?> _packageInfo() async {
+  try {
+    return await PackageInfo.fromPlatform();
+  } on MissingPluginException {
+    return null;
+  } on PlatformException {
+    return null;
+  }
+}
+
+String _version(PackageInfo info) => info.buildNumber.isEmpty
+    ? info.version
+    : '${info.version}+${info.buildNumber}';
+
+Future<void> _showLicenses(BuildContext context) async {
+  final info = await _packageInfo();
+  if (!context.mounted) return;
+  showLicensePage(
+    context: context,
+    applicationName: context.l10n.appTitle,
+    applicationVersion: info == null ? null : _version(info),
+    applicationLegalese:
+        'Copyright © 2026 沙漠尽头的狼 / CodeWF\nTexweft · MIT License',
+  );
+}
+
 class _AboutDialog extends StatefulWidget {
   const _AboutDialog();
   @override
@@ -420,6 +443,7 @@ class _AboutDialog extends StatefulWidget {
 }
 
 class _AboutDialogState extends State<_AboutDialog> {
+  late final Future<PackageInfo?> _info = _packageInfo();
   String _update = '';
   bool _checking = false;
   Future<void> _check() async {
@@ -487,9 +511,15 @@ class _AboutDialogState extends State<_AboutDialog> {
                     style: const TextStyle(fontSize: 13),
                   ),
                   const SizedBox(height: 5),
-                  Text(
-                    context.l10n.nativeApplication,
-                    style: const TextStyle(fontSize: 11),
+                  FutureBuilder<PackageInfo?>(
+                    future: _info,
+                    builder: (context, snapshot) => Text(
+                      [
+                        if (snapshot.data case final info?) _version(info),
+                        context.l10n.nativeApplication,
+                      ].join(' · '),
+                      style: const TextStyle(fontSize: 11),
+                    ),
                   ),
                 ],
               ),
@@ -557,6 +587,18 @@ class _AboutDialogState extends State<_AboutDialog> {
         Text(
           context.l10n.acknowledgements,
           style: const TextStyle(fontSize: 11, height: 1.8),
+        ),
+        const SizedBox(height: 10),
+        AppButton(
+          label: context.l10n.openSourceLicenses,
+          icon: 'info',
+          bordered: true,
+          onPressed: () => _showLicenses(context),
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'Copyright © 2026 沙漠尽头的狼 / CodeWF\nTexweft · MIT License',
+          style: TextStyle(fontSize: 11, height: 1.8),
         ),
       ],
     ),

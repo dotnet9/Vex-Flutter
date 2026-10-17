@@ -68,10 +68,8 @@ class WorkspacePickerAnchor extends StatelessWidget {
                             ),
                           ),
                         ),
-                        AppButton(
-                          icon: 'x',
+                        AppCloseButton(
                           tooltip: context.l10n.closePicker,
-                          height: 24,
                           onPressed: controller.close,
                         ),
                       ],

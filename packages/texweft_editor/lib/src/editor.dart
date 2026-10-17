@@ -5,7 +5,6 @@ import 'package:texweft_markdown_core/texweft_markdown_core.dart';
 
 import 'code_block.dart';
 import 'controller.dart';
-import 'font_families.dart';
 import 'labels.dart';
 import 'reader.dart';
 import 'typing_formatter.dart';
@@ -160,6 +159,8 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
   final _focus = FocusNode();
   final _languageFocus = FocusNode();
   final _bodyRegion = GlobalKey();
+  final _codeOverlay = OverlayPortalController();
+  final _codeLink = LayerLink();
   MarkdownCodeFence? _codeFence;
   MarkdownSnapshot? _checkpoint;
   MarkdownBlockKind _kind = MarkdownBlockKind.paragraph;
@@ -221,6 +222,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
     _input.text = body.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
     setState(() => _checkpoint = widget.controller.session.snapshot());
     _focus.requestFocus();
+    if (_codeFence != null) _codeOverlay.show();
     final bodyStart = _start + (_codeFence?.bodyOffset() ?? _prefix.length);
     final localOffset = sourceOffset == null
         ? _input.text.length
@@ -358,6 +360,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
   }
 
   void _finish() {
+    if (_codeOverlay.isShowing) _codeOverlay.hide();
     if (_checkpoint == null) return;
     _input.value = _input.value.copyWith(composing: TextRange.empty);
     _language.value = _language.value.copyWith(composing: TextRange.empty);
@@ -368,6 +371,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
   }
 
   void _cancel() {
+    if (_codeOverlay.isShowing) _codeOverlay.hide();
     final checkpoint = _checkpoint;
     if (checkpoint == null) return;
     _checkpoint = null;
@@ -429,70 +433,109 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
         return KeyEventResult.ignored;
       },
       child: _codeFence == null
-          ? _bodyField(colors)
-          : Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  MarkdownCodeBlock(
+          ? _proseField(colors)
+          : OverlayPortal(
+              controller: _codeOverlay,
+              overlayChildBuilder: (context) => CompositedTransformFollower(
+                link: _codeLink,
+                targetAnchor: Alignment.bottomRight,
+                followerAnchor: Alignment.topRight,
+                offset: const Offset(0, 4),
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  widthFactor: 1,
+                  heightFactor: 1,
+                  child: SizedBox(
+                    width: 180,
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: _languageField(colors),
+                    ),
+                  ),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: CompositedTransformTarget(
+                  link: _codeLink,
+                  child: MarkdownCodeBlock(
                     code: _input.text,
                     fontSize: widget.compact ? 13 : 14,
                     child: _codeBody(colors),
                   ),
-                  const SizedBox(height: 4),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: SizedBox(
-                      width: 180,
-                      child: Semantics(
-                        label: widget.labels.codeLanguage,
-                        child: TextField(
-                          key: const ValueKey('instant-code-language'),
-                          groupId: this,
-                          controller: _language,
-                          focusNode: _languageFocus,
-                          onTapOutside: (_) => _finish(),
-                          onSubmitted: (_) => _focus.requestFocus(),
-                          autocorrect: false,
-                          enableSuggestions: false,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.deny(RegExp(r'[\s`]')),
-                          ],
-                          style: MarkdownCodeBlock.textStyle(context, 12),
-                          textAlign: TextAlign.center,
-                          decoration: InputDecoration(
-                            hintText: 'text',
-                            hintStyle: TextStyle(
-                              color: colors.onSurfaceVariant,
-                            ),
-                            isDense: true,
-                            filled: true,
-                            fillColor: colors.surfaceContainerLow,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 5,
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(3),
-                              borderSide: BorderSide(
-                                color: colors.outlineVariant,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(3),
-                              borderSide: BorderSide(color: colors.primary),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
     ),
   );
+
+  Widget _languageField(ColorScheme colors) => Semantics(
+    label: widget.labels.codeLanguage,
+    child: TextField(
+      key: const ValueKey('instant-code-language'),
+      groupId: this,
+      controller: _language,
+      focusNode: _languageFocus,
+      onTapOutside: (_) => _finish(),
+      onSubmitted: (_) => _focus.requestFocus(),
+      autocorrect: false,
+      enableSuggestions: false,
+      inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'[\s`]'))],
+      style: MarkdownCodeBlock.textStyle(context, 12),
+      textAlign: TextAlign.center,
+      decoration: InputDecoration(
+        hintText: 'text',
+        hintStyle: TextStyle(color: colors.onSurfaceVariant),
+        isDense: true,
+        filled: true,
+        fillColor: colors.surfaceContainerLow,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(3),
+          borderSide: BorderSide(color: colors.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(3),
+          borderSide: BorderSide(color: colors.primary),
+        ),
+      ),
+    ),
+  );
+
+  MarkdownReader get _reader => MarkdownReader(
+    data: '',
+    typography: widget.typography,
+    compact: widget.compact,
+    fontSize: widget.fontSize,
+  );
+  int get _level => _prefix.trim().length.clamp(1, 6);
+  TextStyle get _activeStyle {
+    final sheet = _reader.styleSheet(context);
+    if (_kind != MarkdownBlockKind.heading) return sheet.p!;
+    return switch (_level) {
+      1 => sheet.h1!,
+      2 => sheet.h2!,
+      3 => sheet.h3!,
+      4 => sheet.h4!,
+      5 => sheet.h5!,
+      _ => sheet.h6!,
+    };
+  }
+
+  Widget _proseField(ColorScheme colors) => _kind == MarkdownBlockKind.heading
+      ? MarkdownHeadingFrame(
+          typography: widget.typography,
+          compact: widget.compact,
+          level: _level,
+          style: _activeStyle,
+          child: _bodyField(colors),
+        )
+      : Padding(
+          padding: EdgeInsets.only(
+            bottom: _reader.styleSheet(context).pPadding!.bottom,
+          ),
+          child: _bodyField(colors),
+        );
 
   Widget _codeBody(ColorScheme colors) => LayoutBuilder(
     builder: (context, constraints) {
@@ -532,29 +575,26 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
       onTapOutside: (_) => _finish(),
       style: _codeFence != null
           ? MarkdownCodeBlock.textStyle(context, widget.compact ? 13 : 14)
-          : Theme.of(context).textTheme.bodyMedium!.copyWith(
-              fontFamily: widget.typography == MarkdownTypography.book
-                  ? MarkdownFontFamilies.of(context).serif
-                  : null,
-              fontFamilyFallback: widget.typography == MarkdownTypography.book
-                  ? MarkdownFontFamilies.of(context).serifFallback
-                  : null,
-              fontSize: _kind == MarkdownBlockKind.heading
-                  ? widget.fontSize * (_prefix.trim() == '#' ? 2 : 1.4)
-                  : widget.fontSize,
-              height: 1.95,
-              color: colors.onSurface,
-            ),
+          : _activeStyle,
+      textAlign:
+          _kind == MarkdownBlockKind.heading &&
+              widget.typography == MarkdownTypography.editorial
+          ? TextAlign.center
+          : TextAlign.start,
+      scrollPadding: EdgeInsets.zero,
+      cursorHeight: _codeFence == null ? _activeStyle.fontSize : null,
+
       decoration: InputDecoration(
-        hintText: _codeFence == null ? widget.labels.placeholder : null,
+        hintText: _codeFence == null && _input.text.isEmpty
+            ? widget.labels.placeholder
+            : null,
+        maintainHintSize: false,
         border: InputBorder.none,
         enabledBorder: InputBorder.none,
         focusedBorder: InputBorder.none,
         filled: false,
         isCollapsed: true,
-        contentPadding: _codeFence == null
-            ? const EdgeInsets.symmetric(vertical: 8)
-            : EdgeInsets.zero,
+        contentPadding: EdgeInsets.zero,
       ),
     ),
   );
@@ -581,7 +621,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
                     onTapUp: (details) =>
                         _begin(block, tapPosition: details.globalPosition),
                     child: Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
+                      padding: EdgeInsets.zero,
                       child: MarkdownReader(
                         data: block.range.slice(source),
                         typography: widget.typography,
@@ -601,7 +641,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
                       onTapUp: (details) =>
                           _begin(block, tapPosition: details.globalPosition),
                       child: Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
+                        padding: EdgeInsets.zero,
                         child: MarkdownReader(
                           data: block.range.slice(source),
                           typography: widget.typography,
