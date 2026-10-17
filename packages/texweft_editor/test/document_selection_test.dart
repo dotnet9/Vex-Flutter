@@ -78,6 +78,49 @@ void main() {
   );
 
   testWidgets(
+    'large shared selection preserves full input and one-step candidate undo',
+    (tester) async {
+      final original = List.generate(
+        1000,
+        (i) => 'Paragraph $i with **Markdown** and 中文。',
+      ).join('\n\n');
+      final controller = MarkdownEditorController(text: original);
+      await tester.pumpWidget(app(controller));
+      await tester.pumpAndSettle();
+      controller.select(0, original.length);
+      await tester.pumpAndSettle();
+      final buffer = find.byKey(captureKey);
+      final input = tester.widget<TextField>(buffer).controller!;
+      expect(input.text, original);
+      expect(
+        input.selection,
+        TextSelection(baseOffset: 0, extentOffset: original.length),
+      );
+      input.value = const TextEditingValue(
+        text: 'nihao',
+        selection: TextSelection.collapsed(offset: 5),
+        composing: TextRange(start: 0, end: 5),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(buffer).style!.fontSize, 15);
+      expect(controller.text, original);
+      input.value = const TextEditingValue(
+        text: '你好',
+        selection: TextSelection.collapsed(offset: 2),
+      );
+      await tester.pumpAndSettle();
+      expect(controller.text, '你好');
+      controller.session.undo();
+      await tester.pumpAndSettle();
+      expect(controller.text, original);
+      expect(controller.session.canUndo, isFalse);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      controller.dispose();
+    },
+  );
+
+  testWidgets(
     'selection extension respects grapheme boundaries and keyboard context',
     (tester) async {
       const original = 'Start\n\nA👨‍👩‍👧‍👦B';

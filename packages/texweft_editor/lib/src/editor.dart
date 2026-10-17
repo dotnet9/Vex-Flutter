@@ -942,6 +942,20 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
         final blocks = widget.controller.document.blocks;
         final starts = blocks.map((b) => b.range.start).toSet()..add(_start);
         _selectionGeometries.removeWhere((start, _) => !starts.contains(start));
+        final visibleBlocks = [
+          for (final block in blocks)
+            if (_checkpoint == null || block.range.end <= _start) block,
+          if (_checkpoint != null) ...[
+            MarkdownBlock(_kind, SourceRange(_start, _end), 1),
+            for (final block in blocks)
+              if (block.range.start >= _end && block.range.start > _start)
+                block,
+          ],
+        ];
+        final indices = {
+          for (var i = 0; i < visibleBlocks.length; i++)
+            ValueKey(visibleBlocks[i].range.start): i,
+        };
         return Stack(
           children: [
             Listener(
@@ -958,7 +972,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
                     constraints: BoxConstraints(
                       maxWidth: widget.typography.width,
                     ),
-                    child: SuperListView(
+                    child: SuperListView.builder(
                       key: PageStorageKey(widget.controller),
                       controller: _scroll,
                       listController: _list,
@@ -970,51 +984,53 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
                             ? constraints.maxHeight / 2
                             : widget.padding.bottom,
                       ),
-                      children: [
-                        for (final block in blocks.where(
-                          (b) => _checkpoint == null || b.range.end <= _start,
-                        ))
-                          _contextBlock(block, source),
-                        if (_checkpoint != null)
-                          _selectionBlock(
-                            MarkdownBlock(_kind, SourceRange(_start, _end), 1),
-                            source,
-                            _field(colors),
-                            active: true,
-                          ),
-                        if (_checkpoint != null)
-                          for (final block in blocks.where(
-                            (b) =>
-                                b.range.start >= _end && b.range.start > _start,
-                          ))
-                            _contextBlock(block, source),
-                        if (_checkpoint == null)
-                          GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () {
-                              final current = widget.controller.session.text;
-                              final newline =
-                                  widget.controller.document.newline;
-                              if (current.isNotEmpty &&
-                                  !current.endsWith('$newline$newline')) {
-                                widget.controller.session.replace(
-                                  '$current${current.endsWith(newline) ? '' : newline}$newline',
-                                  label: widget.labels.newParagraph,
-                                );
-                              }
-                              _begin(null);
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 24),
-                              child: Text(
-                                blocks.isEmpty ? widget.labels.placeholder : '',
-                                style: TextStyle(
-                                  color: colors.onSurfaceVariant,
-                                ),
-                              ),
+                      itemCount:
+                          visibleBlocks.length + (_checkpoint == null ? 1 : 0),
+                      findChildIndexCallback: (key) =>
+                          key == const ValueKey('instant-new-paragraph')
+                          ? (_checkpoint == null ? visibleBlocks.length : null)
+                          : indices[key],
+                      itemBuilder: (context, index) {
+                        if (index < visibleBlocks.length) {
+                          final block = visibleBlocks[index];
+                          return KeyedSubtree(
+                            key: ValueKey(block.range.start),
+                            child:
+                                _checkpoint != null &&
+                                    block.range.start == _start
+                                ? _selectionBlock(
+                                    block,
+                                    source,
+                                    _field(colors),
+                                    active: true,
+                                  )
+                                : _contextBlock(block, source),
+                          );
+                        }
+                        return GestureDetector(
+                          key: const ValueKey('instant-new-paragraph'),
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            final current = widget.controller.session.text;
+                            final newline = widget.controller.document.newline;
+                            if (current.isNotEmpty &&
+                                !current.endsWith('$newline$newline')) {
+                              widget.controller.session.replace(
+                                '$current${current.endsWith(newline) ? '' : newline}$newline',
+                                label: widget.labels.newParagraph,
+                              );
+                            }
+                            _begin(null);
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 24),
+                            child: Text(
+                              blocks.isEmpty ? widget.labels.placeholder : '',
+                              style: TextStyle(color: colors.onSurfaceVariant),
                             ),
                           ),
-                      ],
+                        );
+                      },
                     ),
                   ),
                 ),
