@@ -8,7 +8,7 @@ app="$root/apps/texweft/build/macos/Build/Products/Release/texweft.app"
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")" == "$version" ]]
 # This release is one universal DMG for Intel and Apple silicon.
 for binary in "$app/Contents/MacOS/texweft" "$app/Contents/Frameworks/App.framework/App" "$app/Contents/Frameworks/FlutterMacOS.framework/FlutterMacOS"; do
-  lipo -verify_arch x86_64 arm64 "$binary"
+  lipo "$binary" -verify_arch x86_64 arm64
 done
 codesign --force --deep --sign - "$app"
 codesign --verify --deep --strict --verbose=2 "$app"
