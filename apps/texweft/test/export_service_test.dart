@@ -32,6 +32,24 @@ void main() {
     },
   );
   test(
+    'HTML heading IDs match Unicode document links and duplicate headings',
+    () async {
+      const linked =
+          '# **中文** &amp; `x_y`\n\n'
+          '[跳转](#中文--x_y-1)\n\n# **中文** &amp; `x_y`\n';
+      final html = await service.html(
+        source: linked,
+        title: '导航',
+        colors: colors,
+        typography: MarkdownTypography.simple,
+      );
+      expect(html, contains('<h1 id="中文--x_y">'));
+      expect(html, contains('<h1 id="中文--x_y-1">'));
+      expect(html, contains('href="#%E4%B8%AD%E6%96%87--x_y-1"'));
+      expect(html, isNot(contains('<script')));
+    },
+  );
+  test(
     'DOCX contains real OOXML structure, heading styles and a table',
     () async {
       final archive = ZipDecoder().decodeBytes(

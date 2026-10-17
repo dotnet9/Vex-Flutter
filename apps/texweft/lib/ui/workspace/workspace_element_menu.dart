@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:texweft_editor/texweft_editor.dart';
 import 'package:texweft_markdown_core/texweft_markdown_core.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/workspace.dart';
 import '../../l10n/l10n.dart';
@@ -13,6 +12,7 @@ import '../core/app_widgets.dart';
 import 'document_image.dart';
 import 'element_editor_dialog.dart';
 import 'workspace_element_entries.dart';
+import 'workspace_links.dart';
 import 'workspace_menu.dart';
 import 'workspace_menu_widgets.dart';
 import 'workspace_touch_menu.dart';
@@ -209,10 +209,7 @@ class _WorkspaceElementMenuState extends State<WorkspaceElementMenu> {
       return;
     }
     if (action == 'element:open-link') {
-      final uri = Uri.tryParse(media?.url ?? '');
-      if (uri != null && ['https', 'http', 'mailto'].contains(uri.scheme)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
+      await openWorkspaceLink(widget.vm, media?.url);
       return;
     }
     if (action == 'element:preview-image' ||

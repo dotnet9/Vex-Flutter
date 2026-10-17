@@ -466,5 +466,7 @@
   "prefAutoLink": "リンクを自動検出",
   "prefSoftBreak": "単一改行を表示",
   "prefSpaces": "{count} スペース",
-  "@prefSpaces": {"placeholders":{"count":{"type":"int"}}}
+  "@prefSpaces": {"placeholders":{"count":{"type":"int"}}},
+  "anchorNotFound": "見出しが見つかりません：{anchor}",
+  "@anchorNotFound": {"placeholders":{"anchor":{"type":"String"}}}
 }

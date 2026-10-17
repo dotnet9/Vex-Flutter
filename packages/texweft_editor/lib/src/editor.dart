@@ -12,6 +12,7 @@ import 'controller.dart';
 import 'editing_preferences.dart';
 import 'element_target.dart';
 import 'labels.dart';
+import 'list_navigation.dart';
 import 'markdown_preferences.dart';
 import 'mermaid_block.dart';
 import 'reader.dart';
@@ -51,7 +52,8 @@ class MarkdownInstantEditor extends StatefulWidget {
   State<MarkdownInstantEditor> createState() => _MarkdownInstantEditorState();
 }
 
-class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
+class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
+    with SingleTickerProviderStateMixin {
   final _input = TextEditingController();
   final _language = TextEditingController();
   final _focus = FocusNode();
@@ -59,6 +61,12 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
   final _bodyRegion = GlobalKey();
   final _viewportRegion = GlobalKey();
   final _scroll = ScrollController();
+  final _list = ListController();
+  late final _navigation = MarkdownListNavigator(
+    vsync: this,
+    list: _list,
+    scroll: _scroll,
+  );
   bool _centerScheduled = false;
   MarkdownCodeFence? _codeFence;
   MarkdownSnapshot? _checkpoint;
@@ -256,6 +264,8 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
     _language.addListener(_update);
     _focus.addListener(_scheduleCenter);
     widget.controller.session.addListener(_externalChange);
+    widget.controller.navigation.addListener(_revealNavigation);
+    _revealNavigation();
   }
 
   @override
@@ -263,8 +273,11 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller.session.removeListener(_externalChange);
+      oldWidget.controller.navigation.removeListener(_revealNavigation);
       widget.controller.session.addListener(_externalChange);
+      widget.controller.navigation.addListener(_revealNavigation);
       _checkpoint = null;
+      _revealNavigation();
     }
     if (oldWidget.typewriter != widget.typewriter) _scheduleCenter();
   }
@@ -297,6 +310,41 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
         position.maxScrollExtent,
       );
       if ((target - _scroll.offset).abs() > .5) _scroll.jumpTo(target);
+    });
+  }
+
+  void _revealNavigation() {
+    final controller = widget.controller;
+    final request = controller.navigation.value;
+    if (request == null) {
+      _navigation.cancel();
+      return;
+    }
+    if (_checkpoint != null) {
+      _finish();
+      controller.select(
+        request.selection.baseOffset,
+        request.selection.extentOffset,
+      );
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          widget.controller != controller ||
+          controller.navigation.value != request ||
+          !_list.isAttached ||
+          !_scroll.hasClients) {
+        return;
+      }
+      final blocks = controller.document.blocks;
+      if (blocks.isEmpty) return;
+      final index = blocks.indexWhere(
+        (b) => b.range.end > request.selection.start,
+      );
+      final target = index < 0 ? blocks.length - 1 : index;
+      _navigation.reveal(
+        target,
+        animated: !MediaQuery.disableAnimationsOf(context),
+      );
     });
   }
 
@@ -519,11 +567,14 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
   @override
   void dispose() {
     widget.controller.session.removeListener(_externalChange);
+    widget.controller.navigation.removeListener(_revealNavigation);
+    _navigation.dispose();
     _input.dispose();
     _language.dispose();
     _focus.dispose();
     _languageFocus.dispose();
     _scroll.dispose();
+    _list.dispose();
     super.dispose();
   }
 
@@ -841,6 +892,8 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
         final source = widget.controller.session.text;
         final blocks = widget.controller.document.blocks;
         return Listener(
+          onPointerDown: (_) => _navigation.cancel(),
+          onPointerSignal: (_) => _navigation.cancel(),
           onPointerMove: _dragSelection,
           onPointerUp: (_) {
             _dragOrigin = null;
@@ -859,6 +912,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
                 child: SuperListView(
                   key: PageStorageKey(widget.controller),
                   controller: _scroll,
+                  listController: _list,
                   padding: widget.padding.copyWith(
                     top: widget.typewriter
                         ? constraints.maxHeight / 2

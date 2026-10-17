@@ -2890,6 +2890,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'{count} 空格'**
   String prefSpaces(int count);
+
+  /// No description provided for @anchorNotFound.
+  ///
+  /// In zh, this message translates to:
+  /// **'未找到标题：{anchor}'**
+  String anchorNotFound(String anchor);
 }
 
 class _AppLocalizationsDelegate

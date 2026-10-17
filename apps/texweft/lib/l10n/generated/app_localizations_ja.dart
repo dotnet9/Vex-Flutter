@@ -1512,4 +1512,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String prefSpaces(int count) {
     return '$count スペース';
   }
+
+  @override
+  String anchorNotFound(String anchor) {
+    return '見出しが見つかりません：$anchor';
+  }
 }

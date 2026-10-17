@@ -647,5 +647,7 @@
   "prefAutoLink": "自动识别链接",
   "prefSoftBreak": "单次换行显示为换行",
   "prefSpaces": "{count} 空格",
-  "@prefSpaces": {"placeholders":{"count":{"type":"int"}}}
+  "@prefSpaces": {"placeholders":{"count":{"type":"int"}}},
+  "anchorNotFound": "未找到标题：{anchor}",
+  "@anchorNotFound": {"placeholders":{"anchor":{"type":"String"}}}
 }

@@ -1558,4 +1558,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String prefSpaces(int count) {
     return '$count spaces';
   }
+
+  @override
+  String anchorNotFound(String anchor) {
+    return 'Heading not found: $anchor';
+  }
 }

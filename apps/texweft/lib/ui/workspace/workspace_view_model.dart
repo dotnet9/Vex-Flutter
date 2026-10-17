@@ -323,7 +323,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   void selectNode(MindMapNode node) {
     selectedHeadingId = _headingForNode[node.id];
     final heading = selectedHeading;
-    if (heading != null) editor.select(heading.header.start);
+    if (heading != null) editor.reveal(heading.header.start);
     _notify();
   }
 
@@ -332,9 +332,39 @@ final class WorkspaceViewModel extends ChangeNotifier {
       : editor.document.heading(selectedHeadingId!);
   void selectHeading(MarkdownHeading heading) {
     selectedHeadingId = heading.id;
-    editor.select(heading.header.start, heading.header.end);
+    editor.reveal(heading.header.start, end: heading.header.end);
     map.select(heading.id);
     _notify();
+  }
+
+  bool followAnchor(String href) {
+    if (!href.startsWith('#')) return false;
+    final String fragment;
+    try {
+      fragment = Uri.decodeComponent(Uri.parse(href).fragment);
+    } on FormatException {
+      return false;
+    }
+    if (fragment.isEmpty) {
+      _statusMessage = null;
+      selectedHeadingId = null;
+      map.select(null);
+      editor.reveal(0);
+      _notify();
+      return true;
+    }
+    final heading = markdownHeadingAnchors(
+      editor.document,
+      preferences: markdownPreferences,
+    )[fragment];
+    if (heading == null) {
+      _statusMessage = (l) => l.anchorNotFound(fragment);
+      _notify();
+      return false;
+    }
+    _statusMessage = null;
+    selectHeading(heading);
+    return true;
   }
 
   void moveNode(String source, String target) {
@@ -589,7 +619,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     if (matches.isEmpty) return;
     matchIndex = (matchIndex + direction) % matches.length;
     final match = matches[matchIndex];
-    editor.select(match.start, match.end);
+    editor.reveal(match.start, end: match.end);
     if (!layout.panes.contains('source')) {
       setLayout(WorkspaceLayout.sourceRender);
     }

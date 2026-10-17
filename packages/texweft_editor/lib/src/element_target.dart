@@ -4,6 +4,7 @@ import 'package:texweft_markdown_core/texweft_markdown_core.dart';
 import 'package:val_latex_flutter/val_latex_flutter.dart' as latex;
 
 import 'controller.dart';
+import 'heading_anchors.dart';
 import 'markdown_preferences.dart';
 import 'markdown_syntax.dart';
 
@@ -383,10 +384,13 @@ String markdownPlainText(String source) {
   return nodes.map(plain).join('\n\n');
 }
 
-String markdownHtmlFragment(String source, MarkdownPreferences preferences) =>
-    md.markdownToHtml(
-      source,
-      extensionSet: MarkdownSyntax.extensions(preferences),
-      inlineSyntaxes: MarkdownSyntax.inlines(preferences),
-      blockSyntaxes: MarkdownSyntax.blocks(preferences),
-    );
+String markdownHtmlFragment(String source, MarkdownPreferences preferences) {
+  final parser = md.Document(
+    extensionSet: MarkdownSyntax.extensions(preferences),
+    inlineSyntaxes: MarkdownSyntax.inlines(preferences),
+    blockSyntaxes: MarkdownSyntax.blocks(preferences),
+  );
+  final nodes = parser.parseLines(source.split(RegExp(r'\r\n|\n|\r')));
+  MarkdownHeadingIds().assign(nodes, encodedHtml: true);
+  return md.renderToHtml(nodes);
+}

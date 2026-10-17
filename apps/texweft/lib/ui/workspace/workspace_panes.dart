@@ -3,7 +3,6 @@ import 'package:super_sliver_list/super_sliver_list.dart';
 import 'package:texweft_editor/texweft_editor.dart';
 import 'package:texweft_markdown_core/texweft_markdown_core.dart';
 import 'package:texweft_mindmap/texweft_mindmap.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/workspace.dart';
 import '../../l10n/l10n.dart';
@@ -11,6 +10,7 @@ import '../core/app_widgets.dart';
 import 'document_image.dart';
 import 'document_watermark.dart';
 import 'workspace_element_menu.dart';
+import 'workspace_links.dart';
 import 'workspace_view_model.dart';
 
 class WorkspacePanes extends StatefulWidget {
@@ -295,13 +295,21 @@ class _DocumentReading extends StatefulWidget {
   State<_DocumentReading> createState() => _DocumentReadingState();
 }
 
-class _DocumentReadingState extends State<_DocumentReading> {
+class _DocumentReadingState extends State<_DocumentReading>
+    with SingleTickerProviderStateMixin {
   final _scroll = ScrollController();
   final _list = ListController();
+  late final _navigation = MarkdownListNavigator(
+    vsync: this,
+    list: _list,
+    scroll: _scroll,
+  );
   String? _lastSelection;
+  MarkdownRevealRequest? _lastNavigation;
 
   @override
   void dispose() {
+    _navigation.dispose();
     _list.dispose();
     _scroll.dispose();
     super.dispose();
@@ -311,108 +319,113 @@ class _DocumentReadingState extends State<_DocumentReading> {
   Widget build(BuildContext context) {
     final vm = widget.vm, selected = widget.vm.selectedHeading;
     final blocks = vm.editor.document.blocks;
-    if (selected?.id != _lastSelection) {
+    final request = vm.editor.navigation.value;
+    if (selected?.id != _lastSelection || request != _lastNavigation) {
+      _navigation.cancel();
+      final offset = request != _lastNavigation
+          ? request?.selection.start
+          : selected?.header.start;
       _lastSelection = selected?.id;
+      _lastNavigation = request;
       final index = blocks.indexWhere(
-        (b) => b.range.start == selected?.header.start,
+        (b) => offset != null && b.range.end > offset,
       );
       if (index >= 0) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted || !_list.isAttached || !_scroll.hasClients) return;
-          _list.animateToItem(
-            index: index,
-            scrollController: _scroll,
-            alignment: .08,
-            duration: (_) => const Duration(milliseconds: 200),
-            curve: (_) => Curves.easeInOut,
+          _navigation.reveal(
+            index,
+            animated: !MediaQuery.disableAnimationsOf(context),
           );
         });
       }
     }
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: vm.typography.width),
-        child: SuperListView.builder(
-          key: PageStorageKey('read:${vm.current.id}'),
-          controller: _scroll,
-          listController: _list,
-          padding: const EdgeInsets.fromLTRB(44, 34, 44, 70),
-          itemCount: blocks.isEmpty ? 1 : blocks.length,
-          itemBuilder: (context, index) {
-            if (blocks.isEmpty) return Text(context.l10n.emptyDocument);
-            final block = blocks[index];
-            final reader = MarkdownReader(
-              onMediaContext: (url, image, occurrence, position) {
-                final token = markdownMediaTargets(vm.editor.text, block)
-                    .where(
-                      (token) =>
-                          token.image == image &&
-                          token.url == markdownAttributeText(url),
-                    )
-                    .elementAtOrNull(occurrence);
-                if (token == null) return;
+    return Listener(
+      onPointerDown: (_) => _navigation.cancel(),
+      onPointerSignal: (_) => _navigation.cancel(),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: vm.typography.width),
+          child: SuperListView.builder(
+            key: PageStorageKey('read:${vm.current.id}'),
+            controller: _scroll,
+            listController: _list,
+            padding: const EdgeInsets.fromLTRB(44, 34, 44, 70),
+            itemCount: blocks.isEmpty ? 1 : blocks.length,
+            itemBuilder: (context, index) {
+              if (blocks.isEmpty) return Text(context.l10n.emptyDocument);
+              final block = blocks[index];
+              final reader = MarkdownReader(
+                onMediaContext: (url, image, occurrence, position) {
+                  final token = markdownMediaTargets(vm.editor.text, block)
+                      .where(
+                        (token) =>
+                            token.image == image &&
+                            token.url == markdownAttributeText(url),
+                      )
+                      .elementAtOrNull(occurrence);
+                  if (token == null) return;
+                  widget.onContextMenu?.call(
+                    MarkdownContextRequest(
+                      offset: token.range.start,
+                      position: position,
+                      selection: TextSelection.collapsed(
+                        offset: token.range.start,
+                      ),
+                      readOnly: true,
+                    ),
+                  );
+                },
+                imageBuilder: (uri, title, alt) => DocumentImage(
+                  uri: uri,
+                  documentPath: vm.current.path,
+                  alt: alt,
+                ),
+                key: ValueKey(block.range.start),
+                data: block.range.slice(vm.editor.session.text),
+                labels: context.l10n.editorLabels,
+                typography: vm.typography,
+                compact: vm.compact,
+                fontSize: vm.fontSize,
+                editingPreferences: vm.editingPreferences,
+                preferences: vm.markdownPreferences,
+                onTapLink: (_, href, _) {
+                  openWorkspaceLink(vm, href);
+                },
+              );
+              void openContext(Offset position) {
+                final source = vm.editor.text;
+                final tokens =
+                    const [
+                      MarkdownBlockKind.code,
+                      MarkdownBlockKind.math,
+                    ].contains(block.kind)
+                    ? <MarkdownMediaTarget>[]
+                    : markdownMediaTargets(source, block);
                 widget.onContextMenu?.call(
                   MarkdownContextRequest(
-                    offset: token.range.start,
+                    offset: tokens.length == 1
+                        ? tokens.single.range.start
+                        : block.range.start,
                     position: position,
                     selection: TextSelection.collapsed(
-                      offset: token.range.start,
+                      offset: block.range.start,
                     ),
                     readOnly: true,
                   ),
                 );
-              },
-              imageBuilder: (uri, title, alt) => DocumentImage(
-                uri: uri,
-                documentPath: vm.current.path,
-                alt: alt,
-              ),
-              key: ValueKey(block.range.start),
-              data: block.range.slice(vm.editor.session.text),
-              labels: context.l10n.editorLabels,
-              typography: vm.typography,
-              compact: vm.compact,
-              fontSize: vm.fontSize,
-              editingPreferences: vm.editingPreferences,
-              preferences: vm.markdownPreferences,
-              onTapLink: (_, href, _) {
-                final uri = Uri.tryParse(href ?? '');
-                if (uri != null &&
-                    ['https', 'http', 'mailto'].contains(uri.scheme)) {
-                  launchUrl(uri, mode: LaunchMode.externalApplication);
-                }
-              },
-            );
-            void openContext(Offset position) {
-              final source = vm.editor.text;
-              final tokens =
-                  const [
-                    MarkdownBlockKind.code,
-                    MarkdownBlockKind.math,
-                  ].contains(block.kind)
-                  ? <MarkdownMediaTarget>[]
-                  : markdownMediaTargets(source, block);
-              widget.onContextMenu?.call(
-                MarkdownContextRequest(
-                  offset: tokens.length == 1
-                      ? tokens.single.range.start
-                      : block.range.start,
-                  position: position,
-                  selection: TextSelection.collapsed(offset: block.range.start),
-                  readOnly: true,
-                ),
-              );
-            }
+              }
 
-            return GestureDetector(
-              key: ValueKey('read-element-${block.range.start}'),
-              behavior: HitTestBehavior.translucent,
-              onSecondaryTapUp: (event) => openContext(event.globalPosition),
-              onLongPressStart: (event) => openContext(event.globalPosition),
-              child: reader,
-            );
-          },
+              return GestureDetector(
+                key: ValueKey('read-element-${block.range.start}'),
+                behavior: HitTestBehavior.translucent,
+                onSecondaryTapUp: (event) => openContext(event.globalPosition),
+                onLongPressStart: (event) => openContext(event.globalPosition),
+                child: reader,
+              );
+            },
+          ),
         ),
       ),
     );

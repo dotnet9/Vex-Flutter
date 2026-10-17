@@ -89,6 +89,20 @@ destinations, escaped labels, repeated links and linked images. URLs are not
 double-encoded on repeated editing. Opening links allows HTTP, HTTPS and mailto;
 other schemes are never executed by these menus.
 
+Document-only `#heading` links stay inside the workspace. Heading anchors use
+rendered Unicode text, with punctuation removed, whitespace replaced by hyphens,
+and collision-safe `-1`, `-2` suffixes. Percent-encoded Chinese anchors, inline
+formatting, reference labels and Setext headings are supported. An empty `#`
+returns to the document start; missing targets leave the selection unchanged.
+The same IDs are written into HTML exports and copied HTML fragments. Outline,
+map and anchor navigation reveal the source/instant/reading target without
+changing Markdown, taking input focus or adding undo history. Repeated jumps
+work even when the same heading remains selected, and respect reduced motion.
+
+Coverage: package `heading_anchors_test.dart`, `document_navigation_test.dart`,
+app `document_navigation_test.dart`, `export_service_test.dart` and native
+`integration_test/document_navigation_test.dart`.
+
 Coverage: `element_target_test.dart`, `element_input_test.dart`,
 `context_keyboard_test.dart`, `test/element_menu_test.dart` and
 `integration_test/element_menu_test.dart`.

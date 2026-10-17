@@ -126,6 +126,7 @@ final class DocumentExportService {
       encodeHtml: true,
       extraBlocks: [if (markdown.mermaid) _MermaidHtmlSyntax(colors)],
     );
+    MarkdownHeadingIds().assign(parsed, encodedHtml: true);
     final formulas = await _formulaImages(parsed, markdown, colors.onSurface);
     md.Node resolve(md.Node node) {
       if (_formula(node)) {

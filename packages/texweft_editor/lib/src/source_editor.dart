@@ -122,6 +122,8 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
     );
     widget.controller.source.addListener(_revealSelection);
     widget.controller.sourceFocus.addListener(_revealSelection);
+    widget.controller.navigation.addListener(_navigate);
+    if (widget.controller.navigation.value != null) _navigate();
   }
 
   @override
@@ -132,6 +134,7 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
             widget.editingPreferences?.indent) {
       oldWidget.controller.source.removeListener(_revealSelection);
       oldWidget.controller.sourceFocus.removeListener(_revealSelection);
+      oldWidget.controller.navigation.removeListener(_navigate);
       _code.dispose();
       _viewport = _sourceViewports[widget.controller] ??= _SourceViewport();
       final vertical = _viewport.vertical, horizontal = _viewport.horizontal;
@@ -142,6 +145,7 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
       );
       widget.controller.source.addListener(_revealSelection);
       widget.controller.sourceFocus.addListener(_revealSelection);
+      widget.controller.navigation.addListener(_navigate);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         if (_vertical.hasClients) _vertical.jumpTo(vertical);
@@ -168,10 +172,12 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
     if (_horizontal.hasClients) _viewport.horizontal = _horizontal.offset;
   }
 
-  void _revealSelection() {
-    if (!widget.controller.sourceFocus.hasFocus) return;
+  void _navigate() => _revealSelection(force: true);
+
+  void _revealSelection({bool force = false}) {
+    if (!force && !widget.controller.sourceFocus.hasFocus) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && widget.controller.sourceFocus.hasFocus) {
+      if (mounted && (force || widget.controller.sourceFocus.hasFocus)) {
         _code.makeCursorVisible();
         if (widget.typewriter && _vertical.hasClients) {
           final height =
@@ -236,6 +242,7 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
   void dispose() {
     widget.controller.source.removeListener(_revealSelection);
     widget.controller.sourceFocus.removeListener(_revealSelection);
+    widget.controller.navigation.removeListener(_navigate);
     _code.dispose();
     _scroll.dispose();
     _vertical.dispose();
@@ -344,6 +351,7 @@ class _MobileSourceEditorState extends State<MarkdownSourceEditor> {
   final _scroll = ScrollController();
   final _viewport = GlobalKey();
   bool _centerScheduled = false;
+  bool _forceReveal = false;
 
   bool _showKeyboardContext() {
     if (widget.onContextMenu == null ||
@@ -372,6 +380,8 @@ class _MobileSourceEditorState extends State<MarkdownSourceEditor> {
     super.initState();
     widget.controller.source.addListener(_center);
     widget.controller.sourceFocus.addListener(_center);
+    widget.controller.navigation.addListener(_navigate);
+    if (widget.controller.navigation.value != null) _navigate();
   }
 
   @override
@@ -380,24 +390,32 @@ class _MobileSourceEditorState extends State<MarkdownSourceEditor> {
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller.source.removeListener(_center);
       oldWidget.controller.sourceFocus.removeListener(_center);
+      oldWidget.controller.navigation.removeListener(_navigate);
       widget.controller.source.addListener(_center);
       widget.controller.sourceFocus.addListener(_center);
+      widget.controller.navigation.addListener(_navigate);
     }
     if (oldWidget.typewriter != widget.typewriter) _center();
   }
 
-  void _center() {
-    if (!widget.typewriter ||
-        _centerScheduled ||
-        !widget.controller.sourceFocus.hasFocus) {
+  void _navigate() => _center(force: true);
+
+  void _center({bool force = false}) {
+    _forceReveal |= force;
+    if (_centerScheduled ||
+        (!force &&
+            (!widget.typewriter || !widget.controller.sourceFocus.hasFocus))) {
       return;
     }
     _centerScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _centerScheduled = false;
+      final forced = _forceReveal;
+      _forceReveal = false;
       if (!mounted ||
-          !widget.typewriter ||
-          !widget.controller.sourceFocus.hasFocus ||
+          (!forced &&
+              (!widget.typewriter ||
+                  !widget.controller.sourceFocus.hasFocus)) ||
           !_scroll.hasClients) {
         return;
       }
@@ -421,8 +439,15 @@ class _MobileSourceEditorState extends State<MarkdownSourceEditor> {
           .globalToLocal(editable!.localToGlobal(rect.center))
           .dy;
       final position = _scroll.position;
+      final delta = widget.typewriter
+          ? center - viewport.size.height / 2
+          : center < 26
+          ? center - 26
+          : center > viewport.size.height - 26
+          ? center - viewport.size.height + 26
+          : 0;
       _scroll.jumpTo(
-        (_scroll.offset + center - viewport.size.height / 2).clamp(
+        (_scroll.offset + delta).clamp(
           position.minScrollExtent,
           position.maxScrollExtent,
         ),
@@ -434,6 +459,7 @@ class _MobileSourceEditorState extends State<MarkdownSourceEditor> {
   void dispose() {
     widget.controller.source.removeListener(_center);
     widget.controller.sourceFocus.removeListener(_center);
+    widget.controller.navigation.removeListener(_navigate);
     _scroll.dispose();
     super.dispose();
   }

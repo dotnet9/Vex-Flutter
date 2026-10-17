@@ -466,5 +466,7 @@
   "prefAutoLink": "自動識別連結",
   "prefSoftBreak": "單次換行顯示為換行",
   "prefSpaces": "{count} 空格",
-  "@prefSpaces": {"placeholders":{"count":{"type":"int"}}}
+  "@prefSpaces": {"placeholders":{"count":{"type":"int"}}},
+  "anchorNotFound": "找不到標題：{anchor}",
+  "@anchorNotFound": {"placeholders":{"anchor":{"type":"String"}}}
 }

@@ -5,6 +5,11 @@ import 'package:texweft_markdown_core/texweft_markdown_core.dart';
 import 'markdown_preferences.dart';
 import 'markdown_syntax.dart';
 
+final class MarkdownRevealRequest {
+  const MarkdownRevealRequest(this.selection);
+  final TextSelection selection;
+}
+
 final class MarkdownEditorController extends ChangeNotifier {
   MarkdownEditorController({MarkdownSession? session, String text = ''})
     : session = session ?? MarkdownSession(text) {
@@ -15,6 +20,7 @@ final class MarkdownEditorController extends ChangeNotifier {
   final MarkdownSession session;
   late final TextEditingController source;
   final sourceFocus = FocusNode();
+  final navigation = ValueNotifier<MarkdownRevealRequest?>(null);
   bool _syncing = false;
   String get text =>
       source.value.composing.isValid ? source.text : session.text;
@@ -34,6 +40,7 @@ final class MarkdownEditorController extends ChangeNotifier {
   }
 
   void _documentChanged() {
+    navigation.value = null;
     if (source.text != session.text) {
       final selection = source.selection;
       _syncing = true;
@@ -54,6 +61,13 @@ final class MarkdownEditorController extends ChangeNotifier {
       baseOffset: start.clamp(0, source.text.length),
       extentOffset: (end ?? start).clamp(0, source.text.length),
     );
+  }
+
+  /// Explicit navigation is separate from selections changed while typing.
+  void reveal(int start, {int? end}) {
+    select(start, end);
+    navigation.value = MarkdownRevealRequest(selection);
+    notifyListeners();
   }
 
   void replaceSelection(String replacement, {String label = '插入内容'}) {
@@ -376,6 +390,7 @@ final class MarkdownEditorController extends ChangeNotifier {
     source.removeListener(_inputChanged);
     source.dispose();
     sourceFocus.dispose();
+    navigation.dispose();
     super.dispose();
   }
 }

@@ -1507,6 +1507,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String prefSpaces(int count) {
     return '$count 空格';
   }
+
+  @override
+  String anchorNotFound(String anchor) {
+    return '未找到标题：$anchor';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -3010,5 +3015,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String prefSpaces(int count) {
     return '$count 空格';
+  }
+
+  @override
+  String anchorNotFound(String anchor) {
+    return '找不到標題：$anchor';
   }
 }
