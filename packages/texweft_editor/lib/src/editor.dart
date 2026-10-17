@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -16,10 +18,13 @@ import 'list_navigation.dart';
 import 'markdown_preferences.dart';
 import 'mermaid_block.dart';
 import 'reader.dart';
+import 'selection_geometry.dart';
 import 'table_editor.dart';
 import 'typing_formatter.dart';
 
 export 'source_editor.dart';
+
+part 'editor_selection.dart';
 
 class MarkdownInstantEditor extends StatefulWidget {
   const MarkdownInstantEditor({
@@ -77,6 +82,18 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
   var _writing = false;
   Offset? _dragOrigin;
   int? _dragBase;
+  int? _dragSourceBase, _dragBlockStart, _dragPointer;
+  Offset? _dragPosition;
+  Timer? _dragScrollTimer;
+  final _selectionGeometries = <int, MarkdownSelectionGeometry>{};
+  final _selectionInput = TextEditingController();
+  final _selectionFocus = FocusNode();
+  bool _documentSelection = false, _selectionSync = false;
+  String _selectedOriginal = '';
+  int _selectionRevision = -1;
+  Offset _selectionAnchor = Offset.zero;
+
+  void _rebuildSelection(VoidCallback update) => setState(update);
 
   void _editAt(int offset) {
     if (!mounted) return;
@@ -85,6 +102,9 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
         widget.controller.document.blocks
             .where((b) => b.range.contains(at))
             .firstOrNull ??
+        widget.controller.document.blocks
+            .where((b) => b.range.end == at)
+            .lastOrNull ??
         MarkdownBlock(MarkdownBlockKind.paragraph, SourceRange(at, at), 1);
     _begin(block, sourceOffset: at);
   }
@@ -104,8 +124,8 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
     final selectedHere =
         selection.isValid &&
         !selection.isCollapsed &&
-        selection.start >= block.range.start &&
-        selection.end <= block.range.end;
+        selection.start < block.range.end &&
+        selection.end > block.range.start;
     widget.onContextMenu!(
       MarkdownContextRequest(
         offset: selectedHere
@@ -149,7 +169,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
   }
 
   Widget _contextBlock(MarkdownBlock block, String source) {
-    final child = _displayBlock(block, source);
+    final child = _selectionBlock(block, source, _displayBlock(block, source));
     if (widget.onContextMenu == null || block.kind == MarkdownBlockKind.table) {
       return child;
     }
@@ -165,18 +185,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
   }
 
   void _dragSelection(PointerMoveEvent event) {
-    if (_dragOrigin == null ||
-        _checkpoint == null ||
-        event.kind != PointerDeviceKind.mouse) {
-      return;
-    }
-    final editable = _editable();
-    if (editable == null) return;
-    _dragBase ??= editable.getPositionForPoint(_dragOrigin!).offset;
-    _input.selection = TextSelection(
-      baseOffset: _dragBase!,
-      extentOffset: editable.getPositionForPoint(event.position).offset,
-    );
+    _moveDocumentDrag(event);
   }
 
   Widget _displayBlock(MarkdownBlock block, String source) {
@@ -204,6 +213,14 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
         end: block.range.end,
         style: _reader.styleSheet(context).p!,
         onContextMenu: widget.onContextMenu,
+        onSelectionChanged: (selection) {
+          if (!_documentSelection) {
+            widget.controller.select(
+              selection.baseOffset,
+              selection.extentOffset,
+            );
+          }
+        },
         preferences: widget.preferences,
         editingPreferences: widget.editingPreferences,
         imageBuilder: widget.imageBuilder,
@@ -221,9 +238,9 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
               event.buttons != kPrimaryMouseButton) {
             return;
           }
-          _begin(block, tapPosition: event.position);
-          _dragOrigin = event.position;
-          _dragBase = null;
+          if (!HardwareKeyboard.instance.isShiftPressed) {
+            _begin(block, tapPosition: event.position);
+          }
         },
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -263,6 +280,8 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
     _input.addListener(_update);
     _language.addListener(_update);
     _focus.addListener(_scheduleCenter);
+    _selectionInput.addListener(_selectionBufferChanged);
+    widget.controller.source.addListener(_observeDocumentSelection);
     widget.controller.session.addListener(_externalChange);
     widget.controller.navigation.addListener(_revealNavigation);
     _revealNavigation();
@@ -274,8 +293,12 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller.session.removeListener(_externalChange);
       oldWidget.controller.navigation.removeListener(_revealNavigation);
+      oldWidget.controller.source.removeListener(_observeDocumentSelection);
       widget.controller.session.addListener(_externalChange);
       widget.controller.navigation.addListener(_revealNavigation);
+      widget.controller.source.addListener(_observeDocumentSelection);
+      _clearDocumentSelection();
+      _selectionGeometries.clear();
       _checkpoint = null;
       _revealNavigation();
     }
@@ -283,7 +306,12 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
   }
 
   void _scheduleCenter() {
-    if (!widget.typewriter || _centerScheduled || !_focus.hasFocus) return;
+    if (!widget.typewriter ||
+        _centerScheduled ||
+        !_focus.hasFocus ||
+        _dragOrigin != null) {
+      return;
+    }
     _centerScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _centerScheduled = false;
@@ -349,6 +377,11 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
   }
 
   void _externalChange() {
+    if (!_writing &&
+        _documentSelection &&
+        _selectionRevision != widget.controller.session.revision) {
+      _clearDocumentSelection();
+    }
     // Undo, chapter commands and a second editor invalidate this editing range.
     if (!_writing &&
         _checkpoint != null &&
@@ -359,6 +392,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
   }
 
   void _begin(MarkdownBlock? block, {int? sourceOffset, Offset? tapPosition}) {
+    _clearDocumentSelection();
     _finish();
     final source = widget.controller.session.text;
     final raw = block?.range.slice(source) ?? '';
@@ -568,6 +602,10 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
   void dispose() {
     widget.controller.session.removeListener(_externalChange);
     widget.controller.navigation.removeListener(_revealNavigation);
+    widget.controller.source.removeListener(_observeDocumentSelection);
+    _dragScrollTimer?.cancel();
+    _selectionInput.dispose();
+    _selectionFocus.dispose();
     _navigation.dispose();
     _input.dispose();
     _language.dispose();
@@ -808,6 +846,10 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
       onShow: widget.onContextMenu == null ? null : _showKeyboardContext,
       child: CallbackShortcuts(
         bindings: {
+          const SingleActivator(LogicalKeyboardKey.keyA, control: true):
+              _selectWholeDocument,
+          const SingleActivator(LogicalKeyboardKey.keyA, meta: true):
+              _selectWholeDocument,
           const SingleActivator(LogicalKeyboardKey.tab): () =>
               indentMarkdownSelection(
                 _input,
@@ -891,75 +933,88 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
       builder: (context, _) {
         final source = widget.controller.session.text;
         final blocks = widget.controller.document.blocks;
-        return Listener(
-          onPointerDown: (_) => _navigation.cancel(),
-          onPointerSignal: (_) => _navigation.cancel(),
-          onPointerMove: _dragSelection,
-          onPointerUp: (_) {
-            _dragOrigin = null;
-            _dragBase = null;
-          },
-          onPointerCancel: (_) {
-            _dragOrigin = null;
-            _dragBase = null;
-          },
-          child: LayoutBuilder(
-            builder: (context, constraints) => Align(
-              key: _viewportRegion,
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: widget.typography.width),
-                child: SuperListView(
-                  key: PageStorageKey(widget.controller),
-                  controller: _scroll,
-                  listController: _list,
-                  padding: widget.padding.copyWith(
-                    top: widget.typewriter
-                        ? constraints.maxHeight / 2
-                        : widget.padding.top,
-                    bottom: widget.typewriter
-                        ? constraints.maxHeight / 2
-                        : widget.padding.bottom,
-                  ),
-                  children: [
-                    for (final block in blocks.where(
-                      (b) => _checkpoint == null || b.range.end <= _start,
-                    ))
-                      _contextBlock(block, source),
-                    if (_checkpoint != null) _field(colors),
-                    if (_checkpoint != null)
-                      for (final block in blocks.where(
-                        (b) => b.range.start >= _end && b.range.start > _start,
-                      ))
-                        _contextBlock(block, source),
-                    if (_checkpoint == null)
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          final current = widget.controller.session.text;
-                          final newline = widget.controller.document.newline;
-                          if (current.isNotEmpty &&
-                              !current.endsWith('$newline$newline')) {
-                            widget.controller.session.replace(
-                              '$current${current.endsWith(newline) ? '' : newline}$newline',
-                              label: widget.labels.newParagraph,
-                            );
-                          }
-                          _begin(null);
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 24),
-                          child: Text(
-                            blocks.isEmpty ? widget.labels.placeholder : '',
-                            style: TextStyle(color: colors.onSurfaceVariant),
-                          ),
-                        ),
+        final starts = blocks.map((b) => b.range.start).toSet()..add(_start);
+        _selectionGeometries.removeWhere((start, _) => !starts.contains(start));
+        return Stack(
+          children: [
+            Listener(
+              onPointerDown: _documentPointerDown,
+              onPointerSignal: (_) => _navigation.cancel(),
+              onPointerMove: _dragSelection,
+              onPointerUp: (_) => _endDocumentDrag(),
+              onPointerCancel: (_) => _endDocumentDrag(),
+              child: LayoutBuilder(
+                builder: (context, constraints) => Align(
+                  key: _viewportRegion,
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: widget.typography.width,
+                    ),
+                    child: SuperListView(
+                      key: PageStorageKey(widget.controller),
+                      controller: _scroll,
+                      listController: _list,
+                      padding: widget.padding.copyWith(
+                        top: widget.typewriter
+                            ? constraints.maxHeight / 2
+                            : widget.padding.top,
+                        bottom: widget.typewriter
+                            ? constraints.maxHeight / 2
+                            : widget.padding.bottom,
                       ),
-                  ],
+                      children: [
+                        for (final block in blocks.where(
+                          (b) => _checkpoint == null || b.range.end <= _start,
+                        ))
+                          _contextBlock(block, source),
+                        if (_checkpoint != null)
+                          _selectionBlock(
+                            MarkdownBlock(_kind, SourceRange(_start, _end), 1),
+                            source,
+                            _field(colors),
+                            active: true,
+                          ),
+                        if (_checkpoint != null)
+                          for (final block in blocks.where(
+                            (b) =>
+                                b.range.start >= _end && b.range.start > _start,
+                          ))
+                            _contextBlock(block, source),
+                        if (_checkpoint == null)
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              final current = widget.controller.session.text;
+                              final newline =
+                                  widget.controller.document.newline;
+                              if (current.isNotEmpty &&
+                                  !current.endsWith('$newline$newline')) {
+                                widget.controller.session.replace(
+                                  '$current${current.endsWith(newline) ? '' : newline}$newline',
+                                  label: widget.labels.newParagraph,
+                                );
+                              }
+                              _begin(null);
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              child: Text(
+                                blocks.isEmpty ? widget.labels.placeholder : '',
+                                style: TextStyle(
+                                  color: colors.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
+            if (_documentSelection) _documentSelectionInput(colors),
+          ],
         );
       },
     );

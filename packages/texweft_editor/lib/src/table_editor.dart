@@ -20,6 +20,7 @@ class MarkdownTableEditor extends StatefulWidget {
     required this.end,
     required this.style,
     this.onContextMenu,
+    this.onSelectionChanged,
     this.preferences = const MarkdownPreferences(),
     this.editingPreferences,
     this.imageBuilder,
@@ -29,6 +30,7 @@ class MarkdownTableEditor extends StatefulWidget {
   final int start, end;
   final TextStyle style;
   final ValueChanged<MarkdownContextRequest>? onContextMenu;
+  final ValueChanged<TextSelection>? onSelectionChanged;
   final MarkdownPreferences preferences;
   final MarkdownEditingPreferences? editingPreferences;
   final Widget Function(Uri uri, String? title, String? alt)? imageBuilder;
@@ -80,12 +82,19 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
           mergeKey: 'table-${widget.start}-$key',
         );
       }
-      widget.controller.select(
-        cell.range.start +
+      final selection = TextSelection(
+        baseOffset:
+            cell.range.start +
             tableCellSourceOffset(encoded, input.selection.baseOffset),
-        cell.range.start +
+        extentOffset:
+            cell.range.start +
             tableCellSourceOffset(encoded, input.selection.extentOffset),
       );
+      if (widget.onSelectionChanged case final onSelect?) {
+        onSelect(selection);
+      } else {
+        widget.controller.select(selection.baseOffset, selection.extentOffset);
+      }
     } finally {
       _writing = false;
     }
