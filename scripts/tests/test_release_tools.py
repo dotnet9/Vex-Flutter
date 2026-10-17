@@ -12,6 +12,12 @@ spec.loader.exec_module(release)
 
 
 class ReleaseContractTest(unittest.TestCase):
+    def test_current_brand_and_signed_platform_boundary(self):
+        self.assertEqual(release.filename('windows-x64', '1.2.3'), 'Vex-v1.2.3-windows-x64-setup.exe')
+        self.assertEqual(len(release.DEFAULT_TARGETS), 7)
+        self.assertNotIn('ios', release.DEFAULT_TARGETS)
+        self.assertNotIn('harmonyos', release.DEFAULT_TARGETS)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

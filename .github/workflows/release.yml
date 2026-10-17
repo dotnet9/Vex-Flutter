@@ -194,7 +194,7 @@ jobs:
         run: |
           $compiler = ./scripts/install_inno.ps1
           ./scripts/package_windows.ps1 -Version $env:APP_VERSION -Compiler $compiler
-          ./scripts/test_windows_installer.ps1 -Installer "artifacts/release/Texweft-v$env:APP_VERSION-windows-x64-setup.exe" -Version $env:APP_VERSION
+          ./scripts/test_windows_installer.ps1 -Installer "artifacts/release/Vex-v$env:APP_VERSION-windows-x64-setup.exe" -Version $env:APP_VERSION
       - name: 构建 Linux 正式入口
         if: runner.os == 'Linux'
         working-directory: apps/texweft
@@ -206,7 +206,7 @@ jobs:
           TARGET: ${{ matrix.target }}
         run: |
           bash scripts/package_linux.sh "$APP_VERSION" "${TARGET#linux-}"
-          sudo apt-get install -y "./artifacts/release/Texweft-v$APP_VERSION-$TARGET.deb"
+          sudo apt-get install -y "./artifacts/release/Vex-v$APP_VERSION-$TARGET.deb"
           test -x /usr/bin/texweft
           test -f /usr/share/applications/com.codewf.texweft.desktop
           if ldd /usr/lib/texweft/texweft | grep 'not found'; then exit 1; fi
@@ -379,7 +379,7 @@ jobs:
             }
             const directory = 'artifacts/release';
             const files = fs.readdirSync(directory).sort().map(name => {
-              if (!/^Texweft-v\d+\.\d+\.\d+-.+\.(exe|dmg|deb|apk)(\.sha256)?$/.test(name)) {
+              if (!/^Vex-v\d+\.\d+\.\d+-.+\.(exe|dmg|deb|apk)(\.sha256)?$/.test(name)) {
                 throw new Error(`Unexpected release file: ${name}`);
               }
               const content = fs.readFileSync(path.join(directory, name));
@@ -395,7 +395,7 @@ jobs:
               // The existing annotated tag already fixes the source. Omitting
               // target_commitish avoids requesting permission to modify workflows.
               ({ data: release } = await github.rest.repos.createRelease({
-                ...repo, tag_name: tag, name: `Texweft ${tag}`, body,
+                ...repo, tag_name: tag, name: `维刻 Vex ${tag}`, body,
                 draft: true, prerelease: true,
               }));
             }
@@ -430,12 +430,12 @@ jobs:
             // Do not send tag_name or target_commitish on updates: the tag is
             // immutable here, and integration tokens cannot rewrite old workflow refs.
             const { data: published } = await github.rest.repos.updateRelease({
-              ...repo, release_id, name: `Texweft ${tag}`, body,
+              ...repo, release_id, name: `维刻 Vex ${tag}`, body,
               draft: false, prerelease: true,
             });
             if (published.draft || !published.prerelease || published.tag_name !== tag ||
                 published.assets.length !== files.length) {
               throw new Error('Published release metadata or asset count is incorrect.');
             }
-            core.summary.addLink(`Texweft ${tag}: 7 installers with SHA-256`, published.html_url);
+            core.summary.addLink(`维刻 Vex ${tag}: 7 installers with SHA-256`, published.html_url);
             await core.summary.write();

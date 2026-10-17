@@ -3,7 +3,8 @@ param(
     [Parameter(Mandatory)] [string] $Version,
     [Parameter(Mandatory)] [string] $Compiler,
     [string] $BundleDirectory = '',
-    [string] $OutputDirectory = ''
+    [string] $OutputDirectory = '',
+    [switch] $InstallerTest
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -12,6 +13,9 @@ if (-not $BundleDirectory) { $BundleDirectory = Join-Path $root 'apps/texweft/bu
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $root 'artifacts/release' }
 $bundle = (Resolve-Path -LiteralPath $BundleDirectory).Path
 $output = [IO.Path]::GetFullPath($OutputDirectory)
+if ($InstallerTest -and $output -eq [IO.Path]::GetFullPath((Join-Path $root 'artifacts/release'))) {
+    throw 'Test installers must use a separate output directory.'
+}
 foreach ($required in @('texweft.exe', 'flutter_windows.dll', 'data/app.so', 'data/icudtl.dat', 'data/flutter_assets/AssetManifest.bin')) {
     if (-not (Test-Path -LiteralPath (Join-Path $bundle $required) -PathType Leaf)) { throw "Release bundle is incomplete: $required" }
 }
@@ -26,8 +30,10 @@ if (-not $crt) { throw 'Visual C++ app-local runtime was not found.' }
 Copy-Item -Path (Join-Path $crt.FullName '*.dll') -Destination $bundle -Force
 Copy-Item -LiteralPath (Join-Path $root 'LICENSE') -Destination (Join-Path $bundle 'LICENSE.txt') -Force
 New-Item -ItemType Directory -Path $output -Force | Out-Null
-& $Compiler "/DAppVersion=$Version" "/DSourceDir=$bundle" "/DOutputDir=$output" (Join-Path $PSScriptRoot 'installer/Texweft.iss')
+$defines = @("/DAppVersion=$Version", "/DSourceDir=$bundle", "/DOutputDir=$output")
+if ($InstallerTest) { $defines += '/DInstallerTest' }
+& $Compiler @defines (Join-Path $PSScriptRoot 'installer/Texweft.iss')
 if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed: $LASTEXITCODE" }
-$installer = Join-Path $output "Texweft-v$Version-windows-x64-setup.exe"
+$installer = Join-Path $output "Vex-v$Version-windows-x64-setup.exe"
 if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) { throw 'Windows installer was not produced.' }
 Write-Output $installer

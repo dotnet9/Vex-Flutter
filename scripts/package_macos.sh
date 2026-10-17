@@ -14,19 +14,19 @@ codesign --force --deep --sign - "$app"
 codesign --verify --deep --strict --verbose=2 "$app"
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
-ditto "$app" "$stage/Texweft.app"
+ditto "$app" "$stage/Vex.app"
 cp "$root/LICENSE" "$stage/LICENSE.txt"
 ln -s /Applications "$stage/Applications"
 mkdir -p "$root/artifacts/release"
-dmg="$root/artifacts/release/Texweft-v$version-macos-universal.dmg"
-hdiutil create -volname 'Texweft' -srcfolder "$stage" -ov -format UDZO "$dmg"
+dmg="$root/artifacts/release/Vex-v$version-macos-universal.dmg"
+hdiutil create -volname 'Vex' -srcfolder "$stage" -ov -format UDZO "$dmg"
 hdiutil verify "$dmg"
 # Mount the finished image and verify the actual shipped bundle, not just staging.
 mount="$stage/mount"
 mkdir "$mount"
 hdiutil attach "$dmg" -mountpoint "$mount" -nobrowse -readonly
 trap 'hdiutil detach "$mount" >/dev/null 2>&1 || true; rm -rf "$stage"' EXIT
-codesign --verify --deep --strict "$mount/Texweft.app"
+codesign --verify --deep --strict "$mount/Vex.app"
 test -L "$mount/Applications"
 hdiutil detach "$mount"
 echo "$dmg"

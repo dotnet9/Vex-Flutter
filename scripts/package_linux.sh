@@ -20,9 +20,12 @@ chmod 755 "$stage/usr/bin/texweft"
 cat > "$stage/usr/share/applications/com.codewf.texweft.desktop" <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Texweft
-Name[zh_CN]=笺纬 Texweft
-Comment=Markdown writing workspace
+Name=Vex
+Name[zh_CN]=维刻 Vex
+Name[zh_TW]=維刻 Vex
+Comment=Write ideas. See connections.
+Comment[zh_CN]=写下想法，看见脉络
+Comment[zh_TW]=寫下想法，看見脈絡
 Exec=texweft
 Icon=texweft
 Terminal=false
@@ -49,14 +52,14 @@ Architecture: $deb_arch
 Installed-Size: $(du -sk "$stage/usr" | cut -f1)
 Maintainer: CodeWF <1012434131@qq.com>
 Depends: $dependencies
-Homepage: https://github.com/dotnet9/texweft
-Description: Texweft Markdown writing workspace
+Homepage: https://github.com/dotnet9/Vex-Flutter
+Description: Vex Markdown writing workspace
  Native Flutter editor, reader and mind maps with local files.
 EOF
 rm -rf "$stage/debian"
 chmod 755 "$stage/DEBIAN"
 chmod 644 "$stage/DEBIAN/control"
-package="$root/artifacts/release/Texweft-v$version-linux-$arch.deb"
+package="$root/artifacts/release/Vex-v$version-linux-$arch.deb"
 dpkg-deb --build --root-owner-group "$stage" "$package"
 [[ "$(dpkg-deb -f "$package" Version)" == "$version" ]]
 [[ "$(dpkg-deb -f "$package" Architecture)" == "$deb_arch" ]]

@@ -38,7 +38,7 @@ def app_version(root=ROOT):
 
 
 def filename(target, version):
-    return f'Texweft-v{version}{INSTALLERS[target]}'
+    return f'Vex-v{version}{INSTALLERS[target]}'
 
 
 def sha256(path):
