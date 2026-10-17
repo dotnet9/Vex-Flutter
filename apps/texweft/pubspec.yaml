@@ -38,8 +38,8 @@ flutter:
   assets:
     - assets/brand/logo.svg
     - assets/brand/logo.png
-    - assets/fonts/NotoSansSC.ttf
-    - assets/fonts/NotoSansSC-SemiBold.ttf
+    - assets/fonts/NotoSansSC.ttf.z
+    - assets/fonts/NotoSansSC-SemiBold.ttf.z
     - assets/fonts/OFL.txt
     - assets/fonts/CascadiaCode-OFL.txt
   fonts:

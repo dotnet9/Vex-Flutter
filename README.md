@@ -32,7 +32,7 @@ flutter test --no-pub integration_test/typing_test.dart -d windows
 
 三个独立包在各自目录执行 `dart test` 或 `flutter test --no-pub`。原生窗口集成测试使用内存文档与偏好，不读取个人笔记；设置 `TEXWEFT_CAPTURE_DIR` 环境变量可保存真实 Flutter 截图。
 
-根目录 `logo.svg / logo.png / logo.ico` 是品牌源文件。修改后运行 `python scripts/sync_brand_assets.py` 同步各平台启动图标与应用资源（需要 Pillow），使用 `--check` 检查一致性。原型直接引用根目录 Logo。界面与中文沿用系统字体，仅代码内嵌约 0.92 MiB 的 Cascadia Code；现有离线 PDF 字体另占约 20.2 MiB，待单独优化。来源与许可见应用的 [字体说明](apps/texweft/assets/fonts/README.md)。
+根目录 `logo.svg / logo.png / logo.ico` 是品牌源文件。修改后运行 `python scripts/sync_brand_assets.py` 同步各平台启动图标与应用资源（需要 Pillow），使用 `--check` 检查一致性。原型直接引用根目录 Logo。界面与中文沿用系统字体，仅代码内嵌约 0.92 MiB 的 Cascadia Code；离线 PDF 字体无损压缩后约 12.1 MiB，导出时才解压。来源与许可见应用的 [字体说明](apps/texweft/assets/fonts/README.md)。
 
 ## 导出与发布
 

@@ -4,6 +4,6 @@
 
 PDF 离线导出字体来自 [Google Fonts 的 Noto Sans SC](https://github.com/google/fonts/tree/main/ofl/notosanssc)，遵循同目录 `OFL.txt`（SIL Open Font License 1.1）。
 
-`NotoSansSC.ttf` 为字重 400 的静态实例，`NotoSansSC-SemiBold.ttf` 为字重 600 的静态实例。使用 FontTools 4.67.0 从 `NotoSansSC[wght].ttf` 生成，未修改字形。重新生成：`python scripts/prepare_export_fonts.py <变量字体路径>`。使用静态实例可避免 PDF 字体解析器把可变字体渲染为默认的极细字重。
+`NotoSansSC.ttf.z` 与 `NotoSansSC-SemiBold.ttf.z` 分别为字重 400／600 静态 TTF 的 zlib 无损压缩资源，导出时解压。使用 FontTools 4.67.0 从 `NotoSansSC[wght].ttf` 生成，未修改字形。重新生成：`python scripts/prepare_export_fonts.py <变量字体路径>`。使用静态实例可避免 PDF 字体解析器把可变字体渲染为默认的极细字重。
 
-Noto Sans SC 只用于离线 PDF 导出，不替换应用界面字体。两份完整静态字体约 20.2 MiB，是当前安装资源中的主要字体开销，后续需单独优化；不能把导出时的字形子集嵌入误说成安装包已经裁剪。PDF 文件仅嵌入使用到的字形子集。
+Noto Sans SC 只用于离线 PDF 导出，不替换应用界面字体。两份字体从原始 20.2 MiB 无损压缩到约 12.1 MiB，减少约 40%；解压后的字节、字形与字重完全保留。校验值与大小见 `pdf-fonts.json`。压缩字库不在启动时加载，也不注册为界面字体；仍是字体资源中的主要体积开销。PDF 文件仅嵌入使用到的字形子集。

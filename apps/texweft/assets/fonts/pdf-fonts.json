@@ -1,0 +1,12 @@
+{
+  "NotoSansSC.ttf": {
+    "uncompressedSha256": "ba01c9463b37a39b2e69d3cca02e9a43e59c4a614b5b3e34a40e859e8f74685f",
+    "uncompressedBytes": 10595892,
+    "compressedBytes": 6303500
+  },
+  "NotoSansSC-SemiBold.ttf": {
+    "uncompressedSha256": "e1fafb59ff667675621602c0a760891a7a188bebbfc6a7f43e833863d9d1efdd",
+    "uncompressedBytes": 10585552,
+    "compressedBytes": 6355394
+  }
+}

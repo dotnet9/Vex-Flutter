@@ -21,6 +21,12 @@ final class DocumentExportService {
       '#${(color.toARGB32() & 0xffffff).toRadixString(16).padLeft(6, '0')}';
   static String _escape(String value) => const HtmlEscape().convert(value);
 
+  static Future<pw.Font> _pdfFont(String name) async {
+    final packed = await rootBundle.load('assets/fonts/$name.ttf.z');
+    final bytes = const ZLibDecoder().decodeBytes(packed.buffer.asUint8List());
+    return pw.Font.ttf(ByteData.sublistView(bytes));
+  }
+
   String html({
     required String source,
     required String title,
@@ -69,12 +75,8 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
     required MarkdownTypography typography,
     bool compact = false,
   }) async {
-    final font = pw.Font.ttf(
-      await rootBundle.load('assets/fonts/NotoSansSC.ttf'),
-    );
-    final boldFont = pw.Font.ttf(
-      await rootBundle.load('assets/fonts/NotoSansSC-SemiBold.ttf'),
-    );
+    final font = await _pdfFont('NotoSansSC');
+    final boldFont = await _pdfFont('NotoSansSC-SemiBold');
     final accent = PdfColor.fromInt(colors.primary.toARGB32()),
         line = PdfColor.fromInt(colors.outlineVariant.toARGB32());
     final document = pw.Document(title: title, author: 'Texweft');
