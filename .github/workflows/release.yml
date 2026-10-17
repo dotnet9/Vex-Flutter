@@ -9,6 +9,10 @@ on:
         description: 已存在的版本标签，例如 v0.2.0（重试不会移动标签）
         required: true
         type: string
+      artifact_run_id:
+        description: 可选：复用安装包构建与测试全部通过的发布运行 ID
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -24,11 +28,15 @@ jobs:
   metadata:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
       commit: ${{ steps.commit.outputs.commit }}
       flutter: ${{ steps.version.outputs.flutter }}
+      reuse_artifacts: ${{ steps.reuse.outputs.accepted }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,6 +53,59 @@ jobs:
       - name: 固定全部构建的源码提交
         id: commit
         run: echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: 验证可复用运行的测试、构建与产物
+        if: inputs.artifact_run_id != ''
+        id: reuse
+        uses: actions/github-script@v7
+        env:
+          SOURCE_RUN: ${{ inputs.artifact_run_id }}
+          APP_COMMIT: ${{ steps.commit.outputs.commit }}
+        with:
+          script: |
+            if (!/^[1-9]\d*$/.test(process.env.SOURCE_RUN)) {
+              throw new Error('Source run ID must be a positive integer.');
+            }
+            const run_id = Number(process.env.SOURCE_RUN);
+            if (!Number.isSafeInteger(run_id) || run_id === context.runId) {
+              throw new Error('Invalid source run ID.');
+            }
+            const repo = context.repo;
+            const { data: run } = await github.rest.actions.getWorkflowRun({ ...repo, run_id });
+            if (run.path !== '.github/workflows/release.yml' || run.status !== 'completed' ||
+                run.head_repository.id !== context.payload.repository.id ||
+                !['push', 'workflow_dispatch'].includes(run.event)) {
+              throw new Error('Source must be a completed release run from this repository.');
+            }
+            const { data: comparison } = await github.rest.repos.compareCommitsWithBasehead({
+              ...repo, basehead: `${process.env.APP_COMMIT}...${run.head_sha}`,
+            });
+            if (!['ahead', 'identical'].includes(comparison.status)) {
+              throw new Error('Source workflow commit must contain the application tag commit.');
+            }
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+              ...repo, run_id, filter: 'latest', per_page: 100,
+            });
+            const required = ['metadata', 'checks / validate', '安装包 windows-x64',
+              '安装包 macos-universal', '安装包 linux-x64', '安装包 linux-arm64',
+              'Android 正式签名安装包', 'iOS 无签名编译检查（无 IPA 分发）'];
+            for (const name of required) {
+              if (!jobs.some(job => job.name === name && job.conclusion === 'success')) {
+                throw new Error(`Source check did not pass: ${name}`);
+              }
+            }
+            const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+              ...repo, run_id, per_page: 100,
+            });
+            const expected = new Set(['installers-windows-x64', 'installers-macos-universal',
+              'installers-linux-x64', 'installers-linux-arm64', 'installers-android']);
+            if (artifacts.length !== expected.size || artifacts.some(artifact =>
+                !expected.delete(artifact.name) || artifact.expired ||
+                artifact.workflow_run?.head_sha !== run.head_sha ||
+                !/^sha256:[a-f0-9]{64}$/.test(artifact.digest || ''))) {
+              throw new Error('Source artifacts are incomplete, expired or unverifiable.');
+            }
+            core.setOutput('accepted', 'true');
+            core.info(`Reusing verified installers from run ${run_id}; tag is unchanged.`);
       - name: 检查 Android 发行签名配置
         env:
           KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -59,6 +120,7 @@ jobs:
           echo 'iOS 当前仅做无签名编译检查；HarmonyOS 尚缺兼容 SDK、原生工程及签名，不产出 IPA/HAP。' >> "$GITHUB_STEP_SUMMARY"
 
   checks:
+    if: inputs.artifact_run_id == ''
     needs: metadata
     uses: ./.github/workflows/ci.yml
     with:
@@ -66,6 +128,7 @@ jobs:
 
   desktop:
     name: 安装包 ${{ matrix.target }}
+    if: inputs.artifact_run_id == ''
     needs: [metadata, checks]
     strategy:
       fail-fast: false
@@ -185,6 +248,7 @@ jobs:
 
   android:
     name: Android 正式签名安装包
+    if: inputs.artifact_run_id == ''
     needs: [metadata, checks]
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -247,6 +311,7 @@ jobs:
 
   ios-check:
     name: iOS 无签名编译检查（无 IPA 分发）
+    if: inputs.artifact_run_id == ''
     needs: [metadata, checks]
     runs-on: macos-15
     timeout-minutes: 45
@@ -267,11 +332,17 @@ jobs:
 
   release:
     name: 校验安装包并创建 GitHub 预发布
-    needs: [metadata, desktop, android, ios-check]
+    needs: [metadata, checks, desktop, android, ios-check]
+    if: >-
+      ${{ !cancelled() && needs.metadata.result == 'success' &&
+          (needs.metadata.outputs.reuse_artifacts == 'true' ||
+           (needs.checks.result == 'success' && needs.desktop.result == 'success' &&
+            needs.android.result == 'success' && needs.ios-check.result == 'success')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: write
+      actions: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -281,24 +352,90 @@ jobs:
           python-version: '3.12'
       - uses: actions/download-artifact@v4
         with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.artifact_run_id || github.run_id }}
           pattern: installers-*
           path: artifacts/release
           merge-multiple: true
       - name: 验证全部七个安装包及校验文件
         run: python scripts/release_tools.py verify
       - name: 发布安装包（不发布便携压缩包）
-        uses: softprops/action-gh-release@v2
+        uses: actions/github-script@v7
+        env:
+          RELEASE_TAG: ${{ needs.metadata.outputs.tag }}
+          APP_COMMIT: ${{ needs.metadata.outputs.commit }}
         with:
-          tag_name: ${{ needs.metadata.outputs.tag }}
-          # The annotated tag was verified before building. Do not ask the
-          # integration token to create a ref at an older workflow-bearing commit.
-          name: Texweft ${{ needs.metadata.outputs.tag }}
-          body_path: .github/release-notes/${{ needs.metadata.outputs.tag }}.md
-          prerelease: true
-          fail_on_unmatched_files: true
-          files: |
-            artifacts/release/*.exe
-            artifacts/release/*.dmg
-            artifacts/release/*.deb
-            artifacts/release/*.apk
-            artifacts/release/*.sha256
+          script: |
+            const fs = require('node:fs');
+            const path = require('node:path');
+            const crypto = require('node:crypto');
+            const repo = context.repo;
+            const tag = process.env.RELEASE_TAG;
+            const { data: ref } = await github.rest.git.getRef({ ...repo, ref: `tags/${tag}` });
+            if (ref.object.type !== 'tag') throw new Error('An annotated release tag is required.');
+            const { data: annotated } = await github.rest.git.getTag({ ...repo, tag_sha: ref.object.sha });
+            if (annotated.object.type !== 'commit' || annotated.object.sha !== process.env.APP_COMMIT) {
+              throw new Error('Application tag changed after validation.');
+            }
+            const directory = 'artifacts/release';
+            const files = fs.readdirSync(directory).sort().map(name => {
+              if (!/^Texweft-v\d+\.\d+\.\d+-.+\.(exe|dmg|deb|apk)(\.sha256)?$/.test(name)) {
+                throw new Error(`Unexpected release file: ${name}`);
+              }
+              const content = fs.readFileSync(path.join(directory, name));
+              return { name, content, digest: `sha256:${crypto.createHash('sha256').update(content).digest('hex')}` };
+            });
+            if (files.length !== 14) throw new Error('Exactly 7 installers and 7 checksums are required.');
+            const body = fs.readFileSync(`.github/release-notes/${tag}.md`, 'utf8');
+            let release;
+            try {
+              ({ data: release } = await github.rest.repos.getReleaseByTag({ ...repo, tag }));
+            } catch (error) {
+              if (error.status !== 404) throw error;
+              // The existing annotated tag already fixes the source. Omitting
+              // target_commitish avoids requesting permission to modify workflows.
+              ({ data: release } = await github.rest.repos.createRelease({
+                ...repo, tag_name: tag, name: `Texweft ${tag}`, body,
+                draft: true, prerelease: true,
+              }));
+            }
+            const release_id = release.id;
+            const assets = await github.paginate(github.rest.repos.listReleaseAssets, {
+              ...repo, release_id, per_page: 100,
+            });
+            const expected = new Set(files.map(file => file.name));
+            if (assets.some(asset => !expected.has(asset.name))) {
+              throw new Error('Release contains unexpected assets.');
+            }
+            for (const file of files) {
+              const existing = assets.find(asset => asset.name === file.name);
+              if (existing) {
+                if (existing.state !== 'uploaded' || existing.size !== file.content.length ||
+                    existing.digest !== file.digest) {
+                  throw new Error(`Refusing to replace a different asset for the same tag: ${file.name}`);
+                }
+                core.info(`Verified existing asset: ${file.name}`);
+                continue;
+              }
+              const { data: uploaded } = await github.rest.repos.uploadReleaseAsset({
+                ...repo, release_id, name: file.name, data: file.content,
+                headers: { 'content-type': 'application/octet-stream', 'content-length': file.content.length },
+              });
+              if (uploaded.state !== 'uploaded' || uploaded.digest !== file.digest ||
+                  uploaded.size !== file.content.length) {
+                throw new Error(`Uploaded asset failed verification: ${file.name}`);
+              }
+              core.info(`Uploaded and verified: ${file.name}`);
+            }
+            // Do not send tag_name or target_commitish on updates: the tag is
+            // immutable here, and integration tokens cannot rewrite old workflow refs.
+            const { data: published } = await github.rest.repos.updateRelease({
+              ...repo, release_id, name: `Texweft ${tag}`, body,
+              draft: false, prerelease: true,
+            });
+            if (published.draft || !published.prerelease || published.tag_name !== tag ||
+                published.assets.length !== files.length) {
+              throw new Error('Published release metadata or asset count is incorrect.');
+            }
+            core.summary.addLink(`Texweft ${tag}: 7 installers with SHA-256`, published.html_url);
+            await core.summary.write();
