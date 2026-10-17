@@ -33,12 +33,14 @@ class MarkdownReader extends StatelessWidget {
     this.fontSize = 15,
     this.selectable = true,
     this.onTapLink,
+    this.imageBuilder,
   });
   final String data;
   final MarkdownTypography typography;
   final bool compact, selectable;
   final double fontSize;
   final void Function(String text, String? href, String title)? onTapLink;
+  final Widget Function(Uri uri, String? title, String? alt)? imageBuilder;
   MarkdownStyleSheet styleSheet(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final accent = typography == MarkdownTypography.column
@@ -156,6 +158,7 @@ class MarkdownReader extends StatelessWidget {
       extensionSet: md.ExtensionSet.gitHubFlavored,
       styleSheet: sheet,
       onTapLink: onTapLink,
+      imageBuilder: imageBuilder,
       builders: {
         'pre': _CodeBlockBuilder(
           selectable,

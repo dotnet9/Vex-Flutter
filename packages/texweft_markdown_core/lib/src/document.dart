@@ -171,7 +171,13 @@ final class MarkdownDocument {
               r'^ {0,3}(?:\*\s*){3,}$|^ {0,3}(?:-\s*){3,}$|^ {0,3}(?:_\s*){3,}$',
             ).hasMatch(text)
           ? MarkdownBlockKind.rule
-          : text.contains('|')
+          : text.contains('|') &&
+                ((i + 1 < lines.length &&
+                        RegExp(r'^\s*\|?\s*:?-{3,}')
+                            .hasMatch(lines[i + 1].text)) ||
+                    (blocks.isNotEmpty &&
+                        blocks.last.kind == MarkdownBlockKind.table &&
+                        blocks.last.range.end == line.start))
           ? MarkdownBlockKind.table
           : MarkdownBlockKind.paragraph;
       final end = lines[i].end;

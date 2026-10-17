@@ -11,12 +11,14 @@ class MarkdownCodeBlock extends StatelessWidget {
     this.selectable = true,
     this.fontSize = 14,
     this.child,
+    this.footer,
   });
 
   final String code;
   final bool selectable;
   final double fontSize;
   final Widget? child;
+  final Widget? footer;
 
   static TextStyle textStyle(BuildContext context, double fontSize) {
     final fonts = MarkdownFontFamilies.of(context);
@@ -33,22 +35,31 @@ class MarkdownCodeBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final style = textStyle(context, fontSize);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerLow,
-        border: Border.all(color: colors.outlineVariant),
-        borderRadius: BorderRadius.circular(3),
-      ),
-      child:
-          child ??
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: selectable
-                ? SelectableText(code.isEmpty ? ' ' : code, style: style)
-                : Text(code.isEmpty ? ' ' : code, style: style),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: colors.surfaceContainerLow,
+            border: Border.all(color: colors.outlineVariant),
+            borderRadius: BorderRadius.circular(3),
           ),
+          child:
+              child ??
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: selectable
+                    ? SelectableText(code.isEmpty ? ' ' : code, style: style)
+                    : Text(code.isEmpty ? ' ' : code, style: style),
+              ),
+        ),
+        SizedBox(
+          height: 32,
+          child: Align(alignment: Alignment.centerRight, child: footer),
+        ),
+      ],
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +9,7 @@ import 'code_block.dart';
 import 'controller.dart';
 import 'labels.dart';
 import 'reader.dart';
+import 'table_editor.dart';
 import 'typing_formatter.dart';
 
 export 'source_editor.dart';
@@ -21,6 +23,7 @@ class MarkdownInstantEditor extends StatefulWidget {
     this.fontSize = 15,
     this.padding = const EdgeInsets.fromLTRB(56, 36, 56, 70),
     this.labels = const MarkdownEditorLabels(),
+    this.imageBuilder,
   });
   final MarkdownEditorLabels labels;
   final MarkdownEditorController controller;
@@ -28,6 +31,7 @@ class MarkdownInstantEditor extends StatefulWidget {
   final bool compact;
   final double fontSize;
   final EdgeInsets padding;
+  final Widget Function(Uri uri, String? title, String? alt)? imageBuilder;
   @override
   State<MarkdownInstantEditor> createState() => _MarkdownInstantEditorState();
 }
@@ -38,8 +42,6 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
   final _focus = FocusNode();
   final _languageFocus = FocusNode();
   final _bodyRegion = GlobalKey();
-  final _codeOverlay = OverlayPortalController();
-  final _codeLink = LayerLink();
   MarkdownCodeFence? _codeFence;
   MarkdownSnapshot? _checkpoint;
   MarkdownBlockKind _kind = MarkdownBlockKind.paragraph;
@@ -47,6 +49,63 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
   String _prefix = '', _ending = '', _newline = '\n';
   String _lastSource = '';
   var _writing = false;
+  Offset? _dragOrigin;
+  int? _dragBase;
+
+  void _dragSelection(PointerMoveEvent event) {
+    if (_dragOrigin == null ||
+        _checkpoint == null ||
+        event.kind != PointerDeviceKind.mouse) {
+      return;
+    }
+    final editable = _editable();
+    if (editable == null) return;
+    _dragBase ??= editable.getPositionForPoint(_dragOrigin!).offset;
+    _input.selection = TextSelection(
+      baseOffset: _dragBase!,
+      extentOffset: editable.getPositionForPoint(event.position).offset,
+    );
+  }
+
+  Widget _displayBlock(MarkdownBlock block, String source) {
+    if (block.kind == MarkdownBlockKind.table) {
+      return MarkdownTableEditor(
+        key: ValueKey('table-${block.range.start}'),
+        controller: widget.controller,
+        start: block.range.start,
+        end: block.range.end,
+        style: _reader.styleSheet(context).p!,
+      );
+    }
+    return Listener(
+      onPointerDown: (event) {
+        if (event.kind != PointerDeviceKind.mouse ||
+            event.buttons != kPrimaryMouseButton) {
+          return;
+        }
+        _begin(block, tapPosition: event.position);
+        _dragOrigin = event.position;
+        _dragBase = null;
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapUp: (details) {
+          if (details.kind != PointerDeviceKind.mouse) {
+            _begin(block, tapPosition: details.globalPosition);
+          }
+        },
+        child: MarkdownReader(
+          data: block.range.slice(source),
+          typography: widget.typography,
+          compact: widget.compact,
+          fontSize: widget.fontSize,
+          selectable: false,
+          imageBuilder: widget.imageBuilder,
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -101,7 +160,6 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
     _input.text = body.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
     setState(() => _checkpoint = widget.controller.session.snapshot());
     _focus.requestFocus();
-    if (_codeFence != null) _codeOverlay.show();
     final bodyStart = _start + (_codeFence?.bodyOffset() ?? _prefix.length);
     final localOffset = sourceOffset == null
         ? _input.text.length
@@ -239,7 +297,6 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
   }
 
   void _finish() {
-    if (_codeOverlay.isShowing) _codeOverlay.hide();
     if (_checkpoint == null) return;
     _input.value = _input.value.copyWith(composing: TextRange.empty);
     _language.value = _language.value.copyWith(composing: TextRange.empty);
@@ -250,7 +307,6 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
   }
 
   void _cancel() {
-    if (_codeOverlay.isShowing) _codeOverlay.hide();
     final checkpoint = _checkpoint;
     if (checkpoint == null) return;
     _checkpoint = null;
@@ -313,36 +369,17 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
       },
       child: _codeFence == null
           ? _proseField(colors)
-          : OverlayPortal(
-              controller: _codeOverlay,
-              overlayChildBuilder: (context) => CompositedTransformFollower(
-                link: _codeLink,
-                targetAnchor: Alignment.bottomRight,
-                followerAnchor: Alignment.topRight,
-                offset: const Offset(0, 4),
-                child: Align(
-                  alignment: Alignment.topLeft,
-                  widthFactor: 1,
-                  heightFactor: 1,
-                  child: SizedBox(
-                    width: 180,
-                    child: Material(
-                      type: MaterialType.transparency,
-                      child: _languageField(colors),
-                    ),
-                  ),
+          : Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: MarkdownCodeBlock(
+                code: _input.text,
+                fontSize: _codeFontSize,
+                footer: SizedBox(
+                  width: 180,
+                  height: 26,
+                  child: _languageField(colors),
                 ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: CompositedTransformTarget(
-                  link: _codeLink,
-                  child: MarkdownCodeBlock(
-                    code: _input.text,
-                    fontSize: widget.compact ? 13 : 14,
-                    child: _codeBody(colors),
-                  ),
-                ),
+                child: _codeBody(colors),
               ),
             ),
     ),
@@ -368,7 +405,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
         isDense: true,
         filled: true,
         fillColor: colors.surfaceContainerLow,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(3),
           borderSide: BorderSide(color: colors.outlineVariant),
@@ -388,6 +425,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
     fontSize: widget.fontSize,
   );
   int get _level => _prefix.trim().length.clamp(1, 6);
+  double get _codeFontSize => widget.fontSize / 15 * (widget.compact ? 13 : 14);
   TextStyle get _activeStyle {
     final sheet = _reader.styleSheet(context);
     if (_kind != MarkdownBlockKind.heading) return sheet.p!;
@@ -421,7 +459,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
       final painter = TextPainter(
         text: TextSpan(
           text: _input.text,
-          style: MarkdownCodeBlock.textStyle(context, widget.compact ? 13 : 14),
+          style: MarkdownCodeBlock.textStyle(context, _codeFontSize),
         ),
         textDirection: Directionality.of(context),
         textScaler: MediaQuery.textScalerOf(context),
@@ -453,7 +491,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
       smartQuotesType: SmartQuotesType.disabled,
       onTapOutside: (_) => _finish(),
       style: _codeFence != null
-          ? MarkdownCodeBlock.textStyle(context, widget.compact ? 13 : 14)
+          ? MarkdownCodeBlock.textStyle(context, _codeFontSize)
           : _activeStyle,
       textAlign:
           _kind == MarkdownBlockKind.heading &&
@@ -485,76 +523,59 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
       builder: (context, _) {
         final source = widget.controller.session.text;
         final blocks = widget.controller.document.blocks;
-        return Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: widget.typography.width),
-            child: SuperListView(
-              key: PageStorageKey(widget.controller),
-              padding: widget.padding,
-              children: [
-                for (final block in blocks.where(
-                  (b) => _checkpoint == null || b.range.end <= _start,
-                ))
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTapUp: (details) =>
-                        _begin(block, tapPosition: details.globalPosition),
-                    child: Padding(
-                      padding: EdgeInsets.zero,
-                      child: MarkdownReader(
-                        data: block.range.slice(source),
-                        typography: widget.typography,
-                        compact: widget.compact,
-                        fontSize: widget.fontSize,
-                        selectable: false,
-                      ),
-                    ),
-                  ),
-                if (_checkpoint != null) _field(colors),
-                if (_checkpoint != null)
+        return Listener(
+          onPointerMove: _dragSelection,
+          onPointerUp: (_) {
+            _dragOrigin = null;
+            _dragBase = null;
+          },
+          onPointerCancel: (_) {
+            _dragOrigin = null;
+            _dragBase = null;
+          },
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: widget.typography.width),
+              child: SuperListView(
+                key: PageStorageKey(widget.controller),
+                padding: widget.padding,
+                children: [
                   for (final block in blocks.where(
-                    (b) => b.range.start >= _end && b.range.start > _start,
+                    (b) => _checkpoint == null || b.range.end <= _start,
                   ))
+                    _displayBlock(block, source),
+                  if (_checkpoint != null) _field(colors),
+                  if (_checkpoint != null)
+                    for (final block in blocks.where(
+                      (b) => b.range.start >= _end && b.range.start > _start,
+                    ))
+                      _displayBlock(block, source),
+                  if (_checkpoint == null)
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTapUp: (details) =>
-                          _begin(block, tapPosition: details.globalPosition),
+                      onTap: () {
+                        final current = widget.controller.session.text;
+                        final newline = widget.controller.document.newline;
+                        if (current.isNotEmpty &&
+                            !current.endsWith('$newline$newline')) {
+                          widget.controller.session.replace(
+                            '$current${current.endsWith(newline) ? '' : newline}$newline',
+                            label: widget.labels.newParagraph,
+                          );
+                        }
+                        _begin(null);
+                      },
                       child: Padding(
-                        padding: EdgeInsets.zero,
-                        child: MarkdownReader(
-                          data: block.range.slice(source),
-                          typography: widget.typography,
-                          compact: widget.compact,
-                          fontSize: widget.fontSize,
-                          selectable: false,
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: Text(
+                          blocks.isEmpty ? widget.labels.placeholder : '',
+                          style: TextStyle(color: colors.onSurfaceVariant),
                         ),
                       ),
                     ),
-                if (_checkpoint == null)
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      final current = widget.controller.session.text;
-                      final newline = widget.controller.document.newline;
-                      if (current.isNotEmpty &&
-                          !current.endsWith('$newline$newline')) {
-                        widget.controller.session.replace(
-                          '$current${current.endsWith(newline) ? '' : newline}$newline',
-                          label: widget.labels.newParagraph,
-                        );
-                      }
-                      _begin(null);
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      child: Text(
-                        blocks.isEmpty ? widget.labels.placeholder : '',
-                        style: TextStyle(color: colors.onSurfaceVariant),
-                      ),
-                    ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         );
