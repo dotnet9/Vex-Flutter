@@ -4,6 +4,7 @@
 **/.flutter-plugins*
 **/ephemeral/
 **/.symlinks/
+**/.kotlin/
 **/Pods/
 **/DerivedData/
 **/xcuserdata/
