@@ -5,6 +5,114 @@ import 'package:texweft_editor/texweft_editor.dart';
 
 void main() {
   testWidgets(
+    'instant selection maps both ends to CRLF source for formatting',
+    (tester) async {
+      final controller = MarkdownEditorController(
+        text: '```text\r\n前文\r\n后文\r\n```\r\n',
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: MarkdownInstantEditor(controller: controller)),
+        ),
+      );
+      await tester.tap(find.text('前文\n后文'));
+      await tester.pump();
+      final body = find.byKey(const ValueKey('instant-active-input'));
+      final field = tester.widget<TextField>(body).controller!;
+      field.selection = const TextSelection(baseOffset: 5, extentOffset: 3);
+      await tester.pump();
+      expect(controller.selection.baseOffset, '```text\r\n前文\r\n后文'.length);
+      expect(controller.selection.extentOffset, '```text\r\n前文\r\n'.length);
+      expect(controller.session.canUndo, isFalse);
+      controller.surround('**');
+      await tester.pump();
+      expect(controller.text, '```text\r\n前文\r\n**后文**\r\n```\r\n');
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      controller.dispose();
+    },
+  );
+
+  testWidgets(
+    'Enter in a heading creates a body paragraph and preserves following text',
+    (tester) async {
+      final controller = MarkdownEditorController(text: '# 左右\r\n\r\n后文\r\n');
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: MarkdownInstantEditor(controller: controller)),
+        ),
+      );
+      await tester.tap(find.text('左右'));
+      await tester.pump();
+      final body = find.byKey(const ValueKey('instant-active-input'));
+      await tester.enterText(body, '左\n右');
+      await tester.pump();
+      expect(controller.text, '# 左\r\n\r\n右\r\n\r\n后文\r\n');
+      expect(tester.widget<TextField>(body).controller!.text, '右');
+      expect(tester.widget<TextField>(body).style!.fontSize, 15);
+      controller.session.undo();
+      await tester.pump();
+      expect(controller.text, '# 左右\r\n\r\n后文\r\n');
+      await tester.tap(find.text('左右'));
+      await tester.pump();
+      await tester.enterText(body, '左右\n');
+      await tester.pump();
+      expect(tester.widget<TextField>(body).controller!.text, '');
+      await tester.enterText(body, '新段落');
+      await tester.pump();
+      expect(controller.text, '# 左右\r\n\r\n新段落\r\n\r\n后文\r\n');
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      controller.dispose();
+    },
+  );
+
+  testWidgets(
+    'instant editing places the caret at the tap and arrows cross block boundaries',
+    (tester) async {
+      final controller = MarkdownEditorController(
+        text: '这是一段较长的正文用于检查光标位置。\n\n第二段正文。\n',
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: MarkdownInstantEditor(controller: controller)),
+        ),
+      );
+      final paragraph = find.text('这是一段较长的正文用于检查光标位置。');
+      await tester.tapAt(tester.getTopLeft(paragraph) + const Offset(2, 14));
+      await tester.pump();
+      final body = find.byKey(const ValueKey('instant-active-input'));
+      var field = tester.widget<TextField>(body).controller!;
+      expect(field.selection.extentOffset, lessThan(field.text.length));
+      field.selection = TextSelection.collapsed(offset: field.text.length);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pump();
+      field = tester.widget<TextField>(body).controller!;
+      expect(field.text, '第二段正文。');
+      expect(field.selection.extentOffset, 0);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+      await tester.pump();
+      expect(field.text, '这是一段较长的正文用于检查光标位置。');
+      expect(field.selection.extentOffset, field.text.length);
+      expect(controller.session.canUndo, isFalse);
+      controller.session.markSaved();
+      await tester.pump();
+      expect(body, findsOneWidget);
+      await tester.enterText(body, '保存过的改动');
+      await tester.pump();
+      controller.session.markSaved();
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+      expect(controller.text, '这是一段较长的正文用于检查光标位置。\n\n第二段正文。\n');
+      expect(controller.session.isDirty, isTrue);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      controller.dispose();
+    },
+  );
+
+  testWidgets(
     'code language appears below the active block and never in reading',
     (tester) async {
       final controller = MarkdownEditorController(

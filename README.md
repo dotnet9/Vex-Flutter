@@ -3,7 +3,7 @@
 
 使用 Flutter 原生渲染的 Markdown 写作空间，面向桌面、手机和平板。一个窗口共享即时编辑、源码、阅读和思维导图，以本地文件为中心。编辑体验参考 Typora，工作区功能与原型参考 [Vex](https://github.com/dotnet9/Vex)。
 
-目前处于开发阶段。Windows 已完成原生 debug 构建及代码块窗口集成验证，尚未发布正式安装包；其他平台、完整即时编辑体验、国际化、MCP 和视觉还原度仍在实现与验收中。当前状态见 [实现验收](docs/实现验收.md)，可评审的浏览器原型见 [design](design/README.md)。
+目前处于开发阶段。Windows 已完成原生 debug、release 构建与实际窗口运行，以及代码块、选区格式化、标题和列表输入的窗口集成验证，尚未发布正式安装包；其他平台、完整即时编辑体验、国际化、MCP 和视觉还原度仍在实现与验收中。当前状态见 [实现验收](docs/实现验收.md)，可评审的浏览器原型见 [design](design/README.md)。
 
 ## 源码结构
 
@@ -27,6 +27,7 @@ cd apps/texweft
 flutter run -d windows
 flutter test --no-pub
 flutter test --no-pub integration_test/code_block_test.dart -d windows
+flutter test --no-pub integration_test/typing_test.dart -d windows
 ```
 
 三个独立包在各自目录执行 `dart test` 或 `flutter test --no-pub`。原生窗口集成测试使用内存文档与偏好，不读取个人笔记；设置 `TEXWEFT_CAPTURE_DIR` 环境变量可保存真实 Flutter 截图。

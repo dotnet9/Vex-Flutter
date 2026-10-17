@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:texweft_markdown_core/texweft_markdown_core.dart';
 
 import 'code_block.dart';
 import 'controller.dart';
 import 'reader.dart';
+import 'typing_formatter.dart';
 
 class MarkdownSourceEditor extends StatefulWidget {
   const MarkdownSourceEditor({
@@ -96,6 +98,7 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
                 maxLines: null,
                 autocorrect: false,
                 enableSuggestions: false,
+                inputFormatters: [MarkdownTypingFormatter()],
                 smartDashesType: SmartDashesType.disabled,
                 smartQuotesType: SmartQuotesType.disabled,
                 style: TextStyle(
@@ -150,11 +153,13 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
   final _language = TextEditingController();
   final _focus = FocusNode();
   final _languageFocus = FocusNode();
+  final _bodyRegion = GlobalKey();
   MarkdownCodeFence? _codeFence;
   MarkdownSnapshot? _checkpoint;
   MarkdownBlockKind _kind = MarkdownBlockKind.paragraph;
   var _start = 0, _end = 0;
-  String _prefix = '', _ending = '';
+  String _prefix = '', _ending = '', _newline = '\n';
+  String _lastSource = '';
   var _writing = false;
   @override
   void initState() {
@@ -176,20 +181,27 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
 
   void _externalChange() {
     // Undo, chapter commands and a second editor invalidate this editing range.
-    if (!_writing && _checkpoint != null && mounted) {
+    if (!_writing &&
+        _checkpoint != null &&
+        mounted &&
+        widget.controller.session.text != _lastSource) {
       setState(() => _checkpoint = null);
     }
   }
 
-  void _begin(MarkdownBlock? block) {
+  void _begin(MarkdownBlock? block, {int? sourceOffset, Offset? tapPosition}) {
     _finish();
     final source = widget.controller.session.text;
     final raw = block?.range.slice(source) ?? '';
     final marker = block?.kind == MarkdownBlockKind.heading
-        ? RegExp(r'^ {0,3}#{1,6}\s+').firstMatch(raw)?.group(0)
+        ? RegExp(r'^ {0,3}#{1,6}(?:[ \t]+|$)').firstMatch(raw)?.group(0)
         : null;
     _prefix = marker ?? '';
     _ending = RegExp(r'(?:\r\n|\n|\r)$').firstMatch(raw)?.group(0) ?? '';
+    _newline =
+        RegExp(r'\r\n|\n|\r').firstMatch(raw)?.group(0) ??
+        widget.controller.document.newline;
+    _lastSource = source;
     _start = block?.range.start ?? source.length;
     _end = block?.range.end ?? source.length;
     _kind = block?.kind ?? MarkdownBlockKind.paragraph;
@@ -197,12 +209,50 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
         ? MarkdownCodeFence.parse(raw)
         : null;
     _language.text = _codeFence?.language ?? '';
-    _input.text = _codeFence == null
+    final body = _codeFence == null
         ? raw.substring(_prefix.length, raw.length - _ending.length)
-        : _codeFence!.code.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+        : _codeFence!.code;
+    _input.text = body.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
     setState(() => _checkpoint = widget.controller.session.snapshot());
     _focus.requestFocus();
-    _input.selection = TextSelection.collapsed(offset: _input.text.length);
+    final bodyStart = _start + (_codeFence?.bodyOffset() ?? _prefix.length);
+    final localOffset = sourceOffset == null
+        ? _input.text.length
+        : source
+              .substring(
+                bodyStart,
+                sourceOffset.clamp(bodyStart, bodyStart + body.length),
+              )
+              .replaceAll('\r\n', '\n')
+              .replaceAll('\r', '\n')
+              .length;
+    _input.selection = TextSelection.collapsed(offset: localOffset);
+    if (tapPosition != null) {
+      final checkpoint = _checkpoint;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _checkpoint != checkpoint) return;
+        final editable = _editable();
+        if (editable == null) return;
+        _input.selection = TextSelection.fromPosition(
+          editable.getPositionForPoint(tapPosition),
+        );
+      });
+    }
+  }
+
+  RenderEditable? _editable() {
+    RenderEditable? result;
+    void visit(RenderObject object) {
+      if (object is RenderEditable) {
+        result = object;
+      } else if (result == null) {
+        object.visitChildren(visit);
+      }
+    }
+
+    final root = _bodyRegion.currentContext?.findRenderObject();
+    if (root != null) visit(root);
+    return result;
   }
 
   void _update() {
@@ -213,38 +263,92 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
             !_language.value.composing.isCollapsed)) {
       return;
     }
+    if (_kind == MarkdownBlockKind.heading &&
+        _prefix.isNotEmpty &&
+        _input.text.contains('\n')) {
+      _splitHeading();
+      return;
+    }
     final value =
         _codeFence?.replace(code: _input.text, language: _language.text) ??
-        '$_prefix${_input.text}$_ending';
+        '$_prefix${_input.text.replaceAll('\n', _newline)}$_ending';
     final source = widget.controller.session.text;
     _writing = true;
     try {
       final updated = source.replaceRange(_start, _end, value);
       _end = _start + value.length;
+      _lastSource = updated;
       widget.controller.session.replace(updated, mergeKey: 'instant-$_start');
+      final bodyStart =
+          _start +
+          (_codeFence?.bodyOffset(
+                code: _input.text,
+                language: _language.text,
+              ) ??
+              _prefix.length);
+      int map(int offset) =>
+          bodyStart +
+          _input.text
+              .substring(0, offset.clamp(0, _input.text.length))
+              .replaceAll('\n', _newline)
+              .length;
       widget.controller.select(
-        _start +
-            (_codeFence?.bodyOffset(
-                  code: _input.text,
-                  language: _language.text,
-                ) ??
-                _prefix.length) +
-            (_codeFence != null && value.contains('\r\n')
-                ? _input.text
-                      .substring(
-                        0,
-                        _input.selection.extentOffset.clamp(
-                          0,
-                          _input.text.length,
-                        ),
-                      )
-                      .replaceAll('\n', '\r\n')
-                      .length
-                : _input.selection.extentOffset.clamp(0, _input.text.length)),
+        map(_input.selection.baseOffset),
+        map(_input.selection.extentOffset),
       );
     } finally {
       _writing = false;
     }
+  }
+
+  void _splitHeading() {
+    final text = _input.text;
+    final split = text.indexOf('\n');
+    final value =
+        '$_prefix${text.substring(0, split)}$_newline$_newline'
+        '${text.substring(split + 1).replaceAll('\n', _newline)}$_ending';
+    final paragraphStart =
+        _start + _prefix.length + split + 2 * _newline.length;
+    final cursor = _input.selection.extentOffset.clamp(split + 1, text.length);
+    final offset =
+        paragraphStart +
+        text.substring(split + 1, cursor).replaceAll('\n', _newline).length;
+    // The inserted paragraph has its own style and editing checkpoint.
+    _checkpoint = null;
+    widget.controller.session.replace(
+      widget.controller.session.text.replaceRange(_start, _end, value),
+      label: '标题后新增段落',
+    );
+    final block =
+        widget.controller.document.blocks
+            .where(
+              (block) =>
+                  block.range.start >= paragraphStart &&
+                  block.range.start <= offset &&
+                  offset <= block.range.end,
+            )
+            .firstOrNull ??
+        MarkdownBlock(
+          MarkdownBlockKind.paragraph,
+          SourceRange(paragraphStart, paragraphStart),
+          1,
+        );
+    _begin(block, sourceOffset: offset);
+  }
+
+  bool _moveToBlock(bool forward) {
+    final blocks = widget.controller.document.blocks;
+    final target = forward
+        ? blocks
+              .where((b) => b.range.start >= _end && b.range.start > _start)
+              .firstOrNull
+        : blocks.where((b) => b.range.end <= _start).lastOrNull;
+    if (target == null) return false;
+    _begin(
+      target,
+      sourceOffset: forward ? target.range.start : target.range.end,
+    );
+    return true;
   }
 
   void _finish() {
@@ -261,7 +365,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
     final checkpoint = _checkpoint;
     if (checkpoint == null) return;
     _checkpoint = null;
-    widget.controller.session.restore(checkpoint);
+    widget.controller.session.restore(checkpoint, restoreSavedState: false);
     _focus.unfocus();
     _languageFocus.unfocus();
     setState(() {});
@@ -297,6 +401,24 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
             event.logicalKey == LogicalKeyboardKey.enter) {
           _finish();
           return KeyEventResult.handled;
+        }
+        if (_focus.hasFocus &&
+            _input.selection.isCollapsed &&
+            !HardwareKeyboard.instance.isControlPressed &&
+            !HardwareKeyboard.instance.isMetaPressed &&
+            !HardwareKeyboard.instance.isAltPressed &&
+            !HardwareKeyboard.instance.isShiftPressed) {
+          final offset = _input.selection.extentOffset;
+          final backward =
+              event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+              event.logicalKey == LogicalKeyboardKey.arrowUp;
+          final forward =
+              event.logicalKey == LogicalKeyboardKey.arrowRight ||
+              event.logicalKey == LogicalKeyboardKey.arrowDown;
+          if ((backward && offset == 0 && _moveToBlock(false)) ||
+              (forward && offset == _input.text.length && _moveToBlock(true))) {
+            return KeyEventResult.handled;
+          }
         }
         return KeyEventResult.ignored;
       },
@@ -388,36 +510,40 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
     },
   );
 
-  Widget _bodyField(ColorScheme colors) => TextField(
-    key: const ValueKey('instant-active-input'),
-    groupId: this,
-    controller: _input,
-    focusNode: _focus,
-    maxLines: null,
-    autocorrect: _codeFence == null,
-    enableSuggestions: _codeFence == null,
-    smartDashesType: SmartDashesType.disabled,
-    smartQuotesType: SmartQuotesType.disabled,
-    onTapOutside: (_) => _finish(),
-    style: _codeFence != null
-        ? MarkdownCodeBlock.textStyle(colors, widget.compact ? 13 : 14)
-        : TextStyle(
-            fontSize: _kind == MarkdownBlockKind.heading
-                ? widget.fontSize * (_prefix.trim() == '#' ? 2 : 1.4)
-                : widget.fontSize,
-            height: 1.95,
-            color: colors.onSurface,
-          ),
-    decoration: InputDecoration(
-      hintText: _codeFence == null ? '从第一句话开始…' : null,
-      border: InputBorder.none,
-      enabledBorder: InputBorder.none,
-      focusedBorder: InputBorder.none,
-      filled: false,
-      isCollapsed: true,
-      contentPadding: _codeFence == null
-          ? const EdgeInsets.symmetric(vertical: 8)
-          : EdgeInsets.zero,
+  Widget _bodyField(ColorScheme colors) => KeyedSubtree(
+    key: _bodyRegion,
+    child: TextField(
+      key: const ValueKey('instant-active-input'),
+      groupId: this,
+      controller: _input,
+      focusNode: _focus,
+      maxLines: null,
+      autocorrect: _codeFence == null,
+      enableSuggestions: _codeFence == null,
+      inputFormatters: [if (_codeFence == null) MarkdownTypingFormatter()],
+      smartDashesType: SmartDashesType.disabled,
+      smartQuotesType: SmartQuotesType.disabled,
+      onTapOutside: (_) => _finish(),
+      style: _codeFence != null
+          ? MarkdownCodeBlock.textStyle(colors, widget.compact ? 13 : 14)
+          : TextStyle(
+              fontSize: _kind == MarkdownBlockKind.heading
+                  ? widget.fontSize * (_prefix.trim() == '#' ? 2 : 1.4)
+                  : widget.fontSize,
+              height: 1.95,
+              color: colors.onSurface,
+            ),
+      decoration: InputDecoration(
+        hintText: _codeFence == null ? '从第一句话开始…' : null,
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        filled: false,
+        isCollapsed: true,
+        contentPadding: _codeFence == null
+            ? const EdgeInsets.symmetric(vertical: 8)
+            : EdgeInsets.zero,
+      ),
     ),
   );
   @override
@@ -440,7 +566,8 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
                 ))
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: () => _begin(block),
+                    onTapUp: (details) =>
+                        _begin(block, tapPosition: details.globalPosition),
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: MarkdownReader(
@@ -459,7 +586,8 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
                   ))
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTap: () => _begin(block),
+                      onTapUp: (details) =>
+                          _begin(block, tapPosition: details.globalPosition),
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: MarkdownReader(
@@ -475,9 +603,12 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
-                      if (source.isNotEmpty && !source.endsWith('\n\n')) {
+                      final current = widget.controller.session.text;
+                      final newline = widget.controller.document.newline;
+                      if (current.isNotEmpty &&
+                          !current.endsWith('$newline$newline')) {
                         widget.controller.session.replace(
-                          '$source\n\n',
+                          '$current${current.endsWith(newline) ? '' : newline}$newline',
                           label: '新增段落',
                         );
                       }

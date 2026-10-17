@@ -2,6 +2,19 @@ import 'package:test/test.dart';
 import 'package:texweft_markdown_core/texweft_markdown_core.dart';
 
 void main() {
+  test('cancel after saving keeps the actual disk baseline', () {
+    final session = MarkdownSession('原文');
+    final checkpoint = session.snapshot();
+    session.replace('已写入磁盘');
+    session.markSaved();
+    session.restore(checkpoint, restoreSavedState: false);
+    expect(session.text, '原文');
+    expect(session.isDirty, isTrue);
+    expect(session.canUndo, isFalse);
+    session.replace('已写入磁盘');
+    expect(session.isDirty, isFalse);
+  });
+
   test('unclosed metadata remains ordinary Markdown', () {
     expect(MarkdownDocument.parse('---\n# 正文\n').headings.single.title, '正文');
   });

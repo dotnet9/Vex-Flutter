@@ -64,11 +64,13 @@ final class MarkdownSession {
   MarkdownSnapshot snapshot() =>
       MarkdownSnapshot._(this, text, _saved, List.of(_undo), List.of(_redo));
 
-  void restore(MarkdownSnapshot snapshot) {
+  /// Editing cancellation keeps the latest disk baseline when a save occurred
+  /// after the checkpoint. Guided temporary documents restore the full state.
+  void restore(MarkdownSnapshot snapshot, {bool restoreSavedState = true}) {
     if (!identical(snapshot._owner, this)) {
       throw ArgumentError('检查点属于另一个文档会话');
     }
-    _saved = snapshot._saved;
+    if (restoreSavedState) _saved = snapshot._saved;
     _undo
       ..clear()
       ..addAll(snapshot._undo);
