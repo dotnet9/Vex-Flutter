@@ -22,7 +22,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PUB_HOSTED_URL: https://pub.flutter-io.cn
+  PUB_HOSTED_URL: https://pub.dev
 
 jobs:
   metadata:
