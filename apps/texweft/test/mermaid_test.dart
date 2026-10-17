@@ -18,31 +18,34 @@ void main() {
       .map((t) => '## ${t.zh}${t.markdown}')
       .join();
 
-  test('all 22 HTML diagrams are offline SVG images, not unrendered code', () {
-    final html = service.html(
-      source: source,
-      title: 'Mermaid',
-      colors: colors,
-      typography: MarkdownTypography.simple,
-    );
-    final images = RegExp(r'data:image/svg\+xml;base64,([^" ]+)')
-        .allMatches(html)
-        .toList();
-    expect(images, hasLength(22));
-    for (final image in images) {
-      final svg = utf8.decode(base64Decode(image[1]!));
-      expect(svg, contains('<svg'));
-      expect(svg, isNot(contains('NaN')));
-      expect(svg, isNot(contains('javascript:')));
-    }
-    expect(html, isNot(contains('language-mermaid')));
-    expect(html, isNot(contains('<script')));
-  });
+  test(
+    'all 22 HTML diagrams are offline SVG images, not unrendered code',
+    () async {
+      final html = await service.html(
+        source: source,
+        title: 'Mermaid',
+        colors: colors,
+        typography: MarkdownTypography.simple,
+      );
+      final images = RegExp(r'data:image/svg\+xml;base64,([^" ]+)')
+          .allMatches(html)
+          .toList();
+      expect(images, hasLength(22));
+      for (final image in images) {
+        final svg = utf8.decode(base64Decode(image[1]!));
+        expect(svg, contains('<svg'));
+        expect(svg, isNot(contains('NaN')));
+        expect(svg, isNot(contains('javascript:')));
+      }
+      expect(html, isNot(contains('language-mermaid')));
+      expect(html, isNot(contains('<script')));
+    },
+  );
 
   test(
     'invalid HTML diagram retains escaped source and normal code stays code',
-    () {
-      final html = service.html(
+    () async {
+      final html = await service.html(
         source: '```mermaid\nunknown <script>alert(1)</script>\n```\n\n```dart\nprint("hello");\n```',
         title: 'Invalid',
         colors: colors,
@@ -67,7 +70,9 @@ void main() {
       final structure = latin1.decode(bytes);
       expect(structure, startsWith('%PDF-'));
       expect(structure, contains('/FontFile2'));
-      final pages = int.parse(RegExp(r'/Count\s+(\d+)').firstMatch(structure)![1]!);
+      final pages = int.parse(
+        RegExp(r'/Count\s+(\d+)').firstMatch(structure)![1]!,
+      );
       expect(pages, greaterThanOrEqualTo(6));
       expect(bytes.length, greaterThan(20000));
     },

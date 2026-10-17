@@ -121,6 +121,7 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                 compact: vm.compact,
                 typewriter: vm.typewriter,
                 focusMode: vm.focusMode,
+                preferences: vm.markdownPreferences,
                 fontSize: vm.fontSize,
                 editingPreferences: vm.editingPreferences,
                 padding: EdgeInsets.fromLTRB(
@@ -338,6 +339,7 @@ class _DocumentReadingState extends State<_DocumentReading> {
               compact: vm.compact,
               fontSize: vm.fontSize,
               editingPreferences: vm.editingPreferences,
+              preferences: vm.markdownPreferences,
               onTapLink: (_, href, _) {
                 final uri = Uri.tryParse(href ?? '');
                 if (uri != null &&

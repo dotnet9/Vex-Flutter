@@ -1305,6 +1305,27 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mermaidError => '図表の構文に誤りがあります。ソースは保持されています。';
 
   @override
+  String get prefMath => '数式';
+
+  @override
+  String get prefChemistry => '化学式';
+
+  @override
+  String get prefInlineSyntax => 'インライン構文';
+
+  @override
+  String get prefSubscript => '下付き・上付き文字';
+
+  @override
+  String get prefHighlight => 'ハイライト';
+
+  @override
+  String get prefAutoLink => 'リンクを自動検出';
+
+  @override
+  String get prefSoftBreak => '単一改行を表示';
+
+  @override
   String prefSpaces(int count) {
     return '$count スペース';
   }

@@ -9,6 +9,7 @@ import 'code_block.dart';
 import 'controller.dart';
 import 'editing_preferences.dart';
 import 'labels.dart';
+import 'markdown_preferences.dart';
 import 'mermaid_block.dart';
 import 'reader.dart';
 import 'table_editor.dart';
@@ -29,6 +30,7 @@ class MarkdownInstantEditor extends StatefulWidget {
     this.typewriter = false,
     this.focusMode = false,
     this.editingPreferences,
+    this.preferences = const MarkdownPreferences(),
   });
   final MarkdownEditorLabels labels;
   final MarkdownEditorController controller;
@@ -39,6 +41,7 @@ class MarkdownInstantEditor extends StatefulWidget {
   final Widget Function(Uri uri, String? title, String? alt)? imageBuilder;
   final bool typewriter, focusMode;
   final MarkdownEditingPreferences? editingPreferences;
+  final MarkdownPreferences preferences;
   @override
   State<MarkdownInstantEditor> createState() => _MarkdownInstantEditorState();
 }
@@ -78,9 +81,13 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
   }
 
   Widget _displayBlock(MarkdownBlock block, String source) {
+    if (block.kind == MarkdownBlockKind.math) {
+      return _mathBlock(block.range.slice(source), block: block);
+    }
     if (block.kind == MarkdownBlockKind.code) {
       final fence = MarkdownCodeFence.parse(block.range.slice(source));
-      if (fence?.language.toLowerCase() == 'mermaid') {
+      if (widget.preferences.mermaid &&
+          fence?.language.toLowerCase() == 'mermaid') {
         return MarkdownMermaidBlock(
           key: ValueKey('diagram-${block.range.start}'),
           source: fence!.code,
@@ -129,6 +136,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
             selectable: false,
             imageBuilder: widget.imageBuilder,
             editingPreferences: widget.editingPreferences,
+            preferences: widget.preferences,
             labels: widget.labels,
           ),
         ),
@@ -392,9 +400,14 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
   }
 
   bool get _isMermaid =>
-      _codeFence != null && _language.text.toLowerCase() == 'mermaid';
+      widget.preferences.mermaid &&
+      _codeFence != null &&
+      _language.text.toLowerCase() == 'mermaid';
 
   Widget _field(ColorScheme colors) {
+    if (_kind == MarkdownBlockKind.math) {
+      return _mathBlock(_input.text, editing: true);
+    }
     if (!_isMermaid) return _fieldRegion(colors);
     return MarkdownMermaidBlock(
       key: ValueKey('diagram-$_start'),
@@ -406,6 +419,50 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
       sourceEditor: _fieldRegion(colors),
     );
   }
+
+  Widget _mathBlock(
+    String source, {
+    MarkdownBlock? block,
+    bool editing = false,
+  }) => TextFieldTapRegion(
+    key: ValueKey('formula-${block?.range.start ?? _start}'),
+    groupId: this,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AnimatedSize(
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: editing
+              ? Container(
+                  constraints: const BoxConstraints(
+                    minHeight: 80,
+                    maxHeight: 360,
+                  ),
+                  padding: const EdgeInsets.all(14),
+                  color: Theme.of(context).colorScheme.surfaceContainerLow,
+                  child: _fieldRegion(Theme.of(context).colorScheme),
+                )
+              : const SizedBox(width: double.infinity),
+        ),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: editing ? null : () => _begin(block),
+          child: MarkdownReader(
+            data: source,
+            typography: widget.typography,
+            fontSize: widget.fontSize,
+            compact: widget.compact,
+            preferences: widget.preferences,
+            selectable: false,
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget _fieldRegion(ColorScheme colors) => TextFieldTapRegion(
     groupId: this,
@@ -419,7 +476,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
         }
         if (event is! KeyDownEvent) return KeyEventResult.ignored;
         if (event.logicalKey == LogicalKeyboardKey.escape) {
-          _isMermaid ? _finish() : _cancel();
+          _isMermaid || _kind == MarkdownBlockKind.math ? _finish() : _cancel();
           return KeyEventResult.handled;
         }
         if ((HardwareKeyboard.instance.isControlPressed ||
@@ -507,6 +564,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor> {
     compact: widget.compact,
     fontSize: widget.fontSize,
     editingPreferences: widget.editingPreferences,
+    preferences: widget.preferences,
   );
   int get _level => _prefix.trim().length.clamp(1, 6);
   double get _codeFontSize =>

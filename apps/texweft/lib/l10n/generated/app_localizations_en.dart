@@ -1350,6 +1350,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mermaidError => 'Invalid diagram syntax. Source preserved.';
 
   @override
+  String get prefMath => 'Math formulas';
+
+  @override
+  String get prefChemistry => 'Chemical expressions';
+
+  @override
+  String get prefInlineSyntax => 'Inline syntax';
+
+  @override
+  String get prefSubscript => 'Subscript and superscript';
+
+  @override
+  String get prefHighlight => 'Highlighted text';
+
+  @override
+  String get prefAutoLink => 'Detect links automatically';
+
+  @override
+  String get prefSoftBreak => 'Render single line breaks';
+
+  @override
   String prefSpaces(int count) {
     return '$count spaces';
   }

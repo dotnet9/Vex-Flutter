@@ -397,6 +397,13 @@
   "mermaidPreview": "Diagram preview",
   "mermaidUnavailable": "Preview unavailable",
   "mermaidError": "Invalid diagram syntax. Source preserved.",
+  "prefMath": "Math formulas",
+  "prefChemistry": "Chemical expressions",
+  "prefInlineSyntax": "Inline syntax",
+  "prefSubscript": "Subscript and superscript",
+  "prefHighlight": "Highlighted text",
+  "prefAutoLink": "Detect links automatically",
+  "prefSoftBreak": "Render single line breaks",
   "prefSpaces": "{count} spaces",
   "@prefSpaces": {"placeholders":{"count":{"type":"int"}}}
 }

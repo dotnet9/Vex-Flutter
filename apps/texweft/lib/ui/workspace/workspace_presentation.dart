@@ -20,6 +20,7 @@ class WorkspacePresentation extends StatelessWidget {
     required this.fontSize,
     required this.onExit,
     this.documentPath,
+    this.preferences = const MarkdownPreferences(),
   });
 
   final PresentationController controller;
@@ -27,6 +28,7 @@ class WorkspacePresentation extends StatelessWidget {
   final double fontSize;
   final VoidCallback onExit;
   final String? documentPath;
+  final MarkdownPreferences preferences;
 
   @override
   Widget build(BuildContext context) => CallbackShortcuts(
@@ -148,6 +150,7 @@ class WorkspacePresentation extends StatelessWidget {
                                     controller: controller,
                                     typography: typography,
                                     fontSize: fontSize * controller.scale,
+                                    preferences: preferences,
                                     documentPath: documentPath,
                                   ),
                           ),
@@ -482,11 +485,13 @@ class _PresentationBody extends StatelessWidget {
     required this.typography,
     required this.fontSize,
     this.documentPath,
+    this.preferences = const MarkdownPreferences(),
   });
   final PresentationController controller;
   final MarkdownTypography typography;
   final double fontSize;
   final String? documentPath;
+  final MarkdownPreferences preferences;
   @override
   Widget build(BuildContext context) {
     final deck = controller.deck, slide = controller.slide;
@@ -517,6 +522,7 @@ class _PresentationBody extends StatelessWidget {
                       .slice(deck.document.source),
                   typography: typography,
                   fontSize: fontSize,
+                  preferences: preferences,
                   onTapLink: (_, href, _) {
                     final uri = Uri.tryParse(href ?? '');
                     if (uri != null &&

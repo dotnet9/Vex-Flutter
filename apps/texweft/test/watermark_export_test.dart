@@ -20,8 +20,8 @@ void main() {
       colors = paletteSchemes['weft-light']!;
   test(
     'HTML export watermark is independent, escaped and absent by default',
-    () {
-      String html(WatermarkPreferences watermark) => service.html(
+    () async {
+      Future<String> html(WatermarkPreferences watermark) => service.html(
         source: '# source',
         title: 'test',
         colors: colors,
@@ -29,14 +29,14 @@ void main() {
         watermark: watermark,
       );
       expect(
-        html(const WatermarkPreferences()),
+        await html(const WatermarkPreferences()),
         isNot(contains('<div class="vex-watermark"')),
       );
       expect(
-        html(const WatermarkPreferences(preview: true)),
+        await html(const WatermarkPreferences(preview: true)),
         isNot(contains('<div class="vex-watermark"')),
       );
-      final exported = html(
+      final exported = await html(
         const WatermarkPreferences(export: true, text: '<script>& private'),
       );
       expect(exported, contains('<div class="vex-watermark"'));

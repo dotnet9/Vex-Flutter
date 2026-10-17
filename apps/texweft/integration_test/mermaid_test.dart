@@ -100,7 +100,7 @@ void main() {
       await File('$directory/mermaid.docx')
           .writeAsBytes(await service.docx(source: source, title: 'Mermaid'));
       await File('$directory/mermaid.html').writeAsString(
-        service.html(
+        await service.html(
           source: source,
           title: 'Mermaid',
           colors: colors,

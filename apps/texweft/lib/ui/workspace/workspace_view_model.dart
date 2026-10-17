@@ -72,6 +72,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   bool typewriter = false;
   MarkdownEditingPreferences editingPreferences =
       const MarkdownEditingPreferences();
+  MarkdownPreferences markdownPreferences = const MarkdownPreferences();
   double contentZoom = 1;
   bool statusbar = true, motion = true;
   PresentationController? presenter;
@@ -138,6 +139,9 @@ final class WorkspaceViewModel extends ChangeNotifier {
       focusMode = preferences['focusMode'] == true;
       editingPreferences = MarkdownEditingPreferences.fromJson(
         preferences['editor'],
+      );
+      markdownPreferences = MarkdownPreferences.fromJson(
+        preferences['markdown'],
       );
       contentZoom = (preferences['contentZoom'] as num? ?? 1).toDouble().clamp(
         .9,
@@ -255,6 +259,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
           MarkdownBlockKind.paragraph => paragraphs,
           MarkdownBlockKind.list => lists,
           MarkdownBlockKind.code ||
+          MarkdownBlockKind.math ||
           MarkdownBlockKind.table ||
           MarkdownBlockKind.quote => blocks,
           _ => false,
@@ -390,6 +395,12 @@ final class WorkspaceViewModel extends ChangeNotifier {
       autoPair: autoPair,
       codeWrap: codeWrap,
     );
+    _notify();
+    persist();
+  }
+
+  void updateMarkdownPreferences(MarkdownPreferences value) {
+    markdownPreferences = value;
     _notify();
     persist();
   }
@@ -1009,6 +1020,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
           'focusMode': focusMode,
           'fontSize': fontSize,
           'editor': editingPreferences.toJson(),
+          'markdown': markdownPreferences.toJson(),
           'contentZoom': contentZoom,
           'statusbar': statusbar,
           'motion': motion,

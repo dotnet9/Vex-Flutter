@@ -2477,6 +2477,48 @@ abstract class AppLocalizations {
   /// **'图表语法有误，源码已保留。'**
   String get mermaidError;
 
+  /// No description provided for @prefMath.
+  ///
+  /// In zh, this message translates to:
+  /// **'数学公式'**
+  String get prefMath;
+
+  /// No description provided for @prefChemistry.
+  ///
+  /// In zh, this message translates to:
+  /// **'化学表达式'**
+  String get prefChemistry;
+
+  /// No description provided for @prefInlineSyntax.
+  ///
+  /// In zh, this message translates to:
+  /// **'行内语法'**
+  String get prefInlineSyntax;
+
+  /// No description provided for @prefSubscript.
+  ///
+  /// In zh, this message translates to:
+  /// **'上下标'**
+  String get prefSubscript;
+
+  /// No description provided for @prefHighlight.
+  ///
+  /// In zh, this message translates to:
+  /// **'高亮标记'**
+  String get prefHighlight;
+
+  /// No description provided for @prefAutoLink.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动识别链接'**
+  String get prefAutoLink;
+
+  /// No description provided for @prefSoftBreak.
+  ///
+  /// In zh, this message translates to:
+  /// **'单次换行显示为换行'**
+  String get prefSoftBreak;
+
   /// No description provided for @prefSpaces.
   ///
   /// In zh, this message translates to:

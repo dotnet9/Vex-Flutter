@@ -16,7 +16,15 @@ import 'mcp_settings_dialog.dart';
 import 'preference_controls.dart';
 import 'workspace_view_model.dart';
 
-enum PreferenceCategory { general, editor, images, appearance, export, mcp }
+enum PreferenceCategory {
+  general,
+  editor,
+  markdown,
+  images,
+  appearance,
+  export,
+  mcp,
+}
 
 Future<void> showPreferences(
   BuildContext context,
@@ -70,6 +78,7 @@ class _PreferencesDialogState extends State<PreferencesDialog> {
       switch (category) {
         PreferenceCategory.general => (l.prefGeneral, 'file'),
         PreferenceCategory.editor => (l.editor, 'edit'),
+        PreferenceCategory.markdown => ('Markdown', 'code'),
         PreferenceCategory.images => (l.prefImages, 'image'),
         PreferenceCategory.appearance => (l.appearance, 'palette'),
         PreferenceCategory.export => (l.prefExport, 'export'),
@@ -454,6 +463,58 @@ class _PreferencesDialogState extends State<PreferencesDialog> {
             label: l.typewriterMode,
             value: vm.typewriter,
             onChanged: (_) => vm.toggleTypewriter(),
+          ),
+        ],
+        PreferenceCategory.markdown => [
+          PreferenceSwitch(
+            label: l.prefMath,
+            value: vm.markdownPreferences.math,
+            onChanged: (v) => vm.updateMarkdownPreferences(
+              vm.markdownPreferences.copyWith(math: v),
+            ),
+          ),
+          PreferenceSwitch(
+            label: l.prefChemistry,
+            value: vm.markdownPreferences.chemistry,
+            onChanged: (v) => vm.updateMarkdownPreferences(
+              vm.markdownPreferences.copyWith(chemistry: v),
+            ),
+          ),
+          PreferenceSwitch(
+            label: l.mermaidDiagrams,
+            value: vm.markdownPreferences.mermaid,
+            onChanged: (v) => vm.updateMarkdownPreferences(
+              vm.markdownPreferences.copyWith(mermaid: v),
+            ),
+          ),
+          PreferenceSection(l.prefInlineSyntax),
+          PreferenceSwitch(
+            label: l.prefSubscript,
+            value: vm.markdownPreferences.subscript,
+            onChanged: (v) => vm.updateMarkdownPreferences(
+              vm.markdownPreferences.copyWith(subscript: v),
+            ),
+          ),
+          PreferenceSwitch(
+            label: l.prefHighlight,
+            value: vm.markdownPreferences.highlight,
+            onChanged: (v) => vm.updateMarkdownPreferences(
+              vm.markdownPreferences.copyWith(highlight: v),
+            ),
+          ),
+          PreferenceSwitch(
+            label: l.prefAutoLink,
+            value: vm.markdownPreferences.autoLink,
+            onChanged: (v) => vm.updateMarkdownPreferences(
+              vm.markdownPreferences.copyWith(autoLink: v),
+            ),
+          ),
+          PreferenceSwitch(
+            label: l.prefSoftBreak,
+            value: vm.markdownPreferences.softBreak,
+            onChanged: (v) => vm.updateMarkdownPreferences(
+              vm.markdownPreferences.copyWith(softBreak: v),
+            ),
           ),
         ],
         PreferenceCategory.images => [

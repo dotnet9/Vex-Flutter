@@ -17,8 +17,8 @@ void main() {
       '# 中文标题\n\n这是一段 **粗体** 和 *斜体*。\n\n## 下一节\n\n- 清单\n- [x] 已完成\n\n| 名称 | 数量 |\n| --- | --- |\n| 笺纬 | 2 |\n\n```dart\nprint("hello");\n```';
   test(
     'HTML is standalone and carries the chosen appearance with escaped title',
-    () {
-      final html = service.html(
+    () async {
+      final html = await service.html(
         source: source,
         title: '标题 <&>',
         colors: colors,

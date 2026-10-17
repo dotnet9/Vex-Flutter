@@ -71,7 +71,7 @@ class _ExportDialogState extends State<_ExportDialog> {
         case 'html':
           bytes = Uint8List.fromList(
             utf8.encode(
-              _service.html(
+              await _service.html(
                 source: source,
                 title: stem,
                 colors: colors,
@@ -79,11 +79,16 @@ class _ExportDialogState extends State<_ExportDialog> {
                 compact: compact,
                 styled: vm.exportPreferences.htmlStyle,
                 watermark: vm.watermark,
+                markdown: vm.markdownPreferences,
               ),
             ),
           );
         case 'docx':
-          bytes = await _service.docx(source: source, title: stem);
+          bytes = await _service.docx(
+            source: source,
+            title: stem,
+            markdown: vm.markdownPreferences,
+          );
         case 'png':
           bytes = await _service.mindMapPng(
             vm.map.root,
@@ -99,6 +104,7 @@ class _ExportDialogState extends State<_ExportDialog> {
             compact: compact,
             preferences: vm.exportPreferences,
             watermark: vm.watermark,
+            markdown: vm.markdownPreferences,
           );
       }
       if (type == 'print') {
@@ -202,7 +208,7 @@ class _ExportDialogState extends State<_ExportDialog> {
                   final vm = widget.vm;
                   await Clipboard.setData(
                     ClipboardData(
-                      text: _service.html(
+                      text: await _service.html(
                         source: vm.editor.session.text,
                         title: vm.current.name,
                         colors: Theme.of(context).colorScheme,
@@ -210,6 +216,7 @@ class _ExportDialogState extends State<_ExportDialog> {
                         compact: vm.compact,
                         styled: vm.exportPreferences.htmlStyle,
                         watermark: vm.watermark,
+                        markdown: vm.markdownPreferences,
                       ),
                     ),
                   );

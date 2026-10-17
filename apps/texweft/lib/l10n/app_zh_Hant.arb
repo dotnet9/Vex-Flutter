@@ -397,6 +397,13 @@
   "mermaidPreview": "圖表預覽",
   "mermaidUnavailable": "無法產生預覽",
   "mermaidError": "圖表語法有誤，原始碼已保留。",
+  "prefMath": "數學公式",
+  "prefChemistry": "化學表達式",
+  "prefInlineSyntax": "行內語法",
+  "prefSubscript": "上下標",
+  "prefHighlight": "醒目標記",
+  "prefAutoLink": "自動識別連結",
+  "prefSoftBreak": "單次換行顯示為換行",
   "prefSpaces": "{count} 空格",
   "@prefSpaces": {"placeholders":{"count":{"type":"int"}}}
 }

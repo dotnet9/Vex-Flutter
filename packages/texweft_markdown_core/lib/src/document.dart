@@ -8,7 +8,16 @@ final class SourceRange {
   String slice(String source) => source.substring(start, end);
 }
 
-enum MarkdownBlockKind { heading, paragraph, quote, list, code, table, rule }
+enum MarkdownBlockKind {
+  heading,
+  paragraph,
+  quote,
+  list,
+  code,
+  math,
+  table,
+  rule,
+}
 
 /// A display block keeps the original source, including its line endings.
 final class MarkdownBlock {
@@ -123,6 +132,45 @@ final class MarkdownDocument {
         continue;
       }
       if (text.trim().isEmpty) continue;
+      final mathOpen = RegExp(r'^ {0,3}(\$\$|\\\[)').firstMatch(text);
+      if (mathOpen != null) {
+        final close = mathOpen[1] == r'$$' ? r'$$' : r'\]';
+        var size = 0;
+        int? last;
+        for (var j = i; j < lines.length && j < i + 256; j++) {
+          size += lines[j].text.length;
+          if (size > 8192) break;
+          final content = j == i
+              ? lines[j].text.substring(mathOpen.end)
+              : lines[j].text;
+          var position = content.indexOf(close);
+          while (position >= 0) {
+            var escapes = 0;
+            for (var k = position - 1; k >= 0 && content[k] == r'\'; k--) {
+              escapes++;
+            }
+            if (escapes.isEven) break;
+            position = content.indexOf(close, position + close.length);
+          }
+          if (position >= 0) {
+            if (content.substring(position + close.length).trim().isEmpty) {
+              last = j;
+            }
+            break;
+          }
+        }
+        if (last != null) {
+          blocks.add(
+            MarkdownBlock(
+              MarkdownBlockKind.math,
+              SourceRange(line.start, lines[last].end),
+              line.number,
+            ),
+          );
+          i = last;
+          continue;
+        }
+      }
       final atx = RegExp(r'^ {0,3}(#{1,6})(?:[ \t]+(.*?)|[ \t]*)$')
           .firstMatch(text);
       var isHeading = false;

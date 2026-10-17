@@ -578,6 +578,13 @@
   "mermaidPreview": "图表预览",
   "mermaidUnavailable": "无法生成预览",
   "mermaidError": "图表语法有误，源码已保留。",
+  "prefMath": "数学公式",
+  "prefChemistry": "化学表达式",
+  "prefInlineSyntax": "行内语法",
+  "prefSubscript": "上下标",
+  "prefHighlight": "高亮标记",
+  "prefAutoLink": "自动识别链接",
+  "prefSoftBreak": "单次换行显示为换行",
   "prefSpaces": "{count} 空格",
   "@prefSpaces": {"placeholders":{"count":{"type":"int"}}}
 }

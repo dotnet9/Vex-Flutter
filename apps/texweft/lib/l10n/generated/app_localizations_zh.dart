@@ -1300,6 +1300,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mermaidError => '图表语法有误，源码已保留。';
 
   @override
+  String get prefMath => '数学公式';
+
+  @override
+  String get prefChemistry => '化学表达式';
+
+  @override
+  String get prefInlineSyntax => '行内语法';
+
+  @override
+  String get prefSubscript => '上下标';
+
+  @override
+  String get prefHighlight => '高亮标记';
+
+  @override
+  String get prefAutoLink => '自动识别链接';
+
+  @override
+  String get prefSoftBreak => '单次换行显示为换行';
+
+  @override
   String prefSpaces(int count) {
     return '$count 空格';
   }
@@ -2598,6 +2619,27 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get mermaidError => '圖表語法有誤，原始碼已保留。';
+
+  @override
+  String get prefMath => '數學公式';
+
+  @override
+  String get prefChemistry => '化學表達式';
+
+  @override
+  String get prefInlineSyntax => '行內語法';
+
+  @override
+  String get prefSubscript => '上下標';
+
+  @override
+  String get prefHighlight => '醒目標記';
+
+  @override
+  String get prefAutoLink => '自動識別連結';
+
+  @override
+  String get prefSoftBreak => '單次換行顯示為換行';
 
   @override
   String prefSpaces(int count) {

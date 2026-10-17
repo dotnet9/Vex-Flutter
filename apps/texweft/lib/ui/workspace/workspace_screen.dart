@@ -918,6 +918,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                             controller: state.presenter!,
                             typography: state.typography,
                             fontSize: state.fontSize,
+                            preferences: state.markdownPreferences,
                             onExit: () => unawaited(_run(_togglePresentation)),
                           ),
                         ),

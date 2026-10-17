@@ -6,6 +6,9 @@ import 'code_block.dart';
 import 'editing_preferences.dart';
 import 'font_families.dart';
 import 'labels.dart';
+import 'markdown_preferences.dart';
+import 'markdown_syntax.dart';
+import 'math_formula.dart';
 import 'mermaid_block.dart';
 
 enum MarkdownTypography {
@@ -38,6 +41,7 @@ class MarkdownReader extends StatelessWidget {
     this.onTapLink,
     this.imageBuilder,
     this.editingPreferences,
+    this.preferences = const MarkdownPreferences(),
     this.labels = const MarkdownEditorLabels(),
   });
   final String data;
@@ -45,6 +49,7 @@ class MarkdownReader extends StatelessWidget {
   final bool compact, selectable;
   final double fontSize;
   final MarkdownEditingPreferences? editingPreferences;
+  final MarkdownPreferences preferences;
   final MarkdownEditorLabels labels;
   final void Function(String text, String? href, String title)? onTapLink;
   final Widget Function(Uri uri, String? title, String? alt)? imageBuilder;
@@ -172,10 +177,13 @@ class MarkdownReader extends StatelessWidget {
   Widget build(BuildContext context) {
     final sheet = styleSheet(context);
     return MarkdownBody(
+      key: ValueKey(preferences),
       data: data,
       selectable: selectable,
-      softLineBreak: true,
-      extensionSet: md.ExtensionSet.gitHubFlavored,
+      softLineBreak: preferences.softBreak,
+      extensionSet: MarkdownSyntax.extensions(preferences),
+      blockSyntaxes: MarkdownSyntax.blocks(preferences),
+      inlineSyntaxes: MarkdownSyntax.inlines(preferences),
       styleSheet: sheet,
       onTapLink: onTapLink,
       imageBuilder: imageBuilder,
@@ -185,7 +193,12 @@ class MarkdownReader extends StatelessWidget {
           fontSize / 15 * (compact ? 13 : 14),
           editingPreferences,
           labels,
+          preferences,
         ),
+        'vex-math': _MathBuilder(this, false),
+        'vex-math-block': _MathBuilder(this, true),
+        for (final tag in ['mark', 'sub', 'sup'])
+          tag: _InlineMarkBuilder(this, tag),
         for (var level = 1; level <= 6; level++)
           'h$level': _HeadingBuilder(this, level, switch (level) {
             1 => sheet.h1!,
@@ -206,11 +219,13 @@ class _CodeBlockBuilder extends MarkdownElementBuilder {
     this.fontSize,
     this.preferences,
     this.labels,
+    this.markdownPreferences,
   );
   final bool selectable;
   final double fontSize;
   final MarkdownEditingPreferences? preferences;
   final MarkdownEditorLabels labels;
+  final MarkdownPreferences markdownPreferences;
 
   @override
   bool isBlockElement() => true;
@@ -223,8 +238,9 @@ class _CodeBlockBuilder extends MarkdownElementBuilder {
     TextStyle? parentStyle,
   ) {
     final code = element.children?.whereType<md.Element>().firstOrNull;
-    if (code?.attributes['class']?.split(' ').contains('language-mermaid') ==
-        true) {
+    if (markdownPreferences.mermaid &&
+        code?.attributes['class']?.split(' ').contains('language-mermaid') ==
+            true) {
       return MarkdownMermaidBlock(
         source: element.textContent.replaceFirst(RegExp(r'\n$'), ''),
         labels: labels,
@@ -237,6 +253,67 @@ class _CodeBlockBuilder extends MarkdownElementBuilder {
         selectable: selectable,
         fontSize: preferences?.codeSize ?? fontSize,
         wrap: preferences?.codeWrap ?? false,
+      ),
+    );
+  }
+}
+
+final class _MathBuilder extends MarkdownElementBuilder {
+  _MathBuilder(this.reader, this.display);
+  final MarkdownReader reader;
+  final bool display;
+  @override
+  bool isBlockElement() => display;
+  @override
+  Widget visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) => Padding(
+    padding: display
+        ? const EdgeInsets.symmetric(vertical: 18)
+        : EdgeInsets.zero,
+    child: MarkdownMathFormula(
+      source: element.attributes['data-tex']!,
+      display: display,
+      fontSize: parentStyle?.fontSize ?? reader.fontSize,
+      preferences: reader.preferences,
+      fallback: element.textContent,
+    ),
+  );
+}
+
+final class _InlineMarkBuilder extends MarkdownElementBuilder {
+  _InlineMarkBuilder(this.reader, this.tag);
+  final MarkdownReader reader;
+  final String tag;
+  @override
+  Widget visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    final c = Theme.of(context).colorScheme;
+    final style = parentStyle ?? reader.styleSheet(context).p!;
+    if (tag == 'mark') {
+      return Text(
+        element.textContent,
+        style: style.copyWith(
+          backgroundColor: c.brightness == Brightness.dark
+              ? const Color(0xff685b28)
+              : const Color(0xffffe49b),
+        ),
+      );
+    }
+    return Transform.translate(
+      offset: Offset(0, tag == 'sup' ? -4 : 3),
+      child: Text(
+        element.textContent,
+        style: style.copyWith(
+          fontSize: (style.fontSize ?? reader.fontSize) * .75,
+        ),
       ),
     );
   }
@@ -343,8 +420,8 @@ class _HeadingBuilder extends MarkdownElementBuilder {
           // RenderEditable reserves 1 px plus its 2 px caret. Keep the display
           // line width identical, including centred and wrapped headings.
           padding: const EdgeInsets.only(right: 3),
-          child: Text(
-            element.textContent,
+          child: Text.rich(
+            TextSpan(children: _headingSpans(element.children ?? [], style)),
             style: style,
             textAlign: reader.typography == MarkdownTypography.editorial
                 ? TextAlign.center
@@ -352,4 +429,49 @@ class _HeadingBuilder extends MarkdownElementBuilder {
           ),
         ),
       );
+
+  List<InlineSpan> _headingSpans(List<md.Node> nodes, TextStyle style) => [
+    for (final node in nodes)
+      if (node is! md.Element)
+        TextSpan(text: node.textContent, style: style)
+      else if (node.tag == 'vex-math' || node.tag == 'vex-math-block')
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: MarkdownMathFormula(
+            source: node.attributes['data-tex']!,
+            fontSize: style.fontSize ?? reader.fontSize,
+            preferences: reader.preferences,
+            fallback: node.textContent,
+          ),
+        )
+      else if (node.tag == 'sub' || node.tag == 'sup')
+        WidgetSpan(
+          child: Transform.translate(
+            offset: Offset(0, node.tag == 'sup' ? -5 : 3),
+            child: Text(
+              node.textContent,
+              style: style.copyWith(fontSize: style.fontSize! * .75),
+            ),
+          ),
+        )
+      else
+        TextSpan(
+          style: style,
+          children: _headingSpans(
+            node.children ?? [],
+            style.copyWith(
+              fontWeight: node.tag == 'strong'
+                  ? FontWeight.w700
+                  : style.fontWeight,
+              fontStyle: node.tag == 'em' ? FontStyle.italic : style.fontStyle,
+              decoration: node.tag == 'del'
+                  ? TextDecoration.lineThrough
+                  : style.decoration,
+              backgroundColor: node.tag == 'mark'
+                  ? const Color(0xffffe49b)
+                  : style.backgroundColor,
+            ),
+          ),
+        ),
+  ];
 }

@@ -397,6 +397,13 @@
   "mermaidPreview": "図表プレビュー",
   "mermaidUnavailable": "プレビューを生成できません",
   "mermaidError": "図表の構文に誤りがあります。ソースは保持されています。",
+  "prefMath": "数式",
+  "prefChemistry": "化学式",
+  "prefInlineSyntax": "インライン構文",
+  "prefSubscript": "下付き・上付き文字",
+  "prefHighlight": "ハイライト",
+  "prefAutoLink": "リンクを自動検出",
+  "prefSoftBreak": "単一改行を表示",
   "prefSpaces": "{count} スペース",
   "@prefSpaces": {"placeholders":{"count":{"type":"int"}}}
 }
