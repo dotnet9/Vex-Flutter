@@ -9,6 +9,7 @@ import 'data/services/desktop_window.dart';
 import 'data/services/file_service.dart';
 import 'l10n/l10n.dart';
 import 'ui/workspace/workspace_view_model.dart';
+import 'ui/workspace/builtin_documents.dart';
 
 Future<void> main(List<String> arguments) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +21,30 @@ Future<void> main(List<String> arguments) async {
       'Cascadia Code',
     ], await rootBundle.loadString('assets/fonts/CascadiaCode-OFL.txt'));
   });
+  final builtin = BuiltinDocument.fromArguments(arguments);
+  if (builtin != null) {
+    await initializeDesktopWindow(
+      size: const Size(1000, 780),
+      preventClose: false,
+      nativeTitleBar: defaultTargetPlatform == TargetPlatform.macOS,
+    );
+    runApp(
+      BuiltinDocumentApp(
+        document: builtin,
+        source: await builtin.load(),
+        language:
+            arguments
+                .where((a) => a.startsWith('--language='))
+                .firstOrNull
+                ?.substring(11) ??
+            'zh',
+        brightness: arguments.contains('--theme=dark')
+            ? Brightness.dark
+            : Brightness.light,
+      ),
+    );
+    return;
+  }
   await initializeDesktopWindow();
   final vm = WorkspaceViewModel(
     files: NativeDocumentFileService(),

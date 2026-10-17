@@ -10,6 +10,27 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get builtinThanks => '鸣谢';
+
+  @override
+  String get changelog => '更新日志';
+
+  @override
+  String get builtinReadOnly => '内置文档 · 只读';
+
+  @override
+  String get aboutVersionLabel => '版本';
+
+  @override
+  String get aboutAuthorLabel => '作者';
+
+  @override
+  String get aboutLicenseLabel => '开源协议';
+
+  @override
+  String get aboutLinksLabel => '链接';
+
+  @override
   String get typewriterMode => '打字机模式';
 
   @override
@@ -1076,6 +1097,27 @@ class AppLocalizationsZh extends AppLocalizations {
 /// The translations for Chinese, using the Han script (`zh_Hant`).
 class AppLocalizationsZhHant extends AppLocalizationsZh {
   AppLocalizationsZhHant() : super('zh_Hant');
+
+  @override
+  String get builtinThanks => '鳴謝';
+
+  @override
+  String get changelog => '更新日誌';
+
+  @override
+  String get builtinReadOnly => '內建文件 · 唯讀';
+
+  @override
+  String get aboutVersionLabel => '版本';
+
+  @override
+  String get aboutAuthorLabel => '作者';
+
+  @override
+  String get aboutLicenseLabel => '開源協議';
+
+  @override
+  String get aboutLinksLabel => '連結';
 
   @override
   String get typewriterMode => '打字機模式';

@@ -1,5 +1,12 @@
 {
   "@@locale": "zh",
+  "builtinThanks": "鸣谢",
+  "changelog": "更新日志",
+  "builtinReadOnly": "内置文档 · 只读",
+  "aboutVersionLabel": "版本",
+  "aboutAuthorLabel": "作者",
+  "aboutLicenseLabel": "开源协议",
+  "aboutLinksLabel": "链接",
   "typewriterMode": "打字机模式",
   "mapLayoutRight": "单侧树形",
   "mapLayoutBalanced": "双侧平衡",

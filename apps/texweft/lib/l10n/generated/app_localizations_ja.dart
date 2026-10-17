@@ -10,6 +10,27 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get builtinThanks => '謝辞';
+
+  @override
+  String get changelog => '更新履歴';
+
+  @override
+  String get builtinReadOnly => '組み込み文書 · 読み取り専用';
+
+  @override
+  String get aboutVersionLabel => 'バージョン';
+
+  @override
+  String get aboutAuthorLabel => '作者';
+
+  @override
+  String get aboutLicenseLabel => 'ライセンス';
+
+  @override
+  String get aboutLinksLabel => 'リンク';
+
+  @override
   String get typewriterMode => 'タイプライターモード';
 
   @override

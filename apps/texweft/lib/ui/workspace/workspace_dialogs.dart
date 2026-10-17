@@ -15,6 +15,7 @@ import '../core/app_widgets.dart';
 import '../core/palette_tokens.dart';
 import 'workspace_pickers.dart';
 import 'workspace_view_model.dart';
+import 'builtin_documents.dart';
 
 Future<void> showExportDialog(
   BuildContext context,
@@ -456,8 +457,7 @@ Future<void> _showLicenses(BuildContext context) async {
     context: context,
     applicationName: context.l10n.appTitle,
     applicationVersion: info == null ? null : _version(info),
-    applicationLegalese:
-        'Copyright © 2026 沙漠尽头的狼 / CodeWF\nTexweft · MIT License',
+    applicationLegalese: 'Copyright © 2026 沙漠尽头的狼 / CodeWF\nVex · MIT License',
   );
 }
 
@@ -485,7 +485,7 @@ class _AboutDialogState extends State<_AboutDialog> {
         ),
       );
       final info = await _info;
-      request.headers.set('User-Agent', 'Texweft/${info?.version ?? 'dev'}');
+      request.headers.set('User-Agent', 'Vex/${info?.version ?? 'dev'}');
       final response = await request.close().timeout(
         const Duration(seconds: 20),
       );
@@ -512,25 +512,16 @@ class _AboutDialogState extends State<_AboutDialog> {
   @override
   Widget build(BuildContext context) => AppDialog(
     title: context.l10n.about,
-    width: 620,
+    width: 420,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primaryContainer
-                .withValues(alpha: .5),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Theme.of(context).colorScheme.primary
-                  .withValues(alpha: .14),
-            ),
-          ),
+        Padding(
+          padding: const EdgeInsets.only(top: 6, bottom: 24),
           child: Row(
             children: [
-              SvgPicture.asset('assets/brand/logo.svg', width: 80, height: 80),
-              const SizedBox(width: 20),
+              SvgPicture.asset('assets/brand/logo.svg', width: 64, height: 64),
+              const SizedBox(width: 18),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -538,7 +529,7 @@ class _AboutDialogState extends State<_AboutDialog> {
                     Text(
                       context.l10n.appTitle,
                       style: const TextStyle(
-                        fontSize: 28,
+                        fontSize: 24,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -547,98 +538,110 @@ class _AboutDialogState extends State<_AboutDialog> {
                       context.l10n.slogan,
                       style: const TextStyle(fontSize: 14),
                     ),
-                    const SizedBox(height: 5),
-                    FutureBuilder<PackageInfo?>(
-                      future: _info,
-                      builder: (context, snapshot) => Text(
-                        [
-                          if (snapshot.data case final info?) _version(info),
-                          context.l10n.nativeApplication,
-                        ].join(' · '),
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ),
                   ],
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 24),
-        Text(
-          context.l10n.aboutDescription,
-          style: const TextStyle(fontSize: 14, height: 1.9),
+        _row(
+          context.l10n.aboutVersionLabel,
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 10,
+            runSpacing: 4,
+            children: [
+              FutureBuilder<PackageInfo?>(
+                future: _info,
+                builder: (context, snapshot) => Text(
+                  snapshot.data == null ? 'dev' : _version(snapshot.data!),
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ),
+              AppButton(
+                label: context.l10n.changelog,
+                height: 28,
+                padding: 0,
+                onPressed: () =>
+                    showBuiltinDocument(context, BuiltinDocument.changelog),
+              ),
+              AppButton(
+                key: const ValueKey('about-check-updates'),
+                label: _checking
+                    ? context.l10n.checking
+                    : context.l10n.checkUpdates,
+                height: 28,
+                padding: 0,
+                onPressed: _checking ? null : _check,
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 20),
-        Text(
-          context.l10n.author,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        if (_update.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(left: 64, bottom: 10),
+            child: Text(_update, style: const TextStyle(fontSize: 12)),
+          ),
+        _row(
+          context.l10n.aboutAuthorLabel,
+          Text(context.l10n.author, style: const TextStyle(fontSize: 14)),
         ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            AppButton(
-              label: context.l10n.authorWebsite,
-              icon: 'ext',
-              bordered: true,
-              onPressed: () => launchUrl(
-                Uri.parse('https://codewf.com'),
-                mode: LaunchMode.externalApplication,
+        _row(
+          context.l10n.aboutLicenseLabel,
+          const Text('MIT License', style: TextStyle(fontSize: 14)),
+        ),
+        _row(
+          context.l10n.aboutLinksLabel,
+          Wrap(
+            spacing: 10,
+            runSpacing: 4,
+            children: [
+              _link(context.l10n.officialWebsite, 'https://codewf.com'),
+              _link(
+                context.l10n.githubSource,
+                'https://github.com/dotnet9/Vex-Flutter',
               ),
-            ),
-            AppButton(
-              label: context.l10n.githubSource,
-              icon: 'code',
-              bordered: true,
-              onPressed: () => launchUrl(
-                Uri.parse('https://github.com/dotnet9/Vex-Flutter'),
-                mode: LaunchMode.externalApplication,
-              ),
-            ),
-            AppButton(
-              label: context.l10n.releasesDownloads,
-              icon: 'export',
-              bordered: true,
-              onPressed: () => launchUrl(
-                Uri.parse('https://github.com/dotnet9/Vex-Flutter/releases'),
-                mode: LaunchMode.externalApplication,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: 22),
         const Divider(),
         const SizedBox(height: 14),
-        AppButton(
-          label: _checking ? context.l10n.checking : context.l10n.checkUpdates,
-          icon: 'refresh',
-          onPressed: _checking ? null : _check,
-        ),
-        if (_update.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(_update, style: const TextStyle(fontSize: 14)),
-          ),
-        const SizedBox(height: 12),
-        Text(
-          context.l10n.acknowledgements,
-          style: const TextStyle(fontSize: 12, height: 1.8),
-        ),
-        const SizedBox(height: 10),
-        AppButton(
-          label: context.l10n.openSourceLicenses,
-          icon: 'info',
-          bordered: true,
-          onPressed: () => _showLicenses(context),
-        ),
-        const SizedBox(height: 10),
         const Text(
-          'Copyright © 2026 沙漠尽头的狼 / CodeWF\nTexweft · MIT License',
+          'Copyright © 2026 Vex(维刻)\nFlutter / Dart',
           style: TextStyle(fontSize: 12, height: 1.8),
         ),
       ],
     ),
+  );
+
+  Widget _row(String label, Widget child) => Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 64,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 5),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ),
+        Expanded(child: child),
+      ],
+    ),
+  );
+  Widget _link(String label, String url) => AppButton(
+    label: label,
+    height: 28,
+    padding: 0,
+    onPressed: () =>
+        launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
   );
 }

@@ -1,5 +1,12 @@
 {
   "@@locale": "ja",
+  "builtinThanks": "謝辞",
+  "changelog": "更新履歴",
+  "builtinReadOnly": "組み込み文書 · 読み取り専用",
+  "aboutVersionLabel": "バージョン",
+  "aboutAuthorLabel": "作者",
+  "aboutLicenseLabel": "ライセンス",
+  "aboutLinksLabel": "リンク",
   "typewriterMode": "タイプライターモード",
   "mapLayoutRight": "右向きツリー",
   "mapLayoutBalanced": "両側バランス",

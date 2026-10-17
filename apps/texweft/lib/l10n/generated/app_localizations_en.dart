@@ -10,6 +10,27 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get builtinThanks => 'Acknowledgements';
+
+  @override
+  String get changelog => 'Changelog';
+
+  @override
+  String get builtinReadOnly => 'Built-in document · Read only';
+
+  @override
+  String get aboutVersionLabel => 'Version';
+
+  @override
+  String get aboutAuthorLabel => 'Author';
+
+  @override
+  String get aboutLicenseLabel => 'License';
+
+  @override
+  String get aboutLinksLabel => 'Links';
+
+  @override
   String get typewriterMode => 'Typewriter mode';
 
   @override

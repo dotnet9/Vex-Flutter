@@ -1,5 +1,12 @@
 {
   "@@locale": "en",
+  "builtinThanks": "Acknowledgements",
+  "changelog": "Changelog",
+  "builtinReadOnly": "Built-in document · Read only",
+  "aboutVersionLabel": "Version",
+  "aboutAuthorLabel": "Author",
+  "aboutLicenseLabel": "License",
+  "aboutLinksLabel": "Links",
   "typewriterMode": "Typewriter mode",
   "mapLayoutRight": "Right tree",
   "mapLayoutBalanced": "Balanced",

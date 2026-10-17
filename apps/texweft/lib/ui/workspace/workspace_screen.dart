@@ -24,6 +24,7 @@ import 'workspace_pickers.dart';
 import 'workspace_presentation.dart';
 import 'workspace_sidebar.dart';
 import 'workspace_view_model.dart';
+import 'builtin_documents.dart';
 
 class WorkspaceScreen extends StatefulWidget {
   const WorkspaceScreen({super.key, this.windowIntegration = false});
@@ -508,6 +509,14 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         unawaited(showMcpSettings(context, vm.mcp));
       case 'about':
         unawaited(showAbout(context));
+      case 'thanks':
+        unawaited(
+          _run(() => showBuiltinDocument(context, BuiltinDocument.thanks)),
+        );
+      case 'changelog':
+        unawaited(
+          _run(() => showBuiltinDocument(context, BuiltinDocument.changelog)),
+        );
       case 'guide':
         vm.startGuide();
       case 'sidebar':
@@ -1032,7 +1041,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             ('', '-', ''),
             (context.l10n.officialWebsite, 'website', ''),
             (context.l10n.feedback, 'feedback', ''),
-            (context.l10n.aboutUpdates, 'about', ''),
+            (context.l10n.builtinThanks, 'thanks', ''),
+            (context.l10n.changelog, 'changelog', ''),
+            (context.l10n.about, 'about', ''),
           ]),
           Expanded(
             child: GestureDetector(

@@ -101,6 +101,48 @@ abstract class AppLocalizations {
     Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
   ];
 
+  /// No description provided for @builtinThanks.
+  ///
+  /// In zh, this message translates to:
+  /// **'鸣谢'**
+  String get builtinThanks;
+
+  /// No description provided for @changelog.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新日志'**
+  String get changelog;
+
+  /// No description provided for @builtinReadOnly.
+  ///
+  /// In zh, this message translates to:
+  /// **'内置文档 · 只读'**
+  String get builtinReadOnly;
+
+  /// No description provided for @aboutVersionLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'版本'**
+  String get aboutVersionLabel;
+
+  /// No description provided for @aboutAuthorLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'作者'**
+  String get aboutAuthorLabel;
+
+  /// No description provided for @aboutLicenseLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'开源协议'**
+  String get aboutLicenseLabel;
+
+  /// No description provided for @aboutLinksLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'链接'**
+  String get aboutLinksLabel;
+
   /// No description provided for @typewriterMode.
   ///
   /// In zh, this message translates to:
