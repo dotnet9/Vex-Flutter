@@ -1,7 +1,14 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val releaseKeys = Properties().apply {
+    val source = rootProject.file("key.properties")
+    if (source.isFile) source.inputStream().use { load(it) }
 }
 
 android {
@@ -9,13 +16,16 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
+    buildFeatures {
+        resValues = true
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.codewf.texweft"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -27,13 +37,39 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        resValue("string", "app_name", "笺纬 Texweft")
+    }
+
+    signingConfigs {
+        create("production") {
+            keyAlias = releaseKeys.getProperty("keyAlias")
+            keyPassword = releaseKeys.getProperty("keyPassword")
+            storePassword = releaseKeys.getProperty("storePassword")
+            releaseKeys.getProperty("storeFile")?.let {
+                storeFile = rootProject.file(it)
+            }
+        }
+    }
+
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("preview") {
+            dimension = "distribution"
+            applicationIdSuffix = ".preview"
+            versionNameSuffix = "-preview"
+            resValue("string", "app_name", "笺纬 Texweft 预览")
+            signingConfig = signingConfigs.getByName("debug")
+        }
+        create("production") {
+            dimension = "distribution"
+            signingConfig = signingConfigs.getByName("production")
+        }
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Each distribution supplies its own signing configuration.
+            signingConfig = null
         }
     }
 }
