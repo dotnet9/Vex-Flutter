@@ -370,10 +370,39 @@ class _SourceShortcuts extends DefaultCodeShortcutsActivatorsBuilder {
 
 // Keep the platform TextField input path until native platform validation.
 class _MobileSourceEditorState extends State<MarkdownSourceEditor> {
-  final _scroll = ScrollController();
+  late _SourceViewport _savedViewport;
+  bool _restoringScroll = false;
+  late final _scroll = ScrollController(
+    initialScrollOffset: _savedViewport.vertical,
+    keepScrollOffset: false,
+  )..addListener(_rememberScroll);
   final _viewport = GlobalKey();
+  final _field = GlobalKey(), _gutter = GlobalKey();
+  String? _lineSource;
+  List<int> _lineStarts = const [0];
   bool _centerScheduled = false;
   bool _forceReveal = false;
+
+  void _rememberScroll() {
+    if (!_restoringScroll && _scroll.hasClients) {
+      _savedViewport.vertical = _scroll.offset;
+    }
+  }
+
+  RenderEditable? _editable() {
+    RenderEditable? result;
+    void visit(RenderObject object) {
+      if (object is RenderEditable) {
+        result = object;
+      } else {
+        object.visitChildren(visit);
+      }
+    }
+
+    final object = _field.currentContext?.findRenderObject();
+    if (object != null) visit(object);
+    return result;
+  }
 
   bool _showKeyboardContext() {
     if (widget.onContextMenu == null ||
@@ -400,6 +429,7 @@ class _MobileSourceEditorState extends State<MarkdownSourceEditor> {
   @override
   void initState() {
     super.initState();
+    _savedViewport = _sourceViewports[widget.controller] ??= _SourceViewport();
     widget.controller.source.addListener(_center);
     widget.controller.sourceFocus.addListener(_center);
     widget.controller.navigation.addListener(_navigate);
@@ -416,6 +446,18 @@ class _MobileSourceEditorState extends State<MarkdownSourceEditor> {
       widget.controller.source.addListener(_center);
       widget.controller.sourceFocus.addListener(_center);
       widget.controller.navigation.addListener(_navigate);
+      _savedViewport = _sourceViewports[widget.controller] ??=
+          _SourceViewport();
+      final offset = _savedViewport.vertical;
+      _restoringScroll = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (_scroll.hasClients) {
+          _scroll.jumpTo(offset.clamp(0, _scroll.position.maxScrollExtent));
+        }
+        _restoringScroll = false;
+        if (widget.controller.navigation.value != null) _navigate();
+      });
     }
     if (oldWidget.typewriter != widget.typewriter) _center();
   }
@@ -444,21 +486,12 @@ class _MobileSourceEditorState extends State<MarkdownSourceEditor> {
       final viewport =
           _viewport.currentContext?.findRenderObject() as RenderBox?;
       if (viewport == null) return;
-      RenderEditable? editable;
-      void visit(RenderObject object) {
-        if (object is RenderEditable) {
-          editable = object;
-        } else {
-          object.visitChildren(visit);
-        }
-      }
-
-      visit(viewport);
+      final editable = _editable();
       final selection = widget.controller.source.selection;
       if (editable == null || !selection.isValid) return;
-      final rect = editable!.getLocalRectForCaret(selection.extent);
+      final rect = editable.getLocalRectForCaret(selection.extent);
       final center = viewport
-          .globalToLocal(editable!.localToGlobal(rect.center))
+          .globalToLocal(editable.localToGlobal(rect.center))
           .dy;
       final position = _scroll.position;
       final delta = widget.typewriter
@@ -490,10 +523,33 @@ class _MobileSourceEditorState extends State<MarkdownSourceEditor> {
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme;
     return ListenableBuilder(
-      listenable: widget.controller,
+      listenable: widget.controller.source,
       builder: (context, _) {
-        final height =
-            MediaQuery.textScalerOf(context).scale(widget.fontSize) * 1.9;
+        final source = widget.controller.source.text;
+        if (_lineSource != source) {
+          _lineSource = source;
+          _lineStarts = [
+            0,
+            for (final match in RegExp(r'\r\n|\r|\n').allMatches(source))
+              match.end,
+          ];
+        }
+        final font = MarkdownCodeBlock.textStyle(
+          context,
+          widget.fontSize,
+        ).copyWith(height: 1.9, color: color.onSurface);
+        final scaler = MediaQuery.textScalerOf(context);
+        final labels = TextPainter(
+          text: TextSpan(
+            text: '0' * _lineStarts.length.toString().length.clamp(3, 12),
+            style: font,
+          ),
+          textDirection: Directionality.of(context),
+          textScaler: scaler,
+        )..layout();
+        final gutterWidth = labels.width.ceil() + 16.0;
+        labels.dispose();
+        final height = scaler.scale(widget.fontSize) * 1.9;
         return LayoutBuilder(
           key: PageStorageKey(('source', widget.controller)),
           builder: (context, constraints) {
@@ -506,25 +562,18 @@ class _MobileSourceEditorState extends State<MarkdownSourceEditor> {
               children: [
                 if (widget.lineNumbers)
                   SizedBox(
-                    width: 48,
+                    width: gutterWidth,
                     child: ClipRect(
                       child: CustomPaint(
+                        key: _gutter,
                         painter: _SourceLineNumbers(
                           scroll: _scroll,
-                          count:
-                              widget.controller.document.lineStarts.length +
-                              (widget.controller.source.text.endsWith('\n')
-                                  ? 1
-                                  : 0),
-                          lineHeight: height,
-                          top: top,
-                          style: MarkdownCodeBlock.textStyle(context, 10)
-                              .copyWith(
-                                height: height / 10,
-                                color: color.onSurfaceVariant,
-                              ),
+                          lineStarts: _lineStarts,
+                          editable: _editable,
+                          gutter: _gutter,
+                          style: font.copyWith(color: color.onSurfaceVariant),
                           direction: Directionality.of(context),
-                          scaler: MediaQuery.textScalerOf(context),
+                          scaler: scaler,
                         ),
                       ),
                     ),
@@ -551,6 +600,7 @@ class _MobileSourceEditorState extends State<MarkdownSourceEditor> {
                         ),
                       },
                       child: TextField(
+                        key: _field,
                         controller: widget.controller.source,
                         contextMenuBuilder: widget.onContextMenu == null
                             ? null
@@ -590,15 +640,7 @@ class _MobileSourceEditorState extends State<MarkdownSourceEditor> {
                         ],
                         smartDashesType: SmartDashesType.disabled,
                         smartQuotesType: SmartQuotesType.disabled,
-                        style:
-                            MarkdownCodeBlock.textStyle(
-                              context,
-                              widget.fontSize,
-                            ).copyWith(
-                              fontSize: widget.fontSize,
-                              height: 1.9,
-                              color: color.onSurface,
-                            ),
+                        style: font,
                         decoration: InputDecoration(
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
@@ -650,35 +692,61 @@ class _SourceContextToolbar implements SelectionToolbarController {
 class _SourceLineNumbers extends CustomPainter {
   _SourceLineNumbers({
     required this.scroll,
-    required this.count,
-    required this.lineHeight,
+    required this.lineStarts,
+    required this.editable,
+    required this.gutter,
     required this.style,
     required this.direction,
     required this.scaler,
-    this.top = 26,
   }) : super(repaint: scroll);
   final ScrollController scroll;
-  final int count;
-  final double lineHeight;
-  final double top;
+  final List<int> lineStarts;
+  final RenderEditable? Function() editable;
+  final GlobalKey gutter;
   final TextStyle style;
   final TextDirection direction;
   final TextScaler scaler;
+
+  int _lineAt(int offset) {
+    var low = 0, high = lineStarts.length;
+    while (low + 1 < high) {
+      final middle = (low + high) ~/ 2;
+      if (lineStarts[middle] <= offset) {
+        low = middle;
+      } else {
+        high = middle;
+      }
+    }
+    return low;
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
-    final offset = scroll.hasClients ? scroll.offset : 0.0;
-    final first = ((offset - top) / lineHeight).floor().clamp(0, count);
-    final last = ((offset + size.height - top) / lineHeight).ceil().clamp(
-      0,
-      count,
+    final text = editable();
+    final box = gutter.currentContext?.findRenderObject() as RenderBox?;
+    if (text == null || box == null) return;
+    final first = _lineAt(
+      text.getPositionForPoint(box.localToGlobal(Offset.zero)).offset,
+    );
+    final last = _lineAt(
+      text
+          .getPositionForPoint(box.localToGlobal(Offset(0, size.height)))
+          .offset,
     );
     final painter = TextPainter(textDirection: direction, textScaler: scaler);
-    for (var i = first; i < last; i++) {
+    for (var i = first; i <= last; i++) {
+      final caret = text.getLocalRectForCaret(
+        TextPosition(offset: lineStarts[i]),
+      );
+      final y = box.globalToLocal(text.localToGlobal(caret.center)).dy;
       painter.text = TextSpan(text: '${i + 1}', style: style);
       painter.layout();
+      if (y + painter.height / 2 < 0 || y - painter.height / 2 > size.height) {
+        continue;
+      }
       painter.paint(
         canvas,
-        Offset(size.width - 12 - painter.width, top + i * lineHeight - offset),
+        Offset(size.width - 12 - painter.width, y - painter.height / 2),
       );
     }
     painter.dispose();
@@ -686,9 +754,9 @@ class _SourceLineNumbers extends CustomPainter {
 
   @override
   bool shouldRepaint(_SourceLineNumbers oldDelegate) =>
-      count != oldDelegate.count ||
-      top != oldDelegate.top ||
-      lineHeight != oldDelegate.lineHeight ||
+      lineStarts != oldDelegate.lineStarts ||
+      editable != oldDelegate.editable ||
+      gutter != oldDelegate.gutter ||
       style != oldDelegate.style ||
       direction != oldDelegate.direction ||
       scaler != oldDelegate.scaler ||
