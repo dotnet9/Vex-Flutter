@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -387,10 +386,11 @@ class _AboutDialogState extends State<_AboutDialog> {
         };
       });
     } on UpdateHttpException catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(
           () => _update = context.l10n.updateHttpError(error.statusCode),
         );
+      }
     } on FormatException {
       if (mounted) setState(() => _update = context.l10n.updateInvalidResponse);
     } catch (_) {
@@ -492,15 +492,17 @@ class _AboutDialogState extends State<_AboutDialog> {
                         if (await launchUrl(
                           _release,
                           mode: LaunchMode.externalApplication,
-                        ))
+                        )) {
                           return;
+                        }
                       } catch (_) {
                         // Keep the dialog usable when the OS cannot open a browser.
                       }
-                      if (mounted)
+                      if (mounted) {
                         setState(
                           () => _update = context.l10n.githubUnavailable,
                         );
+                      }
                     },
                   ),
               ],
