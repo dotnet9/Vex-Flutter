@@ -8,6 +8,7 @@ output="${3:-$root/artifacts/release}"
 case "$arch" in x64) deb_arch=amd64;; arm64) deb_arch=arm64;; *) exit 1;; esac
 bundle="$root/apps/vex/build/linux/$arch/release/bundle"
 [[ -x "$bundle/vex" && -f "$bundle/lib/libapp.so" && -d "$bundle/data/flutter_assets" ]]
+python3 "$root/scripts/packaging/linux/check_abi.py" "$bundle"
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
 mkdir -p "$stage/DEBIAN" "$stage/usr/lib/vex" "$stage/usr/bin" \
@@ -44,6 +45,11 @@ while IFS= read -r -d '' file; do
 done < <(find "$stage/usr/lib/vex" -type f -print0)
 dependencies="$(cd "$stage" && dpkg-shlibdeps --ignore-missing-info -O -l"$stage/usr/lib/vex/lib" "${elf_args[@]}" | sed -n 's/^shlibs:Depends=//p')"
 [[ -n "$dependencies" ]]
+if [[ "$dependencies" == *t64* ]]; then
+  echo 'Linux release packages must use the Ubuntu 20.04 baseline, not t64 libraries.' >&2
+  echo 'Build inside ubuntu:20.04; dependency renaming cannot repair a newer binary ABI.' >&2
+  exit 1
+fi
 cat > "$stage/DEBIAN/control" <<EOF
 Package: vex
 Version: $version

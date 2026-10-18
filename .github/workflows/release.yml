@@ -140,26 +140,29 @@ jobs:
           - target: linux-x64
             os: ubuntu-24.04
             architecture: x64
+            container: ubuntu:20.04
           - target: linux-arm64
             os: ubuntu-24.04-arm
             architecture: arm64
+            container: ubuntu:20.04
           - target: macos-universal
             os: macos-15
             architecture: arm64
     runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
     timeout-minutes: 60
     steps:
+      - name: 准备 Linux 兼容构建基线（Ubuntu 20.04 / glibc 2.31）
+        if: runner.os == 'Linux'
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y sudo git curl ca-certificates unzip xz-utils file binutils
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.metadata.outputs.commit }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - uses: actions/setup-java@v4
-        if: runner.os == 'Linux'
-        with:
-          distribution: temurin
-          java-version: '21'
       - uses: subosito/flutter-action@v2
         if: matrix.target != 'linux-arm64'
         with:

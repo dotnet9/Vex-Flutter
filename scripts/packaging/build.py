@@ -96,7 +96,7 @@ def prerequisites(args, target, flutter):
         raise ValueError('The Flutter SDK has no bundled Dart executable.')
     required = []
     if target.startswith('linux-'):
-        required = ['bash', 'clang', 'cmake', 'ninja', 'pkg-config', 'dpkg-deb', 'dpkg-shlibdeps', 'desktop-file-validate', 'file']
+        required = ['bash', 'clang', 'cmake', 'ninja', 'pkg-config', 'dpkg-deb', 'dpkg-shlibdeps', 'desktop-file-validate', 'file', 'readelf', 'python3']
     elif target in ('osx-universal', 'ios-check'):
         required = ['bash', 'xcrun', 'xcodebuild', 'pod']
         if target == 'osx-universal':
