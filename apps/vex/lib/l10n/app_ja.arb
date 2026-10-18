@@ -378,6 +378,8 @@
   "refreshFolder": "フォルダーを更新",
   "fileSortAscending": "ファイル名 A → Z",
   "fileSortDescending": "ファイル名 Z → A",
+  "documentLinkNeedsFile": "相対ファイルリンクを開くには、まずこの文書を保存してください。",
+  "documentLinkUnavailable": "リンク先の文書を開けません。ファイルの場所とアクセス権限を確認してください。",
   "prefMotion": "画面アニメーション",
   "prefDefaultFormat": "既定の形式",
   "prefDefaultDirectory": "既定のフォルダー",

@@ -9,7 +9,10 @@ Future<void> openWorkspaceLink(WorkspaceViewModel vm, String? href) async {
     return;
   }
   final uri = Uri.tryParse(href);
-  if (uri != null && ['https', 'http', 'mailto'].contains(uri.scheme)) {
+  if (uri == null) return;
+  if (['https', 'http', 'mailto'].contains(uri.scheme)) {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
+  } else if (uri.scheme.isEmpty || uri.scheme == 'file') {
+    await vm.followDocumentLink(uri);
   }
 }

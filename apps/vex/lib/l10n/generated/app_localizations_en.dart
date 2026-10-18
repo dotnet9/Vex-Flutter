@@ -1287,6 +1287,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fileSortDescending => 'File name Z to A';
 
   @override
+  String get documentLinkNeedsFile =>
+      'Save this document before opening a relative file link.';
+
+  @override
+  String get documentLinkUnavailable =>
+      'Unable to open the linked document. Check its location and access permissions.';
+
+  @override
   String get prefMotion => 'Interface animations';
 
   @override

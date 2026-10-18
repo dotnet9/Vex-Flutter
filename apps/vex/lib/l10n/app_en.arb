@@ -378,6 +378,8 @@
   "refreshFolder": "Refresh folder",
   "fileSortAscending": "File name A to Z",
   "fileSortDescending": "File name Z to A",
+  "documentLinkNeedsFile": "Save this document before opening a relative file link.",
+  "documentLinkUnavailable": "Unable to open the linked document. Check its location and access permissions.",
   "prefMotion": "Interface animations",
   "prefDefaultFormat": "Default format",
   "prefDefaultDirectory": "Default folder",

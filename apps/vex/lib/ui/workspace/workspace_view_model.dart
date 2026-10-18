@@ -411,6 +411,56 @@ final class WorkspaceViewModel extends ChangeNotifier {
     return true;
   }
 
+  Future<void> followDocumentLink(Uri link) async {
+    if (_disposed) return;
+    var request = _openRequest;
+    try {
+      if (link.hasQuery ||
+          link.host.isNotEmpty ||
+          (link.scheme.isNotEmpty && link.scheme != 'file')) {
+        throw const FormatException('Not a local document link');
+      }
+      final base = current.path;
+      if (link.scheme.isEmpty && base == null) {
+        _setStatus((l) => l.documentLinkNeedsFile);
+        _notify();
+        return;
+      }
+      final uri = link.scheme == 'file'
+          ? link
+          : p.toUri(p.absolute(base!)).resolveUri(link);
+      if (uri.host.isNotEmpty || uri.path.startsWith('//')) {
+        throw const FormatException('Not a local document link');
+      }
+      final path = p.normalize(p.fromUri(uri.removeFragment()));
+      if (!p.isAbsolute(path) ||
+          ![
+            '.md',
+            '.markdown',
+            '.txt',
+          ].contains(p.extension(path).toLowerCase())) {
+        throw const FormatException('Not a Markdown or text document');
+      }
+      // openPath owns focus ordering; a late failure must not interrupt a newer action.
+      _setStatus(null);
+      request = _openRequest + 1;
+      await openPath(
+        path,
+        anchor: link.hasFragment ? '#${link.fragment}' : null,
+      );
+    } catch (error) {
+      if (error is! FileSystemException &&
+          error is! FormatException &&
+          error is! ArgumentError) {
+        rethrow;
+      }
+      if (!_disposed && request == _openRequest) {
+        _setStatus((l) => l.documentLinkUnavailable);
+        _notify();
+      }
+    }
+  }
+
   void moveNode(String source, String target) {
     _ensureMapCurrent();
     final from = _headingForNode[source], to = _headingForNode[target];
@@ -807,25 +857,34 @@ final class WorkspaceViewModel extends ChangeNotifier {
       )
       .firstOrNull;
 
-  Future<void> openPath(String path) async {
+  Future<void> openPath(String path, {String? anchor}) async {
     if (_disposed) return;
     final request = ++_openRequest;
     final existing = _documentAt(path);
     if (existing != null) {
       switchDocument(existing);
+      if (anchor != null) followAnchor(anchor);
       await _loadParentFolder(existing.path, _openRequest);
       return;
     }
     final opened = await files.read(path);
-    await _prepareOpened(opened, request);
+    await _prepareOpened(opened, request, anchor: anchor);
   }
 
-  Future<void> _prepareOpened(OpenedDocument opened, int request) async {
+  Future<void> _prepareOpened(
+    OpenedDocument opened,
+    int request, {
+    String? anchor,
+  }) async {
     if (_disposed) return;
     final parsed = await MarkdownDocument.parseAsync(opened.text);
+    if (_disposed) return;
     final activate = request == _openRequest;
     _acceptOpened(opened, parsed: parsed, activate: activate);
-    if (activate) await _loadParentFolder(opened.path, _openRequest);
+    if (activate) {
+      if (anchor != null) followAnchor(anchor);
+      await _loadParentFolder(opened.path, _openRequest);
+    }
   }
 
   void acceptOpened(OpenedDocument opened, {bool activate = true}) {

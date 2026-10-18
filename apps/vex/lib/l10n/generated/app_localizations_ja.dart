@@ -1242,6 +1242,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get fileSortDescending => 'ファイル名 Z → A';
 
   @override
+  String get documentLinkNeedsFile => '相対ファイルリンクを開くには、まずこの文書を保存してください。';
+
+  @override
+  String get documentLinkUnavailable =>
+      'リンク先の文書を開けません。ファイルの場所とアクセス権限を確認してください。';
+
+  @override
   String get prefMotion => '画面アニメーション';
 
   @override

@@ -1236,6 +1236,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fileSortDescending => '文件名 Z → A';
 
   @override
+  String get documentLinkNeedsFile => '请先保存这篇文档，再打开其中的相对文件链接。';
+
+  @override
+  String get documentLinkUnavailable => '无法打开链接中的文档，请检查文件位置和访问权限。';
+
+  @override
   String get prefMotion => '界面动效';
 
   @override
@@ -2777,6 +2783,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get fileSortDescending => '檔名 Z → A';
+
+  @override
+  String get documentLinkNeedsFile => '請先儲存這篇文件，再開啟其中的相對檔案連結。';
+
+  @override
+  String get documentLinkUnavailable => '無法開啟連結中的文件，請檢查檔案位置與存取權限。';
 
   @override
   String get prefMotion => '介面動效';

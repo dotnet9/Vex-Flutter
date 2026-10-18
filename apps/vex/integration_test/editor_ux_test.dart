@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:re_editor/re_editor.dart';
 import 'package:vex/app.dart';
 import 'package:vex/data/services/desktop_window.dart';
@@ -128,6 +129,27 @@ void main() {
         await tester.sendKeyEvent(LogicalKeyboardKey.escape);
         await tester.pumpAndSettle();
       }
+      final files = vm.files as MemoryFiles;
+      final first = p.absolute('native-link-fixture', 'index.md');
+      final second = p.absolute('native-link-fixture', '第二篇 笔记.md');
+      files.content.addAll({
+        first: '# 学习入口\n\n[阅读第二篇](第二篇%20笔记.md#目标章节)',
+        second: '# 第二篇\n\n## 目标章节\n\n文档之间可以直接阅读跳转。',
+      });
+      await windowManager.setMinimumSize(const Size(320, 568));
+      vm.updateAppearance(mode: ThemeMode.light);
+      for (final size in [const Size(1280, 900), const Size(390, 844)]) {
+        await windowManager.setSize(size);
+        await vm.openPath(first);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('阅读第二篇', findRichText: true));
+        await tester.pumpAndSettle();
+        expect(vm.current.path, second);
+        expect(vm.selectedHeading?.title, '目标章节');
+        expect(vm.layout, WorkspaceLayout.read);
+        await capture('linked-document-${size.width.toInt()}');
+      }
+      await windowManager.setSize(const Size(1280, 900));
       vm.updateAppearance(language: 'en', mode: ThemeMode.light);
       await tester.pumpWidget(
         RepaintBoundary(

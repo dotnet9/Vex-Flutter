@@ -548,6 +548,8 @@
   "refreshFolder": "刷新文件夹",
   "fileSortAscending": "文件名 A → Z",
   "fileSortDescending": "文件名 Z → A",
+  "documentLinkNeedsFile": "请先保存这篇文档，再打开其中的相对文件链接。",
+  "documentLinkUnavailable": "无法打开链接中的文档，请检查文件位置和访问权限。",
   "prefMotion": "界面动效",
   "prefDefaultFormat": "默认格式",
   "prefDefaultDirectory": "默认目录",

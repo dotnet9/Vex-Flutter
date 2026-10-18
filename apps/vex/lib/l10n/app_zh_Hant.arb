@@ -378,6 +378,8 @@
   "refreshFolder": "重新整理資料夾",
   "fileSortAscending": "檔名 A → Z",
   "fileSortDescending": "檔名 Z → A",
+  "documentLinkNeedsFile": "請先儲存這篇文件，再開啟其中的相對檔案連結。",
+  "documentLinkUnavailable": "無法開啟連結中的文件，請檢查檔案位置與存取權限。",
   "prefMotion": "介面動效",
   "prefDefaultFormat": "預設格式",
   "prefDefaultDirectory": "預設目錄",

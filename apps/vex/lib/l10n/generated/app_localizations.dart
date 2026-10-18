@@ -2369,6 +2369,18 @@ abstract class AppLocalizations {
   /// **'文件名 Z → A'**
   String get fileSortDescending;
 
+  /// No description provided for @documentLinkNeedsFile.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先保存这篇文档，再打开其中的相对文件链接。'**
+  String get documentLinkNeedsFile;
+
+  /// No description provided for @documentLinkUnavailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法打开链接中的文档，请检查文件位置和访问权限。'**
+  String get documentLinkUnavailable;
+
   /// No description provided for @prefMotion.
   ///
   /// In zh, this message translates to:
