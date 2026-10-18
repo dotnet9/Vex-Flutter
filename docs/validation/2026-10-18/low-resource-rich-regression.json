@@ -1,0 +1,202 @@
+{
+  "mode": "profile",
+  "characters": 285449,
+  "blocks": 2520,
+  "operations": [
+    {
+      "name": "open",
+      "wallMs": 55.9,
+      "rssMiB": 199.7890625
+    },
+    {
+      "name": "begin",
+      "wallMs": 36.536,
+      "rssMiB": 203.9296875
+    },
+    {
+      "name": "type:0",
+      "wallMs": 67.927,
+      "rssMiB": 212.484375
+    },
+    {
+      "name": "undo:0",
+      "wallMs": 71.309,
+      "rssMiB": 214.515625
+    },
+    {
+      "name": "type:1",
+      "wallMs": 68.104,
+      "rssMiB": 214.08203125
+    },
+    {
+      "name": "undo:1",
+      "wallMs": 69.703,
+      "rssMiB": 216.48828125
+    },
+    {
+      "name": "type:2",
+      "wallMs": 68.925,
+      "rssMiB": 204.47265625
+    },
+    {
+      "name": "undo:2",
+      "wallMs": 70.411,
+      "rssMiB": 207.63671875
+    },
+    {
+      "name": "type:3",
+      "wallMs": 68.241,
+      "rssMiB": 205.90234375
+    },
+    {
+      "name": "undo:3",
+      "wallMs": 70.37,
+      "rssMiB": 207.9765625
+    },
+    {
+      "name": "type:4",
+      "wallMs": 69.107,
+      "rssMiB": 206.35546875
+    },
+    {
+      "name": "undo:4",
+      "wallMs": 71.701,
+      "rssMiB": 208.546875
+    },
+    {
+      "name": "type:5",
+      "wallMs": 64.719,
+      "rssMiB": 206.48828125
+    },
+    {
+      "name": "undo:5",
+      "wallMs": 71.354,
+      "rssMiB": 208.78125
+    },
+    {
+      "name": "type:6",
+      "wallMs": 72.66,
+      "rssMiB": 207.1484375
+    },
+    {
+      "name": "undo:6",
+      "wallMs": 69.645,
+      "rssMiB": 209.328125
+    },
+    {
+      "name": "type:7",
+      "wallMs": 68.997,
+      "rssMiB": 207.39453125
+    },
+    {
+      "name": "undo:7",
+      "wallMs": 70.488,
+      "rssMiB": 209.64453125
+    },
+    {
+      "name": "type:8",
+      "wallMs": 67.658,
+      "rssMiB": 207.53515625
+    },
+    {
+      "name": "undo:8",
+      "wallMs": 71.81,
+      "rssMiB": 209.90234375
+    },
+    {
+      "name": "type:9",
+      "wallMs": 67.327,
+      "rssMiB": 207.91015625
+    },
+    {
+      "name": "undo:9",
+      "wallMs": 70.55,
+      "rssMiB": 210.01953125
+    },
+    {
+      "name": "type:10",
+      "wallMs": 68.013,
+      "rssMiB": 208.08203125
+    },
+    {
+      "name": "undo:10",
+      "wallMs": 70.842,
+      "rssMiB": 210.37109375
+    },
+    {
+      "name": "type:11",
+      "wallMs": 66.904,
+      "rssMiB": 208.625
+    },
+    {
+      "name": "undo:11",
+      "wallMs": 70.282,
+      "rssMiB": 210.6875
+    },
+    {
+      "name": "select-all:0",
+      "wallMs": 297.864,
+      "rssMiB": 297.1484375
+    },
+    {
+      "name": "collapse:0",
+      "wallMs": 51.307,
+      "rssMiB": 252.25390625
+    },
+    {
+      "name": "select-all:1",
+      "wallMs": 249.07,
+      "rssMiB": 293.91796875
+    },
+    {
+      "name": "collapse:1",
+      "wallMs": 52.079,
+      "rssMiB": 261.91796875
+    },
+    {
+      "name": "select-all:2",
+      "wallMs": 248.11,
+      "rssMiB": 290.86328125
+    },
+    {
+      "name": "collapse:2",
+      "wallMs": 50.98,
+      "rssMiB": 260.3359375
+    },
+    {
+      "name": "select-all:3",
+      "wallMs": 239.763,
+      "rssMiB": 298.7890625
+    },
+    {
+      "name": "collapse:3",
+      "wallMs": 50.14,
+      "rssMiB": 253.7421875
+    },
+    {
+      "name": "select-all:4",
+      "wallMs": 249.152,
+      "rssMiB": 295.1953125
+    },
+    {
+      "name": "collapse:4",
+      "wallMs": 50.159,
+      "rssMiB": 263.25390625
+    },
+    {
+      "name": "select-all:5",
+      "wallMs": 239.958,
+      "rssMiB": 291.625
+    },
+    {
+      "name": "collapse:5",
+      "wallMs": 52.308,
+      "rssMiB": 260.9921875
+    },
+    {
+      "name": "replace-all",
+      "wallMs": 59.48,
+      "rssMiB": 254.05859375
+    }
+  ]
+}
