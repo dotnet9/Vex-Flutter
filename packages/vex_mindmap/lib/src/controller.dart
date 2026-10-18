@@ -38,19 +38,13 @@ final class MindMapController extends ChangeNotifier {
   void _transformed() => notifyListeners();
   void setRoot(MindMapNode value) {
     final changed = value.id != _root.id;
-    final next = MindMapLayout.compute(
-      value,
-      collapsed: _collapsed,
-      mode: _mode,
-    );
     _root = value;
-    _layout = next;
     if (changed) {
       _selected = null;
       _collapsed.clear();
-      _layout = MindMapLayout.compute(value, mode: _mode);
       fitRequested = true;
     }
+    _layout = MindMapLayout.compute(value, collapsed: _collapsed, mode: _mode);
     notifyListeners();
   }
 

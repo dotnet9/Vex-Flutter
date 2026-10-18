@@ -98,48 +98,55 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
           ),
           if (vm.outline)
             Expanded(
-              child: ListView(
+              child: ListView.builder(
+                key: PageStorageKey('outline-${vm.current.id}'),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
                   vertical: 12,
                 ),
-                children: [
-                  for (final heading in vm.editor.document.headings)
-                    Padding(
-                      padding: EdgeInsets.only(left: (heading.level - 1) * 9),
-                      child: TextButton(
-                        onPressed: () => vm.selectHeading(heading),
-                        style: TextButton.styleFrom(
-                          alignment: Alignment.centerLeft,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          minimumSize: const Size(0, 32),
-                          foregroundColor: vm.selectedHeadingId == heading.id
-                              ? c.primary
-                              : c.onSurfaceVariant,
-                          backgroundColor: vm.selectedHeadingId == heading.id
-                              ? c.primaryContainer
-                              : null,
-                          textStyle: const TextStyle(fontSize: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                        ),
-                        child: Text(
-                          'H${heading.level}   ${heading.title}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                  if (vm.editor.document.headings.isEmpty)
-                    Padding(
+                itemCount: vm.editor.document.headings.isEmpty
+                    ? 1
+                    : vm.editor.document.headings.length,
+                itemBuilder: (context, index) {
+                  final headings = vm.editor.document.headings;
+                  if (headings.isEmpty) {
+                    return Padding(
                       padding: const EdgeInsets.all(12),
                       child: Text(
                         context.l10n.outlineHint,
                         style: const TextStyle(fontSize: 13),
                       ),
+                    );
+                  }
+                  final heading = headings[index];
+                  return Padding(
+                    key: ValueKey(heading.id),
+                    padding: EdgeInsets.only(left: (heading.level - 1) * 9),
+                    child: TextButton(
+                      onPressed: () => vm.selectHeading(heading),
+                      style: TextButton.styleFrom(
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: const Size(0, 32),
+                        foregroundColor: vm.selectedHeadingId == heading.id
+                            ? c.primary
+                            : c.onSurfaceVariant,
+                        backgroundColor: vm.selectedHeadingId == heading.id
+                            ? c.primaryContainer
+                            : null,
+                        textStyle: const TextStyle(fontSize: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                      ),
+                      child: Text(
+                        'H${heading.level}   ${heading.title}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                ],
+                  );
+                },
               ),
             )
           else ...[

@@ -248,6 +248,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     if (!_mapDirty) return;
     _mapDirty = false;
     _map.setRoot(_tree());
+    if (_map.selectedId != selectedHeadingId) _map.select(selectedHeadingId);
   }
 
   MindMapNode _tree() {
@@ -349,7 +350,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   void selectHeading(MarkdownHeading heading) {
     selectedHeadingId = heading.id;
     editor.reveal(heading.header.start, end: heading.header.end);
-    map.select(heading.id);
+    if (!_mapDirty) _map.select(heading.id);
     _notify();
   }
 
@@ -364,7 +365,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     if (fragment.isEmpty) {
       _statusMessage = null;
       selectedHeadingId = null;
-      map.select(null);
+      if (!_mapDirty) _map.select(null);
       editor.reveal(0);
       _notify();
       return true;

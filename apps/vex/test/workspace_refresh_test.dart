@@ -4,6 +4,31 @@ import 'package:vex/domain/workspace.dart';
 import 'support/fakes.dart';
 
 void main() {
+  test(
+    'chapter jumps leave hidden map pending and retain its selection on show',
+    () {
+      final vm = fakeWorkspace();
+      addTearDown(vm.dispose);
+      final map = vm.map, root = map.root;
+      vm.editor.session.replace('# Root\n\n## Target\n\nBody');
+      final heading = vm.editor.document.headings.last;
+      vm.selectHeading(heading);
+      expect(map.root, same(root));
+      expect(vm.editor.navigation.value!.selection.start, heading.header.start);
+      vm.setLayout(WorkspaceLayout.instantMap);
+      expect(map.root.title, 'Root');
+      expect(map.selectedId, heading.id);
+      vm.setLayout(WorkspaceLayout.instant);
+      vm.editor.session.replace('# Changed\n\n## Target\n\nBody');
+      final previous = map.root;
+      vm.followAnchor('#');
+      expect(map.root, same(previous));
+      vm.setLayout(WorkspaceLayout.instantMap);
+      expect(map.root.title, 'Changed');
+      expect(map.selectedId, isNull);
+    },
+  );
+
   test('hidden map defers parsing and layout across consecutive edits', () {
     final vm = fakeWorkspace();
     addTearDown(vm.dispose);

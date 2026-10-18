@@ -1728,7 +1728,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
               const SizedBox(width: 16),
               Text(
                 context.l10n.characterCount(
-                  state.editor.session.text.characters.length,
+                  state.editor.characterCount,
                 ),
               ),
             ],
