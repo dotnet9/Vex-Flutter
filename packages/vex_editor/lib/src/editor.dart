@@ -1101,76 +1101,93 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
               onPointerUp: (_) => _endDocumentDrag(),
               onPointerCancel: (_) => _endDocumentDrag(),
               child: LayoutBuilder(
-                builder: (context, constraints) => Align(
-                  key: _viewportRegion,
-                  alignment: Alignment.topCenter,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: widget.typography.width,
-                    ),
-                    child: SuperListView.builder(
-                      key: PageStorageKey(widget.controller),
-                      controller: _scroll,
-                      listController: _list,
-                      cacheExtent: constraints.maxHeight,
-                      padding: widget.padding.copyWith(
-                        top: widget.typewriter
-                            ? constraints.maxHeight / 2
-                            : widget.padding.top,
-                        bottom: widget.typewriter
-                            ? constraints.maxHeight / 2
-                            : widget.padding.bottom,
+                builder: (context, constraints) {
+                  _navigation.preservePosition((
+                    constraints.biggest,
+                    widget.typography,
+                    widget.compact,
+                    widget.fontSize,
+                    widget.editingPreferences,
+                    widget.preferences,
+                    MediaQuery.textScalerOf(context),
+                  ), contentKey: widget.controller.document);
+                  return Align(
+                    key: _viewportRegion,
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: widget.typography.width,
                       ),
-                      itemCount:
-                          visibleBlocks.length + (_checkpoint == null ? 1 : 0),
-                      findChildIndexCallback: (key) =>
-                          key == const ValueKey('instant-new-paragraph')
-                          ? (_checkpoint == null ? visibleBlocks.length : null)
-                          : _blockIndices[key],
-                      itemBuilder: (context, index) {
-                        if (index < visibleBlocks.length) {
-                          final block = visibleBlocks[index];
-                          return KeyedSubtree(
-                            key: ValueKey(block.range.start),
-                            child:
-                                _checkpoint != null &&
-                                    block.range.start == _start
-                                ? _selectionBlock(
-                                    block,
-                                    source,
-                                    _field(colors),
-                                    active: true,
-                                  )
-                                : _contextBlock(block, source),
-                          );
-                        }
-                        return GestureDetector(
-                          key: const ValueKey('instant-new-paragraph'),
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            final current = widget.controller.session.text;
-                            final newline = widget.controller.document.newline;
-                            if (current.isNotEmpty &&
-                                !current.endsWith('$newline$newline')) {
-                              widget.controller.session.replace(
-                                '$current${current.endsWith(newline) ? '' : newline}$newline',
-                                label: widget.labels.newParagraph,
-                              );
-                            }
-                            _begin(null);
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 24),
-                            child: Text(
-                              blocks.isEmpty ? widget.labels.placeholder : '',
-                              style: TextStyle(color: colors.onSurfaceVariant),
+                      child: SuperListView.builder(
+                        key: PageStorageKey(widget.controller),
+                        controller: _scroll,
+                        listController: _list,
+                        cacheExtent: constraints.maxHeight,
+                        padding: widget.padding.copyWith(
+                          top: widget.typewriter
+                              ? constraints.maxHeight / 2
+                              : widget.padding.top,
+                          bottom: widget.typewriter
+                              ? constraints.maxHeight / 2
+                              : widget.padding.bottom,
+                        ),
+                        itemCount:
+                            visibleBlocks.length +
+                            (_checkpoint == null ? 1 : 0),
+                        findChildIndexCallback: (key) =>
+                            key == const ValueKey('instant-new-paragraph')
+                            ? (_checkpoint == null
+                                  ? visibleBlocks.length
+                                  : null)
+                            : _blockIndices[key],
+                        itemBuilder: (context, index) {
+                          if (index < visibleBlocks.length) {
+                            final block = visibleBlocks[index];
+                            return KeyedSubtree(
+                              key: ValueKey(block.range.start),
+                              child:
+                                  _checkpoint != null &&
+                                      block.range.start == _start
+                                  ? _selectionBlock(
+                                      block,
+                                      source,
+                                      _field(colors),
+                                      active: true,
+                                    )
+                                  : _contextBlock(block, source),
+                            );
+                          }
+                          return GestureDetector(
+                            key: const ValueKey('instant-new-paragraph'),
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              final current = widget.controller.session.text;
+                              final newline =
+                                  widget.controller.document.newline;
+                              if (current.isNotEmpty &&
+                                  !current.endsWith('$newline$newline')) {
+                                widget.controller.session.replace(
+                                  '$current${current.endsWith(newline) ? '' : newline}$newline',
+                                  label: widget.labels.newParagraph,
+                                );
+                              }
+                              _begin(null);
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              child: Text(
+                                blocks.isEmpty ? widget.labels.placeholder : '',
+                                style: TextStyle(
+                                  color: colors.onSurfaceVariant,
+                                ),
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
             if (_documentSelection) _documentSelectionInput(colors),
