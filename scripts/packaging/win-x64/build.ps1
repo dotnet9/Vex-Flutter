@@ -101,6 +101,7 @@ try {
         $env:PUB_HOSTED_URL = 'https://pub.dev'
         if (-not $env:CMAKE_BUILD_PARALLEL_LEVEL) { $env:CMAKE_BUILD_PARALLEL_LEVEL = '2' }
         if (-not $env:CL) { $env:CL = '/MP1' }
+        Invoke-Checked -Executable $python -Arguments @((Join-Path $root 'scripts/sync_builtin_documents.py'))
         Invoke-Checked -Executable $flutterPath -Arguments @('pub', 'get', '--enforce-lockfile')
         if ($SkipTests) {
             Write-Warning 'Tests were explicitly skipped. This local installer is not a substitute for CI validation.'

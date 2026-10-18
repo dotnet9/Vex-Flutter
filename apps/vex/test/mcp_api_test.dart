@@ -18,7 +18,7 @@ void main() {
     final root = Directory.current.path.endsWith('${p.separator}vex')
         ? '../..'
         : '.';
-    final reference = File(p.join(root, 'docs/mcp/tools.md'))
+    final reference = File(p.join(root, 'docs/mcp/MCP工具接口.md'))
         .readAsStringSync();
     for (final tool in WorkspaceMcp.tools) {
       expect(reference, contains('`${tool['name']}`'));

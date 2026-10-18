@@ -128,7 +128,8 @@ def prerequisites(args, target, flutter):
 def recipe(args, target, flutter, dart, output):
     """Return argv/cwd pairs so local builds, previews and tests share one recipe."""
     version, _ = app_version()
-    steps = [([flutter, 'pub', 'get', '--enforce-lockfile'], ROOT)]
+    steps = [([sys.executable, str(ROOT / 'scripts/sync_builtin_documents.py')], ROOT),
+             ([flutter, 'pub', 'get', '--enforce-lockfile'], ROOT)]
     if not args.skip_tests:
         steps.append(([flutter, 'analyze', '--no-pub'], ROOT))
         steps.append(([dart, 'test', '--concurrency=2'], ROOT / 'packages/vex_markdown_core'))

@@ -75,7 +75,7 @@ Vex 适合整理技术笔记、读书记录、长文提纲和项目方案。像�
 | **导出与演示** | Markdown、独立 HTML、PDF、Word 和导图 PNG；正文、大纲与导图演示，另有系统打印入口 |
 | **四种界面语言** | 简体中文、繁体中文、English、日本語；即时切换并保留文档与历史 |
 
-数学、化学和 Mermaid 使用原生 Dart / Flutter 引擎，不依赖网页内核或在线渲染服务。图表模板覆盖不代表兼容 Mermaid.js 的全部扩展；公式、复杂排版和导出边界见 [图表说明](docs/markdown-diagrams.md) 与 [公式说明](docs/markdown-formulas.md)。
+数学、化学和 Mermaid 使用原生 Dart / Flutter 引擎，不依赖网页内核或在线渲染服务。图表模板覆盖不代表兼容 Mermaid.js 的全部扩展；公式、复杂排版和导出边界见 [图表说明](docs/Markdown图表.md) 与 [公式说明](docs/Markdown公式.md)。
 
 ### 文件属于你，保存方式也由你决定
 
@@ -83,14 +83,14 @@ Vex 适合整理技术笔记、读书记录、长文提纲和项目方案。像�
 
 **自动保存默认关闭**，需要时在偏好设置中开启。应用提供恢复草稿、未保存关闭提醒和磁盘变更冲突检查；恢复草稿不是备份，重要笔记仍应自行备份。
 
-设置与恢复草稿放在系统应用数据目录，与安装目录分开。Windows 安装器不清理独立用户数据目录或个人笔记；当前仍按全新开发维护，不承诺跨版本配置、草稿格式或降级兼容，更新前请保存文档并备份。具体路径和平台差异见 [用户数据与升级](docs/安装包与自动发布.md#用户数据与升级)，开发约定见 [兼容策略](CONTRIBUTING.md#开发阶段兼容策略)。本地写作不需要联网，网络图片、外部链接和更新检查等功能仍可能发起网络访问。
+设置与恢复草稿放在系统应用数据目录，与安装目录分开。Windows 安装器不清理独立用户数据目录或个人笔记；当前仍按全新开发维护，不承诺跨版本配置、草稿格式或降级兼容，更新前请保存文档并备份。具体路径和平台差异见 [用户数据与升级](docs/安装包与自动发布.md#用户数据与升级)，开发约定见 [兼容策略](docs/贡献指南.md#开发阶段兼容策略)。本地写作不需要联网，网络图片、外部链接和更新检查等功能仍可能发起网络访问。
 
 <details>
 <summary><strong>进阶：通过 MCP 连接本机工具（实验性）</strong></summary>
 
 桌面端内置可选的本机 MCP 服务，可让支持 MCP 的客户端读取文档、查看大纲，并在授权范围内操作内容。这不是内置云端 AI，也不要求你为了日常写作开启它。
 
-服务默认关闭，只绑定回环地址，使用访问令牌并限制文件范围；写操作默认需要确认。从 v0.4.0 起提供 35 个工具，令牌通过平台安全存储保存，已用官方 MCP Inspector 逐项进行隔离环境联调；不代表所有客户端、系统均已验证。开启方法、完整接口与测试步骤见 [MCP 指南](docs/mcp/README.md)。启用前请阅读 [安全政策](SECURITY.md)，不要公开客户端配置或访问令牌。
+服务默认关闭，只绑定回环地址，使用访问令牌并限制文件范围；写操作默认需要确认。从 v0.4.0 起提供 35 个工具，令牌通过平台安全存储保存，已用官方 MCP Inspector 逐项进行隔离环境联调；不代表所有客户端、系统均已验证。开启方法、完整接口与测试步骤见 [MCP 指南](docs/mcp/MCP使用指南.md)。启用前请阅读 [安全政策](SECURITY.md)，不要公开客户端配置或访问令牌。
 
 </details>
 
@@ -118,7 +118,7 @@ Vex 使用 Flutter 原生渲染，编辑体验参考 Typora，是 [原 Vex 项�
 目前已具备写作、阅读、导图、导出和 Windows 原生安装流程；Android 有发行签名构建与模拟器验证。macOS / Linux 原生体验、真实移动设备与输入法、大文档最差延迟、复杂行内排版及外部 MCP 客户端仍需持续验证。**98% 原型还原是目标，不是已经测得的成绩。**
 
 - [实现与验收](docs/实现验收.md)：已验证内容、兼容边界与剩余工作。
-- [版本记录](apps/vex/assets/documents/CHANGELOG.md)：开发记录；已发布版本另见 [Releases](https://github.com/dotnet9/Vex-Flutter/releases)。
+- [版本记录](docs/更新日志.md)：用户可读的更新日志；已发布版本另见 [Releases](https://github.com/dotnet9/Vex-Flutter/releases)。
 - [交互原型](design/README.md)：桌面、手机、平板和安装流程的设计入口，不等同于交付状态。
 - [大文档性能记录](docs/validation/2026-10-18/低配与大文件性能优化.md)：测试方法、改善与限制，不把单机结果当作所有设备的保证。
 
@@ -128,11 +128,12 @@ Vex 使用 Flutter 原生渲染，编辑体验参考 Typora，是 [原 Vex 项�
 
 ### 在本机运行
 
-使用 [固定 Flutter 版本](.flutter-version)（当前 Flutter 3.47.7 stable / Dart 3.13.5），安装对应平台原生构建工具。Windows 还需 Visual Studio 的 C++ 桌面开发组件。普通试用请优先下载安装包。
+使用 [固定 Flutter 版本](.flutter-version)（当前 Flutter 3.47.7 stable / Dart 3.13.5），安装 Python 3.11+ 及对应平台原生构建工具。Python 用于生成内置文档；macOS / Linux 将下面的 `python` 换成 `python3`。Windows 还需 Visual Studio 的 C++ 桌面开发组件。普通试用请优先下载安装包，无需安装开发工具。
 
 ```powershell
 git clone https://github.com/dotnet9/Vex-Flutter.git
 cd Vex-Flutter
+python scripts/sync_builtin_documents.py
 flutter pub get --enforce-lockfile
 flutter analyze --no-pub
 cd apps/vex
@@ -144,7 +145,7 @@ macOS / Linux 将运行目标改为 `macos` / `linux`；Android 连接设备后�
 
 ### 仓库导航
 
-第一次接触 Flutter？从 [从零认识维刻 Vex](docs/00-从这里开始.md) 开始，按顺序阅读仓库地图、需求、概要设计、详细设计、核心原理、调试测试及打包备份。文档和 Markdown 阅读练习都在 `docs`，与源码一起维护。
+第一次接触 Flutter？从 [从零认识维刻 Vex](docs/00-从这里开始.md) 开始，按顺序阅读仓库地图、需求、概要设计、详细设计、核心原理、调试测试及打包备份。其他资料从 [文档导航](docs/文档导航.md) 查找。正文统一在 `docs` 维护，原型和应用所需的内置文档自动生成，不维护多份副本。
 
 | 目录 | 作用 |
 | --- | --- |
@@ -160,11 +161,11 @@ macOS / Linux 将运行目标改为 `macos` / `linux`；Android 连接设备后�
 
 打包脚本按 [`win-x64`、`linux-x64`、`linux-arm64`、`osx`、`android` 分类](scripts/packaging/README.md)，本机和 CI 共用流程；配置好开发环境后，Windows 可双击根目录 [`build-windows.bat`](build-windows.bat) 制作安装包。脚本不会自动安装 Vex 或发布 Release。
 
-品牌以根目录 `logo.svg / logo.png / logo.ico` 为源，按 [品牌说明](docs/品牌命名与标识.md) 同步。界面沿用系统字体，代码使用 Cascadia Code，离线 PDF 字体与许可证见 [字体说明](apps/vex/assets/fonts/README.md)。其他入口：[国际化](docs/国际化.md) · [README 媒体采集](scripts/docs/README.md)。
+品牌以根目录 `logo.svg / logo.png / logo.ico` 为源，按 [品牌说明](docs/品牌命名与标识.md) 同步。界面沿用系统字体，代码使用 Cascadia Code，离线 PDF 字体与许可证见 [字体说明](docs/resources/字体资源与许可.md)。其他入口：[国际化](docs/国际化.md) · [README 媒体采集](docs/development/首页媒体采集.md)。
 
 ## 开源与鸣谢
 
-Vex 基于 [MIT License](LICENSE) 开源。感谢 Flutter、Dart 生态与所有贡献者，依赖及素材许可见 [鸣谢](apps/vex/assets/documents/ACKNOWLEDGEMENTS.md)。
+Vex 基于 [MIT License](LICENSE) 开源。感谢 Flutter、Dart 生态与所有贡献者，依赖及素材许可见 [鸣谢](docs/鸣谢.md)。
 
 **沙漠尽头的狼 / CodeWF** · [codewf.com](https://codewf.com) · [原 Vex](https://github.com/dotnet9/Vex)
 

@@ -29,8 +29,8 @@ assert.ok(logo.includes('M64 62 L128 198 L192 62'));
 const preferences = fs.readFileSync(path.join(root, 'assets/preferences.js'), 'utf8');
 assert.ok(preferences.includes('autoSave:false'));
 const sandbox = {window:{}};
-vm.runInNewContext(fs.readFileSync(path.join(root, 'assets/documents-data.js'), 'utf8'), sandbox);
-for (const [key, name] of [['thanks','ACKNOWLEDGEMENTS.md'], ['changelog','CHANGELOG.md']]) {
-  assert.equal(sandbox.window.VexDocuments[key].text, fs.readFileSync(path.join(root, 'documents', name), 'utf8').replace(/\r\n/g, '\n'));
+vm.runInNewContext(fs.readFileSync(path.join(root, 'assets/generated/documents-data.js'), 'utf8'), sandbox);
+for (const [key, name] of [['thanks','鸣谢.md'], ['changelog','更新日志.md']]) {
+  assert.equal(sandbox.window.VexDocuments[key].text, fs.readFileSync(path.join(root, '../docs', name), 'utf8').replace(/\r\n/g, '\n'));
 }
 console.log(`PASS: ${scripts} scripts, local HTML assets, ink-teal V logo, default auto-save and bundled Markdown.`);

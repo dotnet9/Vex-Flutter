@@ -5,7 +5,7 @@
   function safeURL(value, image) {
     if (/^https?:\/\//i.test(value) || (!image && /^(mailto:|#)/i.test(value))) return value;
     if (image && /^(?:\.\/)?assets\/[\w./-]+$/i.test(value) && !value.split('/').includes('..')) return value;
-    if (value === 'Third-Party-Licenses.html') return value;
+    if (value === '../design/Third-Party-Licenses.html') return value;
     return '';
   }
   function math(source, display) {

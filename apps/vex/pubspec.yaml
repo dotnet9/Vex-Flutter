@@ -47,7 +47,7 @@ flutter:
   assets:
     - assets/brand/logo.svg
     - assets/brand/logo.png
-    - assets/documents/
+    - assets/generated/documents/
     - assets/fonts/NotoSansSC.ttf.z
     - assets/fonts/NotoSansSC-SemiBold.ttf.z
     - assets/fonts/OFL.txt

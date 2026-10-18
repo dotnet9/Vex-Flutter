@@ -84,7 +84,8 @@ class PackagingBuildTest(unittest.TestCase):
     def test_default_tests_precede_release_build_and_use_explicit_production_entry(self):
         steps = self.steps('linux-x64')
         commands = [command for command, _ in steps]
-        self.assertEqual(commands[0], ['flutter', 'pub', 'get', '--enforce-lockfile'])
+        self.assertEqual(commands[0], [sys.executable, str(ROOT / 'scripts/sync_builtin_documents.py')])
+        self.assertEqual(commands[1], ['flutter', 'pub', 'get', '--enforce-lockfile'])
         self.assertIn(['flutter', 'analyze', '--no-pub'], commands)
         self.assertIn(['dart', 'test', '--concurrency=2'], commands)
         self.assertEqual(sum(command[1:3] == ['test', '--no-pub'] for command in commands), 3)
@@ -96,7 +97,8 @@ class PackagingBuildTest(unittest.TestCase):
     def test_skip_tests_keeps_locked_dependencies_and_artifact_checks(self):
         for target in ('linux-x64', 'linux-arm64', 'osx-universal', 'android'):
             commands = [command for command, _ in self.steps(target, '--skip-tests', '--dry-run')]
-            self.assertIn('--enforce-lockfile', commands[0])
+            self.assertEqual(commands[0], [sys.executable, str(ROOT / 'scripts/sync_builtin_documents.py')])
+            self.assertIn('--enforce-lockfile', commands[1])
             self.assertFalse(any('analyze' in command or 'test' in command for command in commands))
             self.assertEqual(commands[-2][2], 'checksums')
             self.assertEqual(commands[-1][2], 'verify')
@@ -118,7 +120,7 @@ class PackagingBuildTest(unittest.TestCase):
     def test_ios_is_compile_only_not_an_installable_ipa(self):
         commands = [command for command, _ in self.steps('ios-check', '--skip-tests')]
         self.assertEqual(commands[-1], ['flutter', 'build', 'ios', '--release', '--no-codesign', '--target', 'lib/main.dart'])
-        self.assertEqual(len(commands), 2)
+        self.assertEqual(len(commands), 3)
 
     def test_windows_dispatch_preserves_module_isolation_and_arguments(self):
         args = self.args('win-x64', '--skip-tests', '--check-only', '--no-open-folder', '--compiler', 'C:/a space/ISCC.exe', '--flutter', 'C:/sdk/flutter.bat')

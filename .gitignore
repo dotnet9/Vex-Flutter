@@ -28,5 +28,7 @@ coverage/
 __pycache__/
 *.pyc
 artifacts/
+/apps/vex/assets/generated/documents/
+/design/assets/generated/documents-data.js
 .DS_Store
 # The workspace pubspec.lock is intentionally committed.

@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const safeURL = (value, image = false) => /^(https?:|mailto:|#)/i.test(value) || value === 'Third-Party-Licenses.html' || (image && (/^data:image\/(png|jpeg|gif|webp);base64,/i.test(value) || /^assets\/[\w./-]+$/i.test(value) && !value.split('/').includes('..'))) ? value : '#';
+  const safeURL = (value, image = false) => /^(https?:|mailto:|#)/i.test(value) || value === '../design/Third-Party-Licenses.html' || (image && (/^data:image\/(png|jpeg|gif|webp);base64,/i.test(value) || /^assets\/[\w./-]+$/i.test(value) && !value.split('/').includes('..'))) ? value : '#';
   function inline(value) {
     if (window.VexRendering) return VexRendering.inline(value);
     const tokens = [];

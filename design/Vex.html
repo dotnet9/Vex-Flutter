@@ -29,7 +29,7 @@
 <script src="assets/typography-preview.js"></script>
 <script src="assets/desktop/theme.js"></script>
 <script src="assets/vendor/d3-hierarchy/d3-hierarchy.min.js"></script><script src="assets/map-layout.js"></script>
-<script src="assets/overlay.js"></script><script src="assets/mermaid-catalog.js"></script><script src="assets/documents-data.js"></script><script src="assets/watermark.js"></script><script src="assets/preferences.js"></script><script src="assets/tour-placement.js"></script><script src="assets/diagram-editor.js"></script>
+<script src="assets/overlay.js"></script><script src="assets/mermaid-catalog.js"></script><script src="assets/generated/documents-data.js"></script><script src="assets/watermark.js"></script><script src="assets/preferences.js"></script><script src="assets/tour-placement.js"></script><script src="assets/diagram-editor.js"></script>
 </head>
 <body data-page="index">
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><defs>
@@ -403,23 +403,6 @@
         </div>
       </div>
     </div>
-
-    <!-- 文档窗口（更新日志 / 鸣谢） -->
-    <div class="overlay win-layer" id="layer-doc" hidden>
-      <div class="mini-window" style="width: 620px;">
-        <div class="mini-titlebar">
-          <span id="doc-tb-title">更新日志</span>
-          <span class="caption-btns">
-            <button class="caption-btn close" data-close data-l10n-title="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
-          </span>
-        </div>
-        <div class="doc-body">
-          <div class="md-body" id="doc-content-changelog"><h2>0.1.0 · 设计预览</h2><ul><li>单窗口工作区提供八种视图组合。</li><li>即时编辑、源码、阅读、导图与章节编排共享当前文档。</li><li>八套界面配色、六套排版、写作辅助、演示与六步引导。</li><li>手机和平板采用适合触控的自适应布局。</li><li>统一根目录 Logo；提供六个平台的安装或获取流程原型。</li></ul><p>此页面为交互原型，应用使用 Flutter 原生渲染。本页面的更新流程仅作演示，实际版本以发布页为准。</p></div>
-          <div class="md-body thanks-content" id="doc-content-thanks" hidden><h2 data-l10n="ProjectThanksTitle"></h2><p data-l10n="ProjectThanksBody"></p><p data-project-components></p><p><a href="Third-Party-Licenses.html" target="_blank" rel="noopener" data-l10n="ProjectLicensesLink"></a></p><p>Vex · MIT License<br>Copyright © 2026 沙漠尽头的狼 / CodeWF</p></div>
-        </div>
-      </div>
-    </div>
-
 
   </div>
 </div>

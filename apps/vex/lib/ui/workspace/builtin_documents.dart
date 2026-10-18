@@ -12,15 +12,16 @@ import '../core/app_theme.dart';
 import '../core/app_widgets.dart';
 
 enum BuiltinDocument {
-  thanks('ACKNOWLEDGEMENTS.md'),
-  changelog('CHANGELOG.md');
+  thanks('鸣谢.md'),
+  changelog('更新日志.md');
 
   const BuiltinDocument(this.filename);
   final String filename;
   String title(AppLocalizations strings) =>
       this == thanks ? strings.builtinThanks : strings.changelog;
   String get argument => '--builtin-document=$name';
-  Future<String> load() => rootBundle.loadString('assets/documents/$filename');
+  Future<String> load() =>
+      rootBundle.loadString('assets/generated/documents/$filename');
   static BuiltinDocument? fromArguments(List<String> arguments) =>
       values.where((doc) => arguments.contains(doc.argument)).firstOrNull;
 }
@@ -81,6 +82,10 @@ class _BuiltinBody extends StatelessWidget {
       data: source,
       selectable: false,
       onTapLink: (_, href, _) {
+        if (href == '../design/Third-Party-Licenses.html') {
+          showLicensePage(context: context);
+          return;
+        }
         final uri = href == null ? null : Uri.tryParse(href);
         if (uri != null && ['https', 'http', 'mailto'].contains(uri.scheme)) {
           launchUrl(uri, mode: LaunchMode.externalApplication);

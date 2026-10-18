@@ -1,3 +1,3 @@
-# 0.1.0
+# vex_mindmap 更新日志
 
-- 首个开发版本，公开接口仍在验证中。
+版本记录：[组件更新日志](../../docs/packages/vex_mindmap/更新日志.md)。

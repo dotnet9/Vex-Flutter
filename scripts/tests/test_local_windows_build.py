@@ -27,6 +27,8 @@ class LocalWindowsBuildTest(unittest.TestCase):
                      '--enforce-lockfile', "'--release'", "'lib/main.dart'"):
             self.assertIn(text, script)
         self.assertNotRegex(script, r'(?i)flutter\s+upgrade')
+        self.assertGreater(script.index('scripts/sync_builtin_documents.py'), script.index('if ($CheckOnly)'))
+        self.assertLess(script.index('scripts/sync_builtin_documents.py'), script.index("'pub', 'get'"))
 
     def test_generated_installers_are_separate_from_github_release_staging(self):
         script = (ROOT / 'scripts/packaging/win-x64/build.ps1').read_text(encoding='ascii')

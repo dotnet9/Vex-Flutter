@@ -30,6 +30,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: 从 docs 生成内置文档
+        run: python scripts/sync_builtin_documents.py
       - name: 原型契约检查
         run: |
           for script in design/scripts/verify*.cjs; do

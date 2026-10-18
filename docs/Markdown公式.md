@@ -1,4 +1,4 @@
-# Markdown formulas and render preferences
+# Markdown 公式与渲染设置
 
 The Markdown preferences page contains seven persisted switches: mathematics,
 chemistry, Mermaid, subscript/superscript, highlights, automatic links and soft

@@ -30,7 +30,7 @@ for (const y of [80,650]) {
 }
 const preferences = fs.readFileSync(path.join(root,'assets/preferences.js'),'utf8');
 assert.ok(preferences.includes('watermarkPreview:false,watermarkExport:false'));
-const changelog = fs.readFileSync(path.join(root,'documents/CHANGELOG.md'),'utf8');
+const changelog = fs.readFileSync(path.join(root,'../docs/更新日志.md'),'utf8');
 const releaseDates = [...changelog.matchAll(/^## .*（(\d{4}-\d{2}-\d{2})）$/gm)].map(match => match[1]);
 assert.equal(new Set(releaseDates).size, releaseDates.length, 'One release section per day');
 assert.ok(releaseDates.includes('2026-10-17'));

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,6 +14,34 @@ import 'package:vex_editor/vex_editor.dart';
 import 'support/fakes.dart';
 
 void main() {
+  testWidgets('offline bundle matches the canonical Chinese documents', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      for (final document in BuiltinDocument.values) {
+        final source = await File('../../docs/${document.filename}')
+            .readAsString();
+        expect(await document.load(), source.replaceAll('\r\n', '\n'));
+      }
+    });
+  });
+
+  testWidgets('bundled acknowledgements can open native licenses', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const BuiltinDocumentApp(
+        document: BuiltinDocument.thanks,
+        source: '# 鸣谢\n\n[开源组件许可](../design/Third-Party-Licenses.html)',
+        windowIntegration: false,
+      ),
+    );
+    await tester.tap(find.text('开源组件许可', findRichText: true));
+    await tester.pumpAndSettle();
+    expect(find.byType(LicensePage), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final brightness in Brightness.values) {
     testWidgets('separate builtin reader uses neutral $brightness colors', (
       tester,
