@@ -22,13 +22,19 @@ void main() {
       // Opening a picker must not add another barrier above the document.
       final routeBarriers = find.byType(ModalBarrier).evaluate().toList();
       final original = vm.editor.text;
-      await tester.tap(find.byTooltip('工作区布局'));
-      await tester.pumpAndSettle();
-      expect(find.byType(ModalBarrier).evaluate().toList(), routeBarriers);
-      await tester.tap(find.byKey(const ValueKey('layout-read')));
-      await tester.pumpAndSettle();
-      expect(vm.layout, WorkspaceLayout.read);
-      expect(find.byKey(const ValueKey('layout-picker')), findsOneWidget);
+      if (size.width < 700) {
+        expect(find.byTooltip('工作区布局'), findsNothing);
+        vm.setLayout(WorkspaceLayout.read);
+        await tester.pumpAndSettle();
+      } else {
+        await tester.tap(find.byTooltip('工作区布局'));
+        await tester.pumpAndSettle();
+        expect(find.byType(ModalBarrier).evaluate().toList(), routeBarriers);
+        await tester.tap(find.byKey(const ValueKey('layout-read')));
+        await tester.pumpAndSettle();
+        expect(vm.layout, WorkspaceLayout.read);
+        expect(find.byKey(const ValueKey('layout-picker')), findsOneWidget);
+      }
       await tester.tap(find.byTooltip('Markdown 排版'));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('layout-picker')), findsNothing);

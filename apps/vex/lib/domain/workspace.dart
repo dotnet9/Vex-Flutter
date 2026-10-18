@@ -80,6 +80,7 @@ final class WorkspaceDocument {
   final String id;
   String name;
   String? path, persistedText;
+  bool saveCopy = false;
   final bool demo;
   TextFileFormat format;
   final MarkdownEditorController editor;

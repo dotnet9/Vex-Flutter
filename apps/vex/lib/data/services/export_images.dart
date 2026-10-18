@@ -50,7 +50,10 @@ final class ExportImages {
       var uri = Uri.parse(source);
       if (!uri.hasScheme) {
         // An unsaved document must not read relative to the process cwd.
-        if (documentPath == null || uri.hasAuthority || source.isEmpty) {
+        if (documentPath == null ||
+            documentPath!.startsWith('vex-document:') ||
+            uri.hasAuthority ||
+            source.isEmpty) {
           return null;
         }
         uri = Uri.file(documentPath!).resolveUri(uri);

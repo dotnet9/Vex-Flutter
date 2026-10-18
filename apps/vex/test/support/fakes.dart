@@ -66,10 +66,25 @@ final class MemoryFiles implements DocumentFileService {
   @override
   Future<OpenedDocument?> pick() async => picked;
   @override
-  Future<OpenedFolder?> folder() async =>
-      folderPath == null ? null : readFolder(folderPath!);
+  Future<OpenedFolder?> folder({
+    Set<String> excludedDirectories = defaultExcludedDirectories,
+    void Function(OpenedFolder)? onProgress,
+    bool Function()? cancelled,
+  }) async => folderPath == null
+      ? null
+      : readFolder(
+          folderPath!,
+          excludedDirectories: excludedDirectories,
+          onProgress: onProgress,
+          cancelled: cancelled,
+        );
   @override
-  Future<OpenedFolder> readFolder(String path) async {
+  Future<OpenedFolder> readFolder(
+    String path, {
+    Set<String> excludedDirectories = defaultExcludedDirectories,
+    void Function(OpenedFolder)? onProgress,
+    bool Function()? cancelled,
+  }) async {
     readFolderPaths.add(path);
     await beforeReadFolder?.call(path);
     return OpenedFolder(

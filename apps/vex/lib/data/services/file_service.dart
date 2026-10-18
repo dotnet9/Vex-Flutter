@@ -1,11 +1,24 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 
 import '../../domain/file_preferences.dart';
 import 'document_codec.dart';
+
+bool isSystemDocument(String? path) =>
+    path != null && path.startsWith('vex-document:');
+const defaultExcludedDirectories = {
+  '.git',
+  '.dart_tool',
+  '.idea',
+  '.gradle',
+  'build',
+  'node_modules',
+  'Pods',
+  '.symlinks',
+};
 
 final class OpenedDocument {
   const OpenedDocument(
@@ -40,8 +53,17 @@ abstract interface class DocumentFileService {
   Future<OpenedDocument?> pick();
   Future<OpenedDocument> read(String path);
   Future<String> readPreview(String path);
-  Future<OpenedFolder?> folder();
-  Future<OpenedFolder> readFolder(String path);
+  Future<OpenedFolder?> folder({
+    Set<String> excludedDirectories = defaultExcludedDirectories,
+    void Function(OpenedFolder)? onProgress,
+    bool Function()? cancelled,
+  });
+  Future<OpenedFolder> readFolder(
+    String path, {
+    Set<String> excludedDirectories = defaultExcludedDirectories,
+    void Function(OpenedFolder)? onProgress,
+    bool Function()? cancelled,
+  });
   Future<String?> saveAs(
     String name,
     Uint8List bytes, {
@@ -57,6 +79,27 @@ abstract interface class DocumentFileService {
 }
 
 final class NativeDocumentFileService implements DocumentFileService {
+  static const documents = MethodChannel('vex/documents');
+
+  Future<OpenedDocument> _systemRead(String location) async {
+    final result = await documents.invokeMapMethod<String, Object?>(
+      'readDocument',
+      {'location': location},
+    );
+    if (result == null ||
+        result['bytes'] is! Uint8List ||
+        result['name'] is! String) {
+      throw const FormatException('Invalid system document');
+    }
+    final decoded = await decodeDocument(result['bytes']! as Uint8List);
+    return OpenedDocument(
+      result['name']! as String,
+      decoded.text,
+      location,
+      format: decoded.format,
+    );
+  }
+
   @override
   Future<String> readPreview(String path) async {
     final handle = await File(path).open();
@@ -75,6 +118,19 @@ final class NativeDocumentFileService implements DocumentFileService {
 
   @override
   Future<OpenedDocument?> pick() async {
+    if (Platform.isAndroid || Platform.isIOS) {
+      final result = await documents.invokeMapMethod<String, Object?>(
+        'pickDocument',
+      );
+      if (result == null) return null;
+      final decoded = await decodeDocument(result['bytes']! as Uint8List);
+      return OpenedDocument(
+        result['name']! as String,
+        decoded.text,
+        result['location'] as String?,
+        format: decoded.format,
+      );
+    }
     final file = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: ['md', 'markdown', 'txt'],
@@ -82,18 +138,17 @@ final class NativeDocumentFileService implements DocumentFileService {
     if (file == null) return null;
     final bytes = await file.readAsBytes();
     final decoded = await decodeDocument(bytes);
-    // Mobile pickers return a cache copy. Save through the system document picker.
-    final path = Platform.isAndroid || Platform.isIOS ? null : file.path;
     return OpenedDocument(
       file.name,
       decoded.text,
-      path,
+      file.path,
       format: decoded.format,
     );
   }
 
   @override
   Future<OpenedDocument> read(String path) async {
+    if (isSystemDocument(path)) return _systemRead(path);
     final decoded = await decodeDocument(await File(path).readAsBytes());
     return OpenedDocument(
       p.basename(path),
@@ -104,27 +159,64 @@ final class NativeDocumentFileService implements DocumentFileService {
   }
 
   @override
-  Future<OpenedFolder?> folder() async {
+  Future<OpenedFolder?> folder({
+    Set<String> excludedDirectories = defaultExcludedDirectories,
+    void Function(OpenedFolder)? onProgress,
+    bool Function()? cancelled,
+  }) async {
     final path = await FilePicker.getDirectoryPath();
     if (path == null) return null;
-    return readFolder(path);
+    return readFolder(
+      path,
+      excludedDirectories: excludedDirectories,
+      onProgress: onProgress,
+      cancelled: cancelled,
+    );
   }
 
   @override
-  Future<OpenedFolder> readFolder(String path) async {
+  Future<OpenedFolder> readFolder(
+    String path, {
+    Set<String> excludedDirectories = defaultExcludedDirectories,
+    void Function(OpenedFolder)? onProgress,
+    bool Function()? cancelled,
+  }) async {
     final files = <String>[];
     final directories = <String>[];
-    await for (final entity in Directory(
-      path,
-    ).list(recursive: true, followLinks: false)) {
-      if (entity is Directory) directories.add(entity.path);
-      if (entity is File &&
-          [
-            '.md',
-            '.markdown',
-            '.txt',
-          ].contains(p.extension(entity.path).toLowerCase())) {
-        files.add(entity.path);
+    final queue = <String>[path],
+        excluded = excludedDirectories
+            .map((name) => name.toLowerCase())
+            .toSet();
+    var visited = 0;
+    for (var index = 0; index < queue.length; index++) {
+      if (cancelled?.call() == true) break;
+      try {
+        await for (final entity in Directory(
+          queue[index],
+        ).list(followLinks: false)) {
+          if (cancelled?.call() == true) break;
+          if (entity is Directory &&
+              !excluded.contains(p.basename(entity.path).toLowerCase())) {
+            directories.add(entity.path);
+            queue.add(entity.path);
+          }
+          if (entity is File &&
+              [
+                '.md',
+                '.markdown',
+                '.txt',
+              ].contains(p.extension(entity.path).toLowerCase())) {
+            files.add(entity.path);
+          }
+          if (++visited % 128 == 0) {
+            onProgress?.call(
+              OpenedFolder(path, files: files, directories: directories),
+            );
+            await Future<void>.delayed(Duration.zero);
+          }
+        }
+      } on FileSystemException {
+        if (index == 0) rethrow;
       }
     }
     return OpenedFolder(path, files: files, directories: directories);
@@ -137,6 +229,13 @@ final class NativeDocumentFileService implements DocumentFileService {
     String? dialogTitle,
     String? initialDirectory,
   }) async {
+    if (Platform.isAndroid || Platform.isIOS) {
+      final result = await documents.invokeMapMethod<String, Object?>(
+        'saveDocument',
+        {'name': name, 'bytes': bytes},
+      );
+      return result?['location'] as String?;
+    }
     final destination = await FilePicker.saveFile(
       dialogTitle: dialogTitle,
       initialDirectory: initialDirectory,
@@ -159,6 +258,17 @@ final class NativeDocumentFileService implements DocumentFileService {
     TextFileFormat format = const TextFileFormat(),
   }) async {
     final bytes = await encodeDocument(text, format);
+    if (isSystemDocument(path)) {
+      if (expected != null &&
+          (await read(path)).text != normalizeNewlines(expected)) {
+        throw const FileConflict();
+      }
+      await documents.invokeMethod<void>('writeDocument', {
+        'location': path,
+        'bytes': bytes,
+      });
+      return;
+    }
     if (expected != null &&
         (!await File(path).exists() ||
             (await read(path)).text != normalizeNewlines(expected))) {

@@ -1559,4 +1559,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String anchorNotFound(String anchor) {
     return '見出しが見つかりません：$anchor';
   }
+
+  @override
+  String get excludeGeneratedFolders => '生成されたフォルダーを除外';
+
+  @override
+  String get saveCopy => 'コピーを保存';
 }

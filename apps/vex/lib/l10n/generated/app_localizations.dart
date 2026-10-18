@@ -2992,6 +2992,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'未找到标题：{anchor}'**
   String anchorNotFound(String anchor);
+
+  /// No description provided for @excludeGeneratedFolders.
+  ///
+  /// In zh, this message translates to:
+  /// **'跳过工具生成的文件夹'**
+  String get excludeGeneratedFolders;
+
+  /// No description provided for @saveCopy.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存副本'**
+  String get saveCopy;
 }
 
 class _AppLocalizationsDelegate

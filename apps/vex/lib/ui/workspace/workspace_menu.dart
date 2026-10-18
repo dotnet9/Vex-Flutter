@@ -45,7 +45,14 @@ bool workspaceCommandEditsText(String id) =>
     id.startsWith('format:') ||
     id.startsWith('mermaid:') ||
     (id.startsWith('table:') && id != 'table:copy') ||
-    const ['undo', 'redo', 'cut', 'paste', 'replace'].contains(id);
+    const [
+      'undo',
+      'redo',
+      'cut',
+      'paste',
+      'replace',
+      'mermaid-picker',
+    ].contains(id);
 
 String workspaceShortcutLabel(SingleActivator? shortcut) {
   if (shortcut == null) return '';
@@ -113,7 +120,11 @@ List<WorkspaceMenuEntry> workspaceMenus(
         ],
       ]),
       divider,
-      item('save', l.save, shortcut: key(LogicalKeyboardKey.keyS)),
+      item(
+        'save',
+        vm.current.saveCopy ? l.saveCopy : l.save,
+        shortcut: key(LogicalKeyboardKey.keyS),
+      ),
       item(
         'save-as',
         l.saveAs,

@@ -484,5 +484,7 @@
   "prefSpaces": "{count} 空格",
   "@prefSpaces": {"placeholders":{"count":{"type":"int"}}},
   "anchorNotFound": "找不到標題：{anchor}",
-  "@anchorNotFound": {"placeholders":{"anchor":{"type":"String"}}}
+  "@anchorNotFound": {"placeholders":{"anchor":{"type":"String"}}},
+  "excludeGeneratedFolders": "略過工具產生的資料夾",
+  "saveCopy": "儲存副本"
 }

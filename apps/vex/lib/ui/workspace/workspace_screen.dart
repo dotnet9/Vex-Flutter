@@ -375,8 +375,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
 
   void _action(String action) {
     if (const ['cut', 'paste'].contains(action) &&
-        _focusedClipboardAction(action))
+        _focusedClipboardAction(action)) {
       return;
+    }
     if (workspaceCommandEditsText(action) && !vm.canEditText) return;
     if (action.startsWith('table:')) {
       final target = vm.editor.tableTarget();
@@ -747,8 +748,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     final template = await showMermaidPicker(context);
     if (!mounted ||
         template == null ||
-        (!identical(vm.current, document) &&
-            !vm.documents.contains(document))) {
+        !identical(vm.current, document) ||
+        !vm.canEditText) {
       return;
     }
     if (editor.text != source) throw StateError(context.l10n.documentChanged);
@@ -1553,7 +1554,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             icon: 'save',
             label: width < 1100 ? null : context.l10n.save,
             bordered: true,
-            tooltip: context.l10n.saveTooltip,
+            tooltip: state.current.saveCopy
+                ? context.l10n.saveCopy
+                : context.l10n.saveTooltip,
             onPressed: () => _action('save'),
           ),
           if (phone || (!_desktop && width >= 700))
@@ -1641,19 +1644,25 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                       tooltip: item.$2,
                       height: 28,
                       padding: 7,
-                      onPressed: () => _action('format:${item.$1}'),
+                      onPressed: state.canEditText
+                          ? () => _action('format:${item.$1}')
+                          : null,
                     ),
                   AppButton(
                     icon: 'map',
                     tooltip: context.l10n.mermaidDiagrams,
-                    onPressed: () => _action('mermaid-picker'),
+                    onPressed: state.canEditText
+                        ? () => _action('mermaid-picker')
+                        : null,
                     padding: 7,
                     height: 28,
                   ),
                   AppButton(
                     icon: 'more',
                     tooltip: context.l10n.moreFormatting,
-                    onPressed: () => _action('format:rule'),
+                    onPressed: state.canEditText
+                        ? () => _action('format:rule')
+                        : null,
                     padding: 7,
                     height: 28,
                   ),

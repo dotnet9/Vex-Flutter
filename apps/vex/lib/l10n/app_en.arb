@@ -484,5 +484,7 @@
   "prefSpaces": "{count} spaces",
   "@prefSpaces": {"placeholders":{"count":{"type":"int"}}},
   "anchorNotFound": "Heading not found: {anchor}",
-  "@anchorNotFound": {"placeholders":{"anchor":{"type":"String"}}}
+  "@anchorNotFound": {"placeholders":{"anchor":{"type":"String"}}},
+  "excludeGeneratedFolders": "Skip generated folders",
+  "saveCopy": "Save a copy"
 }

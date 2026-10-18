@@ -35,6 +35,9 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
   final _openPreviews = <String, (String, String)>{};
   String? _folderPath;
   int _folderRevision = -1;
+  Object? _treeKey;
+  List<_SidebarRow> _rows = [];
+  int _collapseRevision = 0;
   WorkspaceViewModel get vm => widget.vm;
 
   @override
@@ -227,9 +230,16 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
             Expanded(
               child: vm.fileListMode == FileListMode.list
                   ? _fileList(context)
-                  : ListView(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      children: _files(context, vm.filter.toLowerCase()),
+                  : Builder(
+                      builder: (context) {
+                        final rows = _files(vm.filter.toLowerCase());
+                        return ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          itemCount: rows.length,
+                          itemBuilder: (context, index) =>
+                              _treeRow(context, rows[index]),
+                        );
+                      },
                     ),
             ),
             _footer(context),
@@ -488,8 +498,17 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
     return excerpt;
   }
 
-  List<Widget> _files(BuildContext context, String filter) {
+  List<_SidebarRow> _files(String filter) {
     final folder = vm.folder;
+    final key = (
+      folder,
+      filter,
+      vm.documents.map((doc) => '${doc.id}:${doc.path}:${doc.name}').join('|'),
+      vm.fileSortDescending,
+      _collapseRevision,
+    );
+    if (_treeKey == key) return _rows;
+    _treeKey = key;
     final open = {
       for (final doc in vm.documents)
         if (doc.path != null) p.normalize(doc.path!): doc,
@@ -515,75 +534,43 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
         }
       }
     }
-    return [
+    return _rows = [
       if (root != null && root.matches(filter))
-        ..._directory(context, root, open, filter, 0),
+        ..._directory(root, open, filter, 0),
       for (final doc in vm.documents)
         if ((root == null ||
                 doc.path == null ||
                 !p.isWithin(root.path, doc.path!)) &&
             doc.name.toLowerCase().contains(filter))
-          _file(context, doc.path ?? doc.id, doc.name, document: doc),
+          _SidebarRow(doc.path ?? doc.id, doc.name, document: doc),
     ];
   }
 
-  List<Widget> _directory(
-    BuildContext context,
+  List<_SidebarRow> _directory(
     _SidebarDirectory node,
     Map<String, WorkspaceDocument> open,
     String filter,
     int depth,
   ) {
-    final c = Theme.of(context).colorScheme;
     final expanded = filter.isNotEmpty || !_collapsed.contains(node.path);
     final directories = node.directories.values.toList()
       ..sort((a, b) => _comparePaths(a.path, b.path));
     final files = node.files.toList()..sort(_comparePaths);
     return [
-      TextButton(
-        key: ValueKey('sidebar-directory-${node.path}'),
-        onPressed: () => setState(() {
-          if (!_collapsed.remove(node.path)) _collapsed.add(node.path);
-        }),
-        style: TextButton.styleFrom(
-          alignment: Alignment.centerLeft,
-          minimumSize: const Size(0, 34),
-          fixedSize: const Size.fromHeight(34),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          padding: EdgeInsets.only(left: 8 + depth * 14, right: 8),
-          foregroundColor: c.onSurface,
-          textStyle: const TextStyle(fontSize: 13),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-        ),
-        child: Row(
-          children: [
-            RotatedBox(
-              quarterTurns: expanded ? 0 : -1,
-              child: const AppGlyph('chevron-down', size: 12),
-            ),
-            const SizedBox(width: 7),
-            const AppGlyph('folder', size: 14),
-            const SizedBox(width: 7),
-            Expanded(
-              child: Text(
-                p.basename(node.path).isEmpty
-                    ? node.path
-                    : p.basename(node.path),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
+      _SidebarRow(
+        node.path,
+        p.basename(node.path).isEmpty ? node.path : p.basename(node.path),
+        depth: depth,
+        directory: true,
+        expanded: expanded,
       ),
       if (expanded) ...[
         for (final directory in directories)
           if (directory.matches(filter))
-            ..._directory(context, directory, open, filter, depth + 1),
+            ..._directory(directory, open, filter, depth + 1),
         for (final path in files)
           if (p.basename(path).toLowerCase().contains(filter))
-            _file(
-              context,
+            _SidebarRow(
               path,
               p.basename(path),
               document: open[p.normalize(path)],
@@ -591,6 +578,50 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
             ),
       ],
     ];
+  }
+
+  Widget _treeRow(BuildContext context, _SidebarRow row) {
+    if (!row.directory) {
+      return _file(
+        context,
+        row.path,
+        row.name,
+        document: row.document,
+        depth: row.depth,
+      );
+    }
+    final c = Theme.of(context).colorScheme, depth = row.depth;
+    return TextButton(
+      key: ValueKey('sidebar-directory-${row.path}'),
+      onPressed: () => setState(() {
+        if (!_collapsed.remove(row.path)) _collapsed.add(row.path);
+        _collapseRevision++;
+      }),
+      style: TextButton.styleFrom(
+        alignment: Alignment.centerLeft,
+        minimumSize: const Size(0, 34),
+        fixedSize: const Size.fromHeight(34),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        padding: EdgeInsets.only(left: 8 + depth * 14, right: 8),
+        foregroundColor: c.onSurface,
+        textStyle: const TextStyle(fontSize: 13),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+      ),
+      child: Row(
+        children: [
+          RotatedBox(
+            quarterTurns: row.expanded ? 0 : -1,
+            child: const AppGlyph('chevron-down', size: 12),
+          ),
+          const SizedBox(width: 7),
+          const AppGlyph('folder', size: 14),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(row.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _file(
@@ -653,6 +684,21 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
       ),
     );
   }
+}
+
+class _SidebarRow {
+  const _SidebarRow(
+    this.path,
+    this.name, {
+    this.document,
+    this.depth = 0,
+    this.directory = false,
+    this.expanded = false,
+  });
+  final String path, name;
+  final WorkspaceDocument? document;
+  final int depth;
+  final bool directory, expanded;
 }
 
 class _SidebarDirectory {

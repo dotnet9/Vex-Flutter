@@ -141,6 +141,17 @@ final class WorkspaceViewModel extends ChangeNotifier {
   Object? _recoveryLoadError;
   int _openRequest = 0;
   int _folderRequest = 0;
+  Set<String> get _excludedDirectories =>
+      filePreferences.excludeGeneratedFolders
+      ? defaultExcludedDirectories
+      : const {};
+  void _folderProgress(OpenedFolder next, int request) {
+    if (_disposed || request != _folderRequest) return;
+    folder = next;
+    folderRevision++;
+    _notify();
+  }
+
   final _headingForNode = <String, String>{};
   List<Map<String, Object?>> recoverable = [];
 
@@ -458,7 +469,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
         throw const FormatException('Not a local document link');
       }
       final base = current.path;
-      if (link.scheme.isEmpty && base == null) {
+      if (link.scheme.isEmpty && (base == null || isSystemDocument(base))) {
         _setStatus((l) => l.documentLinkNeedsFile);
         _notify();
         return;
@@ -942,18 +953,27 @@ final class WorkspaceViewModel extends ChangeNotifier {
     if (_disposed) return;
     final request = ++_folderRequest;
     // Mobile picker copies have no accessible parent; never scan their cache.
-    if (path == null) return;
+    if (path == null || isSystemDocument(path)) return;
     final root = folder?.path;
     if (root != null && p.isWithin(root, path)) return;
     try {
       // Only enumerate names. Other documents remain unread until opened.
-      final selected = await files.readFolder(p.dirname(path));
+      final selected = await files.readFolder(
+        p.dirname(path),
+        excludedDirectories: _excludedDirectories,
+        onProgress: (next) => _folderProgress(next, request),
+        cancelled: () =>
+            _disposed ||
+            request != _folderRequest ||
+            openRequest != _openRequest,
+      );
       if (_disposed ||
           request != _folderRequest ||
           openRequest != _openRequest) {
         return;
       }
       folder = selected;
+      folderRevision++;
       _notify();
       persist();
     } on FileSystemException {
@@ -981,6 +1001,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
       persistedText: opened.text,
       format: opened.format,
     );
+    doc.saveCopy = opened.path == null;
     _add(doc);
     if (activate) {
       switchDocument(doc);
@@ -992,7 +1013,11 @@ final class WorkspaceViewModel extends ChangeNotifier {
 
   Future<void> openFolder() async {
     final request = ++_folderRequest;
-    final selected = await files.folder();
+    final selected = await files.folder(
+      excludedDirectories: _excludedDirectories,
+      onProgress: (next) => _folderProgress(next, request),
+      cancelled: () => _disposed || request != _folderRequest,
+    );
     if (selected == null || _disposed || request != _folderRequest) return;
     folder = selected;
     folderRevision++;
@@ -1006,7 +1031,12 @@ final class WorkspaceViewModel extends ChangeNotifier {
     final path = folder?.path;
     if (path == null) return;
     final request = ++_folderRequest;
-    final refreshed = await files.readFolder(path);
+    final refreshed = await files.readFolder(
+      path,
+      excludedDirectories: _excludedDirectories,
+      onProgress: (next) => _folderProgress(next, request),
+      cancelled: () => _disposed || request != _folderRequest,
+    );
     if (_disposed || request != _folderRequest || folder?.path != path) return;
     folder = refreshed;
     folderRevision++;
@@ -1046,7 +1076,10 @@ final class WorkspaceViewModel extends ChangeNotifier {
     final folderPath = workspace['folder'];
     if (folderPath is String) {
       try {
-        folder = await files.readFolder(folderPath);
+        folder = await files.readFolder(
+          folderPath,
+          excludedDirectories: _excludedDirectories,
+        );
       } on FileSystemException {
         // The directory may have moved since the previous run.
       }
@@ -1057,6 +1090,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     bool? autoSave,
     bool? recovery,
     bool? restoreWorkspace,
+    bool? excludeGeneratedFolders,
     int? saveDelay,
     DocumentEncoding? encoding,
     DocumentNewline? newline,
@@ -1065,6 +1099,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
     prefs.autoSave = autoSave ?? prefs.autoSave;
     prefs.recovery = recovery ?? prefs.recovery;
     prefs.restoreWorkspace = restoreWorkspace ?? prefs.restoreWorkspace;
+    prefs.excludeGeneratedFolders =
+        excludeGeneratedFolders ?? prefs.excludeGeneratedFolders;
     if (saveDelay != null && [2, 5, 10].contains(saveDelay)) {
       prefs.saveDelay = saveDelay;
     }
@@ -1169,13 +1205,14 @@ final class WorkspaceViewModel extends ChangeNotifier {
         dialogTitle: strings.saveNamedFile(doc.name),
       );
       if (path == null) return false;
-      if (!Platform.isAndroid && !Platform.isIOS) {
-        doc.path = path;
-        _remember(path);
-      }
-      if (!Platform.isAndroid && !Platform.isIOS) doc.name = p.basename(path);
+      doc.path = path;
+      _remember(path);
+      doc.name = isSystemDocument(path)
+          ? (await files.read(path)).name
+          : p.basename(path);
     }
     doc.persistedText = text;
+    doc.saveCopy = false;
     if (!documents.contains(doc)) documents.add(doc);
     doc.editor.session.markSaved(savedText: text);
     if (identical(doc, current)) externalChange = null;
@@ -1334,6 +1371,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
             (d) => <String, Object?>{
               'name': d.name,
               'path': d.path,
+              'saveCopy': d.saveCopy,
               'text': d.editor.session.text,
               'saved': d.persistedText ?? '',
               ...d.format.toJson(),
@@ -1395,6 +1433,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
         format: TextFileFormat.fromJson(draft),
       );
       doc.editor.session.replace(draft['text']! as String, label: '恢复草稿');
+      doc.saveCopy = draft['saveCopy'] == true;
       _add(doc);
       current = doc;
     }

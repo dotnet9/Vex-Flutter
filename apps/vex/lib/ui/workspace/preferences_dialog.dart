@@ -379,6 +379,14 @@ class _PreferencesDialogState extends State<PreferencesDialog> {
             onChanged: (v) => vm.updateFilePreferences(recovery: v),
           ),
           PreferenceSection(l.prefNewDefaults),
+          PreferenceSwitch(
+            label: l.excludeGeneratedFolders,
+            value: f.excludeGeneratedFolders,
+            onChanged: (value) async {
+              await vm.updateFilePreferences(excludeGeneratedFolders: value);
+              await vm.refreshFolder();
+            },
+          ),
           PreferenceDropdown(
             label: l.prefEncoding,
             value: f.newDocumentFormat.encoding,

@@ -1552,6 +1552,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String anchorNotFound(String anchor) {
     return '未找到标题：$anchor';
   }
+
+  @override
+  String get excludeGeneratedFolders => '跳过工具生成的文件夹';
+
+  @override
+  String get saveCopy => '保存副本';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -3101,4 +3107,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String anchorNotFound(String anchor) {
     return '找不到標題：$anchor';
   }
+
+  @override
+  String get excludeGeneratedFolders => '略過工具產生的資料夾';
+
+  @override
+  String get saveCopy => '儲存副本';
 }

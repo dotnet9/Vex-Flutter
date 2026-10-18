@@ -1608,4 +1608,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String anchorNotFound(String anchor) {
     return 'Heading not found: $anchor';
   }
+
+  @override
+  String get excludeGeneratedFolders => 'Skip generated folders';
+
+  @override
+  String get saveCopy => 'Save a copy';
 }

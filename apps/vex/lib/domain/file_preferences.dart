@@ -30,6 +30,7 @@ final class TextFileFormat {
 }
 
 final class FilePreferences {
+  bool excludeGeneratedFolders = true;
   bool autoSave = false, recovery = true, restoreWorkspace = false;
   int saveDelay = 2;
   TextFileFormat newDocumentFormat = const TextFileFormat();
@@ -39,6 +40,7 @@ final class FilePreferences {
     autoSave = value['autoSave'] == true;
     recovery = value['recovery'] != false;
     restoreWorkspace = value['restoreWorkspace'] == true;
+    excludeGeneratedFolders = value['excludeGeneratedFolders'] != false;
     saveDelay = [2, 5, 10].contains(value['saveDelay'])
         ? value['saveDelay'] as int
         : 2;
@@ -49,6 +51,7 @@ final class FilePreferences {
     'autoSave': autoSave,
     'recovery': recovery,
     'restoreWorkspace': restoreWorkspace,
+    'excludeGeneratedFolders': excludeGeneratedFolders,
     'saveDelay': saveDelay,
     ...newDocumentFormat.toJson(),
   };

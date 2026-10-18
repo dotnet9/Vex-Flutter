@@ -49,16 +49,20 @@ void main() {
         find.byType(ResizableSplit),
         phone ? findsNothing : findsOneWidget,
       );
-      await tester.tap(find.byTooltip('工作区布局'));
-      await tester.pumpAndSettle();
-      for (final layout in WorkspaceLayout.values) {
-        expect(
-          find.byKey(ValueKey('layout-${layout.name}')),
-          layout.panes.length <= limit ? findsOneWidget : findsNothing,
-        );
+      if (phone) {
+        expect(find.byTooltip('工作区布局'), findsNothing);
+      } else {
+        await tester.tap(find.byTooltip('工作区布局'));
+        await tester.pumpAndSettle();
+        for (final layout in WorkspaceLayout.values) {
+          expect(
+            find.byKey(ValueKey('layout-${layout.name}')),
+            layout.panes.length <= limit ? findsOneWidget : findsNothing,
+          );
+        }
+        await tester.tap(find.byTooltip(vm.strings.closePicker));
+        await tester.pumpAndSettle();
       }
-      await tester.tap(find.byTooltip(vm.strings.closePicker));
-      await tester.pumpAndSettle();
       vm.setLayout(WorkspaceLayout.read);
       vm.search('needle');
       vm.nextMatch();

@@ -654,5 +654,7 @@
   "prefSpaces": "{count} 空格",
   "@prefSpaces": {"placeholders":{"count":{"type":"int"}}},
   "anchorNotFound": "未找到标题：{anchor}",
-  "@anchorNotFound": {"placeholders":{"anchor":{"type":"String"}}}
+  "@anchorNotFound": {"placeholders":{"anchor":{"type":"String"}}},
+  "excludeGeneratedFolders": "跳过工具生成的文件夹",
+  "saveCopy": "保存副本"
 }

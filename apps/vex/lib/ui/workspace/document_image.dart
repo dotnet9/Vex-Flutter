@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../data/services/file_service.dart';
+
 /// Resolve relative media from the Markdown file, independently of process cwd.
 class DocumentImage extends StatelessWidget {
   const DocumentImage({
@@ -34,6 +36,10 @@ class DocumentImage extends StatelessWidget {
     );
     Widget error(BuildContext context, Object error, StackTrace? stack) =>
         fallback();
+    if (!uri.hasScheme &&
+        (documentPath == null || isSystemDocument(documentPath))) {
+      return fallback();
+    }
     final svg =
         resolved.path.toLowerCase().endsWith('.svg') ||
         (resolved.scheme == 'data' &&
