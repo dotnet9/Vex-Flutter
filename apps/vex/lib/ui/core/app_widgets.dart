@@ -149,6 +149,11 @@ class AppCaptionButton extends StatelessWidget {
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
           overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+          side: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.focused)
+                ? BorderSide(color: c.primary, width: 2)
+                : BorderSide.none,
+          ),
           backgroundColor: WidgetStateProperty.resolveWith(
             (states) =>
                 states.contains(WidgetState.hovered) ||
@@ -156,6 +161,8 @@ class AppCaptionButton extends StatelessWidget {
                 ? close
                       ? const Color(0xffdc2626)
                       : c.surfaceContainerHigh
+                : states.contains(WidgetState.focused)
+                ? c.primaryContainer
                 : Colors.transparent,
           ),
           iconColor: WidgetStateProperty.resolveWith(
@@ -164,6 +171,8 @@ class AppCaptionButton extends StatelessWidget {
                     (states.contains(WidgetState.hovered) ||
                         states.contains(WidgetState.pressed))
                 ? Colors.white
+                : states.contains(WidgetState.focused)
+                ? c.onPrimaryContainer
                 : c.onSurfaceVariant,
           ),
         ),
