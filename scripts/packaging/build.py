@@ -14,18 +14,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'shared'))
 from release_tools import ANDROID_ABIS, ROOT, app_version
 
 HERE = Path(__file__).resolve().parent
-ALIASES = {
-    'windows-x64': 'win-x64',
-    'osx-x64': 'osx-universal',
-    'osx-arm64': 'osx-universal',
-    'macos-universal': 'osx-universal',
-}
-TARGETS = ('win-x64', 'linux-x64', 'linux-arm64', 'osx-universal', 'android', 'ios-check')
+TARGETS = ('win-x64', 'linux-x64', 'linux-arm64', 'osx-x64', 'osx-arm64', 'osx-universal', 'android', 'ios-check')
 
 
 def parser():
     result = argparse.ArgumentParser(description=__doc__)
-    result.add_argument('target', choices=(*TARGETS, *ALIASES))
+    result.add_argument('target', choices=TARGETS)
     result.add_argument('--flutter', default=os.environ.get('VEX_FLUTTER', ''))
     result.add_argument('--output', type=Path, help='Relative to repository root; default: artifacts/local/TARGET/VERSION.')
     result.add_argument('--skip-tests', action='store_true', help='Skip analysis/tests, not dependency or artifact checks.')
@@ -39,7 +33,8 @@ def parser():
 
 
 def canonical_target(target):
-    return ALIASES.get(target, target)
+    # Both Mac architectures intentionally share one universal installer.
+    return 'osx-universal' if target in ('osx-x64', 'osx-arm64') else target
 
 
 def output_directory(target, value=None):

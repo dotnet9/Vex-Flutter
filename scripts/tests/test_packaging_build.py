@@ -39,7 +39,7 @@ class PackagingBuildTest(unittest.TestCase):
         self.assertIn('exit /b %VEX_BUILD_EXIT%', batch)
 
     def test_macos_architecture_entries_preserve_the_universal_release_contract(self):
-        for target in ('osx-x64', 'osx-arm64', 'osx-universal', 'macos-universal'):
+        for target in ('osx-x64', 'osx-arm64', 'osx-universal'):
             self.assertEqual(build.canonical_target(target), 'osx-universal')
             steps = self.steps(target, '--skip-tests')
             commands = [command for command, _ in steps]
@@ -47,6 +47,16 @@ class PackagingBuildTest(unittest.TestCase):
             self.assertEqual(commands[-1][-1], 'macos-universal')
             pip = next(command for command in commands if '--require-hashes' in command)
             self.assertIn('artifacts/tools/macos-dmg', pip[0].replace('\\', '/'))
+
+    def test_cli_accepts_only_documented_build_targets(self):
+        for target in build.TARGETS:
+            with self.subTest(target=target):
+                self.assertEqual(self.args(target).target, target)
+        for target in ('windows-x64', 'macos-universal', 'unknown'):
+            with self.subTest(target=target), contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as error:
+                    self.args(target)
+                self.assertEqual(error.exception.code, 2)
 
     def test_hosts_and_linux_architectures_are_not_silently_cross_compiled(self):
         for target, system, machine in (
@@ -163,11 +173,11 @@ class PackagingBuildTest(unittest.TestCase):
 
     def test_cli_dry_run_works_outside_repo_for_every_target(self):
         with tempfile.TemporaryDirectory(prefix='vex build ') as temporary:
-            for target in (*build.TARGETS, *build.ALIASES):
+            for target in build.TARGETS:
                 result = subprocess.run([sys.executable, str(ENTRY), target, '--dry-run', '--skip-tests', '--output', 'artifacts/a space'],
                                         cwd=temporary, capture_output=True, text=True, encoding='utf-8')
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn('lib/main.dart' if target != 'win-x64' and target != 'windows-x64' else 'build.ps1', result.stdout)
+                self.assertIn('build.ps1' if target == 'win-x64' else 'lib/main.dart', result.stdout)
                 self.assertNotIn('BUILD FAILED', result.stderr)
 
     def test_subprocess_failure_stops_the_recipe_and_preserves_its_exit_code(self):
@@ -189,12 +199,11 @@ class PackagingBuildTest(unittest.TestCase):
                 self.assertIn('scripts/packaging/build.py win-x64', workflow)
                 self.assertIn('scripts/packaging/build.py osx-universal', workflow)
 
-    def test_old_release_tags_get_an_actionable_workflow_hint(self):
+    def test_release_validates_the_tag_before_reading_current_metadata(self):
         workflow = (ROOT / '.github/workflows/release.yml').read_text(encoding='utf-8')
-        check = workflow.index('if [ ! -f scripts/packaging/shared/release_tools.py ]')
+        check = workflow.index('git show-ref --verify "refs/tags/$RELEASE_TAG"')
         metadata = workflow.index('python scripts/packaging/shared/release_tools.py metadata')
         self.assertLess(check, metadata)
-        self.assertIn('Select the same tag under "Use workflow from"', workflow)
 
 
 if __name__ == '__main__':

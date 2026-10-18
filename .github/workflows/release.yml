@@ -48,10 +48,6 @@ jobs:
           RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           git show-ref --verify "refs/tags/$RELEASE_TAG"
-          if [ ! -f scripts/packaging/shared/release_tools.py ]; then
-            echo '::error::This tag predates the packaging reorganization. Select the same tag under "Use workflow from" when retrying its release.'
-            exit 1
-          fi
           python scripts/packaging/shared/release_tools.py metadata --tag "$RELEASE_TAG" --github-output
           test -f ".github/release-notes/$RELEASE_TAG.md"
       - name: 固定全部构建的源码提交

@@ -38,7 +38,7 @@ scripts/packaging/
 └── shared/release_tools.py # 版本元信息、产物命名、SHA-256、发布白名单
 ```
 
-`build.*` 是从源码到安装包的完整入口；`package.*` / `collect.py` 是已有编译产物的底层打包步骤。日常只用完整入口，避免漏掉校验。根目录 `build-windows.bat` 保留为 Windows 兼容快捷入口。
+`build.*` 是从源码到安装包的完整入口；`package.*` / `collect.py` 是已有编译产物的底层打包步骤。日常只用完整入口，避免漏掉校验。根目录 `build-windows.bat` 是 Windows 双击快捷入口。
 
 ## 命令与宿主
 
@@ -55,7 +55,7 @@ scripts/packaging/
 | Android | `python scripts/packaging/build.py android` | Windows / Linux / macOS + Android SDK / JDK / 正式签名；三架构 APK |
 | iOS 编译检查 | `python3 scripts/packaging/build.py ios-check` | macOS + Xcode；**无可安装 IPA** |
 
-也可执行相应目录的 `build.bat` / `bash .../build.sh`，它们不依赖终端当前所在目录。`windows-x64`、`macos-universal` 为 CI 命名别名，安装包原有文件名不变。macOS 两个架构入口不是两个不同安装包；均检查主程序和两个 framework 的双架构。
+也可执行相应目录的 `build.bat` / `bash .../build.sh`，它们不依赖终端当前所在目录。构建命令只接受表中目标名称，不提供额外别名；安装包文件名中的 `windows-x64`、`macos-universal` 是产物标识，不是构建命令参数。macOS 两个架构入口不是两个不同安装包；均检查主程序和两个 framework 的双架构。
 
 共同需要 Python 3.11+ 和 `.flutter-version` 指定的 Flutter SDK；脚本不会升级 SDK。将 Flutter `bin` 加入 PATH，或使用 `--flutter`、`VEX_FLUTTER`、`FLUTTER_ROOT` 指定。Windows BAT 的参数使用 PowerShell 风格，例如 `-CheckOnly`；统一 Python 入口使用 `--check-only`。
 
