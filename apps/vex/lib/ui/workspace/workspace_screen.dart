@@ -245,6 +245,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                 return;
               }
             }
+            if (vm.documents.any((doc) => doc.editor.session.isDirty)) {
+              throw StateError(context.l10n.closeChanged);
+            }
           } catch (e) {
             _error(e);
             _closing = false;
@@ -252,8 +255,20 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           }
         }
       }
+      final approvedRevisions = {
+        for (final doc in vm.documents) doc: doc.editor.session.revision,
+      };
       await vm.finishPendingSaves();
       await vm.flushRecovery(throwOnError: true);
+      if (!mounted) return;
+      // The main editor remains interactive while disk I/O is pending.
+      if (vm.documents.any(
+        (doc) =>
+            doc.editor.session.isDirty &&
+            approvedRevisions[doc] != doc.editor.session.revision,
+      )) {
+        throw StateError(context.l10n.closeChanged);
+      }
       if (widget.windowIntegration && _desktop) {
         // Let the native window process WM_CLOSE before its message loop exits.
         // On Windows destroy() only posts WM_QUIT, leaving a live HWND while the

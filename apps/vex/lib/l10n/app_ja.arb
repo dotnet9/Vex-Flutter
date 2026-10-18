@@ -63,6 +63,7 @@
   "updateAvailable": "新しいバージョン {version} が利用できます。",
   "updateLocalNewer": "使用中のバージョンは最新の正式版より新しいものです。",
   "updateInvalidResponse": "リリース情報が不完全なため、更新を確認できません。",
+  "closeChanged": "保存中に新しい入力があったため、ウィンドウを開いたままにしました。確認してから再度閉じてください。",
   "noRelease": "正式版はまだ公開されていません。",
   "githubUnavailable": "GitHub に接続できません。しばらくしてから再試行してください。",
   "about": "このアプリについて",

@@ -63,6 +63,7 @@
   "updateAvailable": "發現新版本 {version}。",
   "updateLocalNewer": "本機版本比最新正式版更新，無需降級。",
   "updateInvalidResponse": "發行資訊不完整，暫時無法判斷是否需要更新。",
+  "closeChanged": "儲存期間又有新的輸入，視窗已保留。請確認後再次關閉。",
   "noRelease": "尚未發布正式版本。",
   "githubUnavailable": "暫時無法連線 GitHub，可稍後重試。",
   "about": "關於",

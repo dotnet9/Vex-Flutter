@@ -64,6 +64,7 @@
   "@updateAvailable": {"placeholders": {"version": {"type": "String"}}},
   "updateLocalNewer": "本机版本比最新正式版更新，无需降级。",
   "updateInvalidResponse": "发布信息不完整，暂时无法判断是否需要更新。",
+  "closeChanged": "保存期间又有新的输入，窗口已保留。请确认后再次关闭。",
   "noRelease": "尚无已发布的正式版本。",
   "githubUnavailable": "暂时无法连接 GitHub，可稍后重试。",
   "about": "关于",

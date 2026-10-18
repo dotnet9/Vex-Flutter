@@ -204,6 +204,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get updateInvalidResponse => 'リリース情報が不完全なため、更新を確認できません。';
 
   @override
+  String get closeChanged =>
+      '保存中に新しい入力があったため、ウィンドウを開いたままにしました。確認してから再度閉じてください。';
+
+  @override
   String get noRelease => '正式版はまだ公開されていません。';
 
   @override

@@ -202,6 +202,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get updateInvalidResponse => '发布信息不完整，暂时无法判断是否需要更新。';
 
   @override
+  String get closeChanged => '保存期间又有新的输入，窗口已保留。请确认后再次关闭。';
+
+  @override
   String get noRelease => '尚无已发布的正式版本。';
 
   @override
@@ -1740,6 +1743,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get updateInvalidResponse => '發行資訊不完整，暫時無法判斷是否需要更新。';
+
+  @override
+  String get closeChanged => '儲存期間又有新的輸入，視窗已保留。請確認後再次關閉。';
 
   @override
   String get noRelease => '尚未發布正式版本。';

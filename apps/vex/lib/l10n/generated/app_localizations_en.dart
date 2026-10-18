@@ -208,6 +208,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Release information is incomplete. Cannot determine update status.';
 
   @override
+  String get closeChanged =>
+      'New edits arrived while saving. The window is still open. Review them before closing again.';
+
+  @override
   String get noRelease => 'No stable version has been published yet.';
 
   @override

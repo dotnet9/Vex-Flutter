@@ -479,6 +479,12 @@ abstract class AppLocalizations {
   /// **'发布信息不完整，暂时无法判断是否需要更新。'**
   String get updateInvalidResponse;
 
+  /// No description provided for @closeChanged.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存期间又有新的输入，窗口已保留。请确认后再次关闭。'**
+  String get closeChanged;
+
   /// No description provided for @noRelease.
   ///
   /// In zh, this message translates to:
