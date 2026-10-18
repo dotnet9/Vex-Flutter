@@ -919,15 +919,32 @@ final class WorkspaceViewModel extends ChangeNotifier {
     final document = current;
     _saveTimers.remove(document)?.cancel();
     await _saveQueues[document]?.catchError((Object _) => false);
-    if (keepDraft && filePreferences.recovery && editor.session.isDirty) {
-      recoverable.add({
-        'name': document.name,
-        'path': document.path,
-        'text': editor.text,
-        'saved': document.persistedText ?? '',
-        ...document.format.toJson(),
-      });
+    final revision = document.editor.session.revision;
+    final nextRecoverable = [
+      ...recoverable,
+      if (keepDraft &&
+          filePreferences.recovery &&
+          document.editor.session.isDirty)
+        {
+          'name': document.name,
+          'path': document.path,
+          'text': document.editor.text,
+          'saved': document.persistedText ?? '',
+          ...document.format.toJson(),
+        },
+    ];
+    await _saveRecovery([
+      ...nextRecoverable,
+      ..._activeSnapshots(excluding: document),
+    ], throwOnError: true);
+    // Keep the editor open if typing continued while the snapshot was written.
+    if (document.editor.session.revision != revision) {
+      await flushRecovery(throwOnError: true);
+      _statusMessage = (l) => l.documentChanged;
+      _notify();
+      return;
     }
+    recoverable = nextRecoverable;
     documents.remove(document);
     document.editor.removeListener(_changed);
     document.dispose();
@@ -940,14 +957,15 @@ final class WorkspaceViewModel extends ChangeNotifier {
       );
       _blank.editor.addListener(_changed);
     }
-    current = documents.firstOrNull ?? _blank;
+    if (identical(current, document)) {
+      current = documents.firstOrNull ?? _blank;
+    }
     selectedHeadingId = null;
     externalChange = null;
     _refreshMap();
     search(findQuery);
     _notify();
     persist();
-    await flushRecovery(throwOnError: true);
   }
 
   Future<void> checkExternal() async {
@@ -984,24 +1002,34 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _notify();
   }
 
+  List<Map<String, Object?>> _activeSnapshots({WorkspaceDocument? excluding}) =>
+      documents
+          .where((d) => !identical(d, excluding) && d.editor.session.isDirty)
+          .map(
+            (d) => <String, Object?>{
+              'name': d.name,
+              'path': d.path,
+              'text': d.editor.session.text,
+              'saved': d.persistedText ?? '',
+              ...d.format.toJson(),
+            },
+          )
+          .toList();
+
   Future<void> flushRecovery({bool throwOnError = false}) async {
     if (_guiding) return;
-    final snapshots = documents
-        .where((d) => d.editor.session.isDirty)
-        .map(
-          (d) => <String, Object?>{
-            'name': d.name,
-            'path': d.path,
-            'text': d.editor.session.text,
-            'saved': d.persistedText ?? '',
-            ...d.format.toJson(),
-          },
-        )
-        .toList();
+    await _saveRecovery([
+      ...recoverable,
+      ..._activeSnapshots(),
+    ], throwOnError: throwOnError);
+  }
+
+  Future<void> _saveRecovery(
+    List<Map<String, Object?>> snapshots, {
+    bool throwOnError = false,
+  }) async {
     try {
-      await recovery.save(
-        filePreferences.recovery ? [...recoverable, ...snapshots] : [],
-      );
+      await recovery.save(filePreferences.recovery ? snapshots : []);
     } catch (error) {
       _statusMessage = (l) => l.recoverySaveFailed(error.toString());
       _notify();
@@ -1030,8 +1058,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }
 
   Future<void> discardDrafts() async {
+    await _saveRecovery(_activeSnapshots(), throwOnError: true);
     recoverable = [];
-    await recovery.save([]);
     _notify();
   }
 

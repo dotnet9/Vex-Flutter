@@ -19,10 +19,12 @@ final class MemorySettings implements SettingsRepository {
 
 final class MemoryRecovery implements RecoveryRepository {
   List<Map<String, Object?>> value = [];
+  Future<void> Function()? beforeSave;
   @override
   Future<List<Map<String, Object?>>> load() async => value;
   @override
   Future<void> save(List<Map<String, Object?>> documents) async {
+    if (beforeSave != null) await beforeSave!();
     value = documents;
   }
 }
