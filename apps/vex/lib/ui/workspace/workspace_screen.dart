@@ -52,6 +52,15 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   final _findFocus = FocusNode();
   final _layoutsMenu = MenuController(), _typographyMenu = MenuController();
   final _topMenus = <String, MenuController>{};
+  final _overflowMenu = MenuController();
+  bool _overflowedMenus = false;
+  (TextStyle, TextScaler, String)? _menuSizingKey;
+  (double, double) _menuWidths = (0, 0);
+  static const _menuTextStyle = TextStyle(
+    fontSize: 14,
+    height: 1.4,
+    letterSpacing: 0,
+  );
   bool _dragging = false, _closing = false, _nativeCloseApproved = false;
   bool _changingPresentation = false;
   bool _maximized = false;
@@ -245,6 +254,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                 return;
               }
             }
+            if (!mounted) return;
             if (vm.documents.any((doc) => doc.editor.session.isDirty)) {
               throw StateError(context.l10n.closeChanged);
             }
@@ -826,8 +836,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                       (LogicalKeyboardKey.keyT, 'tools'),
                       (LogicalKeyboardKey.keyH, 'help'),
                     ])
-                      SingleActivator(key, alt: true): () =>
-                          _topMenus[id]?.open(),
+                      SingleActivator(key, alt: true): () => _openTopMenu(id),
                   if (!_macOS)
                     const SingleActivator(
                       LogicalKeyboardKey.keyZ,
@@ -839,6 +848,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                     for (final menu in _topMenus.values) {
                       menu.close();
                     }
+                    _overflowMenu.close();
                     _layoutsMenu.close();
                     _typographyMenu.close();
                     state.closeFind();
@@ -1189,24 +1199,68 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
               ),
             ),
           const SizedBox(width: 14),
-          for (final menu in _menus(width))
-            _menu(menu, key: menu.id == 'file' ? _guideFileMenu : null),
           Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onPanStart: widget.windowIntegration
-                  ? (_) => windowManager.startDragging()
-                  : null,
-              onDoubleTap: widget.windowIntegration
-                  ? () async {
-                      if (await windowManager.isMaximized()) {
-                        await windowManager.unmaximize();
-                      } else {
-                        await windowManager.maximize();
-                      }
-                    }
-                  : null,
-              child: const SizedBox.expand(),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final menus = _menus(width);
+                final (full, compact) = _measureMenus(menus);
+                final available = constraints.maxWidth - 24;
+                _overflowedMenus = compact > available;
+                return Row(
+                  children: [
+                    if (_overflowedMenus)
+                      MenuAnchor(
+                        key: _guideFileMenu,
+                        controller: _overflowMenu,
+                        menuChildren: [
+                          for (final menu in menus)
+                            SubmenuButton(
+                              key: ValueKey('compact-menu-${menu.id}'),
+                              controller: _topMenus.putIfAbsent(
+                                menu.id,
+                                MenuController.new,
+                              ),
+                              menuChildren: _menuChildren(menu.children),
+                              child: Text(workspaceMenuLabel(menu.label)),
+                            ),
+                        ],
+                        builder: (context, controller, _) => AppButton(
+                          key: const ValueKey('titlebar-overflow'),
+                          icon: 'menu',
+                          tooltip: context.l10n.menuMore,
+                          onPressed: () => controller.isOpen
+                              ? controller.close()
+                              : controller.open(),
+                        ),
+                      )
+                    else
+                      for (final menu in menus)
+                        _menu(
+                          menu,
+                          compact: full > available,
+                          key: menu.id == 'file' ? _guideFileMenu : null,
+                        ),
+                    Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onPanStart: widget.windowIntegration
+                            ? (_) => windowManager.startDragging()
+                            : null,
+                        onDoubleTap: widget.windowIntegration
+                            ? () async {
+                                if (await windowManager.isMaximized()) {
+                                  await windowManager.unmaximize();
+                                } else {
+                                  await windowManager.maximize();
+                                }
+                              }
+                            : null,
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
           if (width >= 1280) ...[
@@ -1331,7 +1385,47 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     );
   }
 
-  Widget _menu(WorkspaceMenuEntry menu, {Key? key}) => MenuAnchor(
+  (double, double) _measureMenus(List<WorkspaceMenuEntry> menus) {
+    final style = Theme.of(context).textTheme.labelLarge!.merge(_menuTextStyle);
+    final scaler = MediaQuery.textScalerOf(context);
+    final key = (style, scaler, menus.map((menu) => menu.label).join('\u0000'));
+    if (_menuSizingKey == key) return _menuWidths;
+    final painter = TextPainter(
+      textDirection: Directionality.of(context),
+      textScaler: scaler,
+    );
+    double measure(String label) {
+      painter.text = TextSpan(text: label, style: style);
+      painter.layout();
+      return painter.width.ceil() + 20;
+    }
+
+    var full = 0.0, compact = 0.0;
+    for (final menu in menus) {
+      full += measure(menu.label);
+      compact += measure(workspaceMenuLabel(menu.label));
+    }
+    painter.dispose();
+    _menuSizingKey = key;
+    return _menuWidths = (full, compact);
+  }
+
+  void _openTopMenu(String id) {
+    if (_overflowedMenus) {
+      _overflowMenu.open();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _topMenus[id]?.open();
+      });
+    } else {
+      _topMenus[id]?.open();
+    }
+  }
+
+  Widget _menu(
+    WorkspaceMenuEntry menu, {
+    Key? key,
+    bool compact = false,
+  }) => MenuAnchor(
     key: key,
     controller: _topMenus.putIfAbsent(menu.id, MenuController.new),
     menuChildren: _menuChildren(menu.children),
@@ -1347,7 +1441,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       child: TextButton(
         style: TextButton.styleFrom(
           foregroundColor: Theme.of(context).colorScheme.onSurface,
-          textStyle: const TextStyle(fontSize: 14, height: 1.4),
+          textStyle: _menuTextStyle,
           minimumSize: const Size(0, 28),
           fixedSize: const Size.fromHeight(28),
           padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -1356,7 +1450,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         ),
         onPressed: () =>
             controller.isOpen ? controller.close() : controller.open(),
-        child: Text(menu.label, maxLines: 1),
+        child: Text(
+          compact ? workspaceMenuLabel(menu.label) : menu.label,
+          maxLines: 1,
+        ),
       ),
     ),
   );
