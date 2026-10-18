@@ -9,6 +9,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'shared'))
 from release_tools import ANDROID_ABIS, ROOT, app_version, check_installer, filename
+from verify_jni import verify as verify_jni
 
 
 def main():
@@ -38,6 +39,7 @@ def main():
         if 'application-debuggable' in badging:
             raise ValueError('Debuggable APK must not be released.')
         check_installer(source, target, version)
+        verify_jni(source, build_tools / ('dexdump.exe' if os.name == 'nt' else 'dexdump'))
         destination = output / filename(target, version)
         shutil.copyfile(source, destination)
         print(f'Verified production signature, identity, version and ABI: {destination.name}')

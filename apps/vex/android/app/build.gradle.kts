@@ -33,6 +33,7 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
@@ -64,7 +65,22 @@ android {
         release {
             // Each distribution supplies its own signing configuration.
             signingConfig = null
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
+    }
+    if (providers.gradleProperty("vexReleaseTests").orNull == "true") {
+        testBuildType = "release"
+        buildTypes.getByName("release") {
+            proguardFiles("src/androidTest/proguard-rules.pro")
+            testProguardFiles("src/androidTest/proguard-rules.pro")
+        }
+    }
+}
+
+dependencies {
+    androidTestImplementation(project(":integration_test"))
+    if (providers.gradleProperty("vexReleaseTests").orNull == "true") {
+        add("releaseImplementation", project(":integration_test"))
     }
 }
 

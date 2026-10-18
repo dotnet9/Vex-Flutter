@@ -79,3 +79,56 @@ jobs:
             apps/vex/coverage/lcov.info
           if-no-files-found: warn
           retention-days: 14
+
+  android-release-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 生成内置文档
+        run: python scripts/sync_builtin_documents.py
+      - name: 读取固定 Flutter 版本
+        id: flutter
+        run: echo "version=$(cat .flutter-version)" >> "$GITHUB_OUTPUT"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.flutter.outputs.version }}
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - name: 启用模拟器硬件加速
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: 压缩版启动与底部菜单原生回归
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: |
+            adb shell cmd overlay enable com.android.internal.systemui.navbar.threebutton
+            cd apps/vex/android && ./gradlew app:connectedPreviewReleaseAndroidTest -PvexReleaseTests=true -Ptarget="$GITHUB_WORKSPACE/apps/vex/integration_test/android_startup_test.dart" --max-workers=2
+      - name: 检查压缩后的 JNI 方法签名
+        run: python scripts/packaging/android/verify_jni.py apps/vex/build/app/outputs/apk/preview/release/app-preview-release.apk --dexdump "$ANDROID_HOME/build-tools/36.0.0/dexdump"
+      - name: 保存原生测试结果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-smoke
+          path: |
+            apps/vex/build/app/outputs/androidTest-results/
+            apps/vex/build/app/reports/androidTests/
+          if-no-files-found: warn
+          retention-days: 14

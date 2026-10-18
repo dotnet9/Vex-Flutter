@@ -23,3 +23,16 @@ flutter build apk --release --flavor production --split-per-abi --target-platfor
 Windows 上仓库与 Pub 缓存位于不同盘符时，Kotlin 2.4 增量缓存不能正确处理相对路径，因此项目暂时禁用 Kotlin 增量编译，并使用进程内编译策略。若本机 JDK 的 Unix domain socket 临时路径过长，可为当前终端设置较短的 `-Djdk.net.unixdomain.tmpdir`，无需改动系统设置。
 
 已在 Android 14 / API 34 x86_64 模拟器上通过原生工作区集成测试，并安装启动 release 正式入口预览 APK。尚未进行 Android 真机、完整输入法、系统文件提供程序与所有导出格式验收。
+
+## 压缩版启动回归
+
+偏好设置插件通过 JNI 调用原生方法，正式包经过 R8 压缩后必须保留方法名和参数类型。应用的 `proguard-rules.pro` 只保留对应插件，不关闭整个应用的压缩；打包收集阶段还会直接检查最终 APK 中的 `getString`、`setString` 签名，缺失时停止发布。
+
+仅运行调试测试不能覆盖这种问题。连接模拟器或专用测试手机后，使用原生测试入口：
+
+```powershell
+cd apps/vex/android
+./gradlew.bat app:connectedPreviewReleaseAndroidTest -PvexReleaseTests=true -Ptarget="$((Resolve-Path ../integration_test/android_startup_test.dart).Path)"
+```
+
+该测试使用独立的 preview 应用身份，验证真实偏好设置读写、重新加载和“帮助”菜单。`vexReleaseTests` 仅为测试引入结果收集器，常规 production 构建不包含它。CI 同样运行压缩版测试，并检查最终 DEX 签名；不要使用 `flutter test --release`，Flutter 当前不提供这个选项。
