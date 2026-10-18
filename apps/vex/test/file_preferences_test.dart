@@ -1,10 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:vex/data/services/document_codec.dart';
 import 'package:vex/data/services/file_service.dart';
 import 'package:vex/domain/file_preferences.dart';
