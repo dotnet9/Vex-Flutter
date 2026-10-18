@@ -140,9 +140,6 @@ class _MarkdownMermaidBlockState extends State<MarkdownMermaidBlock> {
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).colorScheme, scene = _scene;
-    final duration = MediaQuery.disableAnimationsOf(context)
-        ? Duration.zero
-        : const Duration(milliseconds: 220);
     final preview = Semantics(
       label: widget.labels.diagramPreview,
       image: true,
@@ -191,33 +188,39 @@ class _MarkdownMermaidBlockState extends State<MarkdownMermaidBlock> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AnimatedSize(
-            alignment: Alignment.topCenter,
-            duration: duration,
-            curve: Curves.easeOutCubic,
-            child: widget.sourceEditor == null
-                ? const SizedBox(width: double.infinity)
-                : Container(
-                    key: const ValueKey('mermaid-source'),
-                    constraints: const BoxConstraints(
-                      minHeight: 128,
-                      maxHeight: 360,
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 15,
-                    ),
-                    decoration: BoxDecoration(
-                      color: c.surfaceContainerLow,
-                      border: Border(
-                        bottom: BorderSide(color: c.outlineVariant),
+          Builder(
+            builder: (context) {
+              final source = widget.sourceEditor == null
+                  ? const SizedBox(width: double.infinity)
+                  : Container(
+                      key: const ValueKey('mermaid-source'),
+                      constraints: const BoxConstraints(
+                        minHeight: 128,
+                        maxHeight: 360,
                       ),
-                    ),
-                    child: Semantics(
-                      label: widget.labels.diagramSource,
-                      child: widget.sourceEditor,
-                    ),
-                  ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 15,
+                      ),
+                      decoration: BoxDecoration(
+                        color: c.surfaceContainerLow,
+                        border: Border(
+                          bottom: BorderSide(color: c.outlineVariant),
+                        ),
+                      ),
+                      child: Semantics(
+                        label: widget.labels.diagramSource,
+                        child: widget.sourceEditor,
+                      ),
+                    );
+              if (MediaQuery.disableAnimationsOf(context)) return source;
+              return AnimatedSize(
+                alignment: Alignment.topCenter,
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                child: source,
+              );
+            },
           ),
           if (_rendered != widget.source && !widget.composing)
             LinearProgressIndicator(

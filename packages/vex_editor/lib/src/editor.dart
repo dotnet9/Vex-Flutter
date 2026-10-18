@@ -667,23 +667,27 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        AnimatedSize(
-          duration: MediaQuery.disableAnimationsOf(context)
-              ? Duration.zero
-              : const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          alignment: Alignment.topCenter,
-          child: editing
-              ? Container(
-                  constraints: const BoxConstraints(
-                    minHeight: 80,
-                    maxHeight: 360,
-                  ),
-                  padding: const EdgeInsets.all(14),
-                  color: Theme.of(context).colorScheme.surfaceContainerLow,
-                  child: _fieldRegion(Theme.of(context).colorScheme),
-                )
-              : const SizedBox(width: double.infinity),
+        Builder(
+          builder: (context) {
+            final input = editing
+                ? Container(
+                    constraints: const BoxConstraints(
+                      minHeight: 80,
+                      maxHeight: 360,
+                    ),
+                    padding: const EdgeInsets.all(14),
+                    color: Theme.of(context).colorScheme.surfaceContainerLow,
+                    child: _fieldRegion(Theme.of(context).colorScheme),
+                  )
+                : const SizedBox(width: double.infinity);
+            if (MediaQuery.disableAnimationsOf(context)) return input;
+            return AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.topCenter,
+              child: input,
+            );
+          },
         ),
         GestureDetector(
           behavior: HitTestBehavior.opaque,
