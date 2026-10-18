@@ -204,7 +204,7 @@ class MarkdownReader extends StatelessWidget {
     final sheet = styleSheet(context);
     final imageOccurrences = <String, int>{};
     final linkOccurrences = <String, int>{};
-    return _LinkRecognizerHost(
+    final body = _LinkRecognizerHost(
       reader: this,
       builder: (links) => MarkdownBody(
         key: ValueKey((
@@ -214,7 +214,9 @@ class MarkdownReader extends StatelessWidget {
           inline,
         )),
         data: data,
-        selectable: selectable,
+        // Render paragraphs directly. Per-paragraph EditableText viewports can
+        // remain blank when their virtualized parent jumps to a distant block.
+        selectable: false,
         fitContent: !inline,
         softLineBreak: preferences.softBreak,
         extensionSet: MarkdownSyntax.extensions(preferences),
@@ -282,6 +284,9 @@ class MarkdownReader extends StatelessWidget {
         },
       ),
     );
+    return selectable && SelectionContainer.maybeOf(context) == null
+        ? SelectionArea(child: body)
+        : body;
   }
 }
 

@@ -237,7 +237,7 @@ void main() {
           home: Scaffold(body: MarkdownReader(data: controller.text)),
         ),
       );
-      expect(find.byType(SelectableText), findsWidgets);
+      expect(find.byType(SelectionArea), findsOneWidget);
       expect(find.byType(TextField), findsNothing);
       expect(find.text('markdown'), findsNothing);
       expect(find.text('复制'), findsNothing);

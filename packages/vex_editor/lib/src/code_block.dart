@@ -37,6 +37,10 @@ class MarkdownCodeBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final style = textStyle(context, fontSize);
+    final text = Text(code.isEmpty ? ' ' : code, style: style);
+    final content = selectable && SelectionContainer.maybeOf(context) == null
+        ? SelectionArea(child: text)
+        : text;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -51,20 +55,10 @@ class MarkdownCodeBlock extends StatelessWidget {
           child:
               child ??
               (wrap
-                  ? (selectable
-                        ? SelectableText(
-                            code.isEmpty ? ' ' : code,
-                            style: style,
-                          )
-                        : Text(code.isEmpty ? ' ' : code, style: style))
+                  ? content
                   : SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
-                      child: selectable
-                          ? SelectableText(
-                              code.isEmpty ? ' ' : code,
-                              style: style,
-                            )
-                          : Text(code.isEmpty ? ' ' : code, style: style),
+                      child: content,
                     )),
         ),
         SizedBox(

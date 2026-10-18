@@ -112,8 +112,8 @@ void main() {
         ),
       );
       expect(find.byType(SingleChildScrollView), findsNothing);
-      final code = tester.widget<SelectableText>(
-        find.byType(SelectableText).last,
+      final code = tester.widget<Text>(
+        find.text('long long long long long long long long long long code'),
       );
       expect(code.style?.fontSize, 18);
       final context = tester.element(find.byType(MarkdownReader));

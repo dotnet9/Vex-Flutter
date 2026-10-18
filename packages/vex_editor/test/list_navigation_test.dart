@@ -36,8 +36,25 @@ void main() {
       for (final index in [9000, 20, 7000]) {
         built.clear();
         navigator.reveal(index);
+        await tester.pump();
+        final target = find.text('Row $index');
+        expect(
+          target,
+          findsOneWidget,
+          reason: 'The next frame shows the chapter.',
+        );
+        final firstRect = tester.getRect(target);
+        expect(
+          tester.getRect(find.byType(Scaffold)).contains(firstRect.center),
+          isTrue,
+        );
         for (var i = 0; i < 16; i++) {
           await tester.pump(const Duration(milliseconds: 16));
+          expect(
+            tester.getRect(target),
+            firstRect,
+            reason: 'Chapter text must not drift after arrival.',
+          );
         }
         expect(find.text('Row $index'), findsOneWidget);
         expect(
@@ -52,7 +69,7 @@ void main() {
           reason: 'Do not render skipped chapters.',
         );
       }
-      navigator.reveal(0);
+      navigator.reveal(list.visibleRange!.$1 + 1, animated: true);
       await tester.pump(const Duration(milliseconds: 30));
       navigator.cancel();
       final stopped = scroll.offset;

@@ -347,98 +347,106 @@ class _DocumentReadingState extends State<_DocumentReading>
       if (index >= 0) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted || !_list.isAttached || !_scroll.hasClients) return;
-          _navigation.reveal(
-            index,
-            animated: !MediaQuery.disableAnimationsOf(context),
-          );
+          if (vm.editor.navigation.value != request ||
+              vm.selectedHeading?.id != selected?.id) {
+            return;
+          }
+          _navigation.reveal(index);
         });
       }
     }
-    return Listener(
-      onPointerDown: (_) => _navigation.cancel(),
-      onPointerSignal: (_) => _navigation.cancel(),
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: vm.typography.width),
-          child: SuperListView.builder(
-            key: PageStorageKey('read:${vm.current.id}'),
-            controller: _scroll,
-            listController: _list,
-            padding: widget.padding,
-            itemCount: blocks.isEmpty ? 1 : blocks.length,
-            itemBuilder: (context, index) {
-              if (blocks.isEmpty) return Text(context.l10n.emptyDocument);
-              final block = blocks[index];
-              final reader = MarkdownReader(
-                onMediaContext: (url, image, occurrence, position) {
-                  final token = markdownMediaTargets(vm.editor.text, block)
-                      .where(
-                        (token) =>
-                            token.image == image &&
-                            token.url == markdownAttributeText(url),
-                      )
-                      .elementAtOrNull(occurrence);
-                  if (token == null) return;
-                  widget.onContextMenu?.call(
-                    MarkdownContextRequest(
-                      offset: token.range.start,
-                      position: position,
-                      selection: TextSelection.collapsed(
-                        offset: token.range.start,
-                      ),
-                      readOnly: true,
+    return SelectionArea(
+      child: Listener(
+        onPointerDown: (_) => _navigation.cancel(),
+        onPointerSignal: (_) => _navigation.cancel(),
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: vm.typography.width),
+            child: LayoutBuilder(
+              builder: (context, constraints) => SuperListView.builder(
+                key: PageStorageKey('read:${vm.current.id}'),
+                controller: _scroll,
+                listController: _list,
+                cacheExtent: constraints.maxHeight,
+                padding: widget.padding,
+                itemCount: blocks.isEmpty ? 1 : blocks.length,
+                itemBuilder: (context, index) {
+                  if (blocks.isEmpty) return Text(context.l10n.emptyDocument);
+                  final block = blocks[index];
+                  final reader = MarkdownReader(
+                    onMediaContext: (url, image, occurrence, position) {
+                      final token = markdownMediaTargets(vm.editor.text, block)
+                          .where(
+                            (token) =>
+                                token.image == image &&
+                                token.url == markdownAttributeText(url),
+                          )
+                          .elementAtOrNull(occurrence);
+                      if (token == null) return;
+                      widget.onContextMenu?.call(
+                        MarkdownContextRequest(
+                          offset: token.range.start,
+                          position: position,
+                          selection: TextSelection.collapsed(
+                            offset: token.range.start,
+                          ),
+                          readOnly: true,
+                        ),
+                      );
+                    },
+                    imageBuilder: (uri, title, alt) => DocumentImage(
+                      uri: uri,
+                      documentPath: vm.current.path,
+                      alt: alt,
                     ),
+                    key: ValueKey(block.range.start),
+                    data: block.range.slice(vm.editor.session.text),
+                    labels: context.l10n.editorLabels,
+                    typography: vm.typography,
+                    compact: vm.compact,
+                    fontSize: vm.fontSize,
+                    editingPreferences: vm.editingPreferences,
+                    preferences: vm.markdownPreferences,
+                    onTapLink: (_, href, _) {
+                      openWorkspaceLink(vm, href);
+                    },
+                  );
+                  void openContext(Offset position) {
+                    final source = vm.editor.text;
+                    final tokens =
+                        const [
+                          MarkdownBlockKind.code,
+                          MarkdownBlockKind.math,
+                        ].contains(block.kind)
+                        ? <MarkdownMediaTarget>[]
+                        : markdownMediaTargets(source, block);
+                    widget.onContextMenu?.call(
+                      MarkdownContextRequest(
+                        offset: tokens.length == 1
+                            ? tokens.single.range.start
+                            : block.range.start,
+                        position: position,
+                        selection: TextSelection.collapsed(
+                          offset: block.range.start,
+                        ),
+                        readOnly: true,
+                      ),
+                    );
+                  }
+
+                  return GestureDetector(
+                    key: ValueKey('read-element-${block.range.start}'),
+                    behavior: HitTestBehavior.translucent,
+                    onSecondaryTapUp: (event) =>
+                        openContext(event.globalPosition),
+                    onLongPressStart: (event) =>
+                        openContext(event.globalPosition),
+                    child: reader,
                   );
                 },
-                imageBuilder: (uri, title, alt) => DocumentImage(
-                  uri: uri,
-                  documentPath: vm.current.path,
-                  alt: alt,
-                ),
-                key: ValueKey(block.range.start),
-                data: block.range.slice(vm.editor.session.text),
-                labels: context.l10n.editorLabels,
-                typography: vm.typography,
-                compact: vm.compact,
-                fontSize: vm.fontSize,
-                editingPreferences: vm.editingPreferences,
-                preferences: vm.markdownPreferences,
-                onTapLink: (_, href, _) {
-                  openWorkspaceLink(vm, href);
-                },
-              );
-              void openContext(Offset position) {
-                final source = vm.editor.text;
-                final tokens =
-                    const [
-                      MarkdownBlockKind.code,
-                      MarkdownBlockKind.math,
-                    ].contains(block.kind)
-                    ? <MarkdownMediaTarget>[]
-                    : markdownMediaTargets(source, block);
-                widget.onContextMenu?.call(
-                  MarkdownContextRequest(
-                    offset: tokens.length == 1
-                        ? tokens.single.range.start
-                        : block.range.start,
-                    position: position,
-                    selection: TextSelection.collapsed(
-                      offset: block.range.start,
-                    ),
-                    readOnly: true,
-                  ),
-                );
-              }
-
-              return GestureDetector(
-                key: ValueKey('read-element-${block.range.start}'),
-                behavior: HitTestBehavior.translucent,
-                onSecondaryTapUp: (event) => openContext(event.globalPosition),
-                onLongPressStart: (event) => openContext(event.globalPosition),
-                child: reader,
-              );
-            },
+              ),
+            ),
           ),
         ),
       ),

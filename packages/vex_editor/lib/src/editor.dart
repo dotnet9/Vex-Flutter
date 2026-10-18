@@ -424,10 +424,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
         (b) => b.range.end > request.selection.start,
       );
       final target = index < 0 ? blocks.length - 1 : index;
-      _navigation.reveal(
-        target,
-        animated: !MediaQuery.disableAnimationsOf(context),
-      );
+      _navigation.reveal(target);
     });
   }
 
@@ -1025,6 +1022,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
                       key: PageStorageKey(widget.controller),
                       controller: _scroll,
                       listController: _list,
+                      cacheExtent: constraints.maxHeight,
                       padding: widget.padding.copyWith(
                         top: widget.typewriter
                             ? constraints.maxHeight / 2
