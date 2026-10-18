@@ -1,0 +1,38 @@
+name: 缺陷报告
+description: 报告可复现的软件、原型或安装流程问题。
+body:
+  - type: markdown
+    attributes:
+      value: 安全漏洞请按 SECURITY.md 私下报告。请勿上传私人笔记、令牌、签名材料或未经脱敏的日志。
+  - type: input
+    id: version
+    attributes:
+      label: 版本或提交
+      description: 安装包版本、commit SHA，或原型页面与参数。
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 运行环境
+      description: 系统版本、设备、屏幕尺寸、缩放、输入法；源码运行请附 flutter --version。
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 使用不含隐私的最小示例，并注明每一步操作。
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: 预期与实际结果
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 截图与日志
+      description: 可选，上传前请检查是否包含私人信息。

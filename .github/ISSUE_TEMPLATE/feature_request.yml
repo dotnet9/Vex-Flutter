@@ -1,0 +1,17 @@
+name: 功能建议
+description: 提出具体使用场景或交互改进。
+body:
+  - type: textarea
+    id: scenario
+    attributes:
+      label: 使用场景
+      description: 当前遇到什么问题，影响哪个平台或工作流？
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案
+      description: 描述期望的行为，可附参考截图和替代方案。
+    validations:
+      required: true
