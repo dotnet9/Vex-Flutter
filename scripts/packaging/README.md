@@ -63,7 +63,7 @@ Linux 原生依赖（Ubuntu 24.04，需用户自行确认安装）：
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libxrandr-dev libayatana-appindicator3-dev dpkg-dev desktop-file-utils
+sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libsecret-1-dev liblzma-dev libxrandr-dev libayatana-appindicator3-dev dpkg-dev desktop-file-utils
 ```
 
 macOS 需要完整 Xcode、已接受的许可、CocoaPods 及对应平台 SDK。DMG 的 Python 依赖自动装入 `artifacts/tools/macos-dmg` 的独立虚拟环境，并按版本和 SHA-256 校验，不改系统 Python 包。当前采用临时签名，尚无 Developer ID / 公证。

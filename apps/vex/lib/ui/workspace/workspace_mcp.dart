@@ -4,18 +4,26 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:vex_markdown_core/vex_markdown_core.dart';
+import 'package:flutter/material.dart' show ThemeMode;
+import 'package:vex_editor/vex_editor.dart' show MarkdownTypography;
+import 'package:vex_mindmap/vex_mindmap.dart' show MindMapLayoutMode;
 
 import '../../data/services/mcp_server.dart';
+import '../../data/services/mcp_arguments.dart';
+import '../../data/repositories/credential_repository.dart';
 import '../../domain/workspace.dart';
 import '../../l10n/l10n.dart';
 import '../core/palette_tokens.dart';
 import 'workspace_view_model.dart';
 
+typedef _McpAccess = ({String scope, String? documentPath, String folder});
+
 final class WorkspaceMcp extends ChangeNotifier {
-  WorkspaceMcp(this.vm) {
+  WorkspaceMcp(this.vm, {required this.credentials}) {
     server = McpServer(tools: tools, dispatch: dispatch);
   }
   final WorkspaceViewModel vm;
+  final CredentialRepository credentials;
   late final McpServer server;
   bool enabled = false,
       requireConfirmation = true,
@@ -102,11 +110,19 @@ final class WorkspaceMcp extends ChangeNotifier {
     'save_document',
     'undo',
     'redo',
+    'find_text',
+    'get_map',
+    'set_selection',
+    'apply_edits',
+    'rename_section',
+    'add_section',
+    'delete_section',
+    'move_section',
+    'change_section_level',
   };
   Map<String, Object?> get preferences => {
     'enabled': enabled,
     'port': port,
-    'token': token,
     'scope': scope,
     'customFolder': customFolder,
     'confirm': requireConfirmation,
@@ -114,8 +130,17 @@ final class WorkspaceMcp extends ChangeNotifier {
   Future<void> load(Object? value) async {
     if (value is! Map) return;
     port = (value['port'] as int? ?? 17891).clamp(1024, 65535);
-    if (value['token'] is String && (value['token'] as String).length >= 24) {
-      token = value['token'] as String;
+    if (available && value['enabled'] == true) {
+      try {
+        final savedToken = await credentials.readMcpToken();
+        if (_disposed) return;
+        if (savedToken != null && savedToken.length >= 24) token = savedToken;
+      } catch (_) {
+        enabled = false;
+        error = 'System credential storage is unavailable';
+        if (!_disposed) notifyListeners();
+        return;
+      }
     }
     scope = ['document', 'folder', 'custom'].contains(value['scope'])
         ? value['scope'] as String
@@ -134,12 +159,25 @@ final class WorkspaceMcp extends ChangeNotifier {
     var failure = '';
     try {
       if (value) {
+        if (token.length < 24) throw ArgumentError('Invalid access token');
+        await credentials.writeMcpToken(token);
+        if (_disposed || configuration != _configurationRevision) return;
+        if (await credentials.readMcpToken() != token) {
+          throw StateError(
+            'System credential storage did not retain the token',
+          );
+        }
+        if (_disposed || configuration != _configurationRevision) return;
         await server.start(port: port, token: token);
       } else {
         await server.stop();
       }
     } catch (e) {
-      failure = e.toString();
+      if (_disposed || configuration != _configurationRevision) return;
+      failure =
+          'Unable to start MCP; check the port and system credential storage';
+      enabled = false;
+      await server.stop();
     }
     if (_disposed || configuration != _configurationRevision) return;
     error = failure;
@@ -147,216 +185,434 @@ final class WorkspaceMcp extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
-  Future<void> _checkPath(String path) async {
+  Future<String> _checkPath(String path, _McpAccess access) async {
     if (!p.isAbsolute(path)) {
       throw ArgumentError('An absolute local path is required');
     }
     final resolved = await File(path).resolveSymbolicLinks();
-    final current = vm.current.path;
-    if (scope == 'document') {
+    if (![
+      '.md',
+      '.markdown',
+      '.txt',
+    ].contains(p.extension(resolved).toLowerCase())) {
+      throw ArgumentError('Only Markdown and text files are accessible');
+    }
+    final current = access.documentPath;
+    if (access.scope == 'document') {
       if (current == null ||
           !p.equals(resolved, await File(current).resolveSymbolicLinks())) {
         throw StateError('The requested file is outside the allowed scope');
       }
-      return;
+      return resolved;
     }
-    final directory = scope == 'custom'
-        ? customFolder
-        : vm.folder != null
-        ? vm.folder!.path
-        : current == null
-        ? ''
-        : p.dirname(current);
+    final directory = access.folder;
     if (directory.isEmpty) throw StateError('No workspace folder is open');
     final root = await Directory(directory).resolveSymbolicLinks();
     if (!p.isWithin(root, resolved)) {
       throw StateError('The requested file is outside the allowed scope');
     }
+    return resolved;
   }
 
   Future<Object?> dispatch(String name, Map<String, Object?> args) async {
     if (_disposed) throw StateError('The workspace has closed');
+    final tool = tools.where((tool) => tool['name'] == name).firstOrNull;
+    if (tool == null) throw ArgumentError('Unknown tool');
+    validateMcpArguments(tool, args);
     final configuration = _configurationRevision;
-    final access = (scope, customFolder, vm.folder?.path);
+    final settings = (scope, customFolder, vm.folder?.path);
+    final document = vm.current;
+    final access = (
+      scope: scope,
+      documentPath: document.path,
+      folder: scope == 'custom'
+          ? customFolder
+          : vm.folder?.path ??
+                (document.path == null ? '' : p.dirname(document.path!)),
+    );
     void checkConfiguration() {
       if (_disposed ||
           configuration != _configurationRevision ||
-          access != (scope, customFolder, vm.folder?.path)) {
+          settings != (scope, customFolder, vm.folder?.path) ||
+          !identical(document, vm.current) ||
+          document.path != access.documentPath) {
         throw StateError('MCP access settings changed; send a new request');
       }
     }
 
     final action = name.replaceFirst('vex_', '');
-    if (scope != 'document' && _documentActions.contains(action)) {
-      final path = vm.current.path;
-      if (path == null) {
-        throw StateError(
-          'The current document has no path inside the allowed folder',
-        );
-      }
-      await _checkPath(path);
-    }
-    checkConfiguration();
-    final reading = {
-      'get_document',
-      'get_outline',
-      'get_selection',
-      'list_files',
-      'get_app_status',
-      'get_operation_audit',
-      'ui_get_state',
-    };
-    if (reading.contains(action)) {
-      final result = await _read(action);
-      checkConfiguration();
-      if (action != 'get_operation_audit') _record(name, 'completed');
-      return result;
-    }
-    if (_mutating) {
-      throw StateError('Another MCP operation is awaiting completion');
-    }
-    if (vm.guiding) {
-      throw StateError(
-        'Finish the guide before changing documents through MCP',
-      );
-    }
-    _mutating = true;
-    final document = vm.current, revision = vm.editor.session.revision;
     try {
-      if (requireConfirmation && !(await confirm?.call(name) ?? false)) {
-        throw StateError('Operation declined');
+      if (args['document_id'] != null && args['document_id'] != document.id) {
+        throw StateError('Document identity does not match');
       }
-      checkConfiguration();
-      if (_disposed ||
-          !identical(vm.current, document) ||
-          vm.editor.session.revision != revision) {
-        throw StateError(
-          'The document changed while the operation was pending; read it again',
-        );
-      }
-      final expected = args['revision'];
-      if (expected != null && expected != revision) {
+      if (args['revision'] != null &&
+          args['revision'] != vm.editor.session.revision) {
         throw StateError('Document revision does not match');
       }
-      final editor = vm.editor;
-      String string(String key) {
-        final value = args[key];
-        if (value is! String) throw ArgumentError('Missing string: $key');
-        return value;
-      }
-
-      int offset(String key, int fallback) {
-        final value = args[key] ?? fallback;
-        if (value is! int || value < 0 || value > editor.text.length) {
-          throw ArgumentError('Invalid offset: $key');
+      if (scope != 'document' && _documentActions.contains(action)) {
+        final path = vm.current.path;
+        if (path == null) {
+          throw StateError(
+            'The current document has no path inside the allowed folder',
+          );
         }
-        return value;
+        await _checkPath(path, access);
       }
+      checkConfiguration();
+      final reading = {
+        'get_document',
+        'get_outline',
+        'get_selection',
+        'list_files',
+        'get_app_status',
+        'get_operation_audit',
+        'ui_get_state',
+        'get_capabilities',
+        'read_file',
+        'find_text',
+        'get_map',
+      };
+      if (reading.contains(action)) {
+        final result = await _read(action, args, access, checkConfiguration);
+        checkConfiguration();
+        if (action != 'get_operation_audit') _record(name, 'completed');
+        return result;
+      }
+      if (_mutating) {
+        throw StateError('Another MCP operation is awaiting completion');
+      }
+      if (vm.guiding) {
+        throw StateError(
+          'Finish the guide before changing documents through MCP',
+        );
+      }
+      _mutating = true;
+      final revision = vm.editor.session.revision;
+      try {
+        if (requireConfirmation && !(await confirm?.call(name) ?? false)) {
+          throw StateError('Operation declined');
+        }
+        checkConfiguration();
+        if (_disposed ||
+            !identical(vm.current, document) ||
+            vm.editor.session.revision != revision) {
+          throw StateError(
+            'The document changed while the operation was pending; read it again',
+          );
+        }
+        final expected = args['revision'];
+        if (expected != null && expected != revision) {
+          throw StateError('Document revision does not match');
+        }
+        if (args['document_id'] != null &&
+            args['document_id'] != vm.current.id) {
+          throw StateError('Document identity does not match');
+        }
+        if (vm.editor.source.value.composing.isValid &&
+            !vm.editor.source.value.composing.isCollapsed) {
+          throw StateError('Finish the current input method composition first');
+        }
+        final editor = vm.editor;
+        String string(String key) {
+          final value = args[key];
+          if (value is! String) throw ArgumentError('Missing string: $key');
+          return value;
+        }
 
-      switch (action) {
-        case 'replace_document':
-          editor.session.replace(string('text'), label: 'MCP 替换全文');
-        case 'apply_text_edit':
-          final start = offset('offset', 0), length = args['length'];
-          if (length is! int ||
-              length < 0 ||
-              start + length > editor.text.length) {
-            throw ArgumentError('Invalid length');
+        int offset(String key, int fallback) {
+          final value = args[key] ?? fallback;
+          if (value is! int || !_validOffset(editor.text, value)) {
+            throw ArgumentError('Invalid offset: $key');
           }
-          editor.session.patch(
-            TextPatch(SourceRange(start, start + length), string('text')),
-            label: 'MCP 修改文本',
-          );
-        case 'insert_text':
-          final start = offset('offset', editor.text.length);
-          editor.session.patch(
-            TextPatch(SourceRange(start, start), string('text')),
-            label: 'MCP 插入文本',
-          );
-        case 'replace_selection':
-          editor.replaceSelection(string('text'), label: 'MCP 替换选区');
-        case 'replace_text':
-          final query = string('query'),
-              matches = editor.find(query, caseSensitive: true);
-          if (query.isEmpty ||
-              matches.isEmpty ||
-              (matches.length != 1 && args['replace_all'] != true)) {
-            throw StateError(
-              'Text must match uniquely or replace_all must be true',
+          return value;
+        }
+
+        switch (action) {
+          case 'apply_edits':
+            final edits = (args['edits']! as List).cast<Map>();
+            final patches = edits.map((edit) {
+              final start = edit['offset'] as int,
+                  length = edit['length'] as int;
+              if (!_validOffset(editor.text, start) ||
+                  !_validOffset(editor.text, start + length)) {
+                throw ArgumentError('Invalid edit range');
+              }
+              return TextPatch(
+                SourceRange(start, start + length),
+                edit['text'] as String,
+              );
+            }).toList()..sort((a, b) => a.range.start.compareTo(b.range.start));
+            for (var i = 1; i < patches.length; i++) {
+              if (patches[i].range.start < patches[i - 1].range.end ||
+                  patches[i].range.start == patches[i - 1].range.start) {
+                throw ArgumentError('Edit ranges overlap');
+              }
+            }
+            var text = editor.text;
+            for (final patch in patches.reversed) {
+              text = patch.apply(text);
+            }
+            editor.session.replace(text, label: 'MCP 批量修改');
+          case 'set_selection':
+            final start = offset('start', 0), end = offset('end', 0);
+            if (end < start) {
+              throw ArgumentError('Selection end precedes start');
+            }
+            editor.reveal(start, end: end);
+          case 'new_document':
+            if (scope != 'document') {
+              throw StateError(
+                'New unnamed documents require current-document access',
+              );
+            }
+            vm.newDocument();
+          case 'rename_section':
+            editor.session.renameHeading(string('id'), string('title'));
+          case 'add_section':
+            final title = string('title');
+            if (title.trim().isEmpty ||
+                title.contains('\n') ||
+                title.contains('\r')) {
+              throw ArgumentError('Invalid heading title');
+            }
+            editor.session.addHeading(
+              args['id'] as String?,
+              child: args['child'] == true,
+              title: title,
             );
-          }
-          editor.replaceAll(query, string('text'), caseSensitive: true);
-        case 'open_document':
-          final path = string('path');
-          await _checkPath(path);
-          await vm.openPath(path);
-        case 'save_document':
-          if (!await vm.save()) throw StateError('Save was cancelled');
-        case 'undo':
-          editor.session.undo();
-        case 'redo':
-          editor.session.redo();
-        case 'ui_set_layout':
-          final layout = WorkspaceLayout.values
-              .where((v) => v.name == args['layout'])
-              .firstOrNull;
-          if (layout == null) throw ArgumentError('Unknown layout');
-          vm.setLayout(layout);
-        case 'ui_set_theme':
-          final palette = string('palette');
-          if (!paletteNames.containsKey(palette)) {
-            throw ArgumentError('Unknown palette');
-          }
-          vm.updateAppearance(palette: palette);
-        case 'ui_set_language':
-          final language = string('language');
-          if (!languageNames.containsKey(language)) {
-            throw ArgumentError('Unknown language');
-          }
-          vm.updateAppearance(language: language);
-        case 'ui_show_sidebar_tab':
-          final tab = string('tab');
-          if (!['files', 'outline'].contains(tab)) {
-            throw ArgumentError('Unknown tab');
-          }
-          if (!vm.sidebar) vm.toggleSidebar();
-          vm.setOutline(tab == 'outline');
-        default:
-          throw ArgumentError('Unknown tool');
+          case 'delete_section':
+            editor.session.deleteHeading(
+              string('id'),
+              keepContents: args['keep_contents'] == true,
+            );
+          case 'move_section':
+            if (args.containsKey('parent_id') ==
+                args.containsKey('direction')) {
+              throw ArgumentError(
+                'Specify exactly one of direction or parent_id',
+              );
+            }
+            if (args['parent_id'] is String) {
+              editor.session.reparentHeading(string('id'), string('parent_id'));
+            } else {
+              final direction = args['direction'];
+              if (direction != -1 && direction != 1) {
+                throw ArgumentError('A direction or parent_id is required');
+              }
+              editor.session.moveHeading(string('id'), direction! as int);
+            }
+          case 'change_section_level':
+            editor.session.changeLevel(string('id'), args['delta']! as int);
+          case 'ui_set_theme_mode':
+            vm.updateAppearance(mode: ThemeMode.values.byName(string('mode')));
+          case 'ui_set_typography':
+            vm.updateAppearance(
+              typography: MarkdownTypography.values.byName(
+                string('typography'),
+              ),
+            );
+          case 'set_map_layout':
+            vm.setSummary(
+              mode: MindMapLayoutMode.values.byName(string('layout')),
+            );
+          case 'replace_document':
+            editor.session.replace(string('text'), label: 'MCP 替换全文');
+          case 'apply_text_edit':
+            final start = offset('offset', 0), length = args['length'];
+            if (length is! int ||
+                length < 0 ||
+                !_validOffset(editor.text, start + length)) {
+              throw ArgumentError('Invalid length');
+            }
+            editor.session.patch(
+              TextPatch(SourceRange(start, start + length), string('text')),
+              label: 'MCP 修改文本',
+            );
+          case 'insert_text':
+            final start = offset('offset', editor.text.length);
+            editor.session.patch(
+              TextPatch(SourceRange(start, start), string('text')),
+              label: 'MCP 插入文本',
+            );
+          case 'replace_selection':
+            editor.replaceSelection(string('text'), label: 'MCP 替换选区');
+          case 'replace_text':
+            final query = string('query'),
+                matches = editor.find(query, caseSensitive: true);
+            if (query.isEmpty ||
+                matches.isEmpty ||
+                (matches.length != 1 && args['replace_all'] != true)) {
+              throw StateError(
+                'Text must match uniquely or replace_all must be true',
+              );
+            }
+            editor.replaceAll(query, string('text'), caseSensitive: true);
+          case 'open_document':
+            final path = await _checkPath(string('path'), access);
+            checkConfiguration();
+            await vm.openPath(path, validate: checkConfiguration);
+          case 'save_document':
+            if (!await vm.save()) throw StateError('Save was cancelled');
+          case 'undo':
+            editor.session.undo();
+          case 'redo':
+            editor.session.redo();
+          case 'ui_set_layout':
+            final layout = WorkspaceLayout.values
+                .where((v) => v.name == args['layout'])
+                .firstOrNull;
+            if (layout == null) throw ArgumentError('Unknown layout');
+            vm.setLayout(layout);
+          case 'ui_set_theme':
+            final palette = string('palette');
+            if (!paletteNames.containsKey(palette)) {
+              throw ArgumentError('Unknown palette');
+            }
+            vm.updateAppearance(palette: palette);
+          case 'ui_set_language':
+            final language = string('language');
+            if (!languageNames.containsKey(language)) {
+              throw ArgumentError('Unknown language');
+            }
+            vm.updateAppearance(language: language);
+          case 'ui_show_sidebar_tab':
+            final tab = string('tab');
+            if (!['files', 'outline'].contains(tab)) {
+              throw ArgumentError('Unknown tab');
+            }
+            if (!vm.sidebar) vm.toggleSidebar();
+            vm.setOutline(tab == 'outline');
+          default:
+            throw ArgumentError('Unknown tool');
+        }
+        _record(name, 'completed');
+        return {
+          'ok': true,
+          'document_id': vm.current.id,
+          'revision': vm.editor.session.revision,
+        };
+      } finally {
+        _mutating = false;
       }
-      _record(name, 'completed');
-      return {'ok': true, 'revision': vm.editor.session.revision};
     } catch (_) {
       _record(name, 'declined or failed');
       rethrow;
-    } finally {
-      _mutating = false;
     }
   }
 
-  Future<Object?> _read(String action) async {
+  static bool _validOffset(String text, int offset) =>
+      offset >= 0 &&
+      offset <= text.length &&
+      !(offset > 0 &&
+          offset < text.length &&
+          text.codeUnitAt(offset - 1) >= 0xd800 &&
+          text.codeUnitAt(offset - 1) <= 0xdbff &&
+          text.codeUnitAt(offset) >= 0xdc00 &&
+          text.codeUnitAt(offset) <= 0xdfff);
+
+  Future<Object?> _read(
+    String action,
+    Map<String, Object?> args,
+    _McpAccess access,
+    void Function() checkConfiguration,
+  ) async {
+    if (action == 'get_capabilities') {
+      return {
+        'tools': tools.map((tool) => tool['name']).toList(),
+        'scope': scope,
+        'write_confirmation': requireConfirmation,
+        'offset_unit': 'UTF-16',
+        'file_types': ['md', 'markdown', 'txt'],
+        'document_id': vm.current.id,
+      };
+    }
+    if (action == 'read_file') {
+      final path = await _checkPath(args['path']! as String, access);
+      checkConfiguration();
+      final opened = await vm.files.read(path);
+      return {'path': path, 'name': opened.name, 'text': opened.text};
+    }
+    if (action == 'find_text') {
+      return {
+        'matches': [
+          for (final range
+              in vm.editor
+                  .find(
+                    args['query']! as String,
+                    caseSensitive: args['case_sensitive'] == true,
+                  )
+                  .take(1000))
+            {'offset': range.start, 'length': range.length},
+        ],
+        'document_id': vm.current.id,
+        'revision': vm.editor.session.revision,
+      };
+    }
+    if (action == 'get_map') {
+      return {
+        'layout': vm.map.mode.name,
+        'nodes': [
+          for (final h in vm.editor.document.headings)
+            {
+              'id': h.id,
+              'parent_id': h.parentId,
+              'title': h.title,
+              'level': h.level,
+            },
+        ],
+      };
+    }
     if (action == 'list_files') {
       final visible = <Map<String, String?>>[];
+      final paths = <String>{};
+      if (scope != 'document') {
+        final root = access.folder;
+        if (root.isNotEmpty) {
+          final listed = await vm.files.readFolder(root);
+          checkConfiguration();
+          for (final path in listed.files) {
+            try {
+              await _checkPath(path, access);
+            } on FileSystemException {
+              continue;
+            } on StateError {
+              continue;
+            } on ArgumentError {
+              continue;
+            }
+            checkConfiguration();
+            paths.add(p.normalize(path));
+            visible.add({'name': p.basename(path), 'path': path});
+          }
+        }
+      }
       for (final doc in vm.documents) {
         if (scope == 'document') {
           if (!identical(doc, vm.current)) continue;
         } else {
           if (doc.path == null) continue;
           try {
-            await _checkPath(doc.path!);
+            await _checkPath(doc.path!, access);
           } on FileSystemException {
             continue;
           } on StateError {
             continue;
+          } on ArgumentError {
+            continue;
           }
         }
-        visible.add({'name': doc.name, 'path': doc.path});
+        if (doc.path == null || paths.add(p.normalize(doc.path!))) {
+          visible.add({'name': doc.name, 'path': doc.path});
+        }
       }
-      return visible;
+      final offset = args['offset'] as int? ?? 0,
+          limit = args['limit'] as int? ?? 200;
+      return visible.skip(offset).take(limit).toList();
     }
     final editor = vm.editor;
     return switch (action) {
       'get_document' => {
+        'document_id': vm.current.id,
         'text': editor.text,
         'path': vm.current.path,
         'name': vm.current.name,
@@ -370,6 +626,8 @@ final class WorkspaceMcp extends ChangeNotifier {
             'title': h.title,
             'level': h.level,
             'offset': h.header.start,
+            'parent_id': h.parentId,
+            'end': h.section.end,
           },
       ],
       'get_selection' => {
@@ -415,8 +673,11 @@ final class WorkspaceMcp extends ChangeNotifier {
           ('get_selection', 'Read the current editor selection.', {}, []),
           (
             'list_files',
-            'List open documents inside the configured access scope.',
-            {},
+            'List Markdown/text files and open documents in the access scope. Paginated, default 200.',
+            {
+              'offset': {'type': 'integer', 'minimum': 0},
+              'limit': {'type': 'integer', 'minimum': 1, 'maximum': 1000},
+            },
             [],
           ),
           ('get_app_status', 'Read the application state.', {}, []),
@@ -492,7 +753,12 @@ final class WorkspaceMcp extends ChangeNotifier {
             'ui_set_layout',
             'Select a workspace layout.',
             {
-              'layout': {'type': 'string'},
+              'layout': {
+                'type': 'string',
+                'enum': WorkspaceLayout.values
+                    .map((layout) => layout.name)
+                    .toList(),
+              },
             },
             ['layout'],
           ),
@@ -500,7 +766,7 @@ final class WorkspaceMcp extends ChangeNotifier {
             'ui_set_theme',
             'Select an interface palette.',
             {
-              'palette': {'type': 'string'},
+              'palette': {'type': 'string', 'enum': paletteNames.keys.toList()},
             },
             ['palette'],
           ),
@@ -508,7 +774,10 @@ final class WorkspaceMcp extends ChangeNotifier {
             'ui_set_language',
             'Select an interface language.',
             {
-              'language': {'type': 'string'},
+              'language': {
+                'type': 'string',
+                'enum': languageNames.keys.toList(),
+              },
             },
             ['language'],
           ),
@@ -516,19 +785,181 @@ final class WorkspaceMcp extends ChangeNotifier {
             'ui_show_sidebar_tab',
             'Select files or outline.',
             {
-              'tab': {'type': 'string'},
+              'tab': {
+                'type': 'string',
+                'enum': ['files', 'outline'],
+              },
             },
             ['tab'],
+          ),
+          (
+            'get_capabilities',
+            'Read supported tools and current permission boundaries.',
+            {},
+            [],
+          ),
+          (
+            'read_file',
+            'Read an existing scoped Markdown/text file without changing the active document.',
+            {
+              'path': {'type': 'string'},
+            },
+            ['path'],
+          ),
+          (
+            'find_text',
+            'Find literal text; offsets use UTF-16 code units.',
+            {
+              'query': {'type': 'string'},
+              'case_sensitive': {'type': 'boolean'},
+            },
+            ['query'],
+          ),
+          ('get_map', 'Read the heading-derived map and layout.', {}, []),
+          (
+            'new_document',
+            'Create a new unnamed document without closing existing documents.',
+            {},
+            [],
+          ),
+          (
+            'set_selection',
+            'Select and reveal a source range.',
+            {
+              'start': {'type': 'integer', 'minimum': 0},
+              'end': {'type': 'integer', 'minimum': 0},
+            },
+            ['start', 'end'],
+          ),
+          (
+            'rename_section',
+            'Rename one heading.',
+            {
+              'id': {'type': 'string'},
+              'title': {'type': 'string'},
+            },
+            ['id', 'title'],
+          ),
+          (
+            'add_section',
+            'Add a sibling or child heading; omit id for a top-level heading.',
+            {
+              'id': {'type': 'string'},
+              'title': {'type': 'string'},
+              'child': {'type': 'boolean'},
+            },
+            ['title'],
+          ),
+          (
+            'delete_section',
+            'Delete a heading and optionally keep its contents.',
+            {
+              'id': {'type': 'string'},
+              'keep_contents': {'type': 'boolean'},
+            },
+            ['id'],
+          ),
+          (
+            'move_section',
+            'Move a heading among siblings or under a parent.',
+            {
+              'id': {'type': 'string'},
+              'direction': {
+                'type': 'integer',
+                'enum': [-1, 1],
+              },
+              'parent_id': {'type': 'string'},
+            },
+            ['id'],
+          ),
+          (
+            'change_section_level',
+            'Promote or demote a heading subtree by one level.',
+            {
+              'id': {'type': 'string'},
+              'delta': {
+                'type': 'integer',
+                'enum': [-1, 1],
+              },
+            },
+            ['id', 'delta'],
+          ),
+          (
+            'ui_set_theme_mode',
+            'Set system, light or dark appearance.',
+            {
+              'mode': {
+                'type': 'string',
+                'enum': ThemeMode.values.map((mode) => mode.name).toList(),
+              },
+            },
+            ['mode'],
+          ),
+          (
+            'ui_set_typography',
+            'Set document typography independently of the interface palette.',
+            {
+              'typography': {
+                'type': 'string',
+                'enum': MarkdownTypography.values
+                    .map((type) => type.name)
+                    .toList(),
+              },
+            },
+            ['typography'],
+          ),
+          (
+            'set_map_layout',
+            'Choose one of the six heading-derived map layouts.',
+            {
+              'layout': {
+                'type': 'string',
+                'enum': MindMapLayoutMode.values
+                    .map((mode) => mode.name)
+                    .toList(),
+              },
+            },
+            ['layout'],
+          ),
+          (
+            'apply_edits',
+            'Apply non-overlapping edits atomically against a known document and revision.',
+            {
+              'edits': {
+                'type': 'array',
+                'minItems': 1,
+                'maxItems': 100,
+                'items': {
+                  'type': 'object',
+                  'properties': {
+                    'offset': {'type': 'integer', 'minimum': 0},
+                    'length': {'type': 'integer', 'minimum': 0},
+                    'text': {'type': 'string'},
+                  },
+                  'required': ['offset', 'length', 'text'],
+                  'additionalProperties': false,
+                },
+              },
+            },
+            ['edits', 'revision', 'document_id'],
           ),
         ])
       {
         'name': 'vex_$name',
         'description': description,
+        'annotations': {
+          'readOnlyHint':
+              name.startsWith('get_') ||
+              name.startsWith('ui_get_') ||
+              ['read_file', 'list_files', 'find_text'].contains(name),
+          'openWorldHint': false,
+        },
         'inputSchema': {
           'type': 'object',
           'properties': {
             ...properties,
             'revision': {'type': 'integer'},
+            'document_id': {'type': 'string'},
           },
           'required': required,
           'additionalProperties': false,

@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'mcp_arguments.dart';
+
 /// Stateless Streamable HTTP MCP. All document access is supplied by the host.
 /// No browser origin, remote bind address or unauthenticated call is accepted.
 final class McpServer {
@@ -124,8 +126,23 @@ final class McpServer {
         return;
       }
       final id = decoded['id'], method = decoded['method'] as String;
+      if (id != null && id is! String && id is! int) {
+        response.statusCode = 400;
+        response.write(jsonEncode(_error(null, -32600, 'Invalid request id')));
+        return;
+      }
       if (id == null && method.startsWith('notifications/')) {
         response.statusCode = 202;
+        return;
+      }
+      if (id == null) {
+        response.statusCode = 202;
+        return;
+      }
+      final protocol = request.headers.value('MCP-Protocol-Version');
+      if (protocol != null &&
+          !['2025-03-26', '2025-06-18', '2025-11-25'].contains(protocol)) {
+        response.statusCode = 400;
         return;
       }
       final params = decoded['params'];
@@ -164,11 +181,23 @@ final class McpServer {
             return;
           }
           try {
+            validateMcpArguments(
+              tools.firstWhere((tool) => tool['name'] == name),
+              Map<String, Object?>.from(arguments),
+            );
+          } on ArgumentError catch (error) {
+            response.write(
+              jsonEncode(_error(id, -32602, error.message.toString())),
+            );
+            return;
+          }
+          try {
             final value = await dispatch(
               name,
               Map<String, Object?>.from(arguments),
             );
             result = {
+              if (value is Map<String, Object?>) 'structuredContent': value,
               'content': [
                 {'type': 'text', 'text': jsonEncode(value)},
               ],
@@ -177,7 +206,15 @@ final class McpServer {
             result = {
               'isError': true,
               'content': [
-                {'type': 'text', 'text': error.toString()},
+                {
+                  'type': 'text',
+                  'text': switch (error) {
+                    StateError() => error.message,
+                    ArgumentError() =>
+                      error.message?.toString() ?? 'Invalid arguments',
+                    _ => 'Operation failed; check Vex and the selected file permissions',
+                  },
+                },
               ],
             };
           }

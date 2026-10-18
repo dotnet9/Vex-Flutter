@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   charset_converter
   desktop_drop
+  flutter_secure_storage_linux
   printing
   screen_retriever_linux
   url_launcher_linux

@@ -8,6 +8,7 @@ import 'package:vex_markdown_core/vex_markdown_core.dart';
 import 'package:vex_mindmap/vex_mindmap.dart';
 
 import '../../data/repositories/recovery_repository.dart';
+import '../../data/repositories/credential_repository.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../data/services/file_service.dart';
 import '../../data/services/document_codec.dart';
@@ -27,6 +28,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     required this.files,
     required this.settings,
     required this.recovery,
+    CredentialRepository? credentials,
     ImageAssetService? imageAssets,
     String initialLanguage = 'zh',
   }) : imageAssets = imageAssets ?? ImageAssetService(),
@@ -41,7 +43,10 @@ final class WorkspaceViewModel extends ChangeNotifier {
     current = _blank;
     _blank.editor.addListener(_changed);
     _map = MindMapController(_tree());
-    mcp = WorkspaceMcp(this);
+    mcp = WorkspaceMcp(
+      this,
+      credentials: credentials ?? NativeCredentialRepository(),
+    );
   }
 
   late WorkspaceDocument _blank;
@@ -890,8 +895,13 @@ final class WorkspaceViewModel extends ChangeNotifier {
       )
       .firstOrNull;
 
-  Future<void> openPath(String path, {String? anchor}) async {
+  Future<void> openPath(
+    String path, {
+    String? anchor,
+    void Function()? validate,
+  }) async {
     if (_disposed) return;
+    validate?.call();
     final request = ++_openRequest;
     final existing = _documentAt(path);
     if (existing != null) {
@@ -901,17 +911,20 @@ final class WorkspaceViewModel extends ChangeNotifier {
       return;
     }
     final opened = await files.read(path);
-    await _prepareOpened(opened, request, anchor: anchor);
+    validate?.call();
+    await _prepareOpened(opened, request, anchor: anchor, validate: validate);
   }
 
   Future<void> _prepareOpened(
     OpenedDocument opened,
     int request, {
     String? anchor,
+    void Function()? validate,
   }) async {
     if (_disposed) return;
     final parsed = await MarkdownDocument.parseAsync(opened.text);
     if (_disposed) return;
+    validate?.call();
     final activate = request == _openRequest;
     _acceptOpened(opened, parsed: parsed, activate: activate);
     if (activate) {

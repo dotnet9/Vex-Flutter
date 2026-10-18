@@ -1,12 +1,24 @@
 import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:path/path.dart' as p;
 import 'package:vex/data/repositories/recovery_repository.dart';
+import 'package:vex/data/repositories/credential_repository.dart';
 import 'package:vex/data/repositories/settings_repository.dart';
 import 'package:vex/data/services/file_service.dart';
 import 'package:vex/data/services/document_codec.dart';
 import 'package:vex/domain/file_preferences.dart';
 import 'package:vex/ui/workspace/workspace_view_model.dart';
+
+final class MemoryCredentials implements CredentialRepository {
+  String? token;
+  @override
+  Future<String?> readMcpToken() async => token;
+  @override
+  Future<void> writeMcpToken(String token) async {
+    this.token = token;
+  }
+}
 
 final class MemorySettings implements SettingsRepository {
   Map<String, Object?> value = {};
@@ -73,7 +85,13 @@ final class MemoryFiles implements DocumentFileService {
   Future<OpenedDocument> read(String path) async {
     readPaths.add(path);
     if (beforeRead != null) await beforeRead!(path);
-    return OpenedDocument(path.split('/').last, content[path]!, path);
+    final entry = content.entries.firstWhere(
+      (entry) =>
+          p.equals(entry.key, path) ||
+          (File(entry.key).existsSync() &&
+              p.equals(File(entry.key).resolveSymbolicLinksSync(), path)),
+    );
+    return OpenedDocument(p.basename(entry.key), entry.value, entry.key);
   }
 
   @override
@@ -107,6 +125,7 @@ final class MemoryFiles implements DocumentFileService {
 }
 
 WorkspaceViewModel fakeWorkspace() => WorkspaceViewModel(
+  credentials: MemoryCredentials(),
   files: MemoryFiles(),
   settings: MemorySettings(),
   recovery: MemoryRecovery(),

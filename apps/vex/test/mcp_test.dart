@@ -101,7 +101,7 @@ void main() {
     final list =
         (await call({'jsonrpc': '2.0', 'id': 2, 'method': 'tools/list'})).$2
             as Map;
-    expect(list['result']['tools'], hasLength(20));
+    expect(list['result']['tools'], hasLength(35));
     final read =
         (await call({
               'jsonrpc': '2.0',

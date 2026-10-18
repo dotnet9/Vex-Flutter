@@ -46,7 +46,7 @@ void main() {
       202,
     );
     final tools = (await client.rpc('tools/list')).$2 as Map;
-    expect(tools['result']['tools'], hasLength(20));
+    expect(tools['result']['tools'], hasLength(35));
     expect(
       (await client.call('vex_get_document') as Map)['text'],
       vm.editor.text,
