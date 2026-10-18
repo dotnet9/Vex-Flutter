@@ -564,7 +564,9 @@ class _AboutDialogState extends State<_AboutDialog> {
             ),
           ),
         ),
-        Expanded(child: child),
+        Expanded(
+          child: Align(alignment: Alignment.centerLeft, child: child),
+        ),
       ],
     ),
   );

@@ -164,6 +164,10 @@ void main() {
     final check = find.byKey(const ValueKey('about-check-updates'));
     expect(tester.getCenter(check).dy, tester.getCenter(log).dy);
     expect(tester.getCenter(check).dx, greaterThan(tester.getCenter(log).dx));
+    expect(
+      tester.getTopLeft(find.text('MIT License')).dx,
+      closeTo(tester.getTopLeft(find.text(vm.strings.author)).dx, .1),
+    );
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
     vm.dispose();

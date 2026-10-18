@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:vex_editor/vex_editor.dart';
 import 'package:vex_mindmap/vex_mindmap.dart';
 
@@ -140,71 +141,81 @@ class WorkspacePickerAnchor extends StatelessWidget {
         padding: WidgetStatePropertyAll(EdgeInsets.zero),
       ),
       menuChildren: [
-        ListenableBuilder(
-          listenable: vm,
-          builder: (context, _) => SizedBox(
-            key: ValueKey('${picker.name}-picker'),
-            width: width,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(context).height - 80,
-              ),
-              child: SingleChildScrollView(
-                primary: false,
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+        CallbackShortcuts(
+          bindings: {
+            const SingleActivator(LogicalKeyboardKey.escape): controller.close,
+          },
+          child: Focus(
+            autofocus: true,
+            child: ListenableBuilder(
+              listenable: vm,
+              builder: (context, _) => SizedBox(
+                key: ValueKey('${picker.name}-picker'),
+                width: width,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.sizeOf(context).height - 80,
+                  ),
+                  child: SingleChildScrollView(
+                    primary: false,
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            picker == WorkspacePicker.layout
-                                ? context.l10n.workspaceLayout
-                                : context.l10n.markdownTypography,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                picker == WorkspacePicker.layout
+                                    ? context.l10n.workspaceLayout
+                                    : context.l10n.markdownTypography,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
+                            AppCloseButton(
+                              tooltip: context.l10n.closePicker,
+                              onPressed: controller.close,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          picker == WorkspacePicker.layout
+                              ? context.l10n.layoutHint
+                              : context.l10n.typographyHint,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
                           ),
                         ),
-                        AppCloseButton(
-                          tooltip: context.l10n.closePicker,
-                          onPressed: controller.close,
-                        ),
+                        const SizedBox(height: 14),
+                        if (picker == WorkspacePicker.layout)
+                          LayoutChoices(vm: vm, width: width - 32)
+                        else ...[
+                          TypographyChoices(vm: vm, width: width - 32),
+                          const SizedBox(height: 12),
+                          const Divider(),
+                          SwitchListTile.adaptive(
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                            title: Text(
+                              context.l10n.compactSpacing,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            value: vm.compact,
+                            onChanged: (value) =>
+                                vm.updateAppearance(compact: value),
+                          ),
+                        ],
                       ],
                     ),
-                    const SizedBox(height: 5),
-                    Text(
-                      picker == WorkspacePicker.layout
-                          ? context.l10n.layoutHint
-                          : context.l10n.typographyHint,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    if (picker == WorkspacePicker.layout)
-                      LayoutChoices(vm: vm, width: width - 32)
-                    else ...[
-                      TypographyChoices(vm: vm, width: width - 32),
-                      const SizedBox(height: 12),
-                      const Divider(),
-                      SwitchListTile.adaptive(
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        title: Text(
-                          context.l10n.compactSpacing,
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        value: vm.compact,
-                        onChanged: (value) =>
-                            vm.updateAppearance(compact: value),
-                      ),
-                    ],
-                  ],
+                  ),
                 ),
               ),
             ),

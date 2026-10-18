@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vex/app.dart';
 import 'package:vex/domain/workspace.dart';
@@ -32,6 +33,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('layout-picker')), findsNothing);
       expect(find.byKey(const ValueKey('typography-picker')), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('typography-picker')), findsNothing);
+      await tester.tap(find.byTooltip('Markdown 排版'));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('typography-book')));
       await tester.pumpAndSettle();
       expect(vm.typography, MarkdownTypography.book);
@@ -48,6 +54,11 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('typography-technical')));
       await tester.pumpAndSettle();
       expect(vm.typography, MarkdownTypography.technical);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('typography-picker')), findsNothing);
+      await tester.tap(find.byTooltip('Markdown 排版'));
+      await tester.pumpAndSettle();
       // One outside click both dismisses the panel and performs the action.
       await tester.tap(find.byKey(const ValueKey('document-sidebar-toggle')));
       await tester.pumpAndSettle();
