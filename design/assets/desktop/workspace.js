@@ -1,7 +1,7 @@
 /* Vex 工作区的单窗口变体：固定视图组合，所有面板共用当前文档。 */
 (function () {
   'use strict';
-  var W = window.TexweftWorkbench, $ = function (id) { return document.getElementById(id); };
+  var W = window.VexWorkbench, $ = function (id) { return document.getElementById(id); };
   var query = new URLSearchParams(location.search), current = 'instant', editorMode = W.state.editMode, tree, changing = false, guideActive = false;
   var panels = {}, area = document.querySelector('.content-area');
   var labels = { editor: '编辑', render: '阅读', map: '思维导图' }, icons = { editor: 'edit', render: 'eye', map: 'map' };
@@ -18,7 +18,7 @@
   function icon(name) { return '<svg class="ico" aria-hidden="true"><use href="#i-' + name + '"/></svg>'; }
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
   function leaves(node) { return typeof node === 'string' ? [node] : leaves(node[1]).concat(leaves(node[2])); }
-  function saveLayout() { if (!guideActive && !W.state.guideRestoring) TexweftStorage.setItem('texweft-design-layout', JSON.stringify({ current: current, mode: editorMode })); }
+  function saveLayout() { if (!guideActive && !W.state.guideRestoring) VexStorage.setItem('vex-design-layout', JSON.stringify({ current: current, mode: editorMode })); }
   function makePanel(id, sections) {
     var panel = document.createElement('section'); panel.className = 'view-panel'; panel.dataset.document = id; panel.setAttribute('aria-label', labels[id]);
     var head = document.createElement('div'); head.className = 'view-heading';
@@ -60,7 +60,7 @@
     var quickSwitch = document.querySelector('.view-switch'); quickSwitch.dataset.active = quickView;
     quickSwitch.querySelectorAll('button').forEach(function (button) { button.setAttribute('aria-selected', String(button.dataset.view === quickView)); button.title = '单独打开' + button.textContent.trim() + '视图'; button.tabIndex = button.dataset.view === quickView || quickView === 'custom' && button.dataset.view === 'edit' ? 0 : -1; });
     layoutMenu.querySelectorAll('[data-layout]').forEach(function (button) { button.setAttribute('aria-pressed', String(button.dataset.layout === current)); });
-    document.dispatchEvent(new CustomEvent('texweft-layout-rendered'));
+    document.dispatchEvent(new CustomEvent('vex-layout-rendered'));
   }
   function setLayout(id) {
     if (id === 'source-read') id = 'source-render';
@@ -81,14 +81,14 @@
     if (action === 'map-settings' && !$('map-pane').hidden) { var open = !$('map-settings').hidden; $('map-settings').hidden = open; $('map-settings-button').setAttribute('aria-expanded', String(!open)); $('node-inspector').hidden = true; return true; }
     return false;
   }
-  window.TexweftWorkspace = { setLayout: setLayout, openPanel: openPanel, handleAction: handleAction, locateEditor: locateEditor, navigate: navigate, get current() { return current; }, get tree() { return clone(tree); }, get editorMode() { return editorMode; } };
-  window.addEventListener('texweft-view-changed', function (event) { if (changing) return; var view = event.detail.view, mode = event.detail.editMode; if (view === 'edit' && mode !== editorMode && leaves(tree).includes('editor')) switchEditorMode(mode); else setLayout(view === 'edit' ? mode : view === 'read' ? 'read' : 'map'); });
+  window.VexWorkspace = { setLayout: setLayout, openPanel: openPanel, handleAction: handleAction, locateEditor: locateEditor, navigate: navigate, get current() { return current; }, get tree() { return clone(tree); }, get editorMode() { return editorMode; } };
+  window.addEventListener('vex-view-changed', function (event) { if (changing) return; var view = event.detail.view, mode = event.detail.editMode; if (view === 'edit' && mode !== editorMode && leaves(tree).includes('editor')) switchEditorMode(mode); else setLayout(view === 'edit' ? mode : view === 'read' ? 'read' : 'map'); });
   document.addEventListener('keydown', function (event) { if (event.key === 'Escape') closeMenus(); if (event.isComposing || !(event.ctrlKey || event.metaKey) || !['z', 'y'].includes(event.key.toLowerCase())) return; var field = event.target.closest('input, textarea, [contenteditable="true"]'); if (field && field.id !== 'markdown-input' && !field.classList.contains('instant-block')) return; event.preventDefault(); W.finish(); handleAction(event.key.toLowerCase() === 'y' || event.shiftKey ? 'redo' : 'undo'); });
   document.addEventListener('pointerdown', function (event) { if (!layoutMenu.contains(event.target) && !layoutButton.contains(event.target)) closeMenus(); });
-  var beginGuide = TexweftProto.beginGuideSession, endGuide = TexweftProto.endGuideSession;
-  TexweftProto.beginGuideSession = function () { var layout = { current: current, tree: clone(tree), mode: editorMode }; guideActive = true; var result = beginGuide(); result.workspace = layout; return result; };
-  TexweftProto.endGuideSession = function (snapshot) { endGuide(snapshot); if (snapshot?.workspace) { editorMode = snapshot.workspace.mode; tree = snapshot.workspace.tree; current = snapshot.workspace.current; renderLayout(); } guideActive = false; requestAnimationFrame(function () { requestAnimationFrame(saveLayout); }); };
-  var savedLayout; try { savedLayout = JSON.parse(TexweftStorage.getItem('texweft-design-layout') || 'null'); } catch (_) {}
+  var beginGuide = VexProto.beginGuideSession, endGuide = VexProto.endGuideSession;
+  VexProto.beginGuideSession = function () { var layout = { current: current, tree: clone(tree), mode: editorMode }; guideActive = true; var result = beginGuide(); result.workspace = layout; return result; };
+  VexProto.endGuideSession = function (snapshot) { endGuide(snapshot); if (snapshot?.workspace) { editorMode = snapshot.workspace.mode; tree = snapshot.workspace.tree; current = snapshot.workspace.current; renderLayout(); } guideActive = false; requestAnimationFrame(function () { requestAnimationFrame(saveLayout); }); };
+  var savedLayout; try { savedLayout = JSON.parse(VexStorage.getItem('vex-design-layout') || 'null'); } catch (_) {}
   var requested = query.get('layout'); if (requested === 'source-read') requested = 'source-render';
   if (requested && presets.some(function (preset) { return preset.id === requested; })) setLayout(requested);
   else if (query.has('view') || query.has('edit')) setLayout(W.state.view === 'mindmap' ? 'map' : W.state.view === 'read' ? 'read' : W.state.editMode);

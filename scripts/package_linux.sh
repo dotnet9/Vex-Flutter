@@ -5,19 +5,19 @@ version="${1:?Version is required}"
 arch="${2:?Use x64 or arm64}"
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Invalid version' >&2; exit 1; }
 case "$arch" in x64) deb_arch=amd64;; arm64) deb_arch=arm64;; *) exit 1;; esac
-bundle="$root/apps/texweft/build/linux/$arch/release/bundle"
-[[ -x "$bundle/texweft" && -f "$bundle/lib/libapp.so" && -d "$bundle/data/flutter_assets" ]]
+bundle="$root/apps/vex/build/linux/$arch/release/bundle"
+[[ -x "$bundle/vex" && -f "$bundle/lib/libapp.so" && -d "$bundle/data/flutter_assets" ]]
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
-mkdir -p "$stage/DEBIAN" "$stage/usr/lib/texweft" "$stage/usr/bin" \
+mkdir -p "$stage/DEBIAN" "$stage/usr/lib/vex" "$stage/usr/bin" \
   "$stage/usr/share/applications" "$stage/usr/share/icons/hicolor/256x256/apps" \
-  "$stage/usr/share/doc/texweft" "$root/artifacts/release"
-cp -a "$bundle/." "$stage/usr/lib/texweft/"
-cp "$root/logo.png" "$stage/usr/share/icons/hicolor/256x256/apps/texweft.png"
-cp "$root/LICENSE" "$stage/usr/share/doc/texweft/copyright"
-printf '#!/bin/sh\nexec /usr/lib/texweft/texweft "$@"\n' > "$stage/usr/bin/texweft"
-chmod 755 "$stage/usr/bin/texweft"
-cat > "$stage/usr/share/applications/com.codewf.texweft.desktop" <<'EOF'
+  "$stage/usr/share/doc/vex" "$root/artifacts/release"
+cp -a "$bundle/." "$stage/usr/lib/vex/"
+cp "$root/logo.png" "$stage/usr/share/icons/hicolor/256x256/apps/vex.png"
+cp "$root/LICENSE" "$stage/usr/share/doc/vex/copyright"
+printf '#!/bin/sh\nexec /usr/lib/vex/vex "$@"\n' > "$stage/usr/bin/vex"
+chmod 755 "$stage/usr/bin/vex"
+cat > "$stage/usr/share/applications/com.codewf.vex.desktop" <<'EOF'
 [Desktop Entry]
 Type=Application
 Name=Vex
@@ -26,25 +26,25 @@ Name[zh_TW]=維刻 Vex
 Comment=Write ideas. See connections.
 Comment[zh_CN]=写下想法，看见脉络
 Comment[zh_TW]=寫下想法，看見脈絡
-Exec=texweft
-Icon=texweft
+Exec=vex
+Icon=vex
 Terminal=false
 Categories=Office;TextEditor;
-StartupWMClass=com.codewf.texweft
+StartupWMClass=com.codewf.vex
 EOF
-desktop-file-validate "$stage/usr/share/applications/com.codewf.texweft.desktop"
+desktop-file-validate "$stage/usr/share/applications/com.codewf.vex.desktop"
 # Derive dependencies from every bundled ELF, including Flutter / plugin libraries.
 # dpkg-shlibdeps ignores the private libraries supplied by this package via -l.
 mkdir -p "$stage/debian"
-printf 'Source: texweft\nSection: text\nPriority: optional\nMaintainer: CodeWF <1012434131@qq.com>\n\nPackage: texweft\nArchitecture: any\nDescription: Markdown writing workspace\n' > "$stage/debian/control"
+printf 'Source: vex\nSection: text\nPriority: optional\nMaintainer: CodeWF <1012434131@qq.com>\n\nPackage: vex\nArchitecture: any\nDescription: Markdown writing workspace\n' > "$stage/debian/control"
 elf_args=()
 while IFS= read -r -d '' file; do
   if file -b "$file" | grep -q '^ELF '; then elf_args+=("-e$file"); fi
-done < <(find "$stage/usr/lib/texweft" -type f -print0)
-dependencies="$(cd "$stage" && dpkg-shlibdeps --ignore-missing-info -O -l"$stage/usr/lib/texweft/lib" "${elf_args[@]}" | sed -n 's/^shlibs:Depends=//p')"
+done < <(find "$stage/usr/lib/vex" -type f -print0)
+dependencies="$(cd "$stage" && dpkg-shlibdeps --ignore-missing-info -O -l"$stage/usr/lib/vex/lib" "${elf_args[@]}" | sed -n 's/^shlibs:Depends=//p')"
 [[ -n "$dependencies" ]]
 cat > "$stage/DEBIAN/control" <<EOF
-Package: texweft
+Package: vex
 Version: $version
 Section: text
 Priority: optional

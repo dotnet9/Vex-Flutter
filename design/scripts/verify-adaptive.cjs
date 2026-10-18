@@ -16,7 +16,7 @@ for (const item of catalog.items) {
 assert.equal(catalog.label('%% comment\ngraph TD\n A-->B'),'流程图');
 assert.equal(catalog.label('C4Container\n title Demo'),'C4 架构图');
 vm.runInNewContext(read('assets/desktop/samples.js'),{window:sandbox.window,VexMermaid:catalog});
-const examples = sandbox.window.TexweftSamples.find(doc => doc.name.includes('Mermaid'));
+const examples = sandbox.window.VexSamples.find(doc => doc.name.includes('Mermaid'));
 assert.equal((examples.text.match(/```mermaid/g) || []).length,22);
 
 let focused = 0;
@@ -38,7 +38,7 @@ assert.equal(normal.inert,false);
 assert.equal(alreadyInert.inert,true);
 assert.equal(focused,1);
 
-const adaptive = read('Texweft-Adaptive.html'), desktop = read('Texweft.html');
+const adaptive = read('Vex-Adaptive.html'), desktop = read('Vex.html');
 assert.ok(adaptive.indexOf('id="find-bar"') > adaptive.indexOf('id="document-workspace"'));
 assert.ok(adaptive.indexOf('id="find-bar"') < adaptive.indexOf('id="view-surface"'));
 assert.ok(desktop.indexOf('id="findbar"') > desktop.indexOf('class="workspace-main"'));
@@ -52,7 +52,7 @@ assert.match(read('assets/presentation.css'),/\.deck-tools button\[hidden\] \{ d
 assert.match(adaptive, /id="i-min"/);
 for (const html of [adaptive,desktop]) assert.match(html, /id="i-arrow"/);
 assert.ok(!read('assets/preferences.js').includes('<h3 id="vex-section-title">'));
-assert.ok(desktop.indexOf('id="texweft-update"') < desktop.indexOf('class="about-footer"'));
+assert.ok(desktop.indexOf('id="vex-update"') < desktop.indexOf('class="about-footer"'));
 assert.match(desktop,/<div class="slogan" data-proto-label="写下想法，看见脉络。">写下想法，看见脉络。<\/div>/);
 assert.match(desktop,/class="about-framework">Flutter \/ Dart/);
 assert.match(read('assets/prototype.css'),/\.vex-settings \{ width:min\(675px,100%\)/);

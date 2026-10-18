@@ -1,33 +1,33 @@
 (function () {
   'use strict';
-  var $ = function (id) { return document.getElementById(id); }, MM = window.TexweftMindMap;
+  var $ = function (id) { return document.getElementById(id); }, MM = window.VexMindMap;
   // 原型始终提供演示文档；正式应用的空启动由 Flutter 工作区独立处理。
-  var docs = TexweftSamples.map(function (doc) { return Object.assign({}, doc); });
+  var docs = VexSamples.map(function (doc) { return Object.assign({}, doc); });
   var builtin = window.VexDocuments?.[new URLSearchParams(location.search).get('document')];
   if (builtin) docs = [{name:builtin.name,text:builtin.text,readOnly:true}];
   var workspaceFolder = '演示文档';
   var settings = { length: 30, paragraphs: true, lists: true, blocks: false, layout: 'right' };
   try {
-    var saved = JSON.parse(TexweftStorage.getItem('texweft-design-mindmap') || '{}');
+    var saved = JSON.parse(VexStorage.getItem('vex-design-mindmap') || '{}');
     if (Number.isInteger(saved.length) && saved.length >= 1 && saved.length <= 120) settings.length = saved.length;
     ['paragraphs', 'lists', 'blocks'].forEach(function (key) { if (typeof saved[key] === 'boolean') settings[key] = saved[key]; });
     if (VexMapLayout.valid(saved.layout)) settings.layout = saved.layout;
   } catch (_) {}
   var editMode = 'instant';
-  try { if (TexweftStorage.getItem('texweft-design-edit-method') === 'source') editMode = 'source'; } catch (_) {}
+  try { if (VexStorage.getItem('vex-design-edit-method') === 'source') editMode = 'source'; } catch (_) {}
   var requestedEdit = new URLSearchParams(location.search).get('edit');
   if (['instant', 'source'].includes(requestedEdit)) editMode = requestedEdit;
   var state = { view: 'edit', editMode: editMode, autoPair: true, focus: false, typewriter: false, motion: true, topmost: false, language: 'zh-CN', undo: [], redo: [], sidebar: true, source: false, doc: 0, selected: null, collapsed: new Set(), scale: 1, presentation: false, presentationScale: 1.5, x: 0, y: 0, dirty: false, parsed: null, nodes: [], pending: null };
   // 原型只持久化隔离的演示宽度，不接触宿主应用设置。
   var sidebar = document.querySelector('.sidebar'), splitter = $('sidebar-splitter'), sidebarWidth = 226;
-  try { var storedWidth = Number(TexweftStorage.getItem('texweft-design-sidebar-width')); if (storedWidth >= 200 && storedWidth <= 560) sidebarWidth = storedWidth; } catch (_) {}
+  try { var storedWidth = Number(VexStorage.getItem('vex-design-sidebar-width')); if (storedWidth >= 200 && storedWidth <= 560) sidebarWidth = storedWidth; } catch (_) {}
   function resizeSidebar(width, persist) {
     var available = document.querySelector('.workspace').clientWidth;
     var maximum = Math.min(560, Math.max(200, available - 365));
     sidebarWidth = Math.max(200, Math.min(maximum, width));
     sidebar.style.setProperty('--sidebar-width', sidebarWidth + 'px');
     splitter.setAttribute('aria-valuenow', Math.round(sidebarWidth));
-    if (persist) try { TexweftStorage.setItem('texweft-design-sidebar-width', String(sidebarWidth)); } catch (_) {}
+    if (persist) try { VexStorage.setItem('vex-design-sidebar-width', String(sidebarWidth)); } catch (_) {}
   }
   resizeSidebar(sidebarWidth, false);
   var sidebarDrag;
@@ -53,7 +53,7 @@
     source: input, instant: $('instant-content'), enabled: function () { return state.typewriter; },
     reducedMotion: function () { return reducedMotion() || document.documentElement.dataset.motion === 'false'; }
   });
-  var instant = createTexweftInstantEditor({
+  var instant = createVexInstantEditor({
     input: input, blocks: function () { return state.parsed ? state.parsed.blocks : []; },
     renderBlock: function (block) {
       var element = $('markdown-preview').querySelector('[data-line="' + block.line + '"]');
@@ -90,7 +90,7 @@
     document.querySelector('.reading-scroll').scrollTop = 0;
     document.querySelector('.instant-scroll').scrollTop = 0;
     renderFiles(); refresh(); requestAnimationFrame(function () { fit(true); });
-    window.dispatchEvent(new CustomEvent('texweft-document-loaded'));
+    window.dispatchEvent(new CustomEvent('vex-document-loaded'));
   }
   function renderFiles() {
     var collapsed = new Set(Array.from($('file-list').querySelectorAll('details:not([open])')).map(function (node) { return node.dataset.path; }));
@@ -131,7 +131,7 @@
   }
   $('file-filter').oninput = filterFiles;
   function inline(text) {
-    return TexweftRendering.inline(text);
+    return VexRendering.inline(text);
   }
   function renderPreview() {
     var html = '', listOpen = '';
@@ -144,7 +144,7 @@
         html += '<li' + attr + '>' + (block.checked === null ? '' : block.checked ? '☑ ' : '☐ ') + inline(block.raw.replace(/^\s*(?:[-+*]|\d+[.)])\s+(?:\[[ xX]\]\s*)?/, '')) + '</li>'; return;
       }
       closeList();
-      if (TexweftRendering.special(block)) html += TexweftRendering.renderSpecial(block);
+      if (VexRendering.special(block)) html += VexRendering.renderSpecial(block);
       else if (block.kind === 'rule') html += '<hr' + attr + '>';
       else if (block.kind === 'heading') html += '<h' + block.level + attr + '>' + inline(block.raw.split('\n')[0].replace(/^ {0,3}#{1,6}\s+/, '').replace(/\s+#+\s*$/, '')) + '</h' + block.level + '>';
       else if (block.kind === 'code') {
@@ -196,8 +196,8 @@
     state.selected = null; $('node-inspector').hidden = true;
     $('line-numbers').innerHTML = state.parsed.lines.map(function (_, index) { return '<div>' + (index + 1) + '</div>'; }).join('');
     input.style.height = typewriter.sourceHeight() + 'px';
-    updateMeta(); renderPreview(); instant.render(); TexweftRendering.diagrams(); renderOutline(); renderMap(); updateCursor();
-    window.dispatchEvent(new CustomEvent('texweft-content-changed'));
+    updateMeta(); renderPreview(); instant.render(); VexRendering.diagrams(); renderOutline(); renderMap(); updateCursor();
+    window.dispatchEvent(new CustomEvent('vex-content-changed'));
   }
   function updateMeta() {
     $('dirty-dot').hidden = !state.dirty;
@@ -238,8 +238,8 @@
     if (state.presentation) setView('read');
   }
   function startPresentation() {
-    if (window.TexweftPresentation) {
-      TexweftPresentation.open({
+    if (window.VexPresentation) {
+      VexPresentation.open({
         text: function () { return input.value; }, title: function () { return docs[state.doc].name; },
         finish: function () { instant.finish(); closeLayers(); }, language: function () { return state.language; },
         background: document.querySelector('.app-window'), mapMode: function () { return state.view === 'mindmap'; }, mapLayout: function () { return settings.layout; }
@@ -277,11 +277,11 @@
     $('cursor-position').hidden = view !== 'edit' && !state.source;
     $('map-settings').hidden = true; $('map-settings-button').setAttribute('aria-expanded', 'false');
     if (view === 'mindmap' && !state.mapVisited) { state.mapVisited = true; requestAnimationFrame(function () { fit(true); }); }
-    window.dispatchEvent(new CustomEvent('texweft-view-changed', { detail: { view: view, editMode: state.editMode } }));
+    window.dispatchEvent(new CustomEvent('vex-view-changed', { detail: { view: view, editMode: state.editMode } }));
   }
   function setEditMode(mode) {
     instant.finish(); state.editMode = mode;
-    try { TexweftStorage.setItem('texweft-design-edit-method', mode); } catch (_) {}
+    try { VexStorage.setItem('vex-design-edit-method', mode); } catch (_) {}
     setView('edit');
   }
   document.querySelectorAll('.view-switch button').forEach(function (button) { button.onclick = function () { setView(button.dataset.view); }; });
@@ -347,7 +347,7 @@
     $('map-count').textContent = state.nodes.filter(function (node) { return node.kind === 'heading'; }).length + ' 个标题 · ' + rendered.length + ' 个可见节点';
     $('collapse-all').innerHTML = icon('list') + (state.collapsed.size ? '展开全部' : '收起分支');
     transform();
-    window.dispatchEvent(new CustomEvent('texweft-map-rendered'));
+    window.dispatchEvent(new CustomEvent('vex-map-rendered'));
   }
   function transform(animate) {
     scene.classList.toggle('animating', !!animate);
@@ -356,7 +356,7 @@
   }
   function fit(readable) {
     if (settings.layout !== 'right') readable = false;
-    if (window.TexweftWorkspace?.current === 'three') readable = false;
+    if (window.VexWorkspace?.current === 'three') readable = false;
     if (state.guideRestoring || $('map-pane').hidden || !state.bounds || !canvas.clientWidth) return;
     state.scale = Math.min(1, Math.max(readable === true ? .75 : .01, Math.min((canvas.clientWidth - 64) / state.bounds.width, (canvas.clientHeight - 84) / state.bounds.height)));
     state.x = (canvas.clientWidth - state.bounds.width * state.scale) / 2;
@@ -404,7 +404,7 @@
     $('inspector-line').textContent = '第 ' + node.line + (node.endLine > node.line ? '–' + node.endLine : '') + ' 行';
     $('node-inspector').hidden = false; $('map-settings').hidden = true; $('map-settings-button').setAttribute('aria-expanded', 'false');
     if (state.source) highlightSource(node, false);
-    window.dispatchEvent(new CustomEvent('texweft-node-selected', { detail: node }));
+    window.dispatchEvent(new CustomEvent('vex-node-selected', { detail: node }));
   }
   function highlightSource(node, focus) {
     var start = state.parsed.lines.slice(0, node.line - 1).join('\n').length + (node.line > 1 ? 1 : 0);
@@ -414,7 +414,7 @@
     if (focus) input.focus({ preventScroll: true }); updateCursor();
   }
   function locate(node) {
-    if (window.TexweftWorkspace) { TexweftWorkspace.navigate(node.line); return; }
+    if (window.VexWorkspace) { VexWorkspace.navigate(node.line); return; }
     if (state.view === 'mindmap') { state.source = true; applySource(); highlightSource(node, true); }
     else if (state.editMode === 'instant') { setView('edit'); instant.focusAt(node.line); }
     else { setView('edit'); highlightSource(node, true); }
@@ -422,7 +422,7 @@
   function applySource() {
     $('source-pane').hidden = !state.source; $('map-source-toggle').classList.toggle('on', state.source);
     $('map-source-toggle').setAttribute('aria-pressed', String(state.source)); $('cursor-position').hidden = !state.source;
-    window.dispatchEvent(new CustomEvent('texweft-source-toggled', { detail: state.source }));
+    window.dispatchEvent(new CustomEvent('vex-source-toggled', { detail: state.source }));
     requestAnimationFrame(function () { fit(true); });
   }
   function syncSettings() {
@@ -431,7 +431,7 @@
     $('show-lists').checked = settings.lists; $('show-blocks').checked = settings.blocks;
     $('summary-label').textContent = !settings.paragraphs && !settings.lists && !settings.blocks ? '仅标题' : '摘要 ' + settings.length + ' 字';
     $('summary-example').textContent = MM.clip('把注意力留给内容。写作时保留必要工具，阅读和梳理结构时让文档占据更多空间。', settings.length);
-    try { TexweftStorage.setItem('texweft-design-mindmap', JSON.stringify(settings)); } catch (_) {}
+    try { VexStorage.setItem('vex-design-mindmap', JSON.stringify(settings)); } catch (_) {}
     renderMap(); requestAnimationFrame(function () { fit(settings.layout === 'right'); });
   }
   $('map-layout').innerHTML = VexMapLayout.items.map(function (item) { return '<option value="' + item.key + '">' + item.label + '</option>'; }).join('');
@@ -449,7 +449,7 @@
   function save() {
     instant.finish();
     refreshNow(); download(input.value, docs[state.doc].name); docs[state.doc].text = input.value; state.dirty = false; refresh(); $('save-text').textContent = '副本已下载';
-    TexweftProto.toast('已下载 Markdown 副本');
+    VexProto.toast('已下载 Markdown 副本');
   }
   function insert(text, activate) {
     if (activate !== false && state.view !== 'edit') setView('edit');
@@ -482,21 +482,21 @@
     var file = this.files[0]; if (!file) return;
     try {
       var text = await file.text();
-      confirmSwitch(function () { docs.push({ name: file.name, text: text }); loadDoc(docs.length - 1); TexweftProto.toast('已打开 ' + file.name); });
-    } catch (_) { TexweftProto.toast('无法读取文件，请重新选择'); }
+      confirmSwitch(function () { docs.push({ name: file.name, text: text }); loadDoc(docs.length - 1); VexProto.toast('已打开 ' + file.name); });
+    } catch (_) { VexProto.toast('无法读取文件，请重新选择'); }
     this.value = '';
   };
   $('open-folder-input').onchange = async function () {
     var files = Array.from(this.files || []).filter(function (file) { return /\.(md|markdown|mdown|txt)$/i.test(file.name); });
-    if (!files.length) { TexweftProto.toast('文件夹中没有可打开的 Markdown 文件'); this.value = ''; return; }
+    if (!files.length) { VexProto.toast('文件夹中没有可打开的 Markdown 文件'); this.value = ''; return; }
     try {
       var loaded = await Promise.all(files.map(async function (file) { return { name: file.name, path: file.webkitRelativePath.split('/').slice(1).join('/'), text: await file.text() }; }));
       var folder = (files[0].webkitRelativePath || '').split('/')[0] || 'Markdown';
       confirmSwitch(function () {
         docs = loaded; state.doc = 0; state.dirty = false; workspaceFolder = folder;
-        loadDoc(0); TexweftProto.toast('已打开文件夹 · ' + loaded.length + ' 个 Markdown 文件');
+        loadDoc(0); VexProto.toast('已打开文件夹 · ' + loaded.length + ' 个 Markdown 文件');
       });
-    } catch (_) { TexweftProto.toast('无法读取文件夹中的 Markdown 文件'); }
+    } catch (_) { VexProto.toast('无法读取文件夹中的 Markdown 文件'); }
     this.value = '';
   };
   var snippets = { paragraph: '\n\n新段落\n\n', heading: '\n## 新章节\n\n', list: '\n- 列表项\n', ordered: '\n1. 列表项\n', task: '\n- [ ] 待办事项\n', quote: '\n> 引用内容\n', code: '\n```\n代码内容\n```\n', math: '\n$$\nx^2 + y^2 = z^2\n$$\n', rule: '\n\n---\n\n', 'inline-code': '`代码`', table: '\n| 列一 | 列二 |\n| --- | --- |\n| 内容 | 内容 |\n', link: '[链接文字](https://example.com)', bold: '**文字**', italic: '*文字*', image: '![图片描述](image.png)' };
@@ -504,11 +504,11 @@
   VexMermaid.items.forEach(function (item) { snippets['mermaid-' + item.key] = VexMermaid.snippet(item.key); });
   [1,2,3,4,5,6].forEach(function (level) { snippets['heading' + level] = '\n' + '#'.repeat(level) + ' 新章节\n\n'; });
   document.getElementById('format-toolbar').addEventListener('mousedown', function (event) { if (event.target.closest('.format-button')) event.preventDefault(); });
-  TexweftProto.handleAction = function (action, item) {
+  VexProto.handleAction = function (action, item) {
     if (elementMenu && elementMenu.handleAction(action === 'insert-table' ? 'element-insert-table' : action)) return true;
     if (action === 'preferences' || action === 'preferences-mcp' || action === 'mcp-audit' || action === 'dlg-mcp') { VexPreferences.open(action === 'preferences' ? 'general' : 'mcp'); if (action === 'mcp-audit') document.querySelector('[data-mcp-tab=audit]')?.click(); return true; }
-    if (input.readOnly && (action.startsWith('insert-') || ['save','save-all','undo','redo','cut','paste','replace-all','clear-format','rename','delete-chapter','add-child','add-sibling','move-up','move-down','promote','demote'].includes(action))) { TexweftProto.toast('此文档为只读'); return true; }
-    if (window.TexweftWorkspace && TexweftWorkspace.handleAction(action, item)) return true;
+    if (input.readOnly && (action.startsWith('insert-') || ['save','save-all','undo','redo','cut','paste','replace-all','clear-format','rename','delete-chapter','add-child','add-sibling','move-up','move-down','promote','demote'].includes(action))) { VexProto.toast('此文档为只读'); return true; }
+    if (window.VexWorkspace && VexWorkspace.handleAction(action, item)) return true;
     if (action.startsWith('insert-')) { if (state.editMode === 'instant' && instant.format(action.slice(7))) return true; insert(snippets[action.slice(7)] || ''); return true; }
     if (action.startsWith('view-')) { setView(action.slice(5)); return true; }
     if (action === 'edit-instant' || action === 'edit-source') { setEditMode(action.slice(5)); return true; }
@@ -536,7 +536,7 @@
       }
       if (action === 'dlg-doc') {
         var target = new URL(location.href); target.searchParams.set('document',item && item.arg === '鸣谢' ? 'thanks' : 'changelog'); target.searchParams.set('child','1'); target.searchParams.set('layout','read'); target.searchParams.set('view','read'); target.searchParams.delete('scenario');
-        if (!window.open(target.href,'_blank')) TexweftProto.toast('请允许弹出窗口后重试');
+        if (!window.open(target.href,'_blank')) VexProto.toast('请允许弹出窗口后重试');
       } else openLayer(action.slice(4));
       return true;
     }
@@ -545,14 +545,14 @@
       case 'open': $('open-file-input').click(); break;
       case 'open-folder': $('open-folder-input').click(); break;
       case 'open-sample': confirmSwitch(function () { loadDoc(Math.min(item.arg, docs.length - 1)); }); break;
-      case 'quick-open': if (!state.sidebar) TexweftProto.handleAction('toggle-sidebar'); TexweftProto.handleAction('pane-files'); $('file-filter').focus(); break;
+      case 'quick-open': if (!state.sidebar) VexProto.handleAction('toggle-sidebar'); VexProto.handleAction('pane-files'); $('file-filter').focus(); break;
       case 'save': save(); break;
       case 'save-all': save(); break;
-      case 'export-html': instant.finish(); refreshNow(); download('<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>' + escape(docs[state.doc].name) + '</title><style>body{max-width:780px;margin:50px auto;font:16px/1.9 system-ui;padding:0 24px;color:#242933;background:#fff}pre{padding:16px;background:#f4f5f7;overflow:auto}table{border-collapse:collapse}td,th{border:1px solid #ddd;padding:6px 12px}blockquote{border-left:3px solid #888;padding-left:16px;color:#666}' + TexweftTypography.exportStyles() + VexWatermark.exportStyles + '</style><body>' + $('markdown-preview').innerHTML + VexWatermark.exportMark() + '</body></html>', docs[state.doc].name.replace(/\.[^.]+$/, '') + '.html', 'text/html;charset=utf-8'); break;
+      case 'export-html': instant.finish(); refreshNow(); download('<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>' + escape(docs[state.doc].name) + '</title><style>body{max-width:780px;margin:50px auto;font:16px/1.9 system-ui;padding:0 24px;color:#242933;background:#fff}pre{padding:16px;background:#f4f5f7;overflow:auto}table{border-collapse:collapse}td,th{border:1px solid #ddd;padding:6px 12px}blockquote{border-left:3px solid #888;padding-left:16px;color:#666}' + VexTypography.exportStyles() + VexWatermark.exportStyles + '</style><body>' + $('markdown-preview').innerHTML + VexWatermark.exportMark() + '</body></html>', docs[state.doc].name.replace(/\.[^.]+$/, '') + '.html', 'text/html;charset=utf-8'); break;
       case 'export-pdf': instant.finish(); refreshNow(); VexWatermark.preview('PDF · ' + docs[state.doc].name,$('markdown-preview').innerHTML); break;
       case 'toggle-watermark': VexPreferences.set('watermarkPreview',!VexPreferences.values.watermarkPreview); break;
       case 'toggle-sidebar': state.sidebar = !state.sidebar; document.querySelector('.sidebar').classList.toggle('closed', !state.sidebar); $('sidebar-toggle').classList.toggle('on', state.sidebar); $('sidebar-toggle').setAttribute('aria-pressed', String(state.sidebar)); break;
-      case 'pane-outline': case 'pane-files': if (!state.sidebar) TexweftProto.handleAction('toggle-sidebar'); document.querySelector('.side-tab[data-pane="' + action.slice(5) + '"]').click(); break;
+      case 'pane-outline': case 'pane-files': if (!state.sidebar) VexProto.handleAction('toggle-sidebar'); document.querySelector('.side-tab[data-pane="' + action.slice(5) + '"]').click(); break;
       case 'map-source': state.source = !state.source; applySource(); break;
       case 'map-settings': var opened = !$('map-settings').hidden; if (state.view !== 'mindmap') setView('mindmap'); $('map-settings').hidden = opened; $('map-settings-button').setAttribute('aria-expanded', String(!opened)); $('node-inspector').hidden = true; break;
       case 'close-settings': $('map-settings').hidden = true; $('map-settings-button').setAttribute('aria-expanded', 'false'); break;
@@ -577,17 +577,17 @@
       case 'presentation-smaller': state.presentationScale = Math.max(1, +(state.presentationScale - .1).toFixed(1)); applyPresentation(); break;
       case 'presentation-exit': stopPresentation(); break;
       case 'format-more': document.querySelector('.tb-menuitem[data-menu="格式(O)"]')?.click(); break;
-      case 'typography': TexweftTypography.toggle(); break;
-      case 'typography-select': TexweftTypography.choose(item.arg); break;
-      case 'toggle-compact': TexweftTypography.toggleCompact(); break;
-      case 'language': state.language = item.arg; TexweftL.set(item.arg); break;
+      case 'typography': VexTypography.toggle(); break;
+      case 'typography-select': VexTypography.choose(item.arg); break;
+      case 'toggle-compact': VexTypography.toggleCompact(); break;
+      case 'language': state.language = item.arg; VexL.set(item.arg); break;
       case 'toggle-status': document.querySelector('.statusbar').hidden = !document.querySelector('.statusbar').hidden; break;
       case 'maximize': document.querySelector('.app-window').classList.toggle('expanded'); break;
       case 'toggle-fullscreen': document.querySelector('.app-window').classList.toggle('expanded'); break;
-      case 'toggle-topmost': state.topmost = !state.topmost; TexweftProto.toast(state.topmost ? '窗口置顶（桌面版操作演示）' : '取消置顶（桌面版操作演示）'); break;
-      case 'minimize': TexweftProto.toast('最小化由桌面窗口提供（原型演示）'); break;
-      case 'close': confirmSwitch(function () { TexweftProto.toast('文档已关闭（原型演示）'); }); break;
-      case 'theme': document.querySelector('#texweft-theme-panel button').focus(); break;
+      case 'toggle-topmost': state.topmost = !state.topmost; VexProto.toast(state.topmost ? '窗口置顶（桌面版操作演示）' : '取消置顶（桌面版操作演示）'); break;
+      case 'minimize': VexProto.toast('最小化由桌面窗口提供（原型演示）'); break;
+      case 'close': confirmSwitch(function () { VexProto.toast('文档已关闭（原型演示）'); }); break;
+      case 'theme': document.querySelector('#vex-theme-panel button').focus(); break;
       case 'refresh': refreshNow(); break;
       case 'undo': case 'redo':
         instant.finish();
@@ -597,19 +597,19 @@
       case 'copy': case 'copy-plain': case 'cut':
         var selected = input.value.slice(input.selectionStart, input.selectionEnd), copied = selected || input.value;
         if (action === 'copy-plain') copied = MM.plain(copied);
-        navigator.clipboard.writeText(copied).then(function () { if (action === 'cut' && selected) insert('', false); TexweftProto.toast('已复制文本'); }).catch(function () { TexweftProto.toast('请在编辑区使用系统复制快捷键'); }); break;
-      case 'paste': navigator.clipboard.readText().then(function (text) { insert(text); }).catch(function () { TexweftProto.toast('请在编辑区使用 Ctrl+V 粘贴'); }); break;
+        navigator.clipboard.writeText(copied).then(function () { if (action === 'cut' && selected) insert('', false); VexProto.toast('已复制文本'); }).catch(function () { VexProto.toast('请在编辑区使用系统复制快捷键'); }); break;
+      case 'paste': navigator.clipboard.readText().then(function (text) { insert(text); }).catch(function () { VexProto.toast('请在编辑区使用 Ctrl+V 粘贴'); }); break;
       case 'select-all': setEditMode('source'); input.focus(); input.select(); break;
-      case 'clear-format': var selection = input.value.slice(input.selectionStart, input.selectionEnd); if (selection) insert(MM.plain(selection)); else TexweftProto.toast('先选择需要清除格式的文字'); break;
-      case 'guide': if (window.TexweftGuide) TexweftGuide.start(); break;
-      case 'print': TexweftProto.toast('桌面版提供打印预览（原型演示）'); break;
+      case 'clear-format': var selection = input.value.slice(input.selectionStart, input.selectionEnd); if (selection) insert(MM.plain(selection)); else VexProto.toast('先选择需要清除格式的文字'); break;
+      case 'guide': if (window.VexGuide) VexGuide.start(); break;
+      case 'print': VexProto.toast('桌面版提供打印预览（原型演示）'); break;
       default: return false;
     }
     return true;
   };
-  TexweftProto.isSidebarVisible = function () { return state.sidebar; };
+  VexProto.isSidebarVisible = function () { return state.sidebar; };
   // 原型的布局与章节操作共用此文档接口；正文仍只有一份。
-  window.TexweftWorkbench = {
+  window.VexWorkbench = {
     get state() { return state; }, get settings() { return settings; },
     get text() { return input.value; }, get documents() { return docs; },
     get name() { return docs[state.doc].name; },
@@ -661,44 +661,44 @@
     }
   };
   // 引导演练使用临时文档；结束时还原进入前的内容、视图和显示偏好。
-  TexweftProto.beginGuideSession = function () {
-    instant.finish(); refreshNow(); closeLayers(); TexweftProto.closeMenu();
+  VexProto.beginGuideSession = function () {
+    instant.finish(); refreshNow(); closeLayers(); VexProto.closeMenu();
     var snapshot = {
       doc: state.doc, text: input.value, dirty: state.dirty, view: state.view, editMode: state.editMode,
       sidebar: state.sidebar, focus: state.focus, source: state.source,
       sideTab: document.querySelector('.side-tab.on').dataset.pane,
       fileFilter: $('file-filter').value,
       statusHidden: document.querySelector('.statusbar').hidden, findHidden: $('findbar').hidden,
-      typography: Object.assign({}, TexweftTypography.state), settings: Object.assign({}, settings),
+      typography: Object.assign({}, VexTypography.state), settings: Object.assign({}, settings),
       undo: state.undo.slice(), redo: state.redo.slice(), selection: [input.selectionStart, input.selectionEnd],
       scrolls: ['.instant-scroll', '.reading-scroll', '.source-scroll'].map(function (selector) { return document.querySelector(selector).scrollTop; }),
       collapsed: new Set(state.collapsed), selected: state.selected, map: { x: state.x, y: state.y, scale: state.scale, visited: state.mapVisited },
-      editPreference: TexweftStorage.getItem('texweft-design-edit-method')
+      editPreference: VexStorage.getItem('vex-design-edit-method')
     };
     state.focus = false; document.querySelector('.app-window').classList.remove('focus-mode');
     document.querySelector('.statusbar').hidden = false; $('findbar').hidden = true;
-    if (!state.sidebar) TexweftProto.handleAction('toggle-sidebar');
+    if (!state.sidebar) VexProto.handleAction('toggle-sidebar');
     $('file-filter').value = ''; filterFiles();
-    TexweftProto.handleAction('pane-files'); state.source = false; state.editMode = 'instant';
+    VexProto.handleAction('pane-files'); state.source = false; state.editMode = 'instant';
     settings = { length: 30, paragraphs: true, lists: true, blocks: false, layout: 'right' };
     snapshot.demo = { name: '一分钟上手 · 演练.md', text: '# 让一个想法，长成一篇文章\n\n我想把零散的想法写下来，再用结构把它们连成一条清晰的线索。先写内容，之后慢慢整理。\n\n## 写下想法\n\n点击这段文字试着修改，也可以用 **加粗** 标记重点。\n\n## 看清结构\n\n标题成为导图的主干，段落提供摘要。显示文字可以变短，完整内容一直保留。\n\n## 准备分享\n\n选择舒服的排版，确认保存状态，再把文章导出给读者。' };
     docs.push(snapshot.demo); loadDoc(docs.length - 1); syncSettings(); setView('edit');
     return snapshot;
   };
-  TexweftProto.endGuideSession = function (snapshot) {
+  VexProto.endGuideSession = function (snapshot) {
     state.guideRestoring = true; document.querySelector('.app-window').classList.add('guide-restoring');
-    instant.finish(); TexweftProto.closeMenu(); closeLayers();
+    instant.finish(); VexProto.closeMenu(); closeLayers();
     var index = docs.indexOf(snapshot.demo); if (index >= 0) docs.splice(index, 1);
     loadDoc(snapshot.doc); input.value = snapshot.text; state.dirty = snapshot.dirty;
     $('file-filter').value = snapshot.fileFilter; filterFiles();
     state.editMode = snapshot.editMode; state.source = snapshot.source;
     state.focus = snapshot.focus; document.querySelector('.app-window').classList.toggle('focus-mode', snapshot.focus);
-    if (state.sidebar !== snapshot.sidebar) TexweftProto.handleAction('toggle-sidebar');
+    if (state.sidebar !== snapshot.sidebar) VexProto.handleAction('toggle-sidebar');
     document.querySelector('.side-tab[data-pane="' + snapshot.sideTab + '"]').click();
     document.querySelector('.statusbar').hidden = snapshot.statusHidden; $('findbar').hidden = snapshot.findHidden;
     settings = snapshot.settings; syncSettings();
-    TexweftTypography.state.compact = snapshot.typography.compact; TexweftTypography.choose(snapshot.typography.key);
-    try { if (snapshot.editPreference === null) TexweftStorage.removeItem('texweft-design-edit-method'); else TexweftStorage.setItem('texweft-design-edit-method', snapshot.editPreference); } catch (_) {}
+    VexTypography.state.compact = snapshot.typography.compact; VexTypography.choose(snapshot.typography.key);
+    try { if (snapshot.editPreference === null) VexStorage.removeItem('vex-design-edit-method'); else VexStorage.setItem('vex-design-edit-method', snapshot.editPreference); } catch (_) {}
     refreshNow(); state.collapsed = snapshot.collapsed; state.undo = snapshot.undo; state.redo = snapshot.redo;
     state.mapVisited = snapshot.map.visited; setView(snapshot.view);
     $('typography-panel').hidden = true; $('node-inspector').hidden = true;
@@ -713,7 +713,7 @@
       });
     });
   };
-  TexweftProto.arrangeGuideMap = function () {
+  VexProto.arrangeGuideMap = function () {
     if (state.view !== 'mindmap') return;
     var element = document.querySelector('.map-node[data-kind="paragraph"]');
     var panel = !$('map-settings').hidden ? $('map-settings') : !$('node-inspector').hidden ? $('node-inspector') : null;
@@ -722,13 +722,13 @@
     var desired = Math.max(bounds.left + 20, popover.left - rect.width - 36);
     if (Math.abs(desired - rect.left) > 1) { state.x += desired - rect.left; transform(); }
   };
-  TexweftProto.isActionChecked = function (action, item) {
+  VexProto.isActionChecked = function (action, item) {
     var checks = {
       'edit-instant': state.editMode === 'instant', 'edit-source': state.editMode === 'source',
       'toggle-pairs': state.autoPair, 'toggle-focus': state.focus,
       'toggle-typewriter': state.typewriter, 'toggle-motion': state.motion, 'toggle-topmost': state.topmost,
       'toggle-fullscreen': document.querySelector('.app-window').classList.contains('expanded'),
-      'toggle-compact': TexweftTypography.state.compact, 'typography-select': !!item && TexweftTypography.state.key === item.arg,
+      'toggle-compact': VexTypography.state.compact, 'typography-select': !!item && VexTypography.state.key === item.arg,
       'toggle-watermark': VexPreferences.values.watermarkPreview,
       'language': !!item && state.language === item.arg
     };
@@ -738,7 +738,7 @@
       : action === 'toggle-status' ? !document.querySelector('.statusbar').hidden : false;
   };
   document.addEventListener('click', function (event) {
-    var button = event.target.closest('[data-action]'); if (button) { event.stopPropagation(); TexweftProto.handleAction(button.dataset.action); }
+    var button = event.target.closest('[data-action]'); if (button) { event.stopPropagation(); VexProto.handleAction(button.dataset.action); }
     else if (!$('map-settings').contains(event.target)) { $('map-settings').hidden = true; $('map-settings-button').setAttribute('aria-expanded', 'false'); }
   });
   document.querySelectorAll('.win-layer').forEach(function (layer) {
@@ -756,41 +756,41 @@
           if (button.textContent.trim() === '保存') save();
           closeLayers(); next(); return;
         }
-        closeLayers(); if (button.dataset.close) TexweftProto.toast(button.dataset.close);
+        closeLayers(); if (button.dataset.close) VexProto.toast(button.dataset.close);
       };
     });
   });
   // 保留对话框的可点击演示。
   if ($('err-toggle')) $('err-toggle').onclick = function () { $('err-detail').style.display = $('err-detail').style.display === 'none' ? '' : 'none'; };
-  ['mcp-copy-token', 'mcp-copy-endpoint'].forEach(function (id) { if ($(id)) $(id).onclick = function () { navigator.clipboard.writeText(id.endsWith('token') ? $('mcp-token').value : $('mcp-endpoint') ? $('mcp-endpoint').textContent : 'http://127.0.0.1:17891/mcp/').catch(function () { TexweftProto.toast('请手动复制'); }); }; });
+  ['mcp-copy-token', 'mcp-copy-endpoint'].forEach(function (id) { if ($(id)) $(id).onclick = function () { navigator.clipboard.writeText(id.endsWith('token') ? $('mcp-token').value : $('mcp-endpoint') ? $('mcp-endpoint').textContent : 'http://127.0.0.1:17891/mcp/').catch(function () { VexProto.toast('请手动复制'); }); }; });
   if ($('mcp-switch')) $('mcp-switch').onclick = function () { this.classList.toggle('on'); $('mcp-form').style.opacity = this.classList.contains('on') ? '' : '.45'; $('mcp-status-text').textContent = this.classList.contains('on') ? '服务运行中（演示）' : '服务已停止（演示）'; };
-  if ($('mcp-save')) $('mcp-save').onclick = function () { closeLayers(); TexweftProto.toast('MCP 设置已保存（演示）'); };
+  if ($('mcp-save')) $('mcp-save').onclick = function () { closeLayers(); VexProto.toast('MCP 设置已保存（演示）'); };
   if ($('mcp-gen')) $('mcp-gen').onclick = function () { $('mcp-token').value = 'vx_' + crypto.randomUUID().replace(/-/g, ''); };
   document.addEventListener('keydown', function (event) {
     if (event.key === 'F5' && !event.isComposing) { event.preventDefault(); startPresentation(); return; }
     if (event.key === 'Escape') { if (state.presentation) { stopPresentation(); return; } closeLayers(); pendingSwitch = null; $('findbar').hidden = true; $('node-inspector').hidden = true; $('map-settings').hidden = true; $('map-settings-button').setAttribute('aria-expanded', 'false'); }
     if ((event.ctrlKey || event.metaKey) && ['s', 'f', 'h', 'o', 'n', 'w', 'p'].includes(event.key.toLowerCase())) {
-      event.preventDefault(); TexweftProto.handleAction(event.key.toLowerCase() === 'p' ? (event.shiftKey ? 'print' : 'quick-open') : { s: 'save', f: 'find', h: 'replace', o: 'open', n: 'new', w: 'close' }[event.key.toLowerCase()]);
+      event.preventDefault(); VexProto.handleAction(event.key.toLowerCase() === 'p' ? (event.shiftKey ? 'print' : 'quick-open') : { s: 'save', f: 'find', h: 'replace', o: 'open', n: 'new', w: 'close' }[event.key.toLowerCase()]);
     }
     if (event.key === 'F5') { event.preventDefault(); refreshNow(); }
-    if (event.key === 'F8') { event.preventDefault(); TexweftProto.handleAction('toggle-focus'); }
-    if (event.key === 'F11') { event.preventDefault(); TexweftProto.handleAction('toggle-fullscreen'); }
-    if (event.altKey && event.key === 'Enter') { event.preventDefault(); TexweftProto.handleAction('dlg-properties'); }
-    if (!event.ctrlKey && !event.metaKey && event.key === '/' && !event.target.closest('input, textarea, [contenteditable="true"]')) { event.preventDefault(); if (!state.sidebar) TexweftProto.handleAction('toggle-sidebar'); TexweftProto.handleAction('pane-files'); $('file-filter').focus(); }
+    if (event.key === 'F8') { event.preventDefault(); VexProto.handleAction('toggle-focus'); }
+    if (event.key === 'F11') { event.preventDefault(); VexProto.handleAction('toggle-fullscreen'); }
+    if (event.altKey && event.key === 'Enter') { event.preventDefault(); VexProto.handleAction('dlg-properties'); }
+    if (!event.ctrlKey && !event.metaKey && event.key === '/' && !event.target.closest('input, textarea, [contenteditable="true"]')) { event.preventDefault(); if (!state.sidebar) VexProto.handleAction('toggle-sidebar'); VexProto.handleAction('pane-files'); $('file-filter').focus(); }
   });
-  TexweftProto.attachMenuBar(document.querySelector('.tb-menu'));
+  VexProto.attachMenuBar(document.querySelector('.tb-menu'));
   syncSettings(); loadDoc(0); setView(new URLSearchParams(location.search).get('view') || 'edit');
   VexPreferences.configure({
-    beforeOpen:function () { TexweftProto.closeMenu(); closeLayers(); instant.finish(); },
-    currentAppearance:function () { return {theme:TexweftTheme.state.mode,palette:TexweftTheme.state.palette,typography:TexweftTypography.state.key,compact:TexweftTypography.state.compact}; },
-    toast:TexweftProto.toast, getText:function () { return input.value; },
+    beforeOpen:function () { VexProto.closeMenu(); closeLayers(); instant.finish(); },
+    currentAppearance:function () { return {theme:VexTheme.state.mode,palette:VexTheme.state.palette,typography:VexTypography.state.key,compact:VexTypography.state.compact}; },
+    toast:VexProto.toast, getText:function () { return input.value; },
     replaceText:function (text) { if (input.readOnly) return; remember(input.value); input.value = text; input.dispatchEvent(new Event('input')); refreshNow(); },
     apply:function (key,value,all) {
-      if (key === 'theme') TexweftTheme.setMode(value);
-      if (key === 'palette') TexweftTheme.setPalette(value);
-      if (key === 'typography') TexweftTypography.choose(value);
-      if (key === 'compact' && TexweftTypography.state.compact !== value) TexweftTypography.toggleCompact();
-      if (key === 'language') TexweftL.set(value);
+      if (key === 'theme') VexTheme.setMode(value);
+      if (key === 'palette') VexTheme.setPalette(value);
+      if (key === 'typography') VexTypography.choose(value);
+      if (key === 'compact' && VexTypography.state.compact !== value) VexTypography.toggleCompact();
+      if (key === 'language') VexL.set(value);
       if (key === 'size') document.documentElement.style.setProperty('--vex-writing-size',value + 'px');
       if (key === 'font') document.documentElement.dataset.writingFont = value;
       if (key === 'zoom') document.documentElement.style.setProperty('--vex-content-zoom',value / 100);
@@ -813,12 +813,12 @@
     source:input, roots:[{element:$('instant-content')},{element:$('markdown-preview'),readOnly:true}],
     getText:function () { return input.value; }, getIdentity:function () { return state.doc + ':' + docs[state.doc].name; },
     blocks:function () { return state.parsed.blocks; }, readOnly:function () { return input.readOnly; }, touch:function () { return false; },
-    finish:function () { instant.finish(); }, applyText:function (text) { TexweftWorkbench.applyText(text); },
-    beforeOpen:function () { TexweftProto.closeMenu(); }, toast:TexweftProto.toast,
+    finish:function () { instant.finish(); }, applyText:function (text) { VexWorkbench.applyText(text); },
+    beforeOpen:function () { VexProto.closeMenu(); }, toast:VexProto.toast,
     entries:[document.getElementById('edit-options'),document.querySelector('#reading-pane .ph-right')],
     findBlock:function (line) { return Array.from($('instant-content').children).find(function (el) { return state.parsed.blocks[Number(el.dataset.blockIndex)]?.line === line; }); },
     focus:function (line,sourceActive) { if(sourceActive)input.focus({preventScroll:true}); else document.querySelector('#instant-content [data-line="' + line + '"]')?.closest('.instant-block')?.focus({preventScroll:true}); },
-    editSource:function (line) { TexweftWorkspace.locateEditor(line); }
+    editSource:function (line) { VexWorkspace.locateEditor(line); }
   });
-  platformShortcutLabels(); window.addEventListener('texweft-language-changed',platformShortcutLabels);
+  platformShortcutLabels(); window.addEventListener('vex-language-changed',platformShortcutLabels);
 })();

@@ -100,5 +100,5 @@
     }
     visit(root, 0, 0, 'document'); return nodes;
   }
-  window.TexweftMindMap = { parse: parse, plain: plain, clip: clip, characters: characters, flatten: flatten };
+  window.VexMindMap = { parse: parse, plain: plain, clip: clip, characters: characters, flatten: flatten };
 })();

@@ -84,7 +84,7 @@ near(target(instantScroll, {top:-1000,height:20}), 0);
 near(target(instantScroll, {top:5000,height:20}), 1800);
 const scaled = {...instantScroll, scrollTop:100, getBoundingClientRect: () => ({top:100,height:1200})};
 near(target(scaled, {top:780,height:40}), 150);
-const desktop = fs.readFileSync(path.join(__dirname,'../Texweft.html'),'utf8');
+const desktop = fs.readFileSync(path.join(__dirname,'../Vex.html'),'utf8');
 assert.ok(desktop.indexOf('desktop/typewriter.js') < desktop.indexOf('desktop/workbench.js'));
 const instant = fs.readFileSync(path.join(__dirname,'../assets/desktop/instant-editor.js'),'utf8');
 assert.ok(!instant.includes("active.element.scrollIntoView({ block: 'center' })"));

@@ -52,7 +52,7 @@
     document.addEventListener('keydown',keydown,true);
     host.querySelector('button').onclick = close; host.onclick = event => {if (event.target === host) close();};
     host.querySelector('button').focus();
-    window.TexweftRendering?.diagrams();
+    window.VexRendering?.diagrams();
   }
   window.VexWatermark = {apply,svg,image,exportMark,exportStyles,preview};
 })();

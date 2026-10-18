@@ -1,0 +1,58 @@
+name: vex
+description: 维刻 Vex · 写下想法，看见脉络。
+publish_to: none
+version: 0.2.2+4
+resolution: workspace
+environment:
+  sdk: ^3.13.0
+  flutter: '>=3.47.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  vex_markdown_core: ^0.2.0
+  vex_editor: ^0.2.0
+  vex_mindmap: ^0.2.0
+  intl: ^0.20.3
+  provider: ^6.1.5
+  file_picker: ^13.1.0
+  charset_converter: ^2.5.1
+  path_provider: ^2.1.5
+  shared_preferences: ^2.5.3
+  url_launcher: ^6.3.2
+  open_filex: ^5.0.0
+  flutter_svg: ^2.2.0
+  path: ^1.9.1
+  markdown: ^7.3.1
+  pdf: ^3.11.3
+  printing: ^5.14.2
+  archive: ^4.0.7
+  window_manager: ^0.5.1
+  desktop_drop: ^0.8.4
+  package_info_plus: ^10.2.2
+  super_sliver_list: ^0.4.1
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+flutter:
+  generate: true
+  uses-material-design: true
+  assets:
+    - assets/brand/logo.svg
+    - assets/brand/logo.png
+    - assets/documents/
+    - assets/fonts/NotoSansSC.ttf.z
+    - assets/fonts/NotoSansSC-SemiBold.ttf.z
+    - assets/fonts/OFL.txt
+    - assets/fonts/CascadiaCode-OFL.txt
+  fonts:
+    - family: CascadiaCode
+      fonts:
+        - asset: assets/fonts/CascadiaCode-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/CascadiaCode-SemiBold.ttf
+          weight: 600

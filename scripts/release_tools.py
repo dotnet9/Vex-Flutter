@@ -30,7 +30,7 @@ ANDROID_ABIS = {'android-armv7': 'armeabi-v7a', 'android-arm64': 'arm64-v8a', 'a
 
 
 def app_version(root=ROOT):
-    spec = (root / 'apps/texweft/pubspec.yaml').read_text(encoding='utf-8')
+    spec = (root / 'apps/vex/pubspec.yaml').read_text(encoding='utf-8')
     match = re.search(r'^version: (\d+\.\d+\.\d+)\+([1-9]\d*)\s*$', spec, re.M)
     if not match:
         raise ValueError('Application version must be x.y.z+build.')
@@ -79,7 +79,7 @@ def check_installer(path, target, version):
             if len(bundles) != 1:
                 raise ValueError('IPA must contain one application bundle.')
             info = plistlib.loads(ipa.read(bundles[0]))
-            if info.get('CFBundleIdentifier') != 'com.codewf.texweft' or info.get('CFBundleShortVersionString') != version:
+            if info.get('CFBundleIdentifier') != 'com.codewf.vex' or info.get('CFBundleShortVersionString') != version:
                 raise ValueError('IPA identity or version mismatch.')
             prefix = bundles[0].removesuffix('Info.plist')
             if prefix + 'embedded.mobileprovision' not in ipa.namelist() or prefix + '_CodeSignature/CodeResources' not in ipa.namelist():

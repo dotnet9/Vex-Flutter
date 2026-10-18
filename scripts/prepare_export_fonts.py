@@ -22,7 +22,7 @@ def main():
     parser.add_argument("variable_font", type=Path)
     args = parser.parse_args()
     source = args.variable_font.read_bytes()
-    target = ROOT / "apps/texweft/assets/fonts"
+    target = ROOT / "apps/vex/assets/fonts"
     target.mkdir(parents=True, exist_ok=True)
     metadata = {}
     for weight, name in ((400, "NotoSansSC.ttf"), (600, "NotoSansSC-SemiBold.ttf")):

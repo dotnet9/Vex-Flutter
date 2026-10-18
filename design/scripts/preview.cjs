@@ -8,9 +8,9 @@ http.createServer((req,res) => {
   let pathname;
   try {pathname = decodeURIComponent(new URL(req.url,'http://localhost').pathname);} catch {res.writeHead(400).end();return;}
   if (pathname === '/' || pathname === '/design/') pathname = '/design/index.html';
-  if (!pathname.startsWith('/design/') && !pathname.startsWith('/apps/texweft/assets/fonts/')) {res.writeHead(404).end();return;}
+  if (!pathname.startsWith('/design/') && !pathname.startsWith('/apps/vex/assets/fonts/')) {res.writeHead(404).end();return;}
   const target = path.resolve(root,'.' + pathname);
-  const allowed = ['design','apps/texweft/assets/fonts'].some(folder => target.startsWith(path.resolve(root,folder) + path.sep));
+  const allowed = ['design','apps/vex/assets/fonts'].some(folder => target.startsWith(path.resolve(root,folder) + path.sep));
   if (!allowed) {res.writeHead(403).end();return;}
   fs.readFile(target,(error,data) => {if (error) {res.writeHead(404).end();return;}res.writeHead(200,{'Content-Type':types[path.extname(target)] || 'application/octet-stream','Cache-Control':'no-store'}).end(data);});
 }).listen(port,'127.0.0.1',() => console.log('Vex prototype: http://127.0.0.1:' + port + '/design/'));

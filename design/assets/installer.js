@@ -32,7 +32,7 @@
    },260);
  }
  function cancel(){if(state==='installing')dialog('取消这次操作？','当前进度将停止，你可以稍后重新开始。',[{label:'继续',primary:true,run:closeDialog},{label:'取消操作',run:()=>{stop();closeDialog();state='cancelled';render();}}]);else if(state==='ready'||state==='installed')dialog('退出安装？','你可以随时重新打开这个安装包。',[{label:'留下',run:closeDialog},{label:'退出',primary:true,run:()=>{closeDialog();state='cancelled';render();}}]);else{stop();state='cancelled';render();}}
- function openApp(){const url=new URL('Texweft.html',location.href);url.searchParams.set('platform',platform);url.searchParams.set('device',device);url.searchParams.set('theme',theme);location.href=url.href;}
+ function openApp(){const url=new URL('Vex.html',location.href);url.searchParams.set('platform',platform);url.searchParams.set('device',device);url.searchParams.set('theme',theme);location.href=url.href;}
  function errorBody(){return `<div class="error-symbol">!</div><h2>还差一点，就准备好了</h2><p class="description">应用文件未能完整复制。请检查可用空间与目标位置后重试。</p><div class="information-card">示例错误：目标位置暂时不可写<br>错误代码：VEX-DEMO-102</div><div class="install-actions">${btn('取消','cancel')}${btn('重新尝试','retry',true)}</div>`;}
  function windows() {
    const actions=(primary='',label='安装',secondary='关闭')=>`<div class="install-actions">${state==='ready'?'<a class="license-link" href="#" data-action="license">基于 MIT 协议开源</a>':''}<span class="action-spacer"></span>${secondary?btn(secondary,'cancel'):''}${primary?btn(label,primary,true):''}</div>`;

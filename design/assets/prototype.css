@@ -93,7 +93,7 @@ body.device-phone .mobile-more { width:44px; height:44px; }
 .map-stage.animating { transition:transform 280ms var(--vex-ease); }
 .map-stage .map-node { box-sizing:border-box; transition:left 260ms var(--vex-ease),top 260ms var(--vex-ease),height 200ms var(--vex-ease),border-color 160ms; }
 .map-stage .map-node strong { overflow-wrap:anywhere; }
-.texweft-deck button.deck-map-node { overflow-wrap:anywhere; }
+.vex-deck button.deck-map-node { overflow-wrap:anywhere; }
 .map-stage .map-node small { font-size:11px; line-height:18px; max-height:36px; }
 .map-node[data-side=left] .map-collapse,.map-node[data-side=left] .fold-badge { right:auto; left:-10px; }
 .map-node[data-side=down] .map-collapse { right:auto; left:50%; top:auto; bottom:-10px; transform:translateX(-50%); }

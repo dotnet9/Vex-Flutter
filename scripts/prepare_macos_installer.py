@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / 'scripts/installer/assets'
-FONT = ROOT / 'apps/texweft/assets/fonts/NotoSansSC.ttf.z'
+FONT = ROOT / 'apps/vex/assets/fonts/NotoSansSC.ttf.z'
 
 
 def main():

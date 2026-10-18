@@ -19,7 +19,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('sources', type=Path)
     args = parser.parse_args()
-    target = ROOT / 'apps/texweft/assets/fonts'
+    target = ROOT / 'apps/vex/assets/fonts'
     metadata = {}
     for family, name, weights in [
         ('cascadiacode', 'CascadiaCode', (400, 600)),

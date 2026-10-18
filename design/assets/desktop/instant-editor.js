@@ -1,7 +1,7 @@
 /* 在原有排版 DOM 中编辑：聚焦只出现光标，不替换输入框、不改变块尺寸。 */
 (function () {
   'use strict';
-  window.createTexweftInstantEditor = function (options) {
+  window.createVexInstantEditor = function (options) {
     var host = document.getElementById('instant-content'), active = null, composing = false;
     function range(block) {
       var lines = options.input.value.split('\n');
@@ -104,7 +104,7 @@
         element.contentEditable = 'true'; element.spellcheck = false; element.setAttribute('role', 'textbox'); element.setAttribute('aria-multiline', 'true');
         element.setAttribute('aria-label', '编辑第 ' + block.line + ' 行：' + block.text.slice(0, 20));
         element.innerHTML = options.renderBlock(block);
-        if (TexweftRendering.special(block) || block.kind === 'rule') {
+        if (VexRendering.special(block) || block.kind === 'rule') {
           element.contentEditable = 'false';
           if (block.kind === 'code' && block.language.toLowerCase() === 'mermaid' && window.VexPreferences?.values.mermaid !== false && !options.input.readOnly) {
             var diagramBefore = options.input.value.slice(0, span.start), diagramAfter = options.input.value.slice(span.end);
@@ -115,14 +115,14 @@
             });
           } else if (block.kind !== 'rule') {
             element.tabIndex = 0; element.setAttribute('role', 'figure'); element.setAttribute('aria-label', block.kind === 'math' ? '数学或化学公式' : 'Markdown 图表');
-            element.ondblclick = function () { TexweftWorkspace.locateEditor(block.line); };
-            element.onkeydown = function (event) { if (event.key === 'Enter') { event.preventDefault(); TexweftWorkspace.locateEditor(block.line); } };
+            element.ondblclick = function () { VexWorkspace.locateEditor(block.line); };
+            element.onkeydown = function (event) { if (event.key === 'Enter') { event.preventDefault(); VexWorkspace.locateEditor(block.line); } };
           } else element.removeAttribute('role');
         } else if (block.kind === 'code') {
           element.contentEditable = 'false';
           var pre = element.querySelector('pre'); pre.contentEditable = 'plaintext-only'; pre.tabIndex = 0;
           pre.setAttribute('role', 'textbox'); pre.setAttribute('aria-label', '代码正文'); pre.setAttribute('aria-multiline', 'true');
-          element.append(TexweftCodeFence.footer(block.language || ''));
+          element.append(VexCodeFence.footer(block.language || ''));
         }
         if (options.input.readOnly) { element.contentEditable = 'false'; element.querySelectorAll('[contenteditable]').forEach(function (node) { node.contentEditable = 'false'; }); }
         host.appendChild(element);
@@ -139,7 +139,7 @@
       var block = options.blocks()[Number(element.dataset.blockIndex)] || { kind: 'paragraph', raw: '', line: 1, endLine: 1 }, span = range(block);
       active = { element: element, block: block, start: span.start, end: span.end, original: block.raw, value: block.raw, before: options.input.value.slice(0, span.start), after: options.input.value.slice(span.end), changed: false };
       if (block.kind === 'code') {
-        active.fence = TexweftCodeFence.parse(block.raw);
+        active.fence = VexCodeFence.parse(block.raw);
         element.querySelector('.md-code-language').value = active.fence?.language || block.language || '';
       }
       element.classList.add('instant-input', 'is-editing');
@@ -166,7 +166,7 @@
       var next = host.querySelector('[data-block-index="' + index + '"]');
       if (next) { (next.querySelector('pre[contenteditable]') || next).focus({ preventScroll: true }); var caret = document.caretRangeFromPoint(event.clientX, event.clientY); if (caret && next.contains(caret.startContainer)) { getSelection().removeAllRanges(); getSelection().addRange(caret); } }
     });
-    host.addEventListener('focusin', function (event) { var element = event.target.closest('.instant-block'); if (element && !TexweftRendering.special(options.blocks()[Number(element.dataset.blockIndex)] || {}) && !event.target.closest('.md-code-footer')) begin(element); });
+    host.addEventListener('focusin', function (event) { var element = event.target.closest('.instant-block'); if (element && !VexRendering.special(options.blocks()[Number(element.dataset.blockIndex)] || {}) && !event.target.closest('.md-code-footer')) begin(element); });
     host.addEventListener('focusout', function (event) { if (active && !active.element.contains(event.relatedTarget)) finish(); });
     host.addEventListener('input', function (event) { if (active) { if (!event.isComposing) normalizeInline(); sync(); } });
     host.addEventListener('compositionstart', function () { composing = true; });

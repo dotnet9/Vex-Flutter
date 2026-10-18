@@ -55,7 +55,7 @@ jobs:
         env:
           APP_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          Push-Location apps/texweft
+          Push-Location apps/vex
           flutter build windows --release --target lib/main.dart
           if ($LASTEXITCODE -ne 0) { throw 'Windows release build failed.' }
           Pop-Location
@@ -69,7 +69,7 @@ jobs:
           CI: 'true'
         run: |
           flutter config --no-enable-macos-arm64-only
-          (cd apps/texweft && flutter build macos --release --target lib/main.dart)
+          (cd apps/vex && flutter build macos --release --target lib/main.dart)
           python -m pip install --require-hashes -r scripts/macos-dmg-requirements.txt
           bash scripts/package_macos.sh "$APP_VERSION"
       - name: 验证安装包与校验文件

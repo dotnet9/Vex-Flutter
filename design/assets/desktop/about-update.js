@@ -6,13 +6,13 @@
   const labels = { idle:'AboutCheckUpdate', checking:'AboutCheckingUpdate', available:'AboutDownload', downloading:'AboutDownloading', downloaded:'AboutInstall', installing:'AboutInstalling', current:'AboutCheckUpdate', canceled:'AboutCheckUpdate', manual:'AboutOpenRelease', installed:'AboutCheckUpdate' };
   const failureMessages = { 'check-failed':'检查失败，请重试。', 'download-failed':'下载失败，请重试。', 'checksum-failed':'校验失败，请重新下载。', 'install-failed':'安装失败，请重试。' };
   function render() {
-    $('texweft-update').textContent = state === 'failed' ? TexweftL.label('重试') : TexweftL.get(labels[state]);
-    $('texweft-update').disabled = ['checking','downloading','installing'].includes(state);
+    $('vex-update').textContent = state === 'failed' ? VexL.label('重试') : VexL.get(labels[state]);
+    $('vex-update').disabled = ['checking','downloading','installing'].includes(state);
     $('layer-about').dataset.updateState = state;
     const key = { checking:'AboutCheckingUpdate', available:'AboutUpdateAvailable', downloading:'AboutDownloading', downloaded:'AboutDownloaded', installing:'AboutInstalling', current:'AboutUpToDate', canceled:'AboutCanceled' }[state];
-    const message = state === 'failed' ? TexweftL.label(failureMessages[scenario]) : state === 'installed' ? TexweftL.label('更新已安装。') : state === 'manual' ? TexweftL.label('请前往发布页下载安装包。') : key ? TexweftL.get(key).replace('{0}', '99.0.0') : '';
-    $('texweft-update-status').textContent = message;
-    $('texweft-update-status').hidden = !message;
+    const message = state === 'failed' ? VexL.label(failureMessages[scenario]) : state === 'installed' ? VexL.label('更新已安装。') : state === 'manual' ? VexL.label('请前往发布页下载安装包。') : key ? VexL.get(key).replace('{0}', '99.0.0') : '';
+    $('vex-update-status').textContent = message;
+    $('vex-update-status').hidden = !message;
   }
   function cancel() {
     generation++; clearTimeout(timer);
@@ -29,7 +29,7 @@
       render();
     }, 250);
   }
-  $('texweft-update').onclick = () => {
+  $('vex-update').onclick = () => {
     if (state === 'failed') operation(retry);
     else if (state === 'available') operation('downloading');
     else if (state === 'downloaded') operation('installing');
@@ -38,9 +38,9 @@
   };
   $('layer-about').querySelector('[data-close]').addEventListener('click', cancel);
   new MutationObserver(() => { if ($('layer-about').hidden) cancel(); }).observe($('layer-about'), {attributes:true,attributeFilter:['hidden']});
-  window.addEventListener('texweft-language-changed', render);
+  window.addEventListener('vex-language-changed', render);
   // 自动化验证可选择失败场景；演示开关不进入产品界面。
-  window.TexweftUpdate = { setScenario(value) {
+  window.VexUpdate = { setScenario(value) {
     if (!['available','current','missing','check-failed','download-failed','checksum-failed','install-failed'].includes(value)) return;
     cancel(); scenario = value; state = 'idle'; failures.clear(); render();
   } };

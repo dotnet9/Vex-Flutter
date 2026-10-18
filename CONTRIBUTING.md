@@ -11,10 +11,10 @@ flutter pub get --enforce-lockfile
 flutter analyze --no-pub
 ```
 
-应用入口位于 `apps/texweft/lib/main.dart`。桌面在应用目录运行 `flutter run -d windows`，macOS、Linux 替换设备名称。Android 必须显式选择开发 flavor：
+应用入口位于 `apps/vex/lib/main.dart`。桌面在应用目录运行 `flutter run -d windows`，macOS、Linux 替换设备名称。Android 必须显式选择开发 flavor：
 
 ```powershell
-cd apps/texweft
+cd apps/vex
 flutter run --flavor preview -d <设备编号>
 ```
 
@@ -22,8 +22,8 @@ Android 工具链与签名边界见 [Android 构建](docs/Android构建.md)。�
 
 ## 代码边界
 
-- `apps/texweft` 负责应用界面、平台服务与工作流，沿用现有 View/ViewModel、Repository/Service 分层和 provider。
-- `packages/texweft_markdown_core` 保持纯 Dart；编辑器和导图通过 controller、callback 接入宿主，不反向依赖应用。
+- `apps/vex` 负责应用界面、平台服务与工作流，沿用现有 View/ViewModel、Repository/Service 分层和 provider。
+- `packages/vex_markdown_core` 保持纯 Dart；编辑器和导图通过 controller、callback 接入宿主，不反向依赖应用。
 - Markdown 原文是唯一数据来源；修改必须保留 CRLF、Unicode、选区位置和统一撤销历史。输入法候选期间避免改写缓冲，异步操作必须验证文档及版本是否仍有效。
 - 优先复用现有主题令牌、本地化、图标和控件；支持键鼠、触控、焦点、语义和减少动态效果。界面文案维护 ARB，并运行 `flutter gen-l10n`。
 - 只提交与任务相关的变更，避免无关格式化、生成物或依赖升级。保留他人的未提交修改。
@@ -34,17 +34,17 @@ Android 工具链与签名边界见 [Android 构建](docs/Android构建.md)。�
 
 | 目录 | 命令 |
 | --- | --- |
-| `packages/texweft_markdown_core` | `dart test --coverage=coverage` |
-| `packages/texweft_editor` | `flutter test --no-pub --coverage` |
-| `packages/texweft_mindmap` | `flutter test --no-pub --coverage` |
-| `apps/texweft` | `flutter test --no-pub --coverage` |
+| `packages/vex_markdown_core` | `dart test --coverage=coverage` |
+| `packages/vex_editor` | `flutter test --no-pub --coverage` |
+| `packages/vex_mindmap` | `flutter test --no-pub --coverage` |
+| `apps/vex` | `flutter test --no-pub --coverage` |
 | 仓库根目录 | `python -m unittest discover -s scripts/tests -v` |
 
 修改 Dart 后运行 `dart format`，提交前使用 `git diff --check`。CI 对已跟踪的 Dart 文件执行只读格式检查，并保存覆盖率文件；测试数量和覆盖率都不是视觉、性能或原生兼容性的验收结果。
 
 原型无需第三方 Node 依赖。运行 `design/scripts/verify*.cjs` 下的全部脚本；脚本检查数据与交互契约，不是浏览器像素对比。界面改动应附同尺寸、同字体、同场景的原型及原生截图，注明主题、缩放、语言与平台；未经完整对照不得宣称达到 98%。
 
-原生集成测试位于 `apps/texweft/integration_test`。例如在应用目录执行：
+原生集成测试位于 `apps/vex/integration_test`。例如在应用目录执行：
 
 ```powershell
 flutter test --no-pub integration_test/typing_test.dart -d windows

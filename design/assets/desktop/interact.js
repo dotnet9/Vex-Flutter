@@ -1,23 +1,23 @@
 /* ============================================================
    Vex 界面原型 · 交互层（单页版）
-   主窗体为 Texweft.html，采用单窗口固定视图组合；菜单与状态栏的界面
+   主窗体为 Vex.html，采用单窗口固定视图组合；菜单与状态栏的界面
    在窗体内以浮层呼出：
-   - TexweftProto.toast(msg)          操作反馈（对应 App 状态栏提示）
-   - TexweftProto.applyTheme(key)     程序化切主题
-   - TexweftProto.attachMenuBar(el)   标题菜单栏（数据取自 ShellTitleMenuView.axaml）
-   - TexweftProto.handleAction        页面注入：处理菜单呼出动作（act 名）
+   - VexProto.toast(msg)          操作反馈（对应 App 状态栏提示）
+   - VexProto.applyTheme(key)     程序化切主题
+   - VexProto.attachMenuBar(el)   标题菜单栏（数据取自 ShellTitleMenuView.axaml）
+   - VexProto.handleAction        页面注入：处理菜单呼出动作（act 名）
    ============================================================ */
 (function () {
-  var TexweftProto = {
+  var VexProto = {
     applyTheme: function (key) {
-      window.TexweftTheme.setMode(key);
+      window.VexTheme.setMode(key);
     }
   };
-  window.TexweftProto = TexweftProto;
+  window.VexProto = VexProto;
 
   /* ---------- Toast ---------- */
   var toastWrap = null;
-  TexweftProto.toast = function (msg) {
+  VexProto.toast = function (msg) {
     if (!toastWrap) {
       toastWrap = document.createElement('div');
       toastWrap.className = 'proto-toast-wrap';
@@ -37,7 +37,7 @@
   /* ---------- 标题菜单（ShellTitleMenuView.axaml 的原型化） ---------- */
   var THEME_ITEMS = [
     { label:'跟随系统', action:'theme', arg:'system', check:true }, { label:'浅色', action:'theme', arg:'light', check:true }, { label:'深色', action:'theme', arg:'dark', check:true }, { sep:true }
-  ].concat(TexweftPalettes.map(function(p){return {label:p.label,action:'palette',arg:p.key,check:true};}));
+  ].concat(VexPalettes.map(function(p){return {label:p.label,action:'palette',arg:p.key,check:true};}));
 
   var MENUS = [
     { key: 'file', label: '文件(F)', items: [
@@ -114,7 +114,7 @@
       ]},
       { sep: true },
       { label: '界面配色', sub: THEME_ITEMS },
-      { label: 'Markdown 排版', sub: TexweftTypes.map(function(t){return {label:t.label,action:'typography-select',arg:t.key,check:true};}).concat([{sep:true},{label:'紧凑布局',action:'toggle-compact',check:true}]) },
+      { label: 'Markdown 排版', sub: VexTypes.map(function(t){return {label:t.label,action:'typography-select',arg:t.key,check:true};}).concat([{sep:true},{label:'紧凑布局',action:'toggle-compact',check:true}]) },
       { label: '窗口', sub: [
         { label: '全屏', gesture: 'F11', check: true, action: 'toggle-fullscreen' },
         { label: '保持窗口在最前', check: true, action: 'toggle-topmost' }, { label: '最大化 / 还原', action: 'maximize' }
@@ -142,7 +142,7 @@
   toolsMenu.items.unshift({label:'偏好设置…',gesture:'Ctrl+,',action:'preferences'},{sep:true});
   toolsMenu.items = toolsMenu.items.map(function (item) { return item.label === 'MCP 设置' ? {label:'MCP 设置',action:'preferences-mcp'} : item.label === 'MCP 审计' ? {label:'MCP 审计',action:'mcp-audit'} : item; });
   if (new URLSearchParams(location.search).get('platform') === 'macos') MENUS.unshift({key:'app',label:'Vex',items:[{label:'关于 Vex',act:'dlg-about'},{label:'偏好设置…',gesture:'⌘,',action:'preferences'},{sep:true},{label:'退出 Vex',gesture:'⌘Q',action:'close'}]});
-  TexweftProto.menuData = MENUS;
+  VexProto.menuData = MENUS;
   var menuNav = document.querySelector('.tb-menu');
   menuNav.innerHTML = MENUS.map(function (menu) { return '<button class="tb-menuitem" type="button" aria-haspopup="true" aria-expanded="false">' + menu.label + '</button>'; }).join('');
 
@@ -164,12 +164,12 @@
     document.querySelectorAll('.tb-menuitem.open').forEach(function (m) { m.classList.remove('open'); });
     document.querySelectorAll('.tb-menuitem').forEach(function (m) { m.setAttribute('aria-expanded', 'false'); });
   }
-  TexweftProto.closeMenu = closeOpenMenu;
+  VexProto.closeMenu = closeOpenMenu;
 
   function buildItem(it, toastAll, depth) {
     depth = depth || 0;
     if (it.sep) { var s = document.createElement('div'); s.className = 'menu-sep'; return s; }
-    if (it.check && it.action && TexweftProto.isActionChecked) it.on = TexweftProto.isActionChecked(it.action, it);
+    if (it.check && it.action && VexProto.isActionChecked) it.on = VexProto.isActionChecked(it.action, it);
     if (it.action === 'theme') it.on = document.documentElement.dataset.themeMode === it.arg;
     if (it.action === 'palette') it.on = document.documentElement.dataset.palette === it.arg;
     var el = document.createElement('div');
@@ -190,7 +190,7 @@
     el.className = 'menu-item' + (it.danger ? ' danger' : '') + (it.on ? ' checked' : '') + (it.sub ? ' has-sub' : '');
     el.addEventListener('mouseenter',function () { submenus.filter(function (sub) {return sub._depth >= depth && sub !== el._sub;}).forEach(hideSubmenu); });
     var indicator = document.createElement('span'); indicator.className = 'menu-state'; indicator.setAttribute('aria-hidden', 'true'); indicator.textContent = it.on ? '✓' : ''; el.appendChild(indicator);
-    var label = document.createElement('span'); label.className = 'menu-label'; label.textContent = window.TexweftL ? TexweftL.label(it.label) : it.label; el.appendChild(label);
+    var label = document.createElement('span'); label.className = 'menu-label'; label.textContent = window.VexL ? VexL.label(it.label) : it.label; el.appendChild(label);
     if (it.gesture) {
       var g = document.createElement('span');
       g.className = 'mi-gesture';
@@ -240,29 +240,29 @@
         return;
       }
       if (it.action === 'theme' || it.action === 'palette') {
-        if (it.action === 'palette') window.TexweftTheme.setPalette(it.arg);
-        else TexweftProto.applyTheme(it.arg);
+        if (it.action === 'palette') window.VexTheme.setPalette(it.arg);
+        else VexProto.applyTheme(it.arg);
         closeOpenMenu();
-        TexweftProto.toast('主题已切换为「' + it.label + '」');
+        VexProto.toast('主题已切换为「' + it.label + '」');
         return;
       }
-      if (it.toast) { closeOpenMenu(); TexweftProto.toast(it.toast); return; }
-      if (it.action && typeof TexweftProto.handleAction === 'function') {
-        var handled = TexweftProto.handleAction(it.action, it);
+      if (it.toast) { closeOpenMenu(); VexProto.toast(it.toast); return; }
+      if (it.action && typeof VexProto.handleAction === 'function') {
+        var handled = VexProto.handleAction(it.action, it);
         if (handled !== false) { closeOpenMenu(); return; }
       }
       closeOpenMenu();
-      if (it.act && typeof TexweftProto.handleAction === 'function') {
-        TexweftProto.handleAction(it.act, it);
+      if (it.act && typeof VexProto.handleAction === 'function') {
+        VexProto.handleAction(it.act, it);
         return;
       }
       var msg = it.toast || (toastAll ? toastAll.replace('%s', it.label) : null);
-      if (msg) TexweftProto.toast(msg);
+      if (msg) VexProto.toast(msg);
     });
     return el;
   }
 
-  TexweftProto.attachMenuBar = function (nav) {
+  VexProto.attachMenuBar = function (nav) {
     var host = document.createElement('div');
     host.className = 'menu-flyout';
     host.style.display = 'none';

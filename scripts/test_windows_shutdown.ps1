@@ -8,16 +8,16 @@ $outputPath = [IO.Path]::GetFullPath($OutputDirectory)
 [IO.Directory]::CreateDirectory($outputPath) | Out-Null
 $started = Get-Date
 $results = @()
-$previousMode = $env:TEXWEFT_CLOSE_MODE
-$previousResult = $env:TEXWEFT_CLOSE_RESULT
+$previousMode = $env:VEX_CLOSE_MODE
+$previousResult = $env:VEX_CLOSE_RESULT
 try {
     foreach ($mode in @('clean', 'draft')) {
         $resultFile = Join-Path $outputPath "$mode.json"
         if (Test-Path -LiteralPath $resultFile) {
             throw "Use a fresh output directory; $resultFile already exists."
         }
-        $env:TEXWEFT_CLOSE_MODE = $mode
-        $env:TEXWEFT_CLOSE_RESULT = $resultFile
+        $env:VEX_CLOSE_MODE = $mode
+        $env:VEX_CLOSE_RESULT = $resultFile
         $timer = [Diagnostics.Stopwatch]::StartNew()
         $process = Start-Process -FilePath $executablePath -PassThru -WindowStyle Hidden
         if (!$process.WaitForExit(45000)) {
@@ -47,16 +47,16 @@ try {
         }
     }
 } finally {
-    $env:TEXWEFT_CLOSE_MODE = $previousMode
-    $env:TEXWEFT_CLOSE_RESULT = $previousResult
+    $env:VEX_CLOSE_MODE = $previousMode
+    $env:VEX_CLOSE_RESULT = $previousResult
 }
 Start-Sleep -Seconds 2
 $events = @(Get-WinEvent -FilterHashtable @{
     LogName='Application'; Id=@(1000,1001); StartTime=$started
 } -ErrorAction SilentlyContinue | Where-Object {
-    $_.Message -match 'texweft\.exe|flutter_windows\.dll'
+    $_.Message -match 'vex\.exe|flutter_windows\.dll'
 })
-if ($events.Count -gt 0) { throw 'A Texweft crash event was recorded during the probe.' }
+if ($events.Count -gt 0) { throw 'A Vex crash event was recorded during the probe.' }
 [PSCustomObject]@{completed=$true; closes=$results; crashEvents=$events.Count} |
     ConvertTo-Json -Depth 4 |
     Tee-Object -FilePath (Join-Path $outputPath 'summary.json')

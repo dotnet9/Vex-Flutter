@@ -123,8 +123,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .settings-reset { margin-top: 8px; min-height: 36px; font-size: 13px; font-weight: 600; padding: 6px 8px; border: none; border-radius:4px; background: none; color: var(--fg); cursor:pointer; }
 .settings-reset:hover,.settings-reset:focus-visible { color:var(--accent); background:var(--accent-soft); }
 .about-version { align-items:center; }
-.about-version #texweft-update { min-height:30px; font-size:12px; }
-.about-version #texweft-update-status { flex-basis:100%; font-size:12px; color:var(--muted); }
+.about-version #vex-update { min-height:30px; font-size:12px; }
+.about-version #vex-update-status { flex-basis:100%; font-size:12px; color:var(--muted); }
 .node-inspector { position: absolute; z-index: 4; right: 18px; top: 60px; width: 284px; max-height: calc(100% - 135px); background: var(--panel); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-pop); overflow: auto; animation: inspector-in .22s ease; }
 .inspector-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 10.5px; color: var(--muted); }
 .inspector-head .icon-button { margin-left: auto; width: 24px; height: 24px; }
@@ -147,8 +147,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .win-layer { position: absolute; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; background: var(--scrim); backdrop-filter: blur(3px); animation: pop-in .18s ease; }
 .win-layer .mini-window { max-height: 92%; overflow: auto; }
 .win-layer > * { animation: inspector-in .2s ease; }
-#texweft-theme-fab { width: 18px !important; height: 18px !important; right: 3px !important; bottom: 3px !important; opacity: .8; }
-#texweft-theme-panel { right: 16px; bottom: 46px; }
+#vex-theme-fab { width: 18px !important; height: 18px !important; right: 3px !important; bottom: 3px !important; opacity: .8; }
+#vex-theme-panel { right: 16px; bottom: 46px; }
 .app-window.expanded { position:fixed; inset:0; width:100vw; height:100vh; border-radius:0; }
 #prototype-window-state { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; }
 #restore-window { padding:8px 18px; background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:6px; }

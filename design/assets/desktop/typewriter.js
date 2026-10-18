@@ -103,7 +103,7 @@
     new ResizeObserver(refresh).observe(sourceScroll);
     new ResizeObserver(refresh).observe(instantScroll);
     window.addEventListener('vex-preference-changed', refresh);
-    window.addEventListener('texweft-view-changed', refresh);
+    window.addEventListener('vex-view-changed', refresh);
     return { refresh: refresh, request: request, sourceHeight: sourceHeight };
   }
   window.VexTypewriter = { create: create, scrollTarget: scrollTarget };

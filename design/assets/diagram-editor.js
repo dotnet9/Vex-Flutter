@@ -5,7 +5,7 @@
   let serial = 0;
   const reduced = () => matchMedia('(prefers-reduced-motion:reduce)').matches || document.documentElement.dataset.motion === 'false';
   function mount(element, block, options) {
-    const original = block.raw, fence = TexweftCodeFence.parse(original);
+    const original = block.raw, fence = VexCodeFence.parse(original);
     if (!fence) return;
     const node = element.querySelector('.md-diagram') || element;
     node.className = 'diagram-editor'; node.contentEditable = 'false'; node.tabIndex = 0;

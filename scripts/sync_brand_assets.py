@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
-TARGET = ROOT / "apps/texweft/assets/brand"
+TARGET = ROOT / "apps/vex/assets/brand"
 
 
 def background_colors(svg):
@@ -47,10 +47,10 @@ def main():
 
     for name in ("logo.svg", "logo.png"):
         write(TARGET / name, (ROOT / name).read_bytes())
-    write(ROOT / 'apps/texweft/windows/runner/resources/app_icon.ico',
+    write(ROOT / 'apps/vex/windows/runner/resources/app_icon.ico',
           (ROOT / 'logo.ico').read_bytes())
     image = Image.open(ROOT / 'logo.png').convert('RGBA')
-    app = ROOT / 'apps/texweft'
+    app = ROOT / 'apps/vex'
     for density, size in [('mdpi', 48), ('hdpi', 72), ('xhdpi', 96),
                           ('xxhdpi', 144), ('xxxhdpi', 192)]:
         png(app / f'android/app/src/main/res/mipmap-{density}/ic_launcher.png',
@@ -118,7 +118,7 @@ def main():
                 icon = Image.new('RGBA', (size, size))
                 icon.alpha_composite(tile, (inset, inset))
             png(target / entry['filename'], icon)
-    png(app / 'linux/packaging/icons/com.codewf.texweft.png', image)
+    png(app / 'linux/packaging/icons/com.codewf.vex.png', image)
     if stale:
         parser.exit(1, f"Brand assets differ: {', '.join(stale)}. Run scripts/sync_brand_assets.py.\n")
     print("Brand assets match root sources." if args.check else "Updated Flutter brand assets.")

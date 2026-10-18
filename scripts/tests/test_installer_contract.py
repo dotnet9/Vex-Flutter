@@ -1,4 +1,4 @@
-"""Check public package branding while keeping installed upgrade identities stable."""
+"""Check package branding and the stable Windows installer upgrade identity."""
 from pathlib import Path
 import importlib.util
 import re
@@ -10,17 +10,17 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class InstallerContractTest(unittest.TestCase):
     def test_optional_test_identity_stays_outside_production_registration(self):
-        pattern = r'^Texweft\.Installer\.Test(?:[.-][A-Za-z0-9_-]+)*$'
+        pattern = r'^Vex\.Installer\.Test(?:[.-][A-Za-z0-9_-]+)*$'
         for name in ('package_windows.ps1', 'test_windows_installer.ps1'):
             script = (ROOT / 'scripts' / name).read_text(encoding='utf-8-sig')
             self.assertIn(f"[ValidatePattern('{pattern}')]", script)
             self.assertIn("[ValidateLength(1, 100)]", script)
             self.assertIn('A custom test identity requires -InstallerTest.', script)
-        self.assertIsNotNone(re.fullmatch(pattern, 'Texweft.Installer.Test.Close-20261018'))
+        self.assertIsNotNone(re.fullmatch(pattern, 'Vex.Installer.Test.Close-20261018'))
         self.assertIsNone(re.fullmatch(pattern, '{51E79E85-AD4C-4D48-92EC-C1EA09FB4E56}'))
-        self.assertIsNone(re.fullmatch(pattern, 'Texweft.Installer.Test/Other'))
-        self.assertIsNone(re.fullmatch(pattern, 'Texweft.Installer.Test"Other'))
-        setup = (ROOT / 'scripts/installer/Texweft.iss').read_text(encoding='utf-8-sig')
+        self.assertIsNone(re.fullmatch(pattern, 'Vex.Installer.Test/Other'))
+        self.assertIsNone(re.fullmatch(pattern, 'Vex.Installer.Test"Other'))
+        setup = (ROOT / 'scripts/installer/Vex.iss').read_text(encoding='utf-8-sig')
         self.assertIn('AppId={#InstallerTestId}', setup)
         self.assertIn('DefaultDirName={localappdata}\\Temp\\{#InstallerTestId}', setup)
 
@@ -45,7 +45,7 @@ class InstallerContractTest(unittest.TestCase):
             self.assertEqual(struct.unpack_from('>II', data, 16), tuple(n * scale for n in module.WINDOW_SIZE))
 
     def test_windows_uses_native_controls_and_only_brand_bitmaps(self):
-        script = (ROOT / 'scripts/installer/Texweft.Setup.iss').read_text(encoding='utf-8-sig')
+        script = (ROOT / 'scripts/installer/Vex.Setup.iss').read_text(encoding='utf-8-sig')
         self.assertIn('TNewButton.Create', script)
         self.assertIn('TNewCheckBox.Create', script)
         self.assertIn('UTF8Decode(LicenseText)', script)
@@ -57,14 +57,14 @@ class InstallerContractTest(unittest.TestCase):
             self.assertEqual(data[:2], b'BM')
             self.assertEqual(struct.unpack_from('<ii', data, 18), (224, 224))
 
-    def test_upgrade_ids_stay_stable(self):
-        windows = (ROOT / 'scripts/installer/Texweft.iss').read_text(encoding='utf-8-sig')
+    def test_package_names_and_windows_upgrade_id(self):
+        windows = (ROOT / 'scripts/installer/Vex.iss').read_text(encoding='utf-8-sig')
         self.assertIn('51E79E85-AD4C-4D48-92EC-C1EA09FB4E56', windows)
-        self.assertIn('Texweft.Markdown', windows)
+        self.assertIn('Vex.Markdown', windows)
         self.assertIn('OutputBaseFilename=Vex-v', windows)
         self.assertIn('DefaultDirName={localappdata}\\Programs\\Vex', windows)
         linux = (ROOT / 'scripts/package_linux.sh').read_text(encoding='utf-8')
-        self.assertIn('Package: texweft', linux)
+        self.assertIn('Package: vex', linux)
         self.assertIn('Name=Vex', linux)
         self.assertIn('Name[zh_CN]=维刻 Vex', linux)
         self.assertIn('Vex-v$version-linux-', linux)

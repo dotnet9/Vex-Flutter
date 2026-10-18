@@ -77,7 +77,7 @@ class ReleaseContractTest(unittest.TestCase):
         path = self.directory / 'unsigned.ipa'
         with zipfile.ZipFile(path, 'w') as ipa:
             ipa.writestr('Payload/Runner.app/Info.plist', plistlib.dumps({
-                'CFBundleIdentifier': 'com.codewf.texweft', 'CFBundleShortVersionString': self.version}))
+                'CFBundleIdentifier': 'com.codewf.vex', 'CFBundleShortVersionString': self.version}))
             ipa.writestr('Payload/Runner.app/Runner', bytes(2048))
         with self.assertRaisesRegex(ValueError, 'signature is missing'):
             release.check_installer(path, 'ios', self.version)

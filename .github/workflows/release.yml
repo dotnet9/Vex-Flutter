@@ -184,7 +184,7 @@ jobs:
         run: flutter pub get --enforce-lockfile
       - name: 构建 Windows 正式入口
         if: runner.os == 'Windows'
-        working-directory: apps/texweft
+        working-directory: apps/vex
         run: flutter build windows --release --target lib/main.dart
       - name: 制作并安装卸载验证 Windows 安装器
         if: runner.os == 'Windows'
@@ -197,7 +197,7 @@ jobs:
           ./scripts/test_windows_installer.ps1 -Installer "artifacts/release/Vex-v$env:APP_VERSION-windows-x64-setup.exe" -Version $env:APP_VERSION
       - name: 构建 Linux 正式入口
         if: runner.os == 'Linux'
-        working-directory: apps/texweft
+        working-directory: apps/vex
         run: flutter build linux --release --target lib/main.dart
       - name: 制作并安装验证 Linux DEB
         if: runner.os == 'Linux'
@@ -207,20 +207,20 @@ jobs:
         run: |
           bash scripts/package_linux.sh "$APP_VERSION" "${TARGET#linux-}"
           sudo apt-get install -y "./artifacts/release/Vex-v$APP_VERSION-$TARGET.deb"
-          test -x /usr/bin/texweft
-          test -f /usr/share/applications/com.codewf.texweft.desktop
-          if ldd /usr/lib/texweft/texweft | grep 'not found'; then exit 1; fi
+          test -x /usr/bin/vex
+          test -f /usr/share/applications/com.codewf.vex.desktop
+          if ldd /usr/lib/vex/vex | grep 'not found'; then exit 1; fi
           set +e
-          xvfb-run -a timeout 15s texweft > "$RUNNER_TEMP/texweft-startup.log" 2>&1
+          xvfb-run -a timeout 15s vex > "$RUNNER_TEMP/vex-startup.log" 2>&1
           result=$?
           set -e
-          cat "$RUNNER_TEMP/texweft-startup.log"
+          cat "$RUNNER_TEMP/vex-startup.log"
           test "$result" -eq 124
-          sudo apt-get remove -y texweft
-          test ! -f /usr/lib/texweft/texweft
+          sudo apt-get remove -y vex
+          test ! -f /usr/lib/vex/vex
       - name: 构建 macOS 通用正式入口
         if: runner.os == 'macOS'
-        working-directory: apps/texweft
+        working-directory: apps/vex
         env:
           CI: 'true'
         run: |
@@ -286,7 +286,7 @@ jobs:
       - name: 安装锁定依赖
         run: flutter pub get --enforce-lockfile
       - name: 构建三架构 production APK
-        working-directory: apps/texweft
+        working-directory: apps/vex
         run: flutter build apk --release --flavor production --split-per-abi --target-platform android-arm,android-arm64,android-x64 --target lib/main.dart
       - name: 验证签名、包名、版本与架构
         env:
@@ -294,15 +294,15 @@ jobs:
         run: |
           # Hosted images also contain newer Build Tools. Use the same pinned
           # verifier as the locally validated SDK rather than selecting the newest.
-          mkdir -p "$RUNNER_TEMP/texweft-apk-sdk/build-tools"
-          ln -s "$ANDROID_HOME/build-tools/36.0.0" "$RUNNER_TEMP/texweft-apk-sdk/build-tools/36.0.0"
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs apps/texweft/build/app/outputs/flutter-apk/app-armeabi-v7a-production-release.apk
-          python scripts/collect_android.py --sdk-root "$RUNNER_TEMP/texweft-apk-sdk" --certificate-sha256 "$CERT_SHA256"
+          mkdir -p "$RUNNER_TEMP/vex-apk-sdk/build-tools"
+          ln -s "$ANDROID_HOME/build-tools/36.0.0" "$RUNNER_TEMP/vex-apk-sdk/build-tools/36.0.0"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs apps/vex/build/app/outputs/flutter-apk/app-armeabi-v7a-production-release.apk
+          python scripts/collect_android.py --sdk-root "$RUNNER_TEMP/vex-apk-sdk" --certificate-sha256 "$CERT_SHA256"
           python scripts/release_tools.py checksums --targets android-armv7 android-arm64 android-x64
           python scripts/release_tools.py verify --targets android-armv7 android-arm64 android-x64
       - name: 清理临时签名文件
         if: always()
-        run: rm -f .signing/android-release.jks apps/texweft/android/key.properties
+        run: rm -f .signing/android-release.jks apps/vex/android/key.properties
       - uses: actions/upload-artifact@v4
         with:
           name: installers-android
@@ -329,7 +329,7 @@ jobs:
           cache: true
       - run: flutter pub get --enforce-lockfile
       - name: 编译正式 iOS 入口
-        working-directory: apps/texweft
+        working-directory: apps/vex
         run: flutter build ios --release --no-codesign --target lib/main.dart
 
   release:

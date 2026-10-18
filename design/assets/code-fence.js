@@ -36,5 +36,5 @@
     input.addEventListener('input', () => { input.value = input.value.replace(/[\s`]/g, ''); });
     row.append(input); return row;
   }
-  window.TexweftCodeFence = { parse, footer };
+  window.VexCodeFence = { parse, footer };
 })();

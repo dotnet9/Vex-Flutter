@@ -57,7 +57,7 @@
         if (!element.isConnected || element.dataset.rendered) continue;
         element.dataset.rendered = 'pending';
         try {
-          var result = await mermaid.render('texweft-diagram-' + (++serial), element.dataset.source);
+          var result = await mermaid.render('vex-diagram-' + (++serial), element.dataset.source);
           if (!element.isConnected) continue;
           if (revision !== themeRevision) { delete element.dataset.rendered; continue; }
           element.innerHTML = result.svg; element.dataset.rendered = 'true';
@@ -77,7 +77,7 @@
     if (window.VexPreferences?.values.mermaid === false) return '<pre' + attr + '><code>' + escape(block.raw || block.text) + '</code></pre>';
     return '<div class="md-diagram"' + attr + ' data-source="' + escape(block.text) + '" data-label="' + escape(VexMermaid.label(block.text)) + '"><pre><code>' + escape(block.text) + '</code></pre></div>';
   }
-  window.TexweftRendering = { inline: inline, special: special, renderSpecial: renderSpecial, diagrams: diagrams };
+  window.VexRendering = { inline: inline, special: special, renderSpecial: renderSpecial, diagrams: diagrams };
   new MutationObserver(function () {
     themeRevision++;
     document.querySelectorAll('.md-diagram').forEach(function (element) { delete element.dataset.rendered; }); diagrams();

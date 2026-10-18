@@ -3,11 +3,11 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 version="${1:?Version is required}"
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-app="$root/apps/texweft/build/macos/Build/Products/Release/texweft.app"
+app="$root/apps/vex/build/macos/Build/Products/Release/Vex.app"
 [[ -d "$app" ]]
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")" == "$version" ]]
 # This release is one universal DMG for Intel and Apple silicon.
-for binary in "$app/Contents/MacOS/texweft" "$app/Contents/Frameworks/App.framework/App" "$app/Contents/Frameworks/FlutterMacOS.framework/FlutterMacOS"; do
+for binary in "$app/Contents/MacOS/Vex" "$app/Contents/Frameworks/App.framework/App" "$app/Contents/Frameworks/FlutterMacOS.framework/FlutterMacOS"; do
   lipo "$binary" -verify_arch x86_64 arm64
 done
 stage="$(mktemp -d)"

@@ -30,14 +30,14 @@
       case 'editor': return control('font','正文字体',[['system','系统默认'],['serif','系统衬线'],['mono','等宽']]) + control('size','正文字号',{range:true,min:12,max:24,unit:' px'}) + control('codeSize','代码字号',{range:true,min:11,max:20,unit:' px'}) + control('indent','缩进',[[2,'2 空格'],[4,'4 空格'],[8,'8 空格']]) + control('autoPair','自动配对符号') + heading('代码与源码') + control('codeWrap','代码自动换行') + control('lineNumbers','显示源码行号') + heading('写作') + control('focus','专注模式') + control('typewriter','打字机模式');
       case 'markdown': return control('math','数学公式') + control('chemistry','化学表达式') + control('mermaid','Mermaid 图表') + heading('行内语法') + control('subscript','上下标') + control('highlight','高亮标记') + control('autoLink','自动识别链接') + control('softBreak','单次换行显示为换行');
       case 'images': return control('imageCopy','插入时复制图片') + control('imageRelative','使用相对路径') + control('imageFolder','资源目录',{},'相对于当前文档');
-      case 'appearance': return control('theme','明暗模式',[['system','跟随系统'],['light','浅色'],['dark','深色']]) + palettes() + control('typography','文档排版',TexweftTypes.map(t => [t.key,t.label])) + control('compact','紧凑间距') + control('zoom','内容缩放',[[90,'90%'],[100,'100%'],[110,'110%'],[125,'125%']]) + control('statusbar','显示状态栏') + control('motion','界面动效') + heading('文档水印') + control('watermarkPreview','正文中显示') + control('watermarkExport','导出时包含',null,'HTML / PDF') + control('watermarkText','水印文字',{maxlength:60}) + control('watermarkOpacity','不透明度',{range:true,min:0,max:50,unit:'%'}) + '<div class="vex-watermark-sample" aria-label="水印样式预览"><strong>写下想法，看见脉络。</strong><span>维刻 Vex</span></div>';
+      case 'appearance': return control('theme','明暗模式',[['system','跟随系统'],['light','浅色'],['dark','深色']]) + palettes() + control('typography','文档排版',VexTypes.map(t => [t.key,t.label])) + control('compact','紧凑间距') + control('zoom','内容缩放',[[90,'90%'],[100,'100%'],[110,'110%'],[125,'125%']]) + control('statusbar','显示状态栏') + control('motion','界面动效') + heading('文档水印') + control('watermarkPreview','正文中显示') + control('watermarkExport','导出时包含',null,'HTML / PDF') + control('watermarkText','水印文字',{maxlength:60}) + control('watermarkOpacity','不透明度',{range:true,min:0,max:50,unit:'%'}) + '<div class="vex-watermark-sample" aria-label="水印样式预览"><strong>写下想法，看见脉络。</strong><span>维刻 Vex</span></div>';
       case 'export': return control('exportFormat','默认格式',[['html','HTML'],['pdf','PDF'],['markdown','Markdown'],['docx','Word'],['png','导图 PNG']]) + control('exportFolder','默认目录',{}) + control('exportOpen','导出后打开') + heading('文档水印') + control('watermarkExport','导出时包含',null,'HTML / PDF') + '<button class="vex-button" data-vex-section="appearance">水印样式…</button>' + heading('PDF') + control('pdfSize','纸张',['A4','Letter','A5']) + control('pdfMargin','页边距',{range:true,min:10,max:30,unit:' mm'}) + heading('HTML') + control('htmlStyle','保留当前文档排版');
       case 'mcp': return mcpContent();
       default: return '';
     }
   }
   function palettes() {
-    return `<div class="vex-pref-row"><span>界面配色</span><div class="vex-palette-swatches" role="group" aria-label="界面配色">${TexweftPalettes.map(p => `<button class="vex-swatch" data-vex-palette="${p.key}" aria-label="${p.label}" title="${p.label}" aria-pressed="${values.palette === p.key}" style="--swatch:${p.light}"></button>`).join('')}</div></div>`;
+    return `<div class="vex-pref-row"><span>界面配色</span><div class="vex-palette-swatches" role="group" aria-label="界面配色">${VexPalettes.map(p => `<button class="vex-swatch" data-vex-palette="${p.key}" aria-label="${p.label}" title="${p.label}" aria-pressed="${values.palette === p.key}" style="--swatch:${p.light}"></button>`).join('')}</div></div>`;
   }
   function draftRow(key, label, type = 'text') {
     const value = mcpDraft[key];
@@ -178,7 +178,7 @@
   }
   window.addEventListener('storage',event => { if (!event.key?.startsWith('vex-prototype-pref:')) return; const key = event.key.slice('vex-prototype-pref:'.length); if (!(key in defaults) || (query.get('child') === '1' && key.startsWith('mcp'))) return; try {set(key,event.newValue === null ? defaults[key] : JSON.parse(event.newValue),false);} catch {} });
   document.addEventListener('keydown',event => {
-    if ((event.ctrlKey || event.metaKey) && event.key === ',' && !window.TexweftPresentation?.active) { event.preventDefault(); event.stopImmediatePropagation(); open(); return; }
+    if ((event.ctrlKey || event.metaKey) && event.key === ',' && !window.VexPresentation?.active) { event.preventDefault(); event.stopImmediatePropagation(); open(); return; }
     if (!host || host.hidden || event.isComposing) return;
     if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); close(); }
     if (event.key === 'Tab') { const items = [...host.querySelectorAll('button,input,select')].filter(el => !el.disabled && !el.closest('[inert]') && el.getClientRects().length); const first = items[0], last = items.at(-1); if (event.shiftKey && document.activeElement === first) {event.preventDefault();last?.focus();} else if (!event.shiftKey && document.activeElement === last) {event.preventDefault();first?.focus();} }

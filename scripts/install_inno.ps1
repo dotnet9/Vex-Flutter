@@ -1,9 +1,9 @@
 [CmdletBinding()]
-param([string] $Destination = (Join-Path ([IO.Path]::GetTempPath()) 'texweft-inno-6.7.2'))
+param([string] $Destination = (Join-Path ([IO.Path]::GetTempPath()) 'vex-inno-6.7.2'))
 $ErrorActionPreference = 'Stop'
 $compiler = Join-Path $Destination 'ISCC.exe'
 if (-not (Test-Path -LiteralPath $compiler)) {
-    $download = Join-Path ([IO.Path]::GetTempPath()) 'texweft-innosetup-6.7.2.exe'
+    $download = Join-Path ([IO.Path]::GetTempPath()) 'vex-innosetup-6.7.2.exe'
     Invoke-WebRequest 'https://github.com/jrsoftware/issrc/releases/download/is-6_7_2/innosetup-6.7.2.exe' -OutFile $download
     $expected = '9f27f8386e554eb093336a1ca5c2dcacb7dbf04ab020889491d7ac53c38a12ff'
     if ((Get-FileHash -LiteralPath $download -Algorithm SHA256).Hash -ne $expected) { throw 'Inno Setup download checksum mismatch.' }

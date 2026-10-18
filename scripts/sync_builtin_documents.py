@@ -11,7 +11,7 @@ def main():
     args = parser.parse_args()
     for name in ('ACKNOWLEDGEMENTS.md', 'CHANGELOG.md'):
         source = ROOT / 'design/documents' / name
-        target = ROOT / 'apps/texweft/assets/documents' / name
+        target = ROOT / 'apps/vex/assets/documents' / name
         content = source.read_bytes()
         if args.check:
             if not target.exists() or target.read_bytes() != content:

@@ -1,13 +1,13 @@
-name: texweft_workspace
+name: vex_workspace
 publish_to: none
 environment:
   sdk: ^3.13.0
 workspace:
-  - apps/texweft
-  - packages/texweft_markdown_core
-  - packages/texweft_editor
-  - packages/texweft_mindmap
-  - packages/texweft_editor/example
-  - packages/texweft_mindmap/example
+  - apps/vex
+  - packages/vex_markdown_core
+  - packages/vex_editor
+  - packages/vex_mindmap
+  - packages/vex_editor/example
+  - packages/vex_mindmap/example
 dev_dependencies:
   lints: ^6.0.0

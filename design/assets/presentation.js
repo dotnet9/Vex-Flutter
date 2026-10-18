@@ -39,7 +39,7 @@
     var narrow = VexOverlay.width() <= 699, outline = !narrow;
     var root = document.createElement('section'), releaseOverlay;
     var priorFullscreen = document.fullscreenElement, requestedFullscreen = false;
-    root.className = 'texweft-deck'; root.tabIndex = -1; root.setAttribute('role', 'dialog');
+    root.className = 'vex-deck'; root.tabIndex = -1; root.setAttribute('role', 'dialog');
     root.setAttribute('aria-modal', 'true');
     root.innerHTML = '<header><button type="button" data-deck="outline">☷</button><strong></strong><button type="button" data-deck="markdown"></button><button type="button" data-deck="map"></button><button type="button" data-deck="exit">×</button></header>' +
       '<div class="deck-stage"><nav></nav><div class="deck-scroll"><article class="md-body markdown-body"></article></div><div class="deck-map"><div class="deck-map-scene"></div></div></div>' +
@@ -60,7 +60,7 @@
     function zoomMap(factor) { var next = Math.max(Math.min(.15, fitScale()), Math.min(3, mapScale * factor)), ratio = next / mapScale; mapX = map.clientWidth / 2 + (mapX - map.clientWidth / 2) * ratio; mapY = map.clientHeight / 2 + (mapY - map.clientHeight / 2) * ratio; mapScale = next; transformMap(); }
     function labels() {
       var language = options.language?.() || 'zh-CN';
-      return TexweftPresentationLabels[language] || TexweftPresentationLabels['en-US'];
+      return VexPresentationLabels[language] || VexPresentationLabels['en-US'];
     }
     function render(reset) {
       var l = labels();
@@ -102,7 +102,7 @@
         nav.appendChild(button);
       });
       nav.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest' });
-      if (reset) { body.innerHTML = pages[page].html; scroll.scrollTop = 0; TexweftRendering.diagrams(); }
+      if (reset) { body.innerHTML = pages[page].html; scroll.scrollTop = 0; VexRendering.diagrams(); }
       scene.querySelectorAll('[data-map-page]').forEach(function (node) { node.classList.toggle('selected', +node.dataset.mapPage === page); });
       root.querySelector('[data-deck="smaller"]').innerHTML = mapMode && narrow ? controlIcon('min') : mapMode ? '−' : 'A−';
       root.querySelector('[data-deck="larger"]').innerHTML = mapMode && narrow ? controlIcon('plus') : mapMode ? '+' : 'A+';
@@ -179,5 +179,5 @@
       }).catch(function () {});
     }
   }
-  window.TexweftPresentation = { open: open, buildDeck: buildDeck, get active() { return !!active; } };
+  window.VexPresentation = { open: open, buildDeck: buildDeck, get active() { return !!active; } };
 })();

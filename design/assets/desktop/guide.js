@@ -4,8 +4,8 @@
   var $ = function (selector) { return document.querySelector(selector); };
   var open = false, preparing = false, completed = false, session = null, stepIndex = 0, previousFocus;
   var frame, settledTimer, feedback = [], stepText = '';
-  var storageKey = 'texweft-design-guide';
-  var layer = document.createElement('div'); layer.id = 'texweft-guide'; layer.className = 'tour-layer'; layer.hidden = true;
+  var storageKey = 'vex-design-guide';
+  var layer = document.createElement('div'); layer.id = 'vex-guide'; layer.className = 'tour-layer'; layer.hidden = true;
   layer.innerHTML = '<svg class="tour-mask" aria-hidden="true"><defs><mask id="tour-cutouts" maskUnits="userSpaceOnUse"><rect width="100%" height="100%" fill="white"></rect><g class="tour-cutouts" fill="black"></g></mask></defs><rect class="tour-scrim" width="100%" height="100%" mask="url(#tour-cutouts)"></rect></svg><div class="tour-rings"></div><section class="tour-card" role="dialog" aria-modal="false" aria-labelledby="tour-title" aria-describedby="tour-description"></section>';
   document.body.appendChild(layer);
   var pointer = document.createElement('div'); pointer.className = 'vex-tour-pointer'; pointer.setAttribute('aria-hidden','true'); layer.appendChild(pointer);
@@ -16,20 +16,20 @@
       name: '写作', title: '直接写作', description: '点击正文直接写，也可切换源码编辑 Markdown。', tip: '这里是演练文档，结束后会回到原文。',
       targets: function () { return ['.edit-methods', visible('#instant-pane') ? '#instant-content > .instant-block:nth-child(2)' : '#markdown-input']; },
       allow: '.edit-methods button, #instant-content .instant-block, #markdown-input',
-      prepare: function () { TexweftWorkspace.setLayout('instant'); $('.instant-scroll').scrollTop = 0; }
+      prepare: function () { VexWorkspace.setLayout('instant'); $('.instant-scroll').scrollTop = 0; }
     },
     {
       name: '导航', title: '文件与大纲', description: '文件列表切换当前文档，大纲帮你快速定位章节。', tip: '点一个大纲章节，看看正文定位到哪里。',
       targets: function () { return ['.side-tabs', '#view-surface'].concat($('.side-tab.on').dataset.pane === 'outline' ? ['#outline-body'] : ['.sidebar-search', '.file-row.selected']); },
       allow: '.side-tabs button, #outline-body button, #file-filter, .file-row.selected',
-      prepare: function () { TexweftWorkspace.setLayout('instant'); TexweftProto.handleAction('pane-outline'); }
+      prepare: function () { VexWorkspace.setLayout('instant'); VexProto.handleAction('pane-outline'); }
     },
     {
       name: '章节', title: '先梳理，再展开', description: '双击修改标题；拖动章节时，正文和子章节一起移动。', tip: '也可以从节点详情新增同级或子章节。',
       targets: function () { return ['@chapters'].concat(visible('#node-inspector') ? ['#node-inspector'] : []).concat(visible('#chapter-delete-dialog') ? ['#chapter-delete-dialog > section'] : []); },
       allow: '#map-viewport, .chapter-toolbar, #node-inspector, #chapter-delete-dialog',
       prepare: function () {
-        TexweftWorkspace.setLayout('map');
+        VexWorkspace.setLayout('map');
         if ($('#chapter-headings-only').getAttribute('aria-pressed') !== 'true') $('#chapter-headings-only').click();
         requestAnimationFrame(function () { requestAnimationFrame(function () { if (open && stepIndex === 2) fitChapters(); }); });
       }
@@ -38,13 +38,13 @@
       name: '布局', title: '边写边看全局', description: '试选视图组合，源码、正文和导图始终同步。', tip: '试选八种组合；三视图在上方编辑与预览，下方整理文章脉络。',
       targets: function () { return ['#workspace-layout', '.view-switch', '#view-surface'].concat(visible('#workspace-layout-menu') ? ['#workspace-layout-menu'] : []); },
       allow: '#workspace-layout, .view-switch button, #workspace-layout-menu .layout-preset, #reset-workspace, #workspace-layout-menu .workspace-menu-heading button',
-      prepare: function () { TexweftWorkspace.setLayout('instant-map'); fitComparison(); }
+      prepare: function () { VexWorkspace.setLayout('instant-map'); fitComparison(); }
     },
     {
       name: '排版', title: '让文章有自己的样子', description: '点击排版试选正文样式，也可以切换紧凑布局。', tip: '正文排版与界面配色分别设置。',
       targets: function () { return ['#edit-options [data-action="typography"]', '#view-surface'].concat(visible('#typography-panel') ? ['#typography-panel'] : []); },
       allow: '#edit-options [data-action="typography"], #typography-panel',
-      prepare: function () { TexweftWorkspace.setLayout('instant'); $('.instant-scroll').scrollTop = 0; }
+      prepare: function () { VexWorkspace.setLayout('instant'); $('.instant-scroll').scrollTop = 0; }
     },
     {
       name: '分享', title: '保存，也方便分享', description: '保存文档，或将排好版的内容导出、复制到发布平台。', tip: '文件 → 导出；工具 → 复制到公众号等平台。',
@@ -52,15 +52,15 @@
         return ['.save-button', '.tb-menuitem[data-menu="文件(F)"]', '.tb-menuitem[data-menu="工具(T)"]'].concat(visible('.menu-flyout') ? ['.menu-flyout'] : []).concat(visible('.submenu[data-parent-label="导出"]') ? ['.submenu[data-parent-label="导出"]'] : []);
       },
       allow: '.save-button, .tb-menuitem[data-menu="文件(F)"], .tb-menuitem[data-menu="工具(T)"], .menu-item[data-menu-action="save"], .menu-item[data-menu-label="导出"], .menu-item[data-menu-action="export-html"], .menu-item[data-menu-label^="复制到"]',
-      prepare: function () { TexweftWorkspace.setLayout('read'); $('.reading-scroll').scrollTop = 0; }
+      prepare: function () { VexWorkspace.setLayout('read'); $('.reading-scroll').scrollTop = 0; }
     }
   ];
-  try { $('#guide-launch').hidden = !!TexweftStorage.getItem(storageKey); } catch (_) {}
+  try { $('#guide-launch').hidden = !!VexStorage.getItem(storageKey); } catch (_) {}
   function hideExtras() {
     if (visible('#chapter-delete-dialog')) $('#chapter-delete-cancel').click();
     ['#typography-panel', '#map-settings', '#node-inspector', '#workspace-layout-menu'].forEach(function (selector) { var node = $(selector); if (node) node.hidden = true; });
-    var languageMenu = $('#texweft-language-menu'); if (languageMenu) languageMenu.open = false;
-    $('#workspace-layout').setAttribute('aria-expanded', 'false'); TexweftProto.closeMenu();
+    var languageMenu = $('#vex-language-menu'); if (languageMenu) languageMenu.open = false;
+    $('#workspace-layout').setAttribute('aria-expanded', 'false'); VexProto.closeMenu();
   }
   function mark(index, message) {
     if (!open || preparing || index !== stepIndex) return;
@@ -81,7 +81,7 @@
     if (!open) return;
     preparing = true; hideExtras(); stepIndex = Math.max(0, Math.min(steps.length - 1, index));
     layer.dataset.step = stepIndex + 1; $('.app-window').dataset.guideStep = stepIndex + 1;
-    steps[stepIndex].prepare(); stepText = TexweftWorkbench.text; renderCard(); preparing = false; schedule();
+    steps[stepIndex].prepare(); stepText = VexWorkbench.text; renderCard(); preparing = false; schedule();
     if (!matchMedia('(prefers-reduced-motion:reduce)').matches && document.documentElement.dataset.motion !== 'false') card.animate([{opacity:0,translate:'0 5px'},{opacity:1,translate:'0 0'}],{duration:180,easing:'cubic-bezier(.2,.8,.2,1)'});
     $('.tour-next').focus({ preventScroll: true });
     clearTimeout(settledTimer); settledTimer = setTimeout(schedule, 260);
@@ -89,14 +89,14 @@
   function start() {
     if (open) return;
     previousFocus = document.activeElement; feedback = []; completed = false;
-    session = TexweftProto.beginGuideSession(); open = true; layer.hidden = false; go(0);
+    session = VexProto.beginGuideSession(); open = true; layer.hidden = false; go(0);
   }
   function close() {
     if (!open) return;
     preparing = true; hideExtras(); open = false; preparing = false;
     clearTimeout(settledTimer); cancelAnimationFrame(frame); layer.hidden = true; delete $('.app-window').dataset.guideStep;
-    var snapshot = session; session = null; if (snapshot) TexweftProto.endGuideSession(snapshot);
-    try { TexweftStorage.setItem(storageKey, completed ? 'completed' : 'skipped'); } catch (_) {}
+    var snapshot = session; session = null; if (snapshot) VexProto.endGuideSession(snapshot);
+    try { VexStorage.setItem(storageKey, completed ? 'completed' : 'skipped'); } catch (_) {}
     $('#guide-launch').hidden = true;
     var target = previousFocus && previousFocus.isConnected && previousFocus.getBoundingClientRect().width && !previousFocus.closest('[hidden]') ? previousFocus : $('.tb-menuitem[data-menu="帮助(H)"]');
     if (target) target.focus({ preventScroll: true });
@@ -127,8 +127,8 @@
   }, true);
   document.addEventListener('input', function () { schedule(); }, true);
   document.addEventListener('change', function (event) { if (stepIndex === 4 && event.target.id === 'typography-compact') mark(4, '正文间距已更新。'); }, true);
-  window.addEventListener('texweft-content-changed', function () {
-    if (!open || preparing || TexweftWorkbench.text === stepText) return;
+  window.addEventListener('vex-content-changed', function () {
+    if (!open || preparing || VexWorkbench.text === stepText) return;
     if (stepIndex === 0) mark(0, '文字已更新，可以继续写作。');
     if (stepIndex === 2) mark(2, '章节已更新，正文同步修改。');
   });
@@ -194,16 +194,16 @@
     if (target) VexTourPlacement.attach(card,pointer,target,bounds,['bottom','right','left','bottom','bottom','bottom'][stepIndex],candidates.filter(function (r) { return r !== target; }));
   }
   function fitChapters() {
-    if (!open || stepIndex !== 2 || !TexweftWorkbench.state.bounds) return;
-    var viewport = $('#map-viewport').getBoundingClientRect(), bounds = TexweftWorkbench.state.bounds;
+    if (!open || stepIndex !== 2 || !VexWorkbench.state.bounds) return;
+    var viewport = $('#map-viewport').getBoundingClientRect(), bounds = VexWorkbench.state.bounds;
     var left = Math.max(viewport.left,appBounds().left+18+card.offsetWidth+18), width = Math.max(100,viewport.right-left-18), height = viewport.height-36;
-    var state = TexweftWorkbench.state; state.scale = Math.min(1,width/bounds.width,height/bounds.height);
+    var state = VexWorkbench.state; state.scale = Math.min(1,width/bounds.width,height/bounds.height);
     state.x = left-viewport.left; state.y = (viewport.height-bounds.height*state.scale)/2;
-    TexweftWorkbench.renderMap(); schedule();
+    VexWorkbench.renderMap(); schedule();
   }
   function fitComparison() {
     requestAnimationFrame(function () { requestAnimationFrame(function () {
-      if (open && stepIndex === 3 && visible('#map-pane')) { TexweftWorkbench.fit(false); schedule(); }
+      if (open && stepIndex === 3 && visible('#map-pane')) { VexWorkbench.fit(false); schedule(); }
     }); });
   }
   function layout() { if (!open) return; var rects = steps[stepIndex].targets().map(targetRect).filter(Boolean); position(rects); draw(rects); }
@@ -214,6 +214,6 @@
   window.addEventListener('resize', function () { schedule(); if (stepIndex === 2) requestAnimationFrame(fitChapters); });
   window.addEventListener('vex-menu-positioned',schedule);
   document.addEventListener('scroll', schedule, true);
-  window.TexweftGuide = {start:start,close:close,get active() {return open;}};
+  window.VexGuide = {start:start,close:close,get active() {return open;}};
   if (new URLSearchParams(location.search).get('tour') === '1') requestAnimationFrame(start);
 })();

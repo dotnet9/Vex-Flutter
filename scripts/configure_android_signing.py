@@ -30,7 +30,7 @@ def configure():
     key = directory / 'android-release.jks'
     key.write_bytes(base64.b64decode(values['ANDROID_KEYSTORE_BASE64'], validate=True))
     key.chmod(0o600)
-    properties = ROOT / 'apps/texweft/android/key.properties'
+    properties = ROOT / 'apps/vex/android/key.properties'
     entries = {'storeFile': key.as_posix(), 'storePassword': values['ANDROID_STORE_PASSWORD'],
                'keyAlias': values['ANDROID_KEY_ALIAS'], 'keyPassword': values['ANDROID_KEY_PASSWORD']}
     properties.write_text(''.join(f'{k}={property_value(v)}\n' for k, v in entries.items()), encoding='ascii')

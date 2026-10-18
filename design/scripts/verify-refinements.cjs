@@ -34,15 +34,15 @@ const changelog = fs.readFileSync(path.join(root,'documents/CHANGELOG.md'),'utf8
 assert.match(changelog,/## v0\.2\.2（2026-10-17）\n\n- /);
 assert.match(changelog,/## v0\.2\.1（2026-10-17）\n\n- /);
 const app = fs.readFileSync(path.join(root,'assets/app.js'),'utf8');
-const adaptive = fs.readFileSync(path.join(root,'Texweft-Adaptive.html'),'utf8');
+const adaptive = fs.readFileSync(path.join(root,'Vex-Adaptive.html'),'utf8');
 const css = fs.readFileSync(path.join(root,'assets/prototype.css'),'utf8');
-const desktop = fs.readFileSync(path.join(root,'Texweft.html'),'utf8');
+const desktop = fs.readFileSync(path.join(root,'Vex.html'),'utf8');
 const interact = fs.readFileSync(path.join(root,'assets/desktop/interact.js'),'utf8');
 const workspace = fs.readFileSync(path.join(root,'assets/desktop/workspace.js'),'utf8');
 const elementMenu = fs.readFileSync(path.join(root,'assets/element-menu.js'),'utf8');
 const elementCSS = fs.readFileSync(path.join(root,'assets/element-menu.css'),'utf8');
 assert.match(desktop,/<span data-proto-label="关于">关于<\/span>/);
-assert.ok(!desktop.includes('data-l10n="AboutTexweftTitle"'));
+assert.ok(!desktop.includes('data-l10n="AboutVexTitle"'));
 assert.ok(!interact.includes("a.textContent = '›'"));
 assert.match(interact,/class="ico vex-expand-icon"/);
 assert.ok(!workspace.includes('>⌄</span>'));

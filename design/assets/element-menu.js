@@ -33,7 +33,7 @@
       return {block:all.find(b => b.line === line) || all.find(b => line >= b.line && line <= b.endLine),wrapper};
     }
     function serialized(wrapper, block) {
-      if(block.type==='code'){const fence=TexweftCodeFence.parse(block.raw);if(fence)return fence.write((wrapper.querySelector('pre')||wrapper).textContent.replace(/\n$/,''),fence.language);}
+      if(block.type==='code'){const fence=VexCodeFence.parse(block.raw);if(fence)return fence.write((wrapper.querySelector('pre')||wrapper).textContent.replace(/\n$/,''),fence.language);}
       if(block.type==='list'&&/^\s*[-+*]\s+\[[ xX]\]/.test(block.raw)&&!wrapper.querySelector('input')){
         const item=wrapper.tagName==='LI'?wrapper:wrapper.querySelector('li');
         if(item){const walker=document.createTreeWalker(item,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode())){if(!node.nodeValue.replace(/\uE110VEX(?:START|END)\uE111/g,''))continue;node.nodeValue=node.nodeValue.replace(/^((?:\uE110VEX(?:START|END)\uE111)*)(?:☑|☐) ?/,'$1');break;}const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.checked=/^\s*[-+*]\s+\[[xX]\]/.test(block.raw);item.prepend(checkbox);}
@@ -212,7 +212,7 @@
       if(action.startsWith('copy')||action==='cut'){
         let value=context.working.slice(context.start,context.end);
         if(action==='copy-url')value=context.token?.url||'';
-        if(action==='copy-code')value=TexweftCodeFence.parse(context.block.raw)?.code ?? context.block.raw.replace(/^\$\$\n?|\n?\$\$$/g,'');
+        if(action==='copy-code')value=VexCodeFence.parse(context.block.raw)?.code ?? context.block.raw.replace(/^\$\$\n?|\n?\$\$$/g,'');
         if(action==='copy-html')value=TexEditor.render(value);
         if(action==='copy-plain'||action==='cut')value=context.plain||value;
         if(!value)return;
@@ -243,11 +243,11 @@
       if(action==='insert-above'||action==='insert-below'){const at=action==='insert-above'?context.block.start:context.block.end;apply(context.original.slice(0,at)+'\n\n新段落\n\n'+context.original.slice(at),at+2,context);return;}
       if(action.startsWith('mermaid-')){insert(VexMermaid.snippet(action.slice(8)),context);return;}
       if(action==='expand-diagram'){options.finish();const block=options.findBlock(context.block.line);const editor=block?.querySelector('.diagram-editor');if(editor){editor.click();}else options.editSource(context.block.line);return;}
-      const fence=TexweftCodeFence.parse(context.block.raw),math=context.block.type==='math'||action==='insert-math',code=fence?.code ?? (math?context.block.raw.replace(/^\$\$\n?|\n?\$\$$/g,''):'');
-      if(action==='preview-block'){const host=dialog(math?'公式预览':'图表预览',`<div class="vex-element-preview markdown-body md-body">${TexEditor.render(context.block.raw)}</div>`);TexweftRendering.diagrams(host);return;}
+      const fence=VexCodeFence.parse(context.block.raw),math=context.block.type==='math'||action==='insert-math',code=fence?.code ?? (math?context.block.raw.replace(/^\$\$\n?|\n?\$\$$/g,''):'');
+      if(action==='preview-block'){const host=dialog(math?'公式预览':'图表预览',`<div class="vex-element-preview markdown-body md-body">${TexEditor.render(context.block.raw)}</div>`);VexRendering.diagrams(host);return;}
       if(['edit-block','insert-code','insert-math'].includes(action)){
         const inserting=action!=='edit-block', language=fence?.language||'';
-        dialog(math?'公式源码':'代码源码',(!math?field('语言','language',language):'')+area('源码',inserting?'':code),(host,error)=>{const value=host.querySelector('[name=content]').value,lang=math?'':host.querySelector('[name=language]').value.trim();if(/[\n`~]/.test(lang)){error('语言名称不能包含换行或围栏符号');return;}const raw=math?'$$\n'+value+'\n$$':(fence||TexweftCodeFence.parse('```\n\n```')).write(value,lang);closeDialog();if(inserting)insert('\n\n'+raw+'\n\n',context);else replaceBlock(raw,context);});
+        dialog(math?'公式源码':'代码源码',(!math?field('语言','language',language):'')+area('源码',inserting?'':code),(host,error)=>{const value=host.querySelector('[name=content]').value,lang=math?'':host.querySelector('[name=language]').value.trim();if(/[\n`~]/.test(lang)){error('语言名称不能包含换行或围栏符号');return;}const raw=math?'$$\n'+value+'\n$$':(fence||VexCodeFence.parse('```\n\n```')).write(value,lang);closeDialog();if(inserting)insert('\n\n'+raw+'\n\n',context);else replaceBlock(raw,context);});
       }
     }
     document.addEventListener('pointerdown',event=>{

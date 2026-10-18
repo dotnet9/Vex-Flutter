@@ -24,13 +24,13 @@ def main():
     output = ROOT / 'artifacts/release'
     output.mkdir(parents=True, exist_ok=True)
     for target, abi in ANDROID_ABIS.items():
-        source = ROOT / f'apps/texweft/build/app/outputs/flutter-apk/app-{abi}-production-release.apk'
+        source = ROOT / f'apps/vex/build/app/outputs/flutter-apk/app-{abi}-production-release.apk'
         verified = subprocess.check_output([str(apksigner), 'verify', '--verbose', '--print-certs', str(source)], text=True)
         certificates = re.findall(r'^Signer #\d+ certificate SHA-256 digest: (\w+)$', verified, re.M)
         if certificates != [fingerprint]:
             raise ValueError(f'Production signing identity mismatch: {abi}')
         badging = subprocess.check_output([str(aapt), 'dump', 'badging', str(source)], text=True, encoding='utf-8')
-        if not re.search(r"^package: name='com\.codewf\.texweft' versionCode='[1-9]\d*' versionName='" + re.escape(version) + "'", badging, re.M):
+        if not re.search(r"^package: name='com\.codewf\.vex' versionCode='[1-9]\d*' versionName='" + re.escape(version) + "'", badging, re.M):
             raise ValueError(f'Production package identity / version mismatch: {abi}')
         if 'application-debuggable' in badging:
             raise ValueError('Debuggable APK must not be released.')

@@ -1,5 +1,5 @@
 /* 仅用于交互原型的可编辑样例，不参与发布应用的首次启动。 */
-window.TexweftSamples = [
+window.VexSamples = [
   {
     name: '排版与写作.md',
     text: [

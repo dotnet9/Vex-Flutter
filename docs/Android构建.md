@@ -3,16 +3,16 @@
 使用 Flutter 3.47.7 stable、Android SDK 36、NDK 28.2、JDK 21。Gradle 使用仓库 Wrapper。首次执行 `flutter doctor -v` 检查本机工具链。
 
 ```powershell
-cd apps/texweft
+cd apps/vex
 flutter pub get
 flutter run --flavor preview -d <设备编号>
 flutter test integration_test/mobile_workspace_test.dart --flavor preview -d <设备编号>
 flutter build apk --release --flavor preview --split-per-abi --target-platform android-arm64,android-x64
 ```
 
-Android 命令显式指定 preview，包名 `com.codewf.texweft.preview`，应用名带“预览”，使用开发证书。应用不设置全局默认 flavor，避免影响桌面构建。ARM64 APK 用于通常的 Android 手机；x86_64 APK 用于对应模拟器。它们是可安装的开发预览包，不能作为正式签名发行版本。
+Android 命令显式指定 preview，包名 `com.codewf.vex.preview`，应用名带“预览”，使用开发证书。应用不设置全局默认 flavor，避免影响桌面构建。ARM64 APK 用于通常的 Android 手机；x86_64 APK 用于对应模拟器。它们是可安装的开发预览包，不能作为正式签名发行版本。
 
-production 使用包名 `com.codewf.texweft`，签名读取本机忽略的 `android/key.properties`：`storeFile`（相对 android 目录）、`storePassword`、`keyAlias`、`keyPassword`。正式构建必须配置发行证书，不回退到开发签名。证书及密码不得提交到仓库。
+production 使用包名 `com.codewf.vex`，签名读取本机忽略的 `android/key.properties`：`storeFile`（相对 android 目录）、`storePassword`、`keyAlias`、`keyPassword`。正式构建必须配置发行证书，不回退到开发签名。证书及密码不得提交到仓库。
 
 v0.2.1 起已配置固定发行证书，GitHub Actions 从 Secrets 恢复签名并制作 ARMv7、ARM64、x86_64 APK；发布前核对实际证书 SHA-256、正式包名与版本。开发机的密钥与密码位于忽略目录 `.signing`，需安全备份并在以后升级中复用。CI 配置见 [安装包与自动发布](安装包与自动发布.md)。
 

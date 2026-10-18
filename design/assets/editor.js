@@ -4,7 +4,7 @@
   const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const safeURL = (value, image = false) => /^(https?:|mailto:|#)/i.test(value) || value === 'Third-Party-Licenses.html' || (image && (/^data:image\/(png|jpeg|gif|webp);base64,/i.test(value) || /^assets\/[\w./-]+$/i.test(value) && !value.split('/').includes('..'))) ? value : '#';
   function inline(value) {
-    if (window.TexweftRendering) return TexweftRendering.inline(value);
+    if (window.VexRendering) return VexRendering.inline(value);
     const tokens = [];
     const token = html => { tokens.push(html); return `\u0001${tokens.length - 1}\u0002`; };
     let s = esc(value);
@@ -33,7 +33,7 @@
       if (line.trim() === '$$') {
         i++; while (i < lines.length && lines[i].trim() !== '$$') i++;
         const formula = lines.slice(start + 1,i).join('\n'); if (i < lines.length) i++;
-        add('math',start,i,TexweftRendering.renderSpecial({kind:'math',text:formula,line:start + 1})); continue;
+        add('math',start,i,VexRendering.renderSpecial({kind:'math',text:formula,line:start + 1})); continue;
       }
       if ((match = /^(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line))) {
         const level = match[1].length, title = match[2];
@@ -48,7 +48,7 @@
         const closing = new RegExp('^ {0,3}' + marker[0] + '{' + marker.length + ',}\\s*$');
         while (i < lines.length && !closing.test(lines[i])) i++;
         const code = lines.slice(start + 1, i).join('\n'); if (i < lines.length) i++;
-        add('code', start, i, language.toLowerCase() === 'mermaid' && window.TexweftRendering ? TexweftRendering.renderSpecial({kind:'code',language,text:code,line:start+1}) : `<pre data-language="${esc(language)}"><code>${esc(code)}</code></pre>`, { language }); continue;
+        add('code', start, i, language.toLowerCase() === 'mermaid' && window.VexRendering ? VexRendering.renderSpecial({kind:'code',language,text:code,line:start+1}) : `<pre data-language="${esc(language)}"><code>${esc(code)}</code></pre>`, { language }); continue;
       }
       if (/^\s*(---+|\*\*\*+)\s*$/.test(line)) { add('hr', i, ++i, '<hr>'); continue; }
       if (i + 1 < lines.length && line.includes('|') && /^\s*\|?\s*:?-{3,}/.test(lines[i + 1])) {
@@ -120,7 +120,7 @@
         if (block.language.toLowerCase() === 'mermaid' && window.VexPreferences?.values.mermaid !== false) {
           const before = text.slice(0,block.start), after = text.slice(block.end);
           VexDiagramEditing.mount(el,block,{begin:clearActive,change:raw => options.onChange(before + raw + after,true),finish:repaint});
-        } else el.append(TexweftCodeFence.footer(block.language || ''));
+        } else el.append(VexCodeFence.footer(block.language || ''));
       });
     };
     const begin = el => {
@@ -131,7 +131,7 @@
       active = { element: el, before: options.getText().slice(0, block.start), after: options.getText().slice(block.end), raw: block.raw, changed: false };
       el.classList.add('is-editing');
       if (block.type === 'code') {
-        active.fence = TexweftCodeFence.parse(block.raw);
+        active.fence = VexCodeFence.parse(block.raw);
         el.querySelector('.md-code-language').value = active.fence?.language || block.language || '';
       }
     };

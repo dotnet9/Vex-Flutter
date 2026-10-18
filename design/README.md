@@ -2,17 +2,17 @@
 
 维刻 Vex · 写下想法，看见脉络。
 
-本目录包含用于评审的 HTML、CSS、JavaScript 和品牌素材。Flutter 应用实现在 `apps/texweft`；原型的版本与第三方许可由实际项目数据生成。安装流程页面仍为设计原型。
+本目录包含用于评审的 HTML、CSS、JavaScript 和品牌素材。Flutter 应用实现在 `apps/vex`；原型的版本与第三方许可由实际项目数据生成。安装流程页面仍为设计原型。
 
 ## 打开
 
 用现代浏览器直接打开 `design/index.html`，或在仓库根目录运行 `node design/scripts/preview.cjs` 后访问 `http://127.0.0.1:4317/design/index.html`。无需安装依赖、访问外部字体或 CDN；离线评审保留整个 `design` 目录及下述共享代码字体。
 
 - `index.html`：桌面、手机、平板及六个平台安装流程的导航。
-- `Texweft.html`：桌面工作区，沿用 Vex 原型的布局和主要交互；手机、平板参数自动转到自适应原型。
-- `Texweft-Adaptive.html`：手机单页、平板分栏的触控布局。
+- `Vex.html`：桌面工作区，沿用 Vex 原型的布局和主要交互；手机、平板参数自动转到自适应原型。
+- `Vex-Adaptive.html`：手机单页、平板分栏的触控布局。
 - `Appearance.html`：八套配色和六套排版，使用同一篇文章连续比较。
-- `Texweft-Installer-*.html`：Windows、macOS、Linux、HarmonyOS、Android、iOS 的安装或获取流程。
+- `Vex-Installer-*.html`：Windows、macOS、Linux、HarmonyOS、Android、iOS 的安装或获取流程。
 
 ## Markdown 演示
 
@@ -75,7 +75,7 @@ Mermaid 图表点击后展开上方源码与下方预览，修改后延迟更新
 
 `documents/ACKNOWLEDGEMENTS.md` 和 `documents/CHANGELOG.md` 是随应用安装的原始 Markdown，不复制到用户目录。桌面原生设计为新进程打开，浏览器使用独立窗口模拟，只读可接受；手机和平板继续使用可滚动对话框。修改文档后运行 `node design/scripts/sync-documents.cjs` 更新离线数据。
 
-字体策略与原生应用一致：界面／中文使用各平台系统字体及回退链，书卷使用系统宋体；只随应用携带约 0.92 MiB 的 Cascadia Code，原型通过 `assets/fonts.css` 共享 `../apps/texweft/assets/fonts/` 中的两份文件。离线评审应保留这部分目录；没有共享字体时仍可回退到系统等宽字体。应用不额外内嵌 Inter 或完整宋体字库。
+字体策略与原生应用一致：界面／中文使用各平台系统字体及回退链，书卷使用系统宋体；只随应用携带约 0.92 MiB 的 Cascadia Code，原型通过 `assets/fonts.css` 共享 `../apps/vex/assets/fonts/` 中的两份文件。离线评审应保留这部分目录；没有共享字体时仍可回退到系统等宽字体。应用不额外内嵌 Inter 或完整宋体字库。
 
 ## 目录
 
@@ -115,7 +115,7 @@ Mermaid 图表点击后展开上方源码与下方预览，修改后延迟更新
 
 所有安装、授权、替换、修复、移除、更新和商店获取都是状态演示，不修改系统。HarmonyOS 手机、平板和电脑页面是概念原型，正式系统界面与分发方式仍需结合设备和 SDK 验证。版本、包名、签名和获取状态不作为实际已发布信息。
 
-浏览器原型用于评审视觉、布局和交互。应用使用 Flutter 原生渲染，单窗口、以本地文件为中心，代码位于 `apps/texweft`；没有引入 SQLite、账户或云同步。复杂 Markdown、中文输入法、大文档与各平台文件访问、导出仍需持续工程验证，预览构建不代表各平台正式安装包已交付。
+浏览器原型用于评审视觉、布局和交互。应用使用 Flutter 原生渲染，单窗口、以本地文件为中心，代码位于 `apps/vex`；没有引入 SQLite、账户或云同步。复杂 Markdown、中文输入法、大文档与各平台文件访问、导出仍需持续工程验证，预览构建不代表各平台正式安装包已交付。
 
 桌面设计来源：Vex，https://github.com/dotnet9/Vex 。运行代码已复制适配到本仓库，不依赖原仓库路径。
 
