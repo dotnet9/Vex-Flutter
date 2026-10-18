@@ -28,7 +28,10 @@ enum MarkdownTypography {
   book('书卷', '散文长读 · 衬线字形'),
   technical('技术', '开发笔记 · 信息模块'),
   column('专栏', '观点文章 · 鲜明层次'),
-  editorial('刊物', '发布阅读 · 窄栏节奏');
+  editorial('刊物', '发布阅读 · 窄栏节奏'),
+  academic('学术', '论述长文 · 克制层次'),
+  journal('手札', '随笔记录 · 轻柔衬线'),
+  handbook('手册', '操作参考 · 醒目分节');
 
   const MarkdownTypography(this.label, this.description);
   final String label, description;
@@ -36,9 +39,26 @@ enum MarkdownTypography {
     book => 800,
     technical => 1040,
     column => 880,
-    editorial => 720,
+    editorial => 760,
+    academic => 900,
+    journal => 800,
     _ => 960,
   };
+  bool get serif => const [book, academic, journal].contains(this);
+  bool get centered => this == editorial || this == academic;
+  Color accent(Brightness brightness) {
+    final dark = brightness == Brightness.dark;
+    return switch (this) {
+      simple => Color(dark ? 0xffdfe3e8 : 0xff343b43),
+      document || technical => Color(dark ? 0xff97bde0 : 0xff376c9a),
+      book => Color(dark ? 0xffd3bc9a : 0xff70604f),
+      column => Color(dark ? 0xffeba88d : 0xffa04d35),
+      editorial => Color(dark ? 0xff8ac8b3 : 0xff24766b),
+      academic => Color(dark ? 0xffbdc6d7 : 0xff4a5363),
+      journal => Color(dark ? 0xffc7a6d9 : 0xff77558a),
+      handbook => Color(dark ? 0xff9bcfb4 : 0xff39765d),
+    };
+  }
 }
 
 class MarkdownReader extends StatelessWidget {
@@ -74,24 +94,20 @@ class MarkdownReader extends StatelessWidget {
   final WrapAlignment inlineAlignment;
   MarkdownStyleSheet styleSheet(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final accent = typography == MarkdownTypography.column
-        ? (colors.brightness == Brightness.dark
-              ? const Color(0xffeba88d)
-              : const Color(0xffa04d35))
-        : colors.primary;
+    final accent = typography.accent(colors.brightness);
     final fonts = MarkdownFontFamilies.of(context);
     final font = editingPreferences?.font ?? MarkdownBodyFont.system;
     final book =
         font == MarkdownBodyFont.serif ||
-        (font == MarkdownBodyFont.system &&
-            typography == MarkdownTypography.book);
+        (font == MarkdownBodyFont.system && typography.serif);
     final mono = font == MarkdownBodyFont.mono;
     final body = Theme.of(context).textTheme.bodyMedium!
         .copyWith(
           fontSize: compact ? fontSize * .93 : fontSize,
           height: compact
               ? 1.65
-              : typography == MarkdownTypography.book
+              : typography == MarkdownTypography.book ||
+                    typography == MarkdownTypography.journal
               ? 2.05
               : switch (typography) {
                   MarkdownTypography.document ||
@@ -123,6 +139,7 @@ class MarkdownReader extends StatelessWidget {
       textAlign: inlineAlignment,
       blockSpacing: 0,
       h1: body.copyWith(
+        color: typography == MarkdownTypography.journal ? accent : null,
         fontSize:
             fontSize * (typography == MarkdownTypography.column ? 2.5 : 2),
         height: typography == MarkdownTypography.column
@@ -142,9 +159,11 @@ class MarkdownReader extends StatelessWidget {
         fontSize: fontSize * 1.4,
         height: 1.6,
         fontWeight: FontWeight.w600,
-        color:
-            typography == MarkdownTypography.simple ||
-                typography == MarkdownTypography.book
+        color: typography == MarkdownTypography.handbook
+            ? colors.surface
+            : typography == MarkdownTypography.simple ||
+                  typography == MarkdownTypography.book ||
+                  typography == MarkdownTypography.academic
             ? colors.onSurface
             : accent,
       ),
@@ -155,14 +174,20 @@ class MarkdownReader extends StatelessWidget {
         fontWeight: FontWeight.w600,
       ),
       h3Padding: EdgeInsets.zero,
-      h4: body.copyWith(fontWeight: FontWeight.w600),
+      h4: body.copyWith(
+        fontWeight: FontWeight.w600,
+        fontStyle: typography == MarkdownTypography.academic
+            ? FontStyle.italic
+            : null,
+        color: typography == MarkdownTypography.handbook ? accent : null,
+      ),
       h5: body.copyWith(fontWeight: FontWeight.w600),
       h6: body.copyWith(
         fontWeight: FontWeight.w600,
         color: colors.onSurfaceVariant,
       ),
       listBullet: body.copyWith(color: accent),
-      checkbox: body.copyWith(color: accent),
+      checkbox: body.copyWith(color: colors.primary),
       listIndent: 24,
       listBulletPadding: const EdgeInsets.only(right: 8),
       blockquote: body.copyWith(color: colors.onSurfaceVariant),
@@ -481,11 +506,7 @@ class MarkdownHeadingFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final accent = typography == MarkdownTypography.column
-        ? (colors.brightness == Brightness.dark
-              ? const Color(0xffeba88d)
-              : const Color(0xffa04d35))
-        : colors.primary;
+    final accent = typography.accent(colors.brightness);
     final size = style.fontSize!;
     final decorated =
         level == 2 &&
@@ -494,6 +515,7 @@ class MarkdownHeadingFrame extends StatelessWidget {
     final technical = decorated && typography == MarkdownTypography.technical;
     final column = decorated && typography == MarkdownTypography.column;
     final editorial = typography == MarkdownTypography.editorial;
+    final handbook = typography == MarkdownTypography.handbook;
     return Container(
       width: double.infinity,
       margin: EdgeInsets.only(
@@ -503,31 +525,41 @@ class MarkdownHeadingFrame extends StatelessWidget {
                   (compact
                       ? 1.3
                       : level == 2
-                      ? 1.8
-                      : 1.4),
+                      ? 1.4
+                      : 1.15),
         bottom:
             size *
             (level == 1
-                ? (editorial ? 1.5 : 1)
+                ? .55
                 : level == 2
-                ? .6
-                : .5),
+                ? .45
+                : .35),
       ),
       padding: EdgeInsets.only(
-        top: technical || (decorated && editorial) ? size * .45 : 0,
+        top: technical || (decorated && editorial) || (handbook && level <= 2)
+            ? size * .45
+            : 0,
         bottom: level == 1
-            ? size * .6
-            : technical || (decorated && editorial)
+            ? 0
+            : technical || (decorated && editorial) || (handbook && level == 2)
             ? size * .45
             : decorated && !column
             ? size * .45
             : 0,
-        left: technical || column ? size * .65 : 0,
-        right: technical ? size * .65 : 0,
+        left: technical || column || (handbook && level == 2) ? size * .65 : 0,
+        right: technical || (handbook && level == 2) ? size * .65 : 0,
       ),
       decoration: BoxDecoration(
-        color: technical ? accent.withValues(alpha: .08) : null,
-        border: decorated
+        color: handbook && level == 2
+            ? accent
+            : technical
+            ? accent.withValues(alpha: .08)
+            : null,
+        border: handbook && level == 1
+            ? Border(top: BorderSide(color: accent, width: 5))
+            : handbook && level == 3
+            ? Border(bottom: BorderSide(color: accent, width: 2))
+            : decorated
             ? switch (typography) {
                 MarkdownTypography.column ||
                 MarkdownTypography.technical => Border(
@@ -536,6 +568,10 @@ class MarkdownHeadingFrame extends StatelessWidget {
                 MarkdownTypography.editorial => Border.symmetric(
                   horizontal: BorderSide(color: colors.outlineVariant),
                 ),
+                MarkdownTypography.journal => Border(
+                  bottom: BorderSide(color: accent),
+                ),
+                MarkdownTypography.academic => null,
                 _ => Border(bottom: BorderSide(color: colors.outlineVariant)),
               }
             : null,
@@ -567,7 +603,7 @@ class _HeadingBuilder extends MarkdownElementBuilder {
           child: Text.rich(
             TextSpan(children: _headingSpans(element.children ?? [], style)),
             style: style,
-            textAlign: reader.typography == MarkdownTypography.editorial
+            textAlign: reader.typography.centered
                 ? TextAlign.center
                 : TextAlign.start,
           ),

@@ -10,6 +10,84 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get typeAcademic => '論文';
+
+  @override
+  String get typeJournal => '手記';
+
+  @override
+  String get typeHandbook => '手引き';
+
+  @override
+  String get typeAcademicNote => '論説 · 控えめな階層';
+
+  @override
+  String get typeJournalNote => '日々の記録 · 柔らかい明朝体';
+
+  @override
+  String get typeHandbookNote => '操作資料 · 明確な見出し';
+
+  @override
+  String get mapAppearance => 'マップの外観';
+
+  @override
+  String get mapStructure => '構造';
+
+  @override
+  String get mapStyle => 'スタイル';
+
+  @override
+  String get mapQuiet => 'シンプル';
+
+  @override
+  String get mapColorful => 'カラフル';
+
+  @override
+  String get mapOutline => '線枠';
+
+  @override
+  String get mapCapsule => 'カプセル';
+
+  @override
+  String get mapUnderline => '枝線';
+
+  @override
+  String get mapMono => 'モノクロ';
+
+  @override
+  String get newWindow => '新しいウィンドウ';
+
+  @override
+  String get documentWindow => '現在の文書を新しいウィンドウで開く';
+
+  @override
+  String get copyWechat => 'WeChat にコピー';
+
+  @override
+  String get copyZhihu => '知乎にコピー';
+
+  @override
+  String get copyJuejin => '掘金にコピー';
+
+  @override
+  String get copiedForPublishing => 'コピーしました。投稿先に貼り付けできます';
+
+  @override
+  String get guideShareTitle => '文章を共有する';
+
+  @override
+  String get guideShareBody => 'ツールメニューから WeChat、知乎、掘金にコピーできます。';
+
+  @override
+  String get exitTitle => '閉じる前に、アイデアを残しましょう';
+
+  @override
+  String get exitBody => '未保存の変更があります。保存するか、下書きを残して後で続けられます。';
+
+  @override
+  String get continueWriting => '執筆を続ける';
+
+  @override
   String get builtinThanks => '謝辞';
 
   @override

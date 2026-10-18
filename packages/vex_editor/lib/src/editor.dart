@@ -1058,8 +1058,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
                     forceStrutHeight: true,
                   ),
             textAlign:
-                _kind == MarkdownBlockKind.heading &&
-                    widget.typography == MarkdownTypography.editorial
+                _kind == MarkdownBlockKind.heading && widget.typography.centered
                 ? TextAlign.center
                 : TextAlign.start,
             scrollPadding: EdgeInsets.zero,

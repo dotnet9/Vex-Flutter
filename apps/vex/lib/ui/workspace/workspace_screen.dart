@@ -816,6 +816,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       builder: (context, constraints) {
         // Constraints rebuild all panes; deriving the viewport must neither
         // notify Provider during layout nor overwrite the saved arrangement.
+        state.windowSize = constraints.biggest;
         state.viewport = WorkspaceViewport.forWindow(
           width: constraints.maxWidth,
           height: constraints.maxHeight,
@@ -1541,8 +1542,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                 onPressed: () => _action('guide'),
               ),
             ),
-          if (!state.layout.panes.any((p) => p == 'source' || p == 'instant'))
-            Flexible(child: _typographyPicker(state, iconOnly: width < 1100)),
           AppButton(
             icon: 'search',
             tooltip: context.l10n.findTooltip,
@@ -1670,8 +1669,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
               ),
             ),
           ),
-          const SizedBox(width: 8),
-          _typographyPicker(state),
         ],
       ),
     );
@@ -1813,6 +1810,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       fit: StackFit.expand,
       children: [
         WorkspacePanes(
+          typographyControl: _typographyPicker(state),
           editingKey: _guideEditing,
           mapKey: _guideMap,
           mapToolbarKey: _guideMapToolbar,

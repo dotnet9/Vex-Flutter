@@ -10,6 +10,87 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get typeAcademic => 'Academic';
+
+  @override
+  String get typeJournal => 'Journal';
+
+  @override
+  String get typeHandbook => 'Handbook';
+
+  @override
+  String get typeAcademicNote => 'Essays · restrained hierarchy';
+
+  @override
+  String get typeJournalNote => 'Personal notes · gentle serifs';
+
+  @override
+  String get typeHandbookNote => 'Reference · distinct sections';
+
+  @override
+  String get mapAppearance => 'Map appearance';
+
+  @override
+  String get mapStructure => 'Structure';
+
+  @override
+  String get mapStyle => 'Style';
+
+  @override
+  String get mapQuiet => 'Quiet';
+
+  @override
+  String get mapColorful => 'Colorful';
+
+  @override
+  String get mapOutline => 'Outline';
+
+  @override
+  String get mapCapsule => 'Capsule';
+
+  @override
+  String get mapUnderline => 'Branches';
+
+  @override
+  String get mapMono => 'Monochrome';
+
+  @override
+  String get newWindow => 'New window';
+
+  @override
+  String get documentWindow => 'Open current document in new window';
+
+  @override
+  String get copyWechat => 'Copy to WeChat';
+
+  @override
+  String get copyZhihu => 'Copy to Zhihu';
+
+  @override
+  String get copyJuejin => 'Copy to Juejin';
+
+  @override
+  String get copiedForPublishing =>
+      'Copied, ready to paste into your publishing platform';
+
+  @override
+  String get guideShareTitle => 'Share your writing';
+
+  @override
+  String get guideShareBody =>
+      'Copy directly to WeChat, Zhihu or Juejin from the Tools menu.';
+
+  @override
+  String get exitTitle => 'Keep your ideas before leaving';
+
+  @override
+  String get exitBody =>
+      'Some changes have not been saved. Save them now or keep a draft to continue later.';
+
+  @override
+  String get continueWriting => 'Keep writing';
+
+  @override
   String get builtinThanks => 'Acknowledgements';
 
   @override

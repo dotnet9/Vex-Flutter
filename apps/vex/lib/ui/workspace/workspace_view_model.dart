@@ -87,6 +87,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
 
   WorkspaceLayout _layout = WorkspaceLayout.instant;
   WorkspaceViewport viewport = WorkspaceViewport.desktop;
+  Size windowSize = const Size(1280, 800);
   WorkspaceLayout get layout => _layout.constrainedTo(viewport);
   set layout(WorkspaceLayout value) => _layout = value;
   MarkdownTypography typography = MarkdownTypography.simple;
@@ -224,6 +225,12 @@ final class WorkspaceViewModel extends ChangeNotifier {
                 .where((mode) => mode.name == preferences['mapMode'])
                 .firstOrNull ??
             MindMapLayoutMode.right,
+      );
+      _map.setStyle(
+        MindMapStyle.values
+                .where((style) => style.name == preferences['mapStyle'])
+                .firstOrNull ??
+            MindMapStyle.quiet,
       );
       fontSize = (preferences['fontSize'] as num? ?? 16).toDouble().clamp(
         12,
@@ -713,6 +720,12 @@ final class WorkspaceViewModel extends ChangeNotifier {
   void toggleSidebar() {
     sidebar = !sidebar;
     _notify();
+  }
+
+  void setMapStyle(MindMapStyle value) {
+    _map.setStyle(value);
+    _notify();
+    persist();
   }
 
   void setOutline(bool value) {
@@ -1478,6 +1491,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
           'lists': lists,
           'blocks': blocks,
           'mapMode': _map.mode.name,
+          'mapStyle': _map.style.name,
           'recent': List.of(recent),
           'guideSeen': guideSeen,
           'mcp': mcp.preferences,

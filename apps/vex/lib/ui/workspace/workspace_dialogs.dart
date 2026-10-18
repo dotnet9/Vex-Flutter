@@ -14,6 +14,7 @@ import '../../data/services/export_service.dart';
 import '../../data/services/update_service.dart';
 import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
+import '../core/app_theme.dart';
 import 'workspace_pickers.dart';
 import 'workspace_view_model.dart';
 import 'builtin_documents.dart';
@@ -52,7 +53,7 @@ class _ExportDialogState extends State<_ExportDialog> {
 
   Future<void> _export(String type) async {
     final vm = widget.vm, source = widget.vm.editor.session.text;
-    final colors = Theme.of(context).colorScheme,
+    final colors = documentTheme(Theme.of(context)).colorScheme,
         typography = vm.typography,
         compact = vm.compact;
     final stem = vm.current.name.replaceFirst(

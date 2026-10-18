@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'controller.dart';
 import 'labels.dart';
 import 'layout.dart';
+import 'style.dart';
 
 typedef MindMapNodeBuilder = Widget Function(
   BuildContext context,
@@ -58,6 +59,24 @@ class _MindMapViewState extends State<MindMapView> {
   final _title = TextEditingController();
   final _titleFocus = FocusNode(), _canvasFocus = FocusNode();
   MindMapNode? _editing;
+  MindMapLayout? _branchLayout;
+  final _branches = <String, int>{};
+  void _indexBranches(MindMapLayout layout) {
+    if (identical(_branchLayout, layout)) return;
+    _branchLayout = layout;
+    _branches.clear();
+    void visit(MindMapNode node, int branch) {
+      if (!layout.nodes.containsKey(node.id)) return;
+      _branches[node.id] = branch;
+      for (final child in node.children) {
+        visit(child, branch);
+      }
+    }
+
+    for (var i = 0; i < controller.root.children.length; i++) {
+      visit(controller.root.children[i], i);
+    }
+  }
 
   void _activate(MindMapNode node) {
     controller.select(node.id);
@@ -112,6 +131,7 @@ class _MindMapViewState extends State<MindMapView> {
         builder: (context, _) {
           final layout = controller.layout,
               color = Theme.of(context).colorScheme;
+          _indexBranches(layout);
           if (controller.fitRequested) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (context.mounted && controller.fitRequested) {
@@ -313,6 +333,8 @@ class _MindMapViewState extends State<MindMapView> {
                                         controller.selectedId,
                                         controller.root.id,
                                         visible,
+                                        controller.style,
+                                        _branches,
                                       ),
                                     ),
                                   )
@@ -395,24 +417,18 @@ class _MindMapViewState extends State<MindMapView> {
     final color = Theme.of(context).colorScheme;
     final selected = controller.selectedId == node.id,
         root = node.id == controller.root.id;
+    final tokens = MindMapNodeStyle.resolve(
+      controller.style,
+      color,
+      root: root,
+      selected: selected,
+      branch: _branches[node.id] ?? 0,
+    );
     final content =
         nodeBuilder?.call(context, node, selected) ??
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: root
-                ? color.primary
-                : selected
-                ? color.primaryContainer
-                : node.summary
-                ? color.surface
-                : color.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(7),
-            border: Border.all(
-              color: selected ? color.primary : color.outlineVariant,
-              width: selected ? 1.5 : .7,
-            ),
-          ),
+          decoration: tokens.decoration,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -423,9 +439,7 @@ class _MindMapViewState extends State<MindMapView> {
                   maxLines: 1,
                   style: TextStyle(
                     fontSize: 9,
-                    color: root
-                        ? color.onPrimary.withValues(alpha: .75)
-                        : color.onSurfaceVariant,
+                    color: tokens.foreground.withValues(alpha: .75),
                   ),
                 ),
               if (_editing?.id == node.id)
@@ -447,7 +461,7 @@ class _MindMapViewState extends State<MindMapView> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: root ? color.onPrimary : color.onSurface,
+                      color: tokens.foreground,
                     ),
                     decoration: const InputDecoration(
                       isCollapsed: true,
@@ -469,7 +483,7 @@ class _MindMapViewState extends State<MindMapView> {
                     fontWeight: node.summary
                         ? FontWeight.normal
                         : FontWeight.w600,
-                    color: root ? color.onPrimary : color.onSurface,
+                    color: tokens.foreground,
                   ),
                 ),
             ],
@@ -558,31 +572,46 @@ class _OverviewPainter extends CustomPainter {
     this.selectedId,
     this.rootId,
     this.visible,
+    this.style,
+    this.branches,
   );
   final MindMapLayout layout;
   final ColorScheme colors;
   final String? selectedId;
   final String rootId;
   final Rect visible;
+  final MindMapStyle style;
+  final Map<String, int> branches;
   @override
   void paint(Canvas canvas, Size size) {
     final fill = Paint(), border = Paint()..style = PaintingStyle.stroke;
     for (final entry in layout.rects.entries) {
       if (!entry.value.overlaps(visible)) continue;
       final selected = entry.key == selectedId;
-      fill.color = entry.key == rootId
-          ? colors.primary
-          : selected
-          ? colors.primaryContainer
-          : colors.surfaceContainerLow;
-      border.color = selected ? colors.primary : colors.outlineVariant;
+      final tokens = MindMapNodeStyle.resolve(
+        style,
+        colors,
+        root: entry.key == rootId,
+        selected: selected,
+        branch: branches[entry.key] ?? 0,
+      );
+      fill.color = tokens.fill;
+      border.color = tokens.border;
       border.strokeWidth = selected ? 2 : .7;
       final card = RRect.fromRectAndRadius(
         entry.value,
-        const Radius.circular(7),
+        Radius.circular(tokens.radius),
       );
       canvas.drawRRect(card, fill);
-      canvas.drawRRect(card, border);
+      if (tokens.underline) {
+        canvas.drawLine(
+          entry.value.bottomLeft,
+          entry.value.bottomRight,
+          border,
+        );
+      } else {
+        canvas.drawRRect(card, border);
+      }
     }
   }
 
@@ -590,6 +619,7 @@ class _OverviewPainter extends CustomPainter {
   bool shouldRepaint(_OverviewPainter oldDelegate) =>
       oldDelegate.layout != layout ||
       oldDelegate.colors != colors ||
+      oldDelegate.style != style ||
       oldDelegate.selectedId != selectedId ||
       oldDelegate.visible != visible ||
       oldDelegate.rootId != rootId;

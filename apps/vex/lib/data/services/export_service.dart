@@ -143,7 +143,7 @@ final class DocumentExportService {
       compact = false;
       colors = ColorScheme.fromSeed(seedColor: const Color(0xff24766b));
     }
-    final accent = _hex(colors.primary),
+    final accent = _hex(typography.accent(colors.brightness)),
         fg = _hex(colors.onSurface),
         bg = _hex(colors.surface),
         panel = _hex(colors.surfaceContainerLow),
@@ -157,7 +157,27 @@ final class DocumentExportService {
         'border-left:3px solid $accent;padding-left:14px',
       MarkdownTypography.editorial =>
         'border-block:1px solid $border;text-align:center;padding:9px 0',
+      MarkdownTypography.journal =>
+        'border-bottom:1px dashed $accent;padding-bottom:.4em;font-weight:500',
+      MarkdownTypography.handbook =>
+        'padding:.5em .75em;background:$accent;color:$bg;border-radius:3px',
       _ => '',
+    };
+    final headings = switch (typography) {
+      MarkdownTypography.simple => '',
+      MarkdownTypography.document => 'h1{border-bottom:1px solid $border}',
+      MarkdownTypography.book => 'h1{font-weight:600}p{text-align:justify;text-indent:2em}blockquote p{ text-indent:0}',
+      MarkdownTypography.technical =>
+        'h1{border-bottom:1px solid $border}h3{font-size:1.12em}',
+      MarkdownTypography.column =>
+        'h1{font-size:2.35em;font-weight:800;border-bottom:3px solid $accent;padding-bottom:.3em}',
+      MarkdownTypography.editorial => 'h1,h2,h3,h4{text-align:center}',
+      MarkdownTypography.academic =>
+        'h1{text-align:center;border-bottom:3px double $fg;padding-bottom:.35em}h4{font-style:italic}p{text-align:justify}',
+      MarkdownTypography.journal =>
+        'h1{color:$accent;font-weight:500}h3,h4{font-weight:500}blockquote{background:none;font-style:italic;color:$accent}',
+      MarkdownTypography.handbook =>
+        'h1{border-top:5px solid $accent;padding-top:.65em}h3{border-bottom:2px solid $accent;padding-bottom:.35em}h4{color:$accent}',
     };
     final parsed = _parse(
       source,
@@ -218,9 +238,10 @@ final class DocumentExportService {
         ? 1.65
         : typography == MarkdownTypography.book
         ? 2.05
-        : 1.95} ${typography == MarkdownTypography.book ? 'Georgia,"Noto Serif CJK SC",SimSun,serif' : 'system-ui,"Microsoft YaHei UI","PingFang SC",sans-serif'}}
+        : 1.95} ${typography.serif ? 'Georgia,"Noto Serif CJK SC",SimSun,serif' : 'system-ui,"Microsoft YaHei UI","PingFang SC",sans-serif'}}
 article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80px;overflow-wrap:anywhere}h1{font-size:2em;line-height:1.45;margin:0 0 30px}h2{font-size:1.4em;line-height:1.6;margin:32px 0 16px;$section}h3{font-size:1.15em;margin-top:26px}p{margin:0 0 ${compact ? 10 : 18}px}a{color:$accent}blockquote{margin:18px 0;padding:12px 18px;border-left:3px solid $accent;background:$panel}pre{white-space:pre;overflow-x:auto;padding:8px 12px;background:$panel;border:1px solid $border;border-radius:3px}pre code{font:14px/22px Consolas,Menlo,monospace;color:$fg;background:transparent}code{font:0.9em/1.8 Consolas,monospace;background:$panel}table{border-collapse:collapse;width:100%;margin:18px 0}td,th{border:1px solid $border;padding:9px 12px;text-align:left}th{background:$panel}img{max-width:100%}hr{border:0;border-top:1px solid $border;margin:28px 0}li{margin:6px 0}@media(max-width:600px){article{padding:28px 22px}}@media print{body{color:#222;background:white}article{padding:0;max-width:none}h1,h2,h3{break-after:avoid}pre,blockquote,tr{break-inside:avoid}}
 .vex-watermark{position:fixed;inset:0;z-index:10;pointer-events:none;user-select:none;overflow:hidden}.vex-watermark svg{width:100%;height:100%;display:block}
+h1{margin-bottom:.55em}h2{margin:1.4em 0 .45em}h3{margin:1.15em 0 .35em}h4{margin:1em 0 .3em}$headings
 img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:1px dashed $border;color:$fg}.vex-math{vertical-align:middle;object-fit:contain;max-width:100%;height:auto!important}.vex-math-block{display:block;margin:20px auto;max-width:100%;height:auto!important;font-size:1.15em}mark{color:inherit;background:#ffe49b}
 </style></head><body><article>$body</article>${watermark.export && watermark.visible ? _htmlWatermark(watermark.copyWith()) : ''}</body></html>''';
   }

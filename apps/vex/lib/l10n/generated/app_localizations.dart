@@ -101,6 +101,162 @@ abstract class AppLocalizations {
     Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
   ];
 
+  /// No description provided for @typeAcademic.
+  ///
+  /// In zh, this message translates to:
+  /// **'学术'**
+  String get typeAcademic;
+
+  /// No description provided for @typeJournal.
+  ///
+  /// In zh, this message translates to:
+  /// **'手札'**
+  String get typeJournal;
+
+  /// No description provided for @typeHandbook.
+  ///
+  /// In zh, this message translates to:
+  /// **'手册'**
+  String get typeHandbook;
+
+  /// No description provided for @typeAcademicNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'论述长文 · 克制层次'**
+  String get typeAcademicNote;
+
+  /// No description provided for @typeJournalNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'随笔记录 · 轻柔衬线'**
+  String get typeJournalNote;
+
+  /// No description provided for @typeHandbookNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'操作参考 · 醒目分节'**
+  String get typeHandbookNote;
+
+  /// No description provided for @mapAppearance.
+  ///
+  /// In zh, this message translates to:
+  /// **'导图样式'**
+  String get mapAppearance;
+
+  /// No description provided for @mapStructure.
+  ///
+  /// In zh, this message translates to:
+  /// **'结构'**
+  String get mapStructure;
+
+  /// No description provided for @mapStyle.
+  ///
+  /// In zh, this message translates to:
+  /// **'风格'**
+  String get mapStyle;
+
+  /// No description provided for @mapQuiet.
+  ///
+  /// In zh, this message translates to:
+  /// **'清雅'**
+  String get mapQuiet;
+
+  /// No description provided for @mapColorful.
+  ///
+  /// In zh, this message translates to:
+  /// **'缤纷'**
+  String get mapColorful;
+
+  /// No description provided for @mapOutline.
+  ///
+  /// In zh, this message translates to:
+  /// **'线框'**
+  String get mapOutline;
+
+  /// No description provided for @mapCapsule.
+  ///
+  /// In zh, this message translates to:
+  /// **'胶囊'**
+  String get mapCapsule;
+
+  /// No description provided for @mapUnderline.
+  ///
+  /// In zh, this message translates to:
+  /// **'脉络'**
+  String get mapUnderline;
+
+  /// No description provided for @mapMono.
+  ///
+  /// In zh, this message translates to:
+  /// **'黑白'**
+  String get mapMono;
+
+  /// No description provided for @newWindow.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建窗口'**
+  String get newWindow;
+
+  /// No description provided for @documentWindow.
+  ///
+  /// In zh, this message translates to:
+  /// **'在新窗口打开当前文档'**
+  String get documentWindow;
+
+  /// No description provided for @copyWechat.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制到微信公众号'**
+  String get copyWechat;
+
+  /// No description provided for @copyZhihu.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制到知乎'**
+  String get copyZhihu;
+
+  /// No description provided for @copyJuejin.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制到稀土掘金'**
+  String get copyJuejin;
+
+  /// No description provided for @copiedForPublishing.
+  ///
+  /// In zh, this message translates to:
+  /// **'已复制，可到发布平台粘贴'**
+  String get copiedForPublishing;
+
+  /// No description provided for @guideShareTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'把文章分享出去'**
+  String get guideShareTitle;
+
+  /// No description provided for @guideShareBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'从工具菜单直接复制到微信公众号、知乎或稀土掘金。'**
+  String get guideShareBody;
+
+  /// No description provided for @exitTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'离开前，安放好这次想法'**
+  String get exitTitle;
+
+  /// No description provided for @exitBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'还有未保存的内容。可以保存后离开，或保留草稿，下次继续。'**
+  String get exitBody;
+
+  /// No description provided for @continueWriting.
+  ///
+  /// In zh, this message translates to:
+  /// **'继续写作'**
+  String get continueWriting;
+
   /// No description provided for @builtinThanks.
   ///
   /// In zh, this message translates to:

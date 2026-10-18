@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'layout.dart';
+import 'style.dart';
 
 final class MindMapController extends ChangeNotifier {
   MindMapController(MindMapNode root) : _root = root {
@@ -15,6 +16,14 @@ final class MindMapController extends ChangeNotifier {
   final _collapsed = <String>{};
   MindMapLayoutMode _mode = MindMapLayoutMode.right;
   MindMapLayoutMode get mode => _mode;
+  MindMapStyle _style = MindMapStyle.quiet;
+  MindMapStyle get style => _style;
+  void setStyle(MindMapStyle value) {
+    if (_style == value) return;
+    _style = value;
+    notifyListeners();
+  }
+
   void setMode(MindMapLayoutMode value) {
     if (_mode == value) return;
     _mode = value;

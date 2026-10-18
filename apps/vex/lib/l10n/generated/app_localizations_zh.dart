@@ -10,6 +10,84 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get typeAcademic => '学术';
+
+  @override
+  String get typeJournal => '手札';
+
+  @override
+  String get typeHandbook => '手册';
+
+  @override
+  String get typeAcademicNote => '论述长文 · 克制层次';
+
+  @override
+  String get typeJournalNote => '随笔记录 · 轻柔衬线';
+
+  @override
+  String get typeHandbookNote => '操作参考 · 醒目分节';
+
+  @override
+  String get mapAppearance => '导图样式';
+
+  @override
+  String get mapStructure => '结构';
+
+  @override
+  String get mapStyle => '风格';
+
+  @override
+  String get mapQuiet => '清雅';
+
+  @override
+  String get mapColorful => '缤纷';
+
+  @override
+  String get mapOutline => '线框';
+
+  @override
+  String get mapCapsule => '胶囊';
+
+  @override
+  String get mapUnderline => '脉络';
+
+  @override
+  String get mapMono => '黑白';
+
+  @override
+  String get newWindow => '新建窗口';
+
+  @override
+  String get documentWindow => '在新窗口打开当前文档';
+
+  @override
+  String get copyWechat => '复制到微信公众号';
+
+  @override
+  String get copyZhihu => '复制到知乎';
+
+  @override
+  String get copyJuejin => '复制到稀土掘金';
+
+  @override
+  String get copiedForPublishing => '已复制，可到发布平台粘贴';
+
+  @override
+  String get guideShareTitle => '把文章分享出去';
+
+  @override
+  String get guideShareBody => '从工具菜单直接复制到微信公众号、知乎或稀土掘金。';
+
+  @override
+  String get exitTitle => '离开前，安放好这次想法';
+
+  @override
+  String get exitBody => '还有未保存的内容。可以保存后离开，或保留草稿，下次继续。';
+
+  @override
+  String get continueWriting => '继续写作';
+
+  @override
   String get builtinThanks => '鸣谢';
 
   @override
@@ -1563,6 +1641,84 @@ class AppLocalizationsZh extends AppLocalizations {
 /// The translations for Chinese, using the Han script (`zh_Hant`).
 class AppLocalizationsZhHant extends AppLocalizationsZh {
   AppLocalizationsZhHant() : super('zh_Hant');
+
+  @override
+  String get typeAcademic => '學術';
+
+  @override
+  String get typeJournal => '手札';
+
+  @override
+  String get typeHandbook => '手冊';
+
+  @override
+  String get typeAcademicNote => '論述長文 · 克制層次';
+
+  @override
+  String get typeJournalNote => '隨筆記錄 · 輕柔襯線';
+
+  @override
+  String get typeHandbookNote => '操作參考 · 醒目分節';
+
+  @override
+  String get mapAppearance => '導圖樣式';
+
+  @override
+  String get mapStructure => '結構';
+
+  @override
+  String get mapStyle => '風格';
+
+  @override
+  String get mapQuiet => '清雅';
+
+  @override
+  String get mapColorful => '繽紛';
+
+  @override
+  String get mapOutline => '線框';
+
+  @override
+  String get mapCapsule => '膠囊';
+
+  @override
+  String get mapUnderline => '脈絡';
+
+  @override
+  String get mapMono => '黑白';
+
+  @override
+  String get newWindow => '新增視窗';
+
+  @override
+  String get documentWindow => '在新視窗開啟目前文件';
+
+  @override
+  String get copyWechat => '複製到微信公眾號';
+
+  @override
+  String get copyZhihu => '複製到知乎';
+
+  @override
+  String get copyJuejin => '複製到稀土掘金';
+
+  @override
+  String get copiedForPublishing => '已複製，可到發佈平台貼上';
+
+  @override
+  String get guideShareTitle => '把文章分享出去';
+
+  @override
+  String get guideShareBody => '從工具選單直接複製到微信公眾號、知乎或稀土掘金。';
+
+  @override
+  String get exitTitle => '離開前，安放好這次想法';
+
+  @override
+  String get exitBody => '還有未儲存的內容。可以儲存後離開，或保留草稿，下次繼續。';
+
+  @override
+  String get continueWriting => '繼續寫作';
 
   @override
   String get builtinThanks => '鳴謝';

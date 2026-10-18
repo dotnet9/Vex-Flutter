@@ -11,7 +11,7 @@ import '../core/app_widgets.dart';
 import '../core/app_theme.dart';
 import 'workspace_view_model.dart';
 
-enum WorkspacePicker { layout, typography }
+enum WorkspacePicker { layout, typography, map }
 
 class MindMapLayoutChoices extends StatelessWidget {
   const MindMapLayoutChoices({
@@ -30,9 +30,11 @@ class MindMapLayoutChoices extends StatelessWidget {
         title: '',
         children: [MindMapNode(id: 'a1', title: '')],
       ),
-      MindMapNode(id: 'b', title: ''),
-      MindMapNode(id: 'c', title: ''),
-      MindMapNode(id: 'd', title: ''),
+      MindMapNode(
+        id: 'b',
+        title: '',
+        children: [MindMapNode(id: 'b1', title: '')],
+      ),
     ],
   );
   @override
@@ -74,9 +76,14 @@ class MindMapLayoutChoices extends StatelessWidget {
 }
 
 class _MapMiniature extends CustomPainter {
-  const _MapMiniature(this.layout, this.colors);
+  const _MapMiniature(
+    this.layout,
+    this.colors, [
+    this.style = MindMapStyle.quiet,
+  ]);
   final MindMapLayout layout;
   final ColorScheme colors;
+  final MindMapStyle style;
   @override
   void paint(Canvas canvas, Size size) {
     final scale = math.min(
@@ -97,19 +104,35 @@ class _MapMiniature extends CustomPainter {
     }
     paint.style = PaintingStyle.fill;
     for (final entry in layout.rects.entries) {
-      paint.color = entry.key == 'root'
-          ? colors.primary
-          : colors.primaryContainer;
+      final tokens = MindMapNodeStyle.resolve(
+        style,
+        colors,
+        root: entry.key == 'root',
+        branch: entry.key.startsWith('b') ? 1 : 0,
+      );
+      paint.color = tokens.fill;
       canvas.drawRRect(
-        RRect.fromRectAndRadius(entry.value, const Radius.circular(6)),
+        RRect.fromRectAndRadius(entry.value, Radius.circular(tokens.radius)),
         paint,
       );
+      paint
+        ..color = tokens.border
+        ..style = PaintingStyle.stroke;
+      if (tokens.underline) {
+        canvas.drawLine(entry.value.bottomLeft, entry.value.bottomRight, paint);
+      } else {
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(entry.value, Radius.circular(tokens.radius)),
+          paint,
+        );
+      }
+      paint.style = PaintingStyle.fill;
     }
   }
 
   @override
   bool shouldRepaint(_MapMiniature old) =>
-      old.layout != layout || old.colors != colors;
+      old.layout != layout || old.colors != colors || old.style != style;
 }
 
 /// An anchored, non-modal panel: the document stays visible and interactive.
@@ -129,8 +152,8 @@ class WorkspacePickerAnchor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = math.min(
-      picker == WorkspacePicker.layout ? 496.0 : 438.0,
-      MediaQuery.sizeOf(context).width - 24,
+      picker == WorkspacePicker.typography ? 650.0 : 496.0,
+      vm.windowSize.width - 24,
     );
     return MenuAnchor(
       controller: controller,
@@ -154,7 +177,7 @@ class WorkspacePickerAnchor extends StatelessWidget {
                 width: width,
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    maxHeight: MediaQuery.sizeOf(context).height - 80,
+                    maxHeight: math.max(160, vm.windowSize.height - 220),
                   ),
                   child: SingleChildScrollView(
                     primary: false,
@@ -169,6 +192,8 @@ class WorkspacePickerAnchor extends StatelessWidget {
                               child: Text(
                                 picker == WorkspacePicker.layout
                                     ? context.l10n.workspaceLayout
+                                    : picker == WorkspacePicker.map
+                                    ? context.l10n.mapAppearance
                                     : context.l10n.markdownTypography,
                                 style: const TextStyle(
                                   fontSize: 13,
@@ -182,21 +207,23 @@ class WorkspacePickerAnchor extends StatelessWidget {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 5),
-                        Text(
-                          picker == WorkspacePicker.layout
-                              ? context.l10n.layoutHint
-                              : context.l10n.typographyHint,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant,
+                        if (picker == WorkspacePicker.layout)
+                          Text(
+                            picker == WorkspacePicker.layout
+                                ? context.l10n.layoutHint
+                                : context.l10n.typographyHint,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
                           ),
-                        ),
                         const SizedBox(height: 14),
                         if (picker == WorkspacePicker.layout)
                           LayoutChoices(vm: vm, width: width - 32)
+                        else if (picker == WorkspacePicker.map)
+                          MapAppearanceChoices(vm: vm, width: width - 32)
                         else ...[
                           TypographyChoices(vm: vm, width: width - 32),
                           const SizedBox(height: 12),
@@ -225,6 +252,78 @@ class WorkspacePickerAnchor extends StatelessWidget {
       child: child,
     );
   }
+}
+
+class MapAppearanceChoices extends StatefulWidget {
+  const MapAppearanceChoices({
+    super.key,
+    required this.vm,
+    required this.width,
+  });
+  final WorkspaceViewModel vm;
+  final double width;
+  @override
+  State<MapAppearanceChoices> createState() => _MapAppearanceChoicesState();
+}
+
+class _MapAppearanceChoicesState extends State<MapAppearanceChoices> {
+  bool _styles = false;
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      SegmentedButton<bool>(
+        segments: [
+          ButtonSegment(value: false, label: Text(context.l10n.mapStructure)),
+          ButtonSegment(value: true, label: Text(context.l10n.mapStyle)),
+        ],
+        selected: {_styles},
+        onSelectionChanged: (value) => setState(() => _styles = value.single),
+      ),
+      const SizedBox(height: 14),
+      if (!_styles)
+        MindMapLayoutChoices(vm: widget.vm, width: widget.width)
+      else
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final style in MindMapStyle.values)
+              _ChoiceCard(
+                key: ValueKey('map-style-${style.name}'),
+                width: (widget.width - 8) / 2,
+                height: 100,
+                selected: widget.vm.map.style == style,
+                label: context.l10n.mapStyleName(style),
+                onTap: () => widget.vm.setMapStyle(style),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: SizedBox.expand(
+                        child: CustomPaint(
+                          painter: _MapMiniature(
+                            MindMapLayout.compute(
+                              MindMapLayoutChoices._sample,
+                              mode: widget.vm.map.mode,
+                            ),
+                            Theme.of(context).colorScheme,
+                            style,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      context.l10n.mapStyleName(style),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+    ],
+  );
 }
 
 class LayoutChoices extends StatelessWidget {
@@ -274,7 +373,7 @@ class TypographyChoices extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final columns = width >= 380 ? 3 : 2;
+    final columns = width >= 500 ? 3 : 2;
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -283,7 +382,7 @@ class TypographyChoices extends StatelessWidget {
           _ChoiceCard(
             key: ValueKey('typography-${type.name}'),
             width: (width - (columns - 1) * 8) / columns,
-            height: 176,
+            height: width >= 500 ? 200 : 176,
             selected: vm.typography == type,
             label: context.l10n.typographyName(type),
             onTap: () => vm.updateAppearance(typography: type),

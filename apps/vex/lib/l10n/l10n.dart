@@ -45,6 +45,14 @@ extension LocalizedContext on BuildContext {
 }
 
 extension LocalizedChoices on AppLocalizations {
+  String mapStyleName(MindMapStyle style) => switch (style) {
+    MindMapStyle.quiet => mapQuiet,
+    MindMapStyle.colorful => mapColorful,
+    MindMapStyle.outline => mapOutline,
+    MindMapStyle.capsule => mapCapsule,
+    MindMapStyle.underline => mapUnderline,
+    MindMapStyle.mono => mapMono,
+  };
   String tableCommandName(MarkdownTableCommand command) => switch (command) {
     MarkdownTableCommand.rowAbove => tableRowAbove,
     MarkdownTableCommand.rowBelow => tableRowBelow,
@@ -89,6 +97,9 @@ extension LocalizedChoices on AppLocalizations {
     MarkdownTypography.technical => typeTechnical,
     MarkdownTypography.column => typeColumn,
     MarkdownTypography.editorial => typeEditorial,
+    MarkdownTypography.academic => typeAcademic,
+    MarkdownTypography.journal => typeJournal,
+    MarkdownTypography.handbook => typeHandbook,
   };
 
   String typographyDescription(MarkdownTypography type) => switch (type) {
@@ -98,6 +109,9 @@ extension LocalizedChoices on AppLocalizations {
     MarkdownTypography.technical => typeTechnicalNote,
     MarkdownTypography.column => typeColumnNote,
     MarkdownTypography.editorial => typeEditorialNote,
+    MarkdownTypography.academic => typeAcademicNote,
+    MarkdownTypography.journal => typeJournalNote,
+    MarkdownTypography.handbook => typeHandbookNote,
   };
 
   String paletteName(String palette) => switch (palette) {

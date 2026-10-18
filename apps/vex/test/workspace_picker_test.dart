@@ -34,6 +34,8 @@ void main() {
         await tester.pumpAndSettle();
         expect(vm.layout, WorkspaceLayout.read);
         expect(find.byKey(const ValueKey('layout-picker')), findsOneWidget);
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+        await tester.pumpAndSettle();
       }
       await tester.tap(find.byTooltip('Markdown 排版'));
       await tester.pumpAndSettle();

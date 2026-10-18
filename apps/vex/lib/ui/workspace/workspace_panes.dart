@@ -12,6 +12,7 @@ import 'document_image.dart';
 import 'document_watermark.dart';
 import 'workspace_element_menu.dart';
 import 'workspace_links.dart';
+import 'workspace_pickers.dart';
 import 'workspace_view_model.dart';
 
 class WorkspacePanes extends StatefulWidget {
@@ -23,17 +24,20 @@ class WorkspacePanes extends StatefulWidget {
     this.editingKey,
     this.mapKey,
     this.mapToolbarKey,
+    this.typographyControl,
   });
   final WorkspaceViewModel vm;
   final ValueChanged<String> onAction;
   final ValueChanged<Object> onError;
   final GlobalKey? editingKey, mapKey, mapToolbarKey;
+  final Widget? typographyControl;
   @override
   State<WorkspacePanes> createState() => _WorkspacePanesState();
 }
 
 class _WorkspacePanesState extends State<WorkspacePanes> {
   bool _inspector = false;
+  final _mapAppearance = MenuController();
   ValueChanged<MarkdownContextRequest>? _onContextMenu;
   WorkspaceViewModel get vm => widget.vm;
   void _command(VoidCallback action) {
@@ -98,7 +102,7 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
               : documentTheme(Theme.of(context)).colorScheme.surface,
           child: Column(
             children: [
-              if (titled)
+              if (titled || pane != 'source')
                 PanelHeader(
                   title: title,
                   icon: switch (pane) {
@@ -106,16 +110,46 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                     'read' => 'eye',
                     _ => 'edit',
                   },
-                  trailing: AppButton(
-                    icon: 'max',
-                    tooltip: context.l10n.showPaneOnly(title),
-                    height: 25,
-                    padding: 4,
-                    onPressed: () => vm.setLayout(
-                      WorkspaceLayout.values.firstWhere(
-                        (l) => l.panes.length == 1 && l.panes.first == pane,
-                      ),
-                    ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (pane == 'map')
+                        WorkspacePickerAnchor(
+                          vm: vm,
+                          picker: WorkspacePicker.map,
+                          controller: _mapAppearance,
+                          child: AppButton(
+                            key: const ValueKey('map-appearance-trigger'),
+                            label: context.l10n.mapStyleName(vm.map.style),
+                            tooltip: context.l10n.mapAppearance,
+                            trailingIcon: 'chevron-down',
+                            onPressed: () => _mapAppearance.isOpen
+                                ? _mapAppearance.close()
+                                : _mapAppearance.open(),
+                          ),
+                        ),
+                      if (pane != 'map' &&
+                          pane != 'source' &&
+                          pane ==
+                              vm.layout.panes.firstWhere(
+                                (p) => p != 'map' && p != 'source',
+                                orElse: () => '',
+                              ))
+                        widget.typographyControl ?? const SizedBox(),
+                      if (titled)
+                        AppButton(
+                          icon: 'max',
+                          tooltip: context.l10n.showPaneOnly(title),
+                          height: 25,
+                          padding: 4,
+                          onPressed: () => vm.setLayout(
+                            WorkspaceLayout.values.firstWhere(
+                              (l) =>
+                                  l.panes.length == 1 && l.panes.first == pane,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               Expanded(
