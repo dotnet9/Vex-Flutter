@@ -34,6 +34,19 @@ final class MarkdownListNavigator {
     _index = index;
     _alignment = alignment;
     _start = scroll.offset;
+    // A distant chapter should not build every intermediate viewport just to
+    // animate past it. Land nearby, then animate the last part of the journey.
+    // ignore: invalid_use_of_visible_for_testing_member
+    final target = list.getOffsetToReveal(index, alignment);
+    final position = scroll.position;
+    final distance = target - _start;
+    if (target.isFinite && distance.abs() > position.viewportDimension * 3) {
+      _start = (target - distance.sign * position.viewportDimension * .6).clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      );
+      scroll.jumpTo(_start);
+    }
     _animation.forward(from: 0);
   }
 

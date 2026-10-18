@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -24,7 +25,11 @@ void main() {
     await initializeDesktopWindow(size: const Size(1280, 900));
     final directory = await Directory.systemTemp.createTemp('vex-performance-');
     final sources = <String, String>{};
-    for (final chapters in [3000, 120]) {
+    final largeChapters = int.parse(
+      Platform.environment['VEX_PERFORMANCE_CHAPTERS'] ?? '3000',
+    );
+    expect(largeChapters, greaterThanOrEqualTo(3000));
+    for (final chapters in [largeChapters, 120]) {
       final source = StringBuffer('# Document $chapters\n\n');
       for (var i = 0; i < chapters; i++) {
         source.writeln('## Chapter $i\n');
@@ -58,6 +63,29 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 150));
       frames.clear();
       final clock = Stopwatch()..start();
+      var lastContentScrollMs = 0.0;
+      final positions = name.startsWith('jump:')
+          ? find
+                .descendant(
+                  of: find.byType(WorkspacePanes),
+                  matching: find.byType(Scrollable),
+                )
+                .evaluate()
+                .where(
+                  (e) =>
+                      (e.widget as Scrollable).axisDirection ==
+                      AxisDirection.down,
+                )
+                .map(
+                  (e) => ((e as StatefulElement).state as ScrollableState)
+                      .position,
+                )
+                .toList()
+          : <ScrollPosition>[];
+      void scrolled() => lastContentScrollMs = clock.elapsedMicroseconds / 1000;
+      for (final position in positions) {
+        position.addListener(scrolled);
+      }
       var lastTick = 0, maxGap = 0;
       final heartbeat = Timer.periodic(const Duration(milliseconds: 5), (_) {
         final now = clock.elapsedMicroseconds;
@@ -69,6 +97,9 @@ void main() {
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
       final wallMs = clock.elapsedMicroseconds / 1000;
       heartbeat.cancel();
+      for (final position in positions) {
+        position.removeListener(scrolled);
+      }
       await Future<void>.delayed(const Duration(milliseconds: 150));
       double percentile(Iterable<Duration> values, double fraction) {
         final sorted = values.map((v) => v.inMicroseconds).toList()..sort();
@@ -82,6 +113,7 @@ void main() {
         'actionMs': actionMs,
         'wallMs': wallMs,
         'eventLoopMaxGapMs': maxGap / 1000,
+        if (positions.isNotEmpty) 'lastContentScrollMs': lastContentScrollMs,
         'rssMiB': ProcessInfo.currentRss / 1048576,
         'frames': frames.length,
         'buildP95Ms': percentile(frames.map((f) => f.buildDuration), .95),
@@ -124,10 +156,40 @@ void main() {
       ]) {
         vm.setLayout(layout);
         await tester.pumpAndSettle();
-        for (final index in [2700, 10, 1500]) {
+        for (final index in [
+          (largeChapters * .9).round(),
+          10,
+          largeChapters ~/ 2,
+        ]) {
           await measure('jump:${layout.name}:$index', () {
             vm.selectHeading(vm.editor.document.headings[index + 1]);
           });
+          if (layout != WorkspaceLayout.source) {
+            final heading = find.text('Chapter $index', findRichText: true);
+            expect(heading, findsOneWidget);
+            expect(
+              tester
+                  .getRect(find.byType(WorkspacePanes))
+                  .contains(tester.getCenter(heading)),
+              isTrue,
+              reason: 'The requested chapter must actually be visible.',
+            );
+          }
+        }
+        final capture = Platform.environment['VEX_LOW_RESOURCE_CAPTURE_DIR'];
+        if (capture != null) {
+          await Directory(capture).create(recursive: true);
+          final render = tester.firstRenderObject<RenderRepaintBoundary>(
+            find.byType(RepaintBoundary),
+          );
+          final image = await render.toImage(pixelRatio: 1);
+          try {
+            final bytes = await image.toByteData(format: ImageByteFormat.png);
+            await File('$capture/${layout.name}.png')
+                .writeAsBytes(bytes!.buffer.asUint8List());
+          } finally {
+            image.dispose();
+          }
         }
         await measure('caret:${layout.name}', () async {
           for (var i = 0; i < 20; i++) {
@@ -164,9 +226,18 @@ void main() {
             ? 'profile'
             : 'debug',
         'os': Platform.operatingSystemVersion,
-        'viewport':
-            '${tester.view.physicalSize / tester.view.devicePixelRatio}',
-        'renderer': 'Windows Skia default backend',
+        'viewport': {
+          'width':
+              tester.view.physicalSize.width / tester.view.devicePixelRatio,
+          'height':
+              tester.view.physicalSize.height / tester.view.devicePixelRatio,
+        },
+        'renderer': 'Windows Skia',
+        'softwareRenderingRequested': Platform.environment.entries.any(
+          (e) =>
+              e.key.startsWith('FLUTTER_ENGINE_SWITCH_') &&
+              e.value == 'enable-software-rendering=true',
+        ),
         'documents': [
           for (final text in sources.values)
             {'utf16Length': text.length, 'utf8Bytes': utf8.encode(text).length},
