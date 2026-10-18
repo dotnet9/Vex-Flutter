@@ -1,4 +1,5 @@
 import 'package:vex_editor/vex_editor.dart';
+import 'package:vex_markdown_core/vex_markdown_core.dart';
 
 import 'file_preferences.dart';
 
@@ -46,14 +47,34 @@ enum WorkspaceLayout {
 
 final class WorkspaceDocument {
   WorkspaceDocument({
+    required String id,
+    required String name,
+    required String text,
+    String? path,
+    String? persistedText,
+    bool demo = false,
+    TextFileFormat format = const TextFileFormat(),
+  }) : this.fromDocument(
+         id: id,
+         name: name,
+         document: MarkdownDocument.parse(text),
+         path: path,
+         persistedText: persistedText,
+         demo: demo,
+         format: format,
+       );
+
+  WorkspaceDocument.fromDocument({
     required this.id,
     required this.name,
-    required String text,
+    required MarkdownDocument document,
     this.path,
     this.persistedText,
     this.demo = false,
     this.format = const TextFileFormat(),
-  }) : editor = MarkdownEditorController(text: text);
+  }) : editor = MarkdownEditorController(
+         session: MarkdownSession.fromDocument(document),
+       );
   final String id;
   String name;
   String? path, persistedText;

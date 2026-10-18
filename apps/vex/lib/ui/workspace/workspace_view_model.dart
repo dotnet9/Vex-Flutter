@@ -724,7 +724,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     final request = ++_openRequest;
     final opened = await files.pick();
     if (opened != null) {
-      acceptOpened(opened, activate: request == _openRequest);
+      await _prepareOpened(opened, request);
     }
   }
 
@@ -743,10 +743,23 @@ final class WorkspaceViewModel extends ChangeNotifier {
       return;
     }
     final opened = await files.read(path);
-    acceptOpened(opened, activate: request == _openRequest);
+    await _prepareOpened(opened, request);
   }
 
-  void acceptOpened(OpenedDocument opened, {bool activate = true}) {
+  Future<void> _prepareOpened(OpenedDocument opened, int request) async {
+    if (_disposed) return;
+    final parsed = await MarkdownDocument.parseAsync(opened.text);
+    _acceptOpened(opened, parsed: parsed, activate: request == _openRequest);
+  }
+
+  void acceptOpened(OpenedDocument opened, {bool activate = true}) =>
+      _acceptOpened(opened, activate: activate);
+
+  void _acceptOpened(
+    OpenedDocument opened, {
+    bool activate = true,
+    MarkdownDocument? parsed,
+  }) {
     if (_disposed) return;
     if (activate) endGuide();
     final existing = opened.path == null ? null : _documentAt(opened.path!);
@@ -754,10 +767,10 @@ final class WorkspaceViewModel extends ChangeNotifier {
       if (activate) switchDocument(existing);
       return;
     }
-    final doc = WorkspaceDocument(
+    final doc = WorkspaceDocument.fromDocument(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       name: opened.name,
-      text: opened.text,
+      document: parsed ?? MarkdownDocument.parse(opened.text),
       path: opened.path,
       persistedText: opened.text,
       format: opened.format,
@@ -787,12 +800,15 @@ final class WorkspaceViewModel extends ChangeNotifier {
       for (final path in paths.whereType<String>().take(40)) {
         try {
           final opened = await files.read(path);
+          if (_disposed) return;
+          final parsed = await MarkdownDocument.parseAsync(opened.text);
+          if (_disposed) return;
           _add(
-            WorkspaceDocument(
+            WorkspaceDocument.fromDocument(
               id: 'restored-${documents.length}',
               name: opened.name,
               path: opened.path,
-              text: opened.text,
+              document: parsed,
               persistedText: opened.text,
               format: opened.format,
             ),

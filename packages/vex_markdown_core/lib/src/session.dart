@@ -34,8 +34,11 @@ final class MarkdownSnapshot {
 /// Shared command/history boundary for source, rich editing and chapter actions.
 final class MarkdownSession {
   MarkdownSession([String source = ''])
-    : _document = MarkdownDocument.parse(source),
-      _saved = source;
+    : this.fromDocument(MarkdownDocument.parse(source));
+
+  MarkdownSession.fromDocument(MarkdownDocument document)
+    : _document = document,
+      _saved = document.source;
   MarkdownDocument _document;
   String _saved;
   final _undo = <_Edit>[];

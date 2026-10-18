@@ -6,6 +6,30 @@ import 'support/fakes.dart';
 
 void main() {
   test(
+    'large background parse cannot steal focus or discard a new draft',
+    () async {
+      final vm = fakeWorkspace();
+      addTearDown(vm.dispose);
+      final files = vm.files as MemoryFiles;
+      final text = '# Large\n\n${'Paragraph\n\n' * 40000}';
+      files.content['/large.md'] = text;
+      final opening = vm.openPath('/large.md');
+      vm.newDocument();
+      final draft = vm.current;
+      vm.editor.session.replace('keep writing');
+      await opening;
+      expect(vm.current, same(draft));
+      expect(vm.editor.text, 'keep writing');
+      final loaded = vm.documents.singleWhere((d) => d.path == '/large.md');
+      expect(loaded.editor.text, text);
+      expect(loaded.editor.session.isDirty, isFalse);
+      vm.switchDocument(loaded);
+      expect(vm.editor.text, text);
+      expect(files.readPaths, ['/large.md']);
+    },
+  );
+
+  test(
     'reopening an open document keeps edits without another disk read',
     () async {
       final vm = fakeWorkspace();

@@ -1,3 +1,5 @@
+import 'dart:isolate';
+
 import 'list_extent.dart';
 
 /// An immutable range in Dart UTF-16 string offsets, matching Flutter selections.
@@ -63,6 +65,12 @@ final class _Line {
 /// Markdown source is authoritative. Parsed structures never rewrite it.
 final class MarkdownDocument {
   MarkdownDocument._(this.source, this.headings, this.blocks, this.lineStarts);
+
+  /// Keep small files cheap; move large initial parses off the UI isolate.
+  static Future<MarkdownDocument> parseAsync(String source) async {
+    if (source.length < 256 * 1024) return MarkdownDocument.parse(source);
+    return Isolate.run(() => MarkdownDocument.parse(source));
+  }
 
   factory MarkdownDocument.parse(String source) {
     final lines = <_Line>[];
