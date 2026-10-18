@@ -120,7 +120,11 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                 fontSize: vm.editingPreferences.codeSize,
                 editingPreferences: vm.editingPreferences,
               ),
-              'read' => _DocumentReading(vm: vm, onContextMenu: _onContextMenu),
+              'read' => _DocumentReading(
+                vm: vm,
+                padding: _documentPadding(titled),
+                onContextMenu: _onContextMenu,
+              ),
               'map' => _mapPane(),
               _ => MarkdownInstantEditor(
                 onContextMenu: _onContextMenu,
@@ -139,12 +143,7 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                 preferences: vm.markdownPreferences,
                 fontSize: vm.fontSize,
                 editingPreferences: vm.editingPreferences,
-                padding: EdgeInsets.fromLTRB(
-                  titled ? 34 : 44,
-                  titled ? 24 : 34,
-                  titled ? 34 : 44,
-                  70,
-                ),
+                padding: _documentPadding(titled),
               ),
             }),
           ),
@@ -152,6 +151,16 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
       ),
     );
   }
+
+  EdgeInsets _documentPadding(bool titled) =>
+      vm.viewport == WorkspaceViewport.phone
+      ? const EdgeInsets.fromLTRB(25, 28, 25, 70)
+      : EdgeInsets.fromLTRB(
+          titled ? 34 : 44,
+          titled ? 24 : 34,
+          titled ? 34 : 44,
+          70,
+        );
 
   Widget _contentScale(String pane, Widget child) => pane == 'map'
       ? child
@@ -288,8 +297,13 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
 final mapBoundaryKey = GlobalKey();
 
 class _DocumentReading extends StatefulWidget {
-  const _DocumentReading({required this.vm, this.onContextMenu});
+  const _DocumentReading({
+    required this.vm,
+    required this.padding,
+    this.onContextMenu,
+  });
   final WorkspaceViewModel vm;
+  final EdgeInsets padding;
   final ValueChanged<MarkdownContextRequest>? onContextMenu;
   @override
   State<_DocumentReading> createState() => _DocumentReadingState();
@@ -351,7 +365,7 @@ class _DocumentReadingState extends State<_DocumentReading>
             key: PageStorageKey('read:${vm.current.id}'),
             controller: _scroll,
             listController: _list,
-            padding: const EdgeInsets.fromLTRB(44, 34, 44, 70),
+            padding: widget.padding,
             itemCount: blocks.isEmpty ? 1 : blocks.length,
             itemBuilder: (context, index) {
               if (blocks.isEmpty) return Text(context.l10n.emptyDocument);
