@@ -143,7 +143,7 @@ final class McpServer {
                 ? requested
                 : '2025-11-25',
             'capabilities': {'tools': <String, Object?>{}},
-            'serverInfo': {'name': 'Vex', 'version': '0.2.2'},
+            'serverInfo': {'name': 'Vex', 'version': '0.3.0'},
           };
         case 'ping':
           result = <String, Object?>{};

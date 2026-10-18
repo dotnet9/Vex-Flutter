@@ -9,7 +9,7 @@
 <p align="center">本地优先的开源 Markdown 写作空间。<br>写文章、理结构、看导图，在同一份文档里完成。</p>
 
 <p align="center">
-  <a href="https://github.com/dotnet9/Vex-Flutter/releases"><img src="https://img.shields.io/github/v/release/dotnet9/Vex-Flutter?include_prereleases&amp;label=Release&amp;color=24766b" alt="GitHub 预发布版本"></a>
+  <a href="https://github.com/dotnet9/Vex-Flutter/releases/latest"><img src="https://img.shields.io/github/v/release/dotnet9/Vex-Flutter?label=Release&amp;color=24766b" alt="GitHub 发布版本"></a>
   <a href="https://github.com/dotnet9/Vex-Flutter/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/dotnet9/Vex-Flutter/ci.yml?branch=main&amp;label=CI" alt="检查与测试"></a>
   <a href=".flutter-version"><img src="https://img.shields.io/badge/Flutter-3.47.7-02569B?logo=flutter" alt="Flutter 3.47.7"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-24766b" alt="MIT License"></a>
@@ -28,7 +28,7 @@
 
 Vex 适合整理技术笔记、读书记录、长文提纲和项目方案。像熟悉的 Markdown 编辑器一样写作，也能随时切到导图，从整篇文章的结构重新思考。
 
-> 当前为预发布项目。下方截图与 GIF 均采集自当前 `main` 分支的 Windows 原生 Flutter 应用，不是网页原型；公开安装包对应各自的发布标签，界面和功能可能与开发分支有差异。
+> 当前为 0.x 早期项目。下方截图与 GIF 均采集自 Windows 原生 Flutter 应用，不是网页原型；公开安装包对应各自的发布标签，界面和功能可能与开发分支有差异。
 
 ## 先看一遍新手引导
 
@@ -96,7 +96,7 @@ Vex 适合整理技术笔记、读书记录、长文提纲和项目方案。像�
 
 ## 下载与安装
 
-**普通用户直接前往 [GitHub Releases](https://github.com/dotnet9/Vex-Flutter/releases) 下载，无需 Flutter、Git 或编译环境。** 目前发布为预发布版本，请先用副本文档试用。
+**普通用户直接前往 [最新 Release](https://github.com/dotnet9/Vex-Flutter/releases/latest) 下载，无需 Flutter、Git 或编译环境。** 从 `v0.3.0` 起公开提供 Vex 品牌安装包；0.x 仍是早期软件，请先用副本文档试用。
 
 | 平台 | 安装包 | 如何选择 |
 | --- | --- | --- |
