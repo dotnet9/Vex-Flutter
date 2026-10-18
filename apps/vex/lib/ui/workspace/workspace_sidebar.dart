@@ -308,9 +308,9 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
         borderRadius: BorderRadius.circular(6),
         child: InkWell(
           key: ValueKey('sidebar-file-$path'),
-          onTap: () => document == null
-              ? widget.onOpenPath(path)
-              : vm.switchDocument(document),
+          onTap: () => document != null && document.path == null
+              ? vm.switchDocument(document)
+              : widget.onOpenPath(path),
           borderRadius: BorderRadius.circular(6),
           child: Container(
             height: 36,

@@ -36,6 +36,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(child, findsNothing);
     expect(files.readPaths, ['/notes/first.md']);
+    files.content['/other/other.md'] = '# Other';
+    await vm.openPath('/other/other.md');
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: sidebar, matching: find.text('first.md')),
+    );
+    await tester.pumpAndSettle();
+    expect(vm.folder?.path, '/notes');
+    expect(child, findsOneWidget);
+    expect(files.readPaths, ['/notes/first.md', '/other/other.md']);
     await tester.pumpWidget(const SizedBox());
     vm.dispose();
   });
