@@ -89,7 +89,8 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "CodeWF" "\0"
+            // path_provider omits the company folder when this value is empty.
+            VALUE "CompanyName", "" "\0"
             VALUE "FileDescription", "Vex" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "vex" "\0"

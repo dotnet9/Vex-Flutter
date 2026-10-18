@@ -98,6 +98,12 @@ class BrandContractTest(unittest.TestCase):
         installer = (ROOT / 'scripts/installer/Vex.iss').read_text(encoding='utf-8-sig')
         self.assertIn('AppId={{51E79E85-AD4C-4D48-92EC-C1EA09FB4E56}', installer)
 
+    def test_windows_user_data_has_no_company_subdirectory(self):
+        resources = (ROOT / 'apps/vex/windows/runner/Runner.rc').read_text(encoding='utf-8')
+        self.assertRegex(resources, r'VALUE "CompanyName", "" "\\0"')
+        self.assertRegex(resources, r'VALUE "ProductName", "Vex" "\\0"')
+        self.assertIn('CodeWF', resources)
+
 
 if __name__ == '__main__':
     unittest.main()
