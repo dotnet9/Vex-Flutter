@@ -1,0 +1,96 @@
+# 统一打包入口
+
+> 本机打包不会安装 Vex、提交 / 推送代码、创建 tag 或发布 Release。成功看到本轮 `READY` 后，再自行运行安装包。
+
+## 按平台找脚本
+
+```text
+scripts/packaging/
+├── build.py               # 统一命令入口、宿主检查、依赖 / 测试 / 构建 / 校验
+├── win-x64/
+│   ├── build.bat          # Windows 双击入口，保留结果并打开产物目录
+│   ├── build.ps1          # Windows 完整流程
+│   ├── package.ps1        # 将已有 Flutter Release 制作为 EXE
+│   └── install_inno.ps1   # 准备固定版本且经校验的 Inno 编译器
+├── linux-x64/build.sh     # Linux x64 完整流程
+├── linux-arm64/build.sh   # Linux ARM64 完整流程
+├── linux/package.sh      # 两种 Linux 架构共享的 DEB 制作逻辑
+├── osx-x64/build.sh       # Intel 入口，仍生成双架构通用 DMG
+├── osx-arm64/build.sh     # Apple 芯片入口，同上
+├── osx-universal/build.sh # 推荐的 macOS 通用入口
+├── osx/                  # DMG 制作、布局检查与哈希锁定依赖
+├── android/
+│   ├── build.bat          # Windows Android 打包入口
+│   ├── build.sh           # Linux / macOS Android 打包入口
+│   ├── configure_signing.py # 从已配置的环境变量准备签名；不生成新密钥
+│   └── collect.py         # 校验发行签名、包名、版本和 ABI 后收集 APK
+├── ios/check.sh          # 仅无签名编译检查，不产出可安装 IPA
+└── shared/release_tools.py # 版本元信息、产物命名、SHA-256、发布白名单
+```
+
+`build.*` 是从源码到安装包的完整入口；`package.*` / `collect.py` 是已有编译产物的底层打包步骤。日常只用完整入口，避免漏掉校验。根目录 `build-windows.bat` 保留为 Windows 兼容快捷入口。
+
+## 命令与宿主
+
+在仓库根目录执行，下表每一行都是独立命令。macOS / Linux 使用 `python3`；Windows 使用 `python`。
+
+| 目标 | 统一命令 | 所需电脑与产物 |
+| --- | --- | --- |
+| Windows x64 | `python scripts/packaging/build.py win-x64` | x64 Windows + VS C++ 桌面工具；EXE，未配置 ARM64 主机交叉编译 |
+| Linux x64 | `python3 scripts/packaging/build.py linux-x64` | Ubuntu 24.04 x64；DEB |
+| Linux ARM64 | `python3 scripts/packaging/build.py linux-arm64` | Ubuntu 24.04 ARM64；DEB，不假设跨架构编译 |
+| macOS Intel | `python3 scripts/packaging/build.py osx-x64` | macOS + Xcode；通用 DMG |
+| macOS Apple 芯片 | `python3 scripts/packaging/build.py osx-arm64` | macOS + Xcode；同一通用 DMG |
+| macOS 通用（推荐） | `python3 scripts/packaging/build.py osx-universal` | 一个 DMG 同时包含 x86_64 和 arm64，无需跑两次 |
+| Android | `python scripts/packaging/build.py android` | Windows / Linux / macOS + Android SDK / JDK / 正式签名；三架构 APK |
+| iOS 编译检查 | `python3 scripts/packaging/build.py ios-check` | macOS + Xcode；**无可安装 IPA** |
+
+也可执行相应目录的 `build.bat` / `bash .../build.sh`，它们不依赖终端当前所在目录。`windows-x64`、`macos-universal` 为 CI 命名别名，安装包原有文件名不变。macOS 两个架构入口不是两个不同安装包；均检查主程序和两个 framework 的双架构。
+
+共同需要 Python 3.11+ 和 `.flutter-version` 指定的 Flutter SDK；脚本不会升级 SDK。将 Flutter `bin` 加入 PATH，或使用 `--flutter`、`VEX_FLUTTER`、`FLUTTER_ROOT` 指定。Windows BAT 的参数使用 PowerShell 风格，例如 `-CheckOnly`；统一 Python 入口使用 `--check-only`。
+
+Linux 原生依赖（Ubuntu 24.04，需用户自行确认安装）：
+
+```bash
+sudo apt-get update
+sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libxrandr-dev libayatana-appindicator3-dev dpkg-dev desktop-file-utils
+```
+
+macOS 需要完整 Xcode、已接受的许可、CocoaPods 及对应平台 SDK。DMG 的 Python 依赖自动装入 `artifacts/tools/macos-dmg` 的独立虚拟环境，并按版本和 SHA-256 校验，不改系统 Python 包。当前采用临时签名，尚无 Developer ID / 公证。
+
+Android 使用 JDK 21，先安装并接受 SDK 许可：`platforms;android-36`、`build-tools;36.0.0`、`ndk;28.2.13676358`，设置 `ANDROID_HOME`，也可传 `--sdk-root`。恢复原发行 keystore 和 `apps/vex/android/key.properties`，设置公开指纹 `ANDROID_CERT_SHA256`；不要更换发行密钥，不要提交密码 / 密钥。若使用 CI 同名的四项签名环境变量，可先运行 `python scripts/packaging/android/configure_signing.py` 准备忽略文件；请勿把值写入命令行或文档。签名配置不会随普通克隆下载。
+
+iOS 和 HarmonyOS 的可安装包发布继续暂缓，不提供伪造或不可安装的占位包。
+
+## 常用选项
+
+```powershell
+# 不下载或编译，只核对本机先决条件
+python scripts/packaging/build.py win-x64 --check-only
+
+# 任意系统预览其他平台的配方，不执行命令、不创建目录
+python scripts/packaging/build.py linux-arm64 --dry-run
+
+# 指定已有 Flutter，并在构建后不打开资源管理器
+python scripts/packaging/build.py win-x64 --flutter C:\tools\flutter\bin\flutter.bat --no-open-folder
+```
+
+默认流程：锁定依赖 → 分析与四组 Dart / Flutter 测试 → Python 脚本测试 → 正式 `lib/main.dart` Release → 原生安装包 → SHA-256 → 产物格式和白名单校验。
+
+- `--skip-tests` 仅显式跳过分析 / 测试，保留锁文件、编译与产物检查。CI 已先执行完整测试，再传此参数。
+- `--output artifacts/release` 将产物写入 CI 汇总目录；相对路径始终以仓库根目录为基准。日常不必指定。
+- Windows 可用 `--compiler` 指定现有 ISCC.exe；默认准备固定版本工具。
+- BAT 自动化设置 `VEX_NO_PAUSE=1` 可取消结束等待；退出码仍保留。
+
+Windows 默认限制 CMake 并发为 2、MSVC 为 `/MP1`，可通过已有进程环境变量覆盖。内存较小或本机编译器不稳定时，可在 PowerShell 中先设置 `$env:CMAKE_BUILD_PARALLEL_LEVEL = '1'`、`$env:CL = '/MP1'`，再运行入口；编译器崩溃仍会报错中止，不会自动跳过失败或拿旧包当成功结果。
+
+| 内容 | 目录 |
+| --- | --- |
+| 本机安装包与 `.sha256` | `artifacts/local/目标/v版本-build构建号/` |
+| 本机日志 | `artifacts/build-logs/` |
+| CI 发布暂存 | `artifacts/release/` |
+| Flutter 中间编译文件 | `apps/vex/build/` |
+
+示例：`artifacts/local/win-x64/v0.2.2-build4/`。macOS 架构别名归并到 `osx-universal`，Android 的三种 APK 归入 `android`。重复构建覆盖同名产物，不自动清空目录；失败可能留有旧文件，不能仅凭目录存在判断成功。不要在一个工作副本同时运行多个 Flutter 构建或测试。
+
+完整签名、发布、安装升级及用户数据说明见 [安装包与自动发布](../../docs/安装包与自动发布.md)。

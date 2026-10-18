@@ -2,12 +2,15 @@
 param(
     [string] $Flutter = '',
     [string] $Compiler = '',
+    [string] $OutputDirectory = '',
     [switch] $SkipTests,
     [switch] $NoOpenFolder,
     [switch] $CheckOnly
 )
 $ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent $PSScriptRoot
+$env:FLUTTER_SUPPRESS_ANALYTICS = 'true'
+$root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../..'))
+$releaseTools = Join-Path $root 'scripts/packaging/shared/release_tools.py'
 
 function Invoke-Checked {
     param([string] $Executable, [string[]] $Arguments)
@@ -53,6 +56,9 @@ $transcribing = $false
 Push-Location $root
 try {
     if ($env:OS -ne 'Windows_NT') { throw 'This entry builds Windows installers on Windows only.' }
+    $hostArchitecture = $env:PROCESSOR_ARCHITECTURE
+    if ($env:PROCESSOR_ARCHITEW6432) { $hostArchitecture = $env:PROCESSOR_ARCHITEW6432 }
+    if ($hostArchitecture -ne 'AMD64') { throw 'win-x64 requires an x64 Windows host; ARM64 cross-compilation is not configured.' }
     $logDirectory = Join-Path $root 'artifacts/build-logs'
     New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
     $log = Join-Path $logDirectory ("windows-{0:yyyyMMdd-HHmmss-fff}.log" -f (Get-Date))
@@ -66,10 +72,10 @@ try {
     if (-not $pythonCommand) { throw 'Install Python 3.11+ and enable its python command in PATH.' }
     $python = $pythonCommand.Source
     Invoke-Checked -Executable $python -Arguments @('-c', 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)')
-    $metadataJson = & $python (Join-Path $PSScriptRoot 'release_tools.py') metadata
+    $metadataJson = & $python $releaseTools metadata
     if ($LASTEXITCODE -ne 0) { throw 'Unable to read application version metadata.' }
     $metadata = $metadataJson | ConvertFrom-Json
-    $sdkJson = & $flutterPath --version --machine
+    $sdkJson = & $flutterPath --suppress-analytics --version --machine
     if ($LASTEXITCODE -ne 0) { throw 'Flutter SDK could not start.' }
     $sdk = $sdkJson | ConvertFrom-Json
     if ($sdk.frameworkVersion -ne $metadata.flutter) {
@@ -114,11 +120,14 @@ try {
             Invoke-Checked -Executable $flutterPath -Arguments @('build', 'windows', '--release', '--target', 'lib/main.dart')
         } finally { Pop-Location }
 
-        $output = Join-Path $root "artifacts/local-windows/v$($metadata.version)-build$($metadata.build)"
-        & (Join-Path $PSScriptRoot 'package_windows.ps1') -Version $metadata.version -Compiler $Compiler -OutputDirectory $output | Out-Host
+        $output = Join-Path $root "artifacts/local/win-x64/v$($metadata.version)-build$($metadata.build)"
+        if ($OutputDirectory) {
+            $output = [IO.Path]::GetFullPath($OutputDirectory)
+        }
+        & (Join-Path $PSScriptRoot 'package.ps1') -Version $metadata.version -Compiler $Compiler -OutputDirectory $output | Out-Host
         if (-not $?) { throw 'Windows installer packaging failed.' }
-        Invoke-Checked -Executable $python -Arguments @('scripts/release_tools.py', 'checksums', '--directory', $output, '--targets', 'windows-x64')
-        Invoke-Checked -Executable $python -Arguments @('scripts/release_tools.py', 'verify', '--directory', $output, '--targets', 'windows-x64')
+        Invoke-Checked -Executable $python -Arguments @($releaseTools, 'checksums', '--directory', $output, '--targets', 'windows-x64')
+        Invoke-Checked -Executable $python -Arguments @($releaseTools, 'verify', '--directory', $output, '--targets', 'windows-x64')
         $installerPath = Join-Path $output "Vex-v$($metadata.version)-windows-x64-setup.exe"
         Write-Host "READY: $installerPath"
         Write-Host 'Double-click this setup file to install. The build script does not install or launch Vex.'

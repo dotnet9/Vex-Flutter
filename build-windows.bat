@@ -1,8 +1,5 @@
 @echo off
 setlocal
-rem Use Windows PowerShell modules even when launched from a PowerShell 7 terminal.
-set "PSModulePath=%SystemRoot%\System32\WindowsPowerShell\v1.0\Modules"
-"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\build_windows.ps1" %*
-set "VEX_BUILD_EXIT=%ERRORLEVEL%"
-if not defined VEX_NO_PAUSE pause
-exit /b %VEX_BUILD_EXIT%
+rem Compatibility entry. The platform entry owns module isolation and pause.
+call "%~dp0scripts\packaging\win-x64\build.bat" %*
+exit /b %ERRORLEVEL%

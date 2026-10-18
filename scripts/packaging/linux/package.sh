@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 version="${1:?Version is required}"
 arch="${2:?Use x64 or arm64}"
+output="${3:-$root/artifacts/release}"
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Invalid version' >&2; exit 1; }
 case "$arch" in x64) deb_arch=amd64;; arm64) deb_arch=arm64;; *) exit 1;; esac
 bundle="$root/apps/vex/build/linux/$arch/release/bundle"
@@ -11,7 +12,7 @@ stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
 mkdir -p "$stage/DEBIAN" "$stage/usr/lib/vex" "$stage/usr/bin" \
   "$stage/usr/share/applications" "$stage/usr/share/icons/hicolor/256x256/apps" \
-  "$stage/usr/share/doc/vex" "$root/artifacts/release"
+  "$stage/usr/share/doc/vex" "$output"
 cp -a "$bundle/." "$stage/usr/lib/vex/"
 cp "$root/logo.png" "$stage/usr/share/icons/hicolor/256x256/apps/vex.png"
 cp "$root/LICENSE" "$stage/usr/share/doc/vex/copyright"
@@ -59,7 +60,7 @@ EOF
 rm -rf "$stage/debian"
 chmod 755 "$stage/DEBIAN"
 chmod 644 "$stage/DEBIAN/control"
-package="$root/artifacts/release/Vex-v$version-linux-$arch.deb"
+package="$output/Vex-v$version-linux-$arch.deb"
 dpkg-deb --build --root-owner-group "$stage" "$package"
 [[ "$(dpkg-deb -f "$package" Version)" == "$version" ]]
 [[ "$(dpkg-deb -f "$package" Architecture)" == "$deb_arch" ]]

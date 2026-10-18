@@ -14,7 +14,7 @@ import re
 import struct
 import zipfile
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 INSTALLERS = {
     'windows-x64': '-windows-x64-setup.exe',
     'macos-universal': '-macos-universal.dmg',

@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 class InstallerContractTest(unittest.TestCase):
     def test_optional_test_identity_stays_outside_production_registration(self):
         pattern = r'^Vex\.Installer\.Test(?:[.-][A-Za-z0-9_-]+)*$'
-        for name in ('package_windows.ps1', 'test_windows_installer.ps1'):
+        for name in ('packaging/win-x64/package.ps1', 'test_windows_installer.ps1'):
             script = (ROOT / 'scripts' / name).read_text(encoding='utf-8-sig')
             self.assertIn(f"[ValidatePattern('{pattern}')]", script)
             self.assertIn("[ValidateLength(1, 100)]", script)
@@ -25,7 +25,7 @@ class InstallerContractTest(unittest.TestCase):
         self.assertIn('DefaultDirName={localappdata}\\Temp\\{#InstallerTestId}', setup)
 
     def test_finder_drag_layout_and_retina_assets(self):
-        spec = importlib.util.spec_from_file_location('macos_dmg', ROOT / 'scripts/build_macos_dmg.py')
+        spec = importlib.util.spec_from_file_location('macos_dmg', ROOT / 'scripts/packaging/osx/build_dmg.py')
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         layout = module.layout_settings(Path('/temporary/Vex.app'))
@@ -63,12 +63,12 @@ class InstallerContractTest(unittest.TestCase):
         self.assertIn('Vex.Markdown', windows)
         self.assertIn('OutputBaseFilename=Vex-v', windows)
         self.assertIn('DefaultDirName={localappdata}\\Programs\\Vex', windows)
-        linux = (ROOT / 'scripts/package_linux.sh').read_text(encoding='utf-8')
+        linux = (ROOT / 'scripts/packaging/linux/package.sh').read_text(encoding='utf-8')
         self.assertIn('Package: vex', linux)
         self.assertIn('Name=Vex', linux)
         self.assertIn('Name[zh_CN]=维刻 Vex', linux)
         self.assertIn('Vex-v$version-linux-', linux)
-        macos = (ROOT / 'scripts/package_macos.sh').read_text(encoding='utf-8')
+        macos = (ROOT / 'scripts/packaging/osx/package.sh').read_text(encoding='utf-8')
         self.assertIn('$stage/Vex.app', macos)
         self.assertIn('$mount/Vex.app', macos)
         self.assertIn('Vex-v$version-macos-', macos)

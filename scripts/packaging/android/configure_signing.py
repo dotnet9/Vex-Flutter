@@ -3,7 +3,7 @@ import base64
 import os
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 
 
 def property_value(value):

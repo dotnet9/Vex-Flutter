@@ -5,7 +5,9 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'shared'))
 from release_tools import ANDROID_ABIS, ROOT, app_version, check_installer, filename
 
 
@@ -13,15 +15,16 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--sdk-root', type=Path, default=Path(os.environ.get('ANDROID_HOME', '')))
     parser.add_argument('--certificate-sha256', required=True)
+    parser.add_argument('--output', type=Path, default=ROOT / 'artifacts/release')
     args = parser.parse_args()
     fingerprint = args.certificate_sha256.lower().replace(':', '')
     if not re.fullmatch('[a-f0-9]{64}', fingerprint):
         raise ValueError('Expected production certificate SHA-256 is required.')
-    build_tools = max((args.sdk_root / 'build-tools').iterdir(), key=lambda p: tuple(int(n) for n in p.name.split('.')))
+    build_tools = args.sdk_root / 'build-tools/36.0.0'
     apksigner = build_tools / ('apksigner.bat' if os.name == 'nt' else 'apksigner')
     aapt = build_tools / ('aapt.exe' if os.name == 'nt' else 'aapt')
     version, _ = app_version()
-    output = ROOT / 'artifacts/release'
+    output = args.output
     output.mkdir(parents=True, exist_ok=True)
     for target, abi in ANDROID_ABIS.items():
         source = ROOT / f'apps/vex/build/app/outputs/flutter-apk/app-{abi}-production-release.apk'

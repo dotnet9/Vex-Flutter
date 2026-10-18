@@ -5,11 +5,10 @@ on:
     branches: [main]
     paths:
       - 'scripts/installer/**'
-      - 'scripts/package_*.sh'
-      - 'scripts/package_windows.ps1'
+      - 'scripts/packaging/**'
       - 'scripts/test_windows_installer.ps1'
-      - 'scripts/build_macos_dmg.py'
-      - 'scripts/macos-dmg-requirements.txt'
+      - 'scripts/tests/**'
+      - 'build-windows.bat'
       - '.github/workflows/installer-check.yml'
   workflow_dispatch:
 
@@ -41,44 +40,31 @@ jobs:
           python-version: '3.12'
       - name: 读取版本
         id: version
-        run: python scripts/release_tools.py metadata --github-output
+        run: python scripts/packaging/shared/release_tools.py metadata --github-output
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ steps.version.outputs.flutter }}
           architecture: ${{ matrix.architecture }}
           channel: stable
           cache: true
-      - run: flutter pub get --enforce-lockfile
       - name: 构建并验证 Windows 安装修复卸载
         if: runner.os == 'Windows'
         shell: pwsh
         env:
           APP_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          Push-Location apps/vex
-          flutter build windows --release --target lib/main.dart
+          python scripts/packaging/build.py win-x64 --skip-tests --no-open-folder --output artifacts/release
           if ($LASTEXITCODE -ne 0) { throw 'Windows release build failed.' }
-          Pop-Location
-          $compiler = ./scripts/install_inno.ps1
-          ./scripts/package_windows.ps1 -Version $env:APP_VERSION -Compiler $compiler
           ./scripts/test_windows_installer.ps1 -Installer "artifacts/release/Vex-v$env:APP_VERSION-windows-x64-setup.exe" -Version $env:APP_VERSION
       - name: 构建并验证 macOS 通用拖拽安装映像
         if: runner.os == 'macOS'
-        env:
-          APP_VERSION: ${{ steps.version.outputs.version }}
-          CI: 'true'
-        run: |
-          flutter config --no-enable-macos-arm64-only
-          (cd apps/vex && flutter build macos --release --target lib/main.dart)
-          python -m pip install --require-hashes -r scripts/macos-dmg-requirements.txt
-          bash scripts/package_macos.sh "$APP_VERSION"
+        run: python scripts/packaging/build.py osx-universal --skip-tests --output artifacts/release
       - name: 验证安装包与校验文件
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
         run: |
-          python scripts/release_tools.py checksums --targets "$TARGET"
-          python scripts/release_tools.py verify --targets "$TARGET"
+          python scripts/packaging/shared/release_tools.py verify --targets "$TARGET"
       - uses: actions/upload-artifact@v4
         with:
           name: checked-${{ matrix.target }}

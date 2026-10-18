@@ -2,7 +2,7 @@
 import argparse
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 BACKGROUND = ROOT / 'scripts/installer/assets/macos-background.png'
 WINDOW_SIZE = (740, 380)
 ICON_SIZE = 88

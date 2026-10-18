@@ -15,7 +15,7 @@
 - `packages/vex_editor`：原生源码、即时编辑和阅读控件。
 - `packages/vex_mindmap`：与 Markdown 无关的通用思维导图控件。
 - `design`：桌面、移动端和安装流程原型。
-- `scripts`：从原型生成设计令牌、同步根目录品牌资源、准备离线导出字体。
+- `scripts`：按用途导航见 [脚本说明](scripts/README.md)；[packaging](scripts/packaging/README.md) 按平台与架构归类打包入口，其余脚本用于资源同步、生成与验收。
 
 应用使用 provider；独立控件通过 controller 与 callback 对外提供能力，不依赖应用状态。Markdown 原文为唯一数据来源。当前没有 WebView、SQLite、账户或云服务。
 
@@ -39,7 +39,9 @@ flutter test --no-pub integration_test/typing_test.dart -d windows
 
 ## 导出与发布
 
-Windows 本机可双击根目录 [`build-windows.bat`](build-windows.bat)，自动检查固定版本工具链、执行测试、构建 Release 并制作安装程序。首次使用需安装 Flutter、Python 3.11+ 和 Visual Studio C++ 桌面开发组件；Inno Setup 由脚本校验后准备。成功后打开 `artifacts/local-windows/v版本-build构建号`，再由用户双击安装包安装。脚本不会安装 Vex、推送源码或发布 Release；用法、日志和数据保留说明见 [本机一键打包](docs/安装包与自动发布.md#本机一键打包windows)。
+打包入口统一归类到 [`scripts/packaging/`](scripts/packaging/README.md)，支持 `win-x64`、`linux-x64`、`linux-arm64`、`osx-x64` / `osx-arm64`（同一通用 DMG）、`android` 和 `ios-check`（仅编译）。命令格式为 `python scripts/packaging/build.py 目标`，macOS / Linux 使用 `python3`，各平台也有快捷脚本；本机与 CI 共用构建流程。
+
+Windows 仍可双击根目录 [`build-windows.bat`](build-windows.bat)。首次使用需安装固定版本 Flutter、Python 3.11+ 和 Visual Studio C++ 桌面开发组件；Inno Setup 由脚本校验后准备。成功后打开 `artifacts/local/win-x64/v版本-build构建号`，再由用户双击安装包安装。脚本不会安装 Vex、推送源码或发布 Release；用法、日志和数据保留说明见 [本机一键打包](docs/安装包与自动发布.md#本机一键打包windows)。
 
 已接入 Markdown、独立 HTML、PDF、Word（OOXML）和完整导图 PNG 导出，以及系统打印入口。PDF 支持离线中文和长代码分页；复杂图片、嵌套列表、数学与图表仍需补齐和验证。
 

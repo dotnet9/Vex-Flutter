@@ -6,7 +6,7 @@ import tempfile
 import unittest
 import zipfile
 
-spec = importlib.util.spec_from_file_location('release_tools', Path(__file__).resolve().parents[1] / 'release_tools.py')
+spec = importlib.util.spec_from_file_location('release_tools', Path(__file__).resolve().parents[1] / 'packaging/shared/release_tools.py')
 release = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(release)
 

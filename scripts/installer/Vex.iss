@@ -1,4 +1,4 @@
-; Compile through scripts/package_windows.ps1. AppId stays stable across upgrades.
+; Compile through scripts/packaging/win-x64/package.ps1. AppId stays stable across upgrades.
 #ifndef AppVersion
   #error AppVersion is required
 #endif

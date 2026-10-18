@@ -13,7 +13,7 @@ $ErrorActionPreference = 'Stop'
 if (-not $InstallerTest -and $InstallerTestId -ne 'Vex.Installer.Test') {
     throw 'A custom test identity requires -InstallerTest.'
 }
-$root = Split-Path -Parent $PSScriptRoot
+$root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../..'))
 if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw 'Version must be x.y.z.' }
 if (-not $BundleDirectory) { $BundleDirectory = Join-Path $root 'apps/vex/build/windows/x64/runner/Release' }
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $root 'artifacts/release' }
@@ -38,7 +38,7 @@ Copy-Item -LiteralPath (Join-Path $root 'LICENSE') -Destination (Join-Path $bund
 New-Item -ItemType Directory -Path $output -Force | Out-Null
 $defines = @("/DAppVersion=$Version", "/DSourceDir=$bundle", "/DOutputDir=$output")
 if ($InstallerTest) { $defines += @('/DInstallerTest', "/DInstallerTestId=$InstallerTestId") }
-& $Compiler @defines (Join-Path $PSScriptRoot 'installer/Vex.iss')
+& $Compiler @defines (Join-Path $root 'scripts/installer/Vex.iss')
 if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed: $LASTEXITCODE" }
 $installer = Join-Path $output "Vex-v$Version-windows-x64-setup.exe"
 if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) { throw 'Windows installer was not produced.' }
