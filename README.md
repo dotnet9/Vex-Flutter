@@ -96,7 +96,7 @@ Vex 适合整理技术笔记、读书记录、长文提纲和项目方案。像�
 
 ## 下载与安装
 
-**普通用户直接前往 [最新 Release](https://github.com/dotnet9/Vex-Flutter/releases/latest) 下载，无需 Flutter、Git 或编译环境。** 从 `v0.3.0` 起公开提供 Vex 品牌安装包；0.x 仍是早期软件，请先用副本文档试用。
+**普通用户直接前往 [最新 Release](https://github.com/dotnet9/Vex-Flutter/releases/latest) 下载，无需 Flutter、Git 或编译环境。** 从 `v0.3.1` 起公开提供 Vex 品牌安装包；0.x 仍是早期软件，请先用副本文档试用。
 
 | 平台 | 安装包 | 如何选择 |
 | --- | --- | --- |
