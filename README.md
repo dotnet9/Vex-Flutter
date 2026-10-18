@@ -39,6 +39,8 @@ flutter test --no-pub integration_test/typing_test.dart -d windows
 
 ## 导出与发布
 
+Windows 本机可双击根目录 [`build-windows.bat`](build-windows.bat)，自动检查固定版本工具链、执行测试、构建 Release 并制作安装程序。首次使用需安装 Flutter、Python 3.11+ 和 Visual Studio C++ 桌面开发组件；Inno Setup 由脚本校验后准备。成功后打开 `artifacts/local-windows/v版本-build构建号`，再由用户双击安装包安装。脚本不会安装 Vex、推送源码或发布 Release；用法、日志和数据保留说明见 [本机一键打包](docs/安装包与自动发布.md#本机一键打包windows)。
+
 已接入 Markdown、独立 HTML、PDF、Word（OOXML）和完整导图 PNG 导出，以及系统打印入口。PDF 支持离线中文和长代码分页；复杂图片、嵌套列表、数学与图表仍需补齐和验证。
 
 发布目标为 Windows 安装程序、macOS DMG、Linux DEB、Android APK 及符合 Apple、HarmonyOS 签名要求的分发包，不使用便携压缩包代替安装包。鸿蒙手机、平板和电脑需使用对应适配 SDK 与设备验证，不把概念原型计作系统适配完成。
