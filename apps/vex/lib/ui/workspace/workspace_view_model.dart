@@ -61,7 +61,11 @@ final class WorkspaceViewModel extends ChangeNotifier {
   OpenedFolder? folder;
   late WorkspaceDocument current;
   late final MindMapController _map;
-  MindMapController get map => _map;
+  MindMapController get map {
+    _ensureMapCurrent();
+    return _map;
+  }
+
   MarkdownEditorController get editor => current.editor;
   WorkspaceLayout _layout = WorkspaceLayout.instant;
   WorkspaceViewport viewport = WorkspaceViewport.desktop;
@@ -204,6 +208,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
 
   int _mapRevision = -1;
   String? _mapDocument;
+  bool _mapDirty = false;
   void _changed() {
     if (_disposed) return;
     if (!_guiding &&
@@ -214,7 +219,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     }
     if (_mapDocument != current.id || _mapRevision != editor.session.revision) {
       _refreshMap();
-      search(findQuery);
+      _refreshMatches();
       _recoveryTimer?.cancel();
       if (!_guiding) {
         if (filePreferences.recovery) {
@@ -232,6 +237,13 @@ final class WorkspaceViewModel extends ChangeNotifier {
   void _refreshMap() {
     _mapRevision = editor.session.revision;
     _mapDocument = current.id;
+    _mapDirty = true;
+    if (layout.panes.contains('map')) _ensureMapCurrent();
+  }
+
+  void _ensureMapCurrent() {
+    if (!_mapDirty) return;
+    _mapDirty = false;
     _map.setRoot(_tree());
   }
 
@@ -321,6 +333,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }
 
   void selectNode(MindMapNode node) {
+    _ensureMapCurrent();
     selectedHeadingId = _headingForNode[node.id];
     final heading = selectedHeading;
     if (heading != null) editor.reveal(heading.header.start);
@@ -368,17 +381,20 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }
 
   void moveNode(String source, String target) {
+    _ensureMapCurrent();
     final from = _headingForNode[source], to = _headingForNode[target];
     if (from != null && to != null) editor.session.reparentHeading(from, to);
   }
 
   void renameNode(MindMapNode node, String title) {
+    _ensureMapCurrent();
     final id = _headingForNode[node.id];
     if (id != null && !node.summary) editor.session.renameHeading(id, title);
   }
 
   void setLayout(WorkspaceLayout value) {
     layout = value;
+    if (layout.panes.contains('map')) _ensureMapCurrent();
     _notify();
     persist();
   }
@@ -599,12 +615,17 @@ final class WorkspaceViewModel extends ChangeNotifier {
     this.matchCase = matchCase ?? this.matchCase;
     this.regex = regex ?? this.regex;
     this.wholeWord = wholeWord ?? this.wholeWord;
+    _refreshMatches();
+    _notify();
+  }
+
+  void _refreshMatches() {
     try {
       matches = editor.find(
-        query,
-        caseSensitive: this.matchCase,
-        regularExpression: this.regex,
-        wholeWord: this.wholeWord,
+        findQuery,
+        caseSensitive: matchCase,
+        regularExpression: regex,
+        wholeWord: wholeWord,
       );
       _invalidRegex = false;
     } on FormatException {
@@ -612,7 +633,6 @@ final class WorkspaceViewModel extends ChangeNotifier {
       matches = [];
     }
     if (matchIndex >= matches.length) matchIndex = -1;
-    _notify();
   }
 
   void nextMatch([int direction = 1]) {
@@ -1192,7 +1212,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
       _blank.editor.removeListener(_changed);
       _blank.dispose();
     }
-    map.dispose();
+    _map.dispose();
     super.dispose();
   }
 }
