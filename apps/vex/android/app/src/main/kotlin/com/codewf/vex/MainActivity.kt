@@ -5,6 +5,8 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import android.app.Activity
 import android.content.Intent
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.net.Uri
 import android.provider.OpenableColumns
 import java.io.ByteArrayOutputStream
@@ -18,6 +20,17 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(engine: FlutterEngine) {
         super.configureFlutterEngine(engine)
+        MethodChannel(engine.dartExecutor.binaryMessenger, "vex/clipboard").setMethodCallHandler { call, result ->
+            if (call.method != "writeHtml") { result.notImplemented(); return@setMethodCallHandler }
+            val html = call.argument<String>("html")
+            val text = call.argument<String>("text")
+            if (html == null || text == null) { result.error("clipboard", "Invalid clipboard content", null); return@setMethodCallHandler }
+            try {
+                val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newHtmlText("Vex", text, html))
+                result.success(null)
+            } catch (e: Exception) { result.error("clipboard", e.message, null) }
+        }
         MethodChannel(engine.dartExecutor.binaryMessenger, "vex/documents").setMethodCallHandler { call, result ->
             when (call.method) {
                 "pickDocument", "saveDocument" -> {

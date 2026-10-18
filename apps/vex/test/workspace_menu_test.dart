@@ -20,6 +20,35 @@ Iterable<WorkspaceMenuEntry> flatten(List<WorkspaceMenuEntry> entries) sync* {
 }
 
 void main() {
+  test(
+    'publishing commands are directly available in Tools in reading mode',
+    () {
+      final vm = fakeWorkspace();
+      addTearDown(vm.dispose);
+      vm.setLayout(WorkspaceLayout.read);
+      for (final desktop in [true, false]) {
+        final tools = workspaceMenus(
+          vm,
+          macOS: false,
+          desktop: desktop,
+          maxPanes: desktop ? 3 : 1,
+        ).firstWhere((item) => item.id == 'tools');
+        final publishing = tools.children.where(
+          (item) => item.id.startsWith('publish:'),
+        );
+        expect(publishing.map((item) => item.id), [
+          'publish:wechat',
+          'publish:zhihu',
+          'publish:juejin',
+        ]);
+        expect(
+          publishing.every((item) => item.enabled && item.children.isEmpty),
+          isTrue,
+        );
+      }
+    },
+  );
+
   test('read-only panes disable all source mutation commands', () {
     final vm = fakeWorkspace();
     addTearDown(vm.dispose);

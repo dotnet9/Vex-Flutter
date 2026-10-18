@@ -16,6 +16,14 @@ import UIKit
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "VexDocuments")!
+    FlutterMethodChannel(name: "vex/clipboard", binaryMessenger: registrar.messenger()).setMethodCallHandler { call, result in
+      guard call.method == "writeHtml" else { result(FlutterMethodNotImplemented); return }
+      guard let args = call.arguments as? [String: Any], let html = args["html"] as? String, let text = args["text"] as? String else {
+        result(FlutterError(code: "clipboard", message: "Invalid clipboard content", details: nil)); return
+      }
+      UIPasteboard.general.items = [["public.html": Data(html.utf8), "public.utf8-plain-text": text]]
+      result(nil)
+    }
     FlutterMethodChannel(name: "vex/documents", binaryMessenger: registrar.messenger()).setMethodCallHandler { [weak self] call, result in
       guard let self = self else { return }
       let args = call.arguments as? [String: Any] ?? [:]

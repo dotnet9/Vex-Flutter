@@ -34,6 +34,8 @@ dependencies:
   package_info_plus: ^10.2.2
   pub_semver: ^2.2.1
   super_sliver_list: ^0.4.1
+  html: 0.15.6
+  csslib: 1.0.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

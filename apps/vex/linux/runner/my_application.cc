@@ -6,6 +6,67 @@
 #endif
 
 #include "flutter/generated_plugin_registrant.h"
+#include <cstring>
+
+struct ClipboardArticle {
+  gchar* html;
+  gchar* text;
+};
+
+static void clipboard_get(GtkClipboard*, GtkSelectionData* selection,
+                          guint info, gpointer data) {
+  auto* article = static_cast<ClipboardArticle*>(data);
+  if (info == 0) {
+    gtk_selection_data_set(selection, gdk_atom_intern_static_string("text/html"),
+                           8, reinterpret_cast<const guchar*>(article->html),
+                           static_cast<gint>(std::strlen(article->html)));
+  } else {
+    gtk_selection_data_set_text(selection, article->text, -1);
+  }
+}
+
+static void clipboard_clear(GtkClipboard*, gpointer data) {
+  auto* article = static_cast<ClipboardArticle*>(data);
+  g_free(article->html);
+  g_free(article->text);
+  delete article;
+}
+
+static void clipboard_method(FlMethodChannel*, FlMethodCall* call, gpointer) {
+  g_autoptr(FlMethodResponse) response = nullptr;
+  FlValue* args = fl_method_call_get_args(call);
+  FlValue* html = args && fl_value_get_type(args) == FL_VALUE_TYPE_MAP
+      ? fl_value_lookup_string(args, "html") : nullptr;
+  FlValue* text = args && fl_value_get_type(args) == FL_VALUE_TYPE_MAP
+      ? fl_value_lookup_string(args, "text") : nullptr;
+  if (std::strcmp(fl_method_call_get_name(call), "writeHtml") != 0) {
+    response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
+  } else if (!html || !text || fl_value_get_type(html) != FL_VALUE_TYPE_STRING ||
+             fl_value_get_type(text) != FL_VALUE_TYPE_STRING) {
+    response = FL_METHOD_RESPONSE(fl_method_error_response_new(
+        "clipboard", "Invalid clipboard content", nullptr));
+  } else {
+    auto* article = new ClipboardArticle{g_strdup(fl_value_get_string(html)),
+                                        g_strdup(fl_value_get_string(text))};
+    GtkTargetEntry targets[] = {
+        {const_cast<gchar*>("text/html"), 0, 0},
+        {const_cast<gchar*>("UTF8_STRING"), 0, 1},
+        {const_cast<gchar*>("text/plain;charset=utf-8"), 0, 1},
+        {const_cast<gchar*>("text/plain"), 0, 1}};
+    GtkClipboard* clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+    if (gtk_clipboard_set_with_data(clipboard, targets, G_N_ELEMENTS(targets),
+                                    clipboard_get, clipboard_clear, article)) {
+      gtk_clipboard_set_can_store(clipboard, nullptr, 0);
+      gtk_clipboard_store(clipboard);
+      response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+    } else {
+      clipboard_clear(clipboard, article);
+      response = FL_METHOD_RESPONSE(fl_method_error_response_new(
+          "clipboard", "Cannot write clipboard content", nullptr));
+    }
+  }
+  fl_method_call_respond(call, response, nullptr);
+}
 
 struct _MyApplication {
   GtkApplication parent_instance;
@@ -74,6 +135,12 @@ static void my_application_activate(GApplication* application) {
   gtk_widget_realize(GTK_WIDGET(view));
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
+  g_autoptr(FlStandardMethodCodec) clipboard_codec = fl_standard_method_codec_new();
+  g_autoptr(FlMethodChannel) clipboard_channel = fl_method_channel_new(
+      fl_engine_get_binary_messenger(fl_view_get_engine(view)), "vex/clipboard",
+      FL_METHOD_CODEC(clipboard_codec));
+  fl_method_channel_set_method_call_handler(clipboard_channel, clipboard_method,
+                                           nullptr, nullptr);
 
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }

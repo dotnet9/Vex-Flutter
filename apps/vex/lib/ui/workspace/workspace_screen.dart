@@ -12,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../data/services/file_service.dart';
+import '../../data/services/social_copy_service.dart';
 import '../../domain/workspace.dart';
 import '../../l10n/l10n.dart';
 import '../core/app_theme.dart';
@@ -404,6 +405,16 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       unawaited(showExportDialog(context, vm, type: action.substring(7)));
       return;
     }
+    if (action.startsWith('publish:')) {
+      unawaited(
+        _run(
+          () => _copyForPublishing(
+            PublishingPlatform.values.byName(action.substring(8)),
+          ),
+        ),
+      );
+      return;
+    }
     if (action.startsWith('open-path:')) {
       unawaited(_run(() => vm.openPath(action.substring(10))));
       return;
@@ -737,6 +748,37 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
 
   Future<void> _export() async {
     await showExportDialog(context, vm);
+  }
+
+  bool _copyingForPublishing = false;
+
+  Future<void> _copyForPublishing(PublishingPlatform platform) async {
+    if (_copyingForPublishing) return;
+    _copyingForPublishing = true;
+    // Capture the selected document and all rendering options before awaiting.
+    final source = vm.editor.text, title = vm.current.name;
+    final path = vm.current.path, typography = vm.typography;
+    final compact = vm.compact, markdown = vm.markdownPreferences;
+    try {
+      final content = await SocialCopyService().prepare(
+        platform: platform,
+        source: source,
+        title: title,
+        documentPath: path,
+        typography: typography,
+        compact: compact,
+        markdown: markdown,
+      );
+      if (!mounted) return;
+      await SocialCopyService.write(content);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.copiedForPublishing)),
+        );
+      }
+    } finally {
+      _copyingForPublishing = false;
+    }
   }
 
   Future<void> _insertMermaid() async {

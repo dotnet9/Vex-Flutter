@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:vex/app.dart';
 import 'package:vex/data/repositories/settings_repository.dart';
+import 'package:vex/data/services/social_copy_service.dart';
+import 'package:vex_editor/vex_editor.dart';
 import 'package:vex/ui/workspace/workspace_menu.dart';
 import 'package:vex/ui/workspace/workspace_view_model.dart';
 
@@ -15,6 +18,7 @@ void main() {
   ) async {
     final settings = NativeSettingsRepository();
     final original = await settings.load();
+    final previousClipboard = await Clipboard.getData(Clipboard.kTextPlain);
     WorkspaceViewModel? vm;
     try {
       await settings.save({
@@ -63,10 +67,24 @@ void main() {
         workspaceMenuLabel(vm.strings.menuHelp),
       );
       expect(tester.takeException(), isNull);
+      final copied = await SocialCopyService().prepare(
+        platform: PublishingPlatform.wechat,
+        source: '# 维刻\n\n**中文** & English 🌱\n',
+        title: '复制验证',
+        typography: MarkdownTypography.technical,
+      );
+      await SocialCopyService.write(copied);
+      expect(
+        (await Clipboard.getData(Clipboard.kTextPlain))?.text,
+        copied.text,
+      );
     } finally {
       await tester.pumpWidget(const SizedBox());
       vm?.dispose();
       await settings.save(original);
+      await Clipboard.setData(
+        previousClipboard ?? const ClipboardData(text: ''),
+      );
     }
   });
 }
