@@ -1,7 +1,7 @@
 name: vex
 description: 维刻 Vex · 写下想法，看见脉络。
 publish_to: none
-version: 0.3.1+6
+version: 0.4.0+7
 resolution: workspace
 environment:
   sdk: ^3.13.0

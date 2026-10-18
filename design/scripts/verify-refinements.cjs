@@ -35,7 +35,7 @@ const releaseDates = [...changelog.matchAll(/^## .*（(\d{4}-\d{2}-\d{2})）$/gm
 assert.equal(new Set(releaseDates).size, releaseDates.length, 'One release section per day');
 assert.ok(releaseDates.includes('2026-10-17'));
 assert.ok(releaseDates.includes('2026-10-18'));
-assert.match(changelog,/### 待发布改进/);
+assert.match(changelog,/^## v\d+\.\d+\.\d+（2026-10-18）$/m);
 const app = fs.readFileSync(path.join(root,'assets/app.js'),'utf8');
 const adaptive = fs.readFileSync(path.join(root,'Vex-Adaptive.html'),'utf8');
 const css = fs.readFileSync(path.join(root,'assets/prototype.css'),'utf8');
