@@ -31,6 +31,6 @@ assert.ok(preferences.includes('autoSave:false'));
 const sandbox = {window:{}};
 vm.runInNewContext(fs.readFileSync(path.join(root, 'assets/documents-data.js'), 'utf8'), sandbox);
 for (const [key, name] of [['thanks','ACKNOWLEDGEMENTS.md'], ['changelog','CHANGELOG.md']]) {
-  assert.equal(sandbox.window.VexDocuments[key].text, fs.readFileSync(path.join(root, 'documents', name), 'utf8'));
+  assert.equal(sandbox.window.VexDocuments[key].text, fs.readFileSync(path.join(root, 'documents', name), 'utf8').replace(/\r\n/g, '\n'));
 }
 console.log(`PASS: ${scripts} scripts, local HTML assets, ink-teal V logo, default auto-save and bundled Markdown.`);
