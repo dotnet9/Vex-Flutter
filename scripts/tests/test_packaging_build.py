@@ -189,6 +189,13 @@ class PackagingBuildTest(unittest.TestCase):
                 self.assertIn('scripts/packaging/build.py win-x64', workflow)
                 self.assertIn('scripts/packaging/build.py osx-universal', workflow)
 
+    def test_old_release_tags_get_an_actionable_workflow_hint(self):
+        workflow = (ROOT / '.github/workflows/release.yml').read_text(encoding='utf-8')
+        check = workflow.index('if [ ! -f scripts/packaging/shared/release_tools.py ]')
+        metadata = workflow.index('python scripts/packaging/shared/release_tools.py metadata')
+        self.assertLess(check, metadata)
+        self.assertIn('Select the same tag under "Use workflow from"', workflow)
+
 
 if __name__ == '__main__':
     unittest.main()
