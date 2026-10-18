@@ -120,12 +120,14 @@ final class WorkspaceViewModel extends ChangeNotifier {
   final _saveQueues = <WorkspaceDocument, Future<bool>>{};
   final _closingDocuments = <WorkspaceDocument>{};
   Future<void> _recoveryQueue = Future.value();
+  Object? _recoveryLoadError;
   int _openRequest = 0;
   int _folderRequest = 0;
   final _headingForNode = <String, String>{};
   List<Map<String, Object?>> recoverable = [];
 
   Future<void> initialize({bool watchFiles = true}) async {
+    Object? mcpPreferences;
     try {
       final preferences = await settings.load();
       filePreferences.load(preferences['files']);
@@ -200,15 +202,32 @@ final class WorkspaceViewModel extends ChangeNotifier {
       );
       final paths = preferences['recent'];
       if (paths is List) recent.addAll(paths.whereType<String>().take(20));
-      if (filePreferences.recovery) recoverable = await recovery.load();
       if (filePreferences.restoreWorkspace) {
         final workspace = preferences['workspace'];
         if (workspace is Map) await _restoreWorkspace(workspace);
       }
-      await mcp.load(preferences['mcp']);
+      mcpPreferences = preferences['mcp'];
     } catch (error) {
       _setStatus((l) => l.preferencesLoadFailed(error.toString()));
     }
+    if (_disposed) return;
+    // A settings failure must not hide old drafts from later recovery writes.
+    if (filePreferences.recovery) {
+      try {
+        recoverable = await recovery.load();
+        _recoveryLoadError = null;
+      } catch (error) {
+        _recoveryLoadError = error;
+        _setStatus((l) => l.preferencesLoadFailed(error.toString()));
+      }
+    }
+    if (_disposed) return;
+    try {
+      await mcp.load(mcpPreferences);
+    } catch (error) {
+      _setStatus((l) => l.preferencesLoadFailed(error.toString()));
+    }
+    if (_disposed) return;
     ready = true;
     _refreshMap();
     _notify();
@@ -1322,6 +1341,11 @@ final class WorkspaceViewModel extends ChangeNotifier {
     bool throwOnError = false,
   }) async {
     try {
+      // Preserve unreadable snapshots for retry on the next launch.
+      if (filePreferences.recovery && _recoveryLoadError != null) {
+        if (snapshots.isEmpty) return;
+        throw _recoveryLoadError!;
+      }
       await recovery.save(filePreferences.recovery ? snapshots : []);
     } catch (error) {
       _setStatus((l) => l.recoverySaveFailed(error.toString()));
