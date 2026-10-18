@@ -27,7 +27,8 @@ void main() {
       expect(html, contains('<strong>粗体</strong>'));
       expect(html, contains('<table>'));
       expect(html, contains('<title>标题 &lt;&amp;&gt;</title>'));
-      expect(html, contains('#24766b'));
+      expect(html, contains('#376c9a'));
+      expect(html, isNot(contains('border-left:3px solid #24766b')));
       expect(html, isNot(contains('<script')));
     },
   );

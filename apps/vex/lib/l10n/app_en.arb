@@ -1,5 +1,6 @@
 {
   "@@locale": "en",
+  "preferencesUnavailable": "Settings or recovery drafts could not be loaded. Restart and try again. Original files will not be overwritten.",
   "typeAcademic": "Academic",
   "typeJournal": "Journal",
   "typeHandbook": "Handbook",

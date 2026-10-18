@@ -25,12 +25,14 @@ class WorkspacePanes extends StatefulWidget {
     this.mapKey,
     this.mapToolbarKey,
     this.typographyControl,
+    this.mapAppearanceController,
   });
   final WorkspaceViewModel vm;
   final ValueChanged<String> onAction;
   final ValueChanged<Object> onError;
   final GlobalKey? editingKey, mapKey, mapToolbarKey;
   final Widget? typographyControl;
+  final MenuController? mapAppearanceController;
   @override
   State<WorkspacePanes> createState() => _WorkspacePanesState();
 }
@@ -38,6 +40,8 @@ class WorkspacePanes extends StatefulWidget {
 class _WorkspacePanesState extends State<WorkspacePanes> {
   bool _inspector = false;
   final _mapAppearance = MenuController();
+  MenuController get mapAppearance =>
+      widget.mapAppearanceController ?? _mapAppearance;
   ValueChanged<MarkdownContextRequest>? _onContextMenu;
   WorkspaceViewModel get vm => widget.vm;
   void _command(VoidCallback action) {
@@ -117,15 +121,15 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                         WorkspacePickerAnchor(
                           vm: vm,
                           picker: WorkspacePicker.map,
-                          controller: _mapAppearance,
+                          controller: mapAppearance,
                           child: AppButton(
                             key: const ValueKey('map-appearance-trigger'),
                             label: context.l10n.mapStyleName(vm.map.style),
                             tooltip: context.l10n.mapAppearance,
                             trailingIcon: 'chevron-down',
-                            onPressed: () => _mapAppearance.isOpen
-                                ? _mapAppearance.close()
-                                : _mapAppearance.open(),
+                            onPressed: () => mapAppearance.isOpen
+                                ? mapAppearance.close()
+                                : mapAppearance.open(),
                           ),
                         ),
                       if (pane != 'map' &&
@@ -485,6 +489,10 @@ class _DocumentReadingState extends State<_DocumentReading>
                     editingPreferences: vm.editingPreferences,
                     preferences: vm.markdownPreferences,
                     onTapLink: (_, href, _) {
+                      if (href == '../design/Third-Party-Licenses.html') {
+                        showLicensePage(context: context);
+                        return;
+                      }
                       openWorkspaceLink(vm, href);
                     },
                   );

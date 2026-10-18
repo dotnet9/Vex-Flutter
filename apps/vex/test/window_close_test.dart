@@ -72,7 +72,12 @@ void main() {
         await tester.tap(find.byTooltip(vm.strings.close));
         await tester.pumpAndSettle();
         await tester.tap(
-          find.text(save ? vm.strings.saveAll : vm.strings.keepDraftClose),
+          find.descendant(
+            of: find.byType(Dialog),
+            matching: find.text(
+              save ? vm.strings.save : vm.strings.keepDraftClose,
+            ),
+          ),
         );
         await tester.pump();
         expect(entered.isCompleted, isTrue);
@@ -88,7 +93,12 @@ void main() {
         await tester.tap(find.byTooltip(vm.strings.close));
         await tester.pumpAndSettle();
         await tester.tap(
-          find.text(save ? vm.strings.saveAll : vm.strings.keepDraftClose),
+          find.descendant(
+            of: find.byType(Dialog),
+            matching: find.text(
+              save ? vm.strings.save : vm.strings.keepDraftClose,
+            ),
+          ),
         );
         await tester.pumpAndSettle();
         expect(calls.where((call) => call.method == 'close'), hasLength(1));
@@ -141,7 +151,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip(vm.strings.close));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(vm.strings.cancel));
+    await tester.tap(find.text(vm.strings.continueWriting));
     await tester.pumpAndSettle();
     expect(calls.where((c) => c.method == 'close'), isEmpty);
 

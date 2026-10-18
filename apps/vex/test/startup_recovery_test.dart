@@ -47,7 +47,7 @@ void main() {
         expect(vm.ready, isTrue);
         expect(vm.recoverable.single['text'], 'Precious draft');
         expect(vm.filePreferences.autoSave, isFalse);
-        expect(vm.notice, contains('读取失败'));
+        expect(vm.notice, vm.strings.preferencesUnavailable);
         vm.editor.session.replace('New draft');
         await vm.flushRecovery(throwOnError: true);
         expect(

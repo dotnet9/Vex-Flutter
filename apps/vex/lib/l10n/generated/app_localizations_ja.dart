@@ -10,6 +10,10 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get preferencesUnavailable =>
+      '設定または復元用下書きを読み込めませんでした。再起動して再試行してください。元のファイルは上書きされません。';
+
+  @override
   String get typeAcademic => '論文';
 
   @override

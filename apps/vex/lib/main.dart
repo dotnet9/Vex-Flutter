@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app.dart';
-import 'data/repositories/recovery_repository.dart';
+import 'data/repositories/window_recovery_repository.dart';
 import 'data/repositories/settings_repository.dart';
 import 'data/services/desktop_window.dart';
 import 'data/services/file_service.dart';
@@ -22,41 +22,46 @@ Future<void> main(List<String> arguments) async {
     ], await rootBundle.loadString('assets/fonts/CascadiaCode-OFL.txt'));
   });
   final builtin = BuiltinDocument.fromArguments(arguments);
-  if (builtin != null) {
-    await initializeDesktopWindow(
-      size: const Size(1000, 780),
-      preventClose: false,
-      nativeTitleBar: defaultTargetPlatform == TargetPlatform.macOS,
-    );
-    runApp(
-      BuiltinDocumentApp(
-        document: builtin,
-        source: await builtin.load(),
-        language:
-            arguments
-                .where((a) => a.startsWith('--language='))
-                .firstOrNull
-                ?.substring(11) ??
-            'zh',
-        brightness: arguments.contains('--theme=dark')
-            ? Brightness.dark
-            : Brightness.light,
-      ),
-    );
-    return;
-  }
   await initializeDesktopWindow(
     nativeTitleBar: defaultTargetPlatform == TargetPlatform.macOS,
   );
+  final nativeSettings = NativeSettingsRepository();
+  Map<String, Object?>? preferences;
+  if (builtin != null) {
+    try {
+      preferences = await nativeSettings.load();
+    } catch (error) {
+      debugPrint('Builtin document preferences could not be loaded: $error');
+      preferences = {};
+    }
+  }
   final vm = WorkspaceViewModel(
     files: NativeDocumentFileService(),
-    settings: NativeSettingsRepository(),
-    recovery: NativeRecoveryRepository(),
+    settings: preferences == null
+        ? nativeSettings
+        : SessionSettingsRepository({
+            ...preferences,
+            'mcp': null,
+            'workspace': null,
+            'guideSeen': true,
+            'language':
+                arguments
+                    .where((a) => a.startsWith('--language='))
+                    .firstOrNull
+                    ?.substring(11) ??
+                preferences['language'] ??
+                'zh',
+            'theme': arguments.contains('--theme=dark') ? 'dark' : 'light',
+          }),
+    recovery: WindowRecoveryRepository(),
     initialLanguage: languageForLocales(
       WidgetsBinding.instance.platformDispatcher.locales,
     ),
   );
   await vm.initialize();
+  if (builtin != null) {
+    vm.openBundledDocument(builtin.filename, await builtin.load());
+  }
   for (final path in arguments.where((a) => !a.startsWith('-'))) {
     try {
       await vm.openPath(path);

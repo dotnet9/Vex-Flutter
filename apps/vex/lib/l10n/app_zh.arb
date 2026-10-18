@@ -1,5 +1,6 @@
 {
   "@@locale": "zh",
+  "preferencesUnavailable": "暂时无法读取设置或恢复草稿，请重启后重试。原文件不会被覆盖。",
   "typeAcademic": "学术",
   "typeJournal": "手札",
   "typeHandbook": "手册",

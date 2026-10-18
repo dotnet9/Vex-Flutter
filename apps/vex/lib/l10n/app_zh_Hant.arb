@@ -1,5 +1,6 @@
 {
   "@@locale": "zh_Hant",
+  "preferencesUnavailable": "暫時無法讀取設定或復原草稿，請重新啟動後重試。原始檔案不會被覆寫。",
   "typeAcademic": "學術",
   "typeJournal": "手札",
   "typeHandbook": "手冊",

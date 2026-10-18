@@ -169,19 +169,25 @@ void main() {
       await windowManager.setMinimumSize(const Size(900, 600));
       await windowManager.setSize(const Size(1000, 780));
       for (final brightness in Brightness.values) {
+        vm.openBundledDocument(
+          BuiltinDocument.changelog.filename,
+          await BuiltinDocument.changelog.load(),
+        );
+        vm.updateAppearance(
+          mode: brightness == Brightness.light
+              ? ThemeMode.light
+              : ThemeMode.dark,
+        );
         await tester.pumpWidget(
           RepaintBoundary(
             key: boundary,
-            child: BuiltinDocumentApp(
-              document: BuiltinDocument.changelog,
-              source: await BuiltinDocument.changelog.load(),
-              brightness: brightness,
-              windowIntegration: false,
-            ),
+            child: VexApp(viewModel: vm),
           ),
         );
         await tester.pumpAndSettle();
-        final theme = Theme.of(tester.element(find.byType(MarkdownReader)));
+        final theme = Theme.of(
+          tester.element(find.byType(MarkdownReader).first),
+        );
         expect(
           theme.colorScheme.surface,
           brightness == Brightness.light

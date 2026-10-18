@@ -10,6 +10,10 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get preferencesUnavailable =>
+      'Settings or recovery drafts could not be loaded. Restart and try again. Original files will not be overwritten.';
+
+  @override
   String get typeAcademic => 'Academic';
 
   @override

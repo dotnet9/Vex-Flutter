@@ -10,6 +10,9 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get preferencesUnavailable => '暂时无法读取设置或恢复草稿，请重启后重试。原文件不会被覆盖。';
+
+  @override
   String get typeAcademic => '学术';
 
   @override
@@ -1641,6 +1644,9 @@ class AppLocalizationsZh extends AppLocalizations {
 /// The translations for Chinese, using the Han script (`zh_Hant`).
 class AppLocalizationsZhHant extends AppLocalizationsZh {
   AppLocalizationsZhHant() : super('zh_Hant');
+
+  @override
+  String get preferencesUnavailable => '暫時無法讀取設定或復原草稿，請重新啟動後重試。原始檔案不會被覆寫。';
 
   @override
   String get typeAcademic => '學術';

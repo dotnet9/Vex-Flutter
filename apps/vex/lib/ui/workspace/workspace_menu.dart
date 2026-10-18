@@ -108,6 +108,8 @@ List<WorkspaceMenuEntry> workspaceMenus(
   final menus = <WorkspaceMenuEntry>[
     group('file', title(l.menuFile), [
       item('new', l.newDocument, shortcut: key(LogicalKeyboardKey.keyN)),
+      if (desktop) item('new-window', l.newWindow),
+      if (desktop) item('document-window', l.documentWindow),
       divider,
       item('open', l.open, shortcut: key(LogicalKeyboardKey.keyO)),
       if (desktop) item('folder', l.openFolder),
@@ -131,12 +133,11 @@ List<WorkspaceMenuEntry> workspaceMenus(
         shortcut: key(LogicalKeyboardKey.keyS, shift: true),
       ),
       item('save-all', l.saveAllDocuments),
-      group('export', l.exportShareMenu, [
-        item('export:html', 'HTML'),
-        item('export:pdf', 'PDF'),
-        item('export:docx', 'Word (.docx)'),
-        item('export:png', l.mindMapPng),
-      ]),
+      divider,
+      item('export:html', '${l.exportShare} HTML'),
+      item('export:pdf', '${l.exportShare} PDF'),
+      item('export:docx', '${l.exportShare} Word (.docx)'),
+      item('export:png', l.mindMapPng),
       if (desktop)
         item(
           'export:print',
@@ -212,19 +213,10 @@ List<WorkspaceMenuEntry> workspaceMenus(
       item('format:math', l.mathBlock),
       item('format:rule', l.horizontalRule),
       group('mermaid', l.mermaidDiagrams, [
-        for (var index = 0; index < 4; index++)
-          group(
-            'mermaid-group-$index',
-            MermaidTemplate.groupLabel(index, vm.language.startsWith('zh')),
-            [
-              for (final template in MermaidTemplate.values.where(
-                (t) => t.group == index,
-              ))
-                item(
-                  'mermaid:${template.name}',
-                  template.label(vm.language.startsWith('zh')),
-                ),
-            ],
+        for (final template in MermaidTemplate.values)
+          item(
+            'mermaid:${template.name}',
+            template.label(vm.language.startsWith('zh')),
           ),
       ]),
       item('format:footnote', l.footnote),
@@ -244,7 +236,7 @@ List<WorkspaceMenuEntry> workspaceMenus(
       item('format:clear', l.clearFormatting),
     ], icon: 'bold'),
     group('view', title(l.menuView), [
-      group('layouts', l.workspaceLayoutMenu, [
+      ...[
         for (final layout in WorkspaceLayout.values.where(
           (layout) => layout.panes.length <= maxPanes,
         ))
@@ -253,19 +245,22 @@ List<WorkspaceMenuEntry> workspaceMenus(
             l.layoutName(layout),
             checked: vm.layout == layout,
           ),
-      ]),
-      group('navigation', l.menuNavigation, [
+      ],
+      divider,
+      ...[
         if (desktop) item('sidebar', l.toggleSidebar, checked: vm.sidebar),
         item('files', l.files),
         item('outline', l.outline),
-      ]),
-      group('display', l.menuDisplay, [
+      ],
+      divider,
+      ...[
         item('lines', l.sourceLineNumbers, checked: vm.lineNumbers),
         item('watermark', l.watermarkPreview, checked: vm.watermark.preview),
         item('pairs', l.prefAutoPair, checked: vm.editingPreferences.autoPair),
         item('word-count', l.showWordCount, checked: vm.wordCountVisible),
-      ]),
-      group('writing', l.menuWriting, [
+      ],
+      divider,
+      ...[
         item(
           'presentation',
           l.presentationMode,
@@ -279,7 +274,7 @@ List<WorkspaceMenuEntry> workspaceMenus(
         ),
         item('typewriter', l.typewriterMode, checked: vm.typewriter),
         item('motion', l.prefMotion, checked: vm.motion),
-      ]),
+      ],
       divider,
       group('appearance', l.appearanceMenu, [
         item(
@@ -307,15 +302,16 @@ List<WorkspaceMenuEntry> workspaceMenus(
         divider,
         item('compact', l.compactSpacing, checked: vm.compact),
       ]),
-      if (desktop && !macOS)
-        group('window', l.menuWindow, [
-          item(
-            'fullscreen',
-            l.fullscreen,
-            shortcut: key(LogicalKeyboardKey.f11, primary: false),
-          ),
-          item('maximize', l.maximizeRestore),
-        ]),
+      item('map-appearance', l.mapAppearance),
+      if (desktop && !macOS) ...[
+        divider,
+        item(
+          'fullscreen',
+          l.fullscreen,
+          shortcut: key(LogicalKeyboardKey.f11, primary: false),
+        ),
+        item('maximize', l.maximizeRestore),
+      ],
       divider,
       item('zoom-in', l.zoomIn),
       item('zoom-out', l.zoomOut),

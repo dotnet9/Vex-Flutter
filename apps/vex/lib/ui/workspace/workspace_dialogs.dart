@@ -363,6 +363,15 @@ class _AboutDialogState extends State<_AboutDialog> {
   Uri _release = UpdateCheckResult.releases;
   String _update = '';
   bool _checking = false;
+  void _toast(String message) {
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
+  }
+
   Future<void> _check() async {
     setState(() {
       _checking = true;
@@ -397,7 +406,10 @@ class _AboutDialogState extends State<_AboutDialog> {
     } catch (_) {
       if (mounted) setState(() => _update = context.l10n.githubUnavailable);
     } finally {
-      if (mounted) setState(() => _checking = false);
+      if (mounted) {
+        setState(() => _checking = false);
+        _toast(_update);
+      }
     }
   }
 
@@ -451,9 +463,27 @@ class _AboutDialogState extends State<_AboutDialog> {
             children: [
               FutureBuilder<PackageInfo?>(
                 future: _info,
-                builder: (context, snapshot) => Text(
-                  snapshot.data == null ? 'dev' : _version(snapshot.data!),
-                  style: const TextStyle(fontSize: 12),
+                builder: (context, snapshot) => AppButton(
+                  key: const ValueKey('about-version'),
+                  label: snapshot.data == null
+                      ? 'dev'
+                      : _version(snapshot.data!),
+                  tooltip: context.l10n.releasesDownloads,
+                  height: 28,
+                  padding: 0,
+                  onPressed: () async {
+                    try {
+                      if (await launchUrl(
+                        _release,
+                        mode: LaunchMode.externalApplication,
+                      )) {
+                        return;
+                      }
+                    } catch (_) {
+                      /* A missing browser must not dismiss About. */
+                    }
+                    if (context.mounted) _toast(context.l10n.githubUnavailable);
+                  },
                 ),
               ),
               AppButton(
@@ -475,40 +505,6 @@ class _AboutDialogState extends State<_AboutDialog> {
             ],
           ),
         ),
-        if (_update.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(left: 64, bottom: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(_update, style: const TextStyle(fontSize: 12)),
-                if (!_checking)
-                  AppButton(
-                    key: const ValueKey('about-open-release'),
-                    label: context.l10n.releasesDownloads,
-                    height: 28,
-                    padding: 0,
-                    onPressed: () async {
-                      try {
-                        if (await launchUrl(
-                          _release,
-                          mode: LaunchMode.externalApplication,
-                        )) {
-                          return;
-                        }
-                      } catch (_) {
-                        // Keep the dialog usable when the OS cannot open a browser.
-                      }
-                      if (mounted) {
-                        setState(
-                          () => _update = context.l10n.githubUnavailable,
-                        );
-                      }
-                    },
-                  ),
-              ],
-            ),
-          ),
         _row(
           context.l10n.aboutAuthorLabel,
           Text(context.l10n.author, style: const TextStyle(fontSize: 14)),

@@ -8,6 +8,7 @@ import 'package:vex_markdown_core/vex_markdown_core.dart';
 import 'package:vex_mindmap/vex_mindmap.dart';
 
 import '../../data/repositories/recovery_repository.dart';
+import '../../data/repositories/window_recovery_repository.dart';
 import '../../data/repositories/credential_repository.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../data/services/file_service.dart';
@@ -244,7 +245,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
       }
       mcpPreferences = preferences['mcp'];
     } catch (error) {
-      _setStatus((l) => l.preferencesLoadFailed(error.toString()));
+      debugPrint('Workspace preferences could not be loaded: $error');
+      _setStatus((l) => l.preferencesUnavailable);
     }
     if (_disposed) return;
     // A settings failure must not hide old drafts from later recovery writes.
@@ -254,7 +256,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
         _recoveryLoadError = null;
       } catch (error) {
         _recoveryLoadError = error;
-        _setStatus((l) => l.preferencesLoadFailed(error.toString()));
+        debugPrint('Recovery drafts could not be loaded: $error');
+        _setStatus((l) => l.preferencesUnavailable);
       }
     }
     if (_disposed) return;
@@ -903,6 +906,17 @@ final class WorkspaceViewModel extends ChangeNotifier {
     editor.session.replace(content.toString(), label: strings.mermaidExamples);
     editor.select(0);
     setLayout(WorkspaceLayout.instant);
+  }
+
+  void openBundledDocument(String name, String source) {
+    newDocument();
+    current.name = name;
+    current.saveCopy = true;
+    editor.session.replace(source, label: name);
+    editor.session.markSaved();
+    current.persistedText = source;
+    fileListMode = FileListMode.list;
+    setLayout(WorkspaceLayout.read);
   }
 
   Future<void> open() async {
@@ -1579,6 +1593,9 @@ final class WorkspaceViewModel extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     mcp.dispose();
+    if (recovery case final WindowRecoveryRepository session) {
+      unawaited(session.close());
+    }
     presenter?.dispose();
     _recoveryTimer?.cancel();
     for (final timer in _saveTimers.values) {

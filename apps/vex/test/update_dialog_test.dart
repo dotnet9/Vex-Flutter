@@ -61,7 +61,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text(vm.strings.updateAvailable('v0.4.0')), findsOneWidget);
-    expect(find.byKey(const ValueKey('about-open-release')), findsOneWidget);
+    expect(find.byKey(const ValueKey('about-open-release')), findsNothing);
+    expect(find.byKey(const ValueKey('about-version')), findsOneWidget);
     checker.action = (_) async => throw const UpdateHttpException(403);
     await tester.tap(check);
     await tester.pumpAndSettle();
@@ -70,6 +71,13 @@ void main() {
     await tester.tap(check);
     await tester.pumpAndSettle();
     expect(find.text(vm.strings.updateCurrent), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(Dialog),
+        matching: find.text(vm.strings.updateCurrent),
+      ),
+      findsNothing,
+    );
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
     expect(checker.closed, isTrue);

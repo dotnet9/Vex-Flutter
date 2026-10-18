@@ -31,6 +31,7 @@ import 'workspace_presentation.dart';
 import 'workspace_sidebar.dart';
 import 'workspace_touch_menu.dart';
 import 'workspace_view_model.dart';
+import 'unsaved_dialog.dart';
 
 class WorkspaceScreen extends StatefulWidget {
   const WorkspaceScreen({super.key, this.windowIntegration = false});
@@ -51,6 +52,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   final _find = TextEditingController(), _replace = TextEditingController();
   final _findFocus = FocusNode();
   final _layoutsMenu = MenuController(), _typographyMenu = MenuController();
+  final _mapAppearanceMenu = MenuController();
   final _topMenus = <String, MenuController>{};
   final _overflowMenu = MenuController();
   bool _overflowedMenus = false;
@@ -210,36 +212,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           .where((d) => d.editor.session.isDirty)
           .toList();
       if (dirty.isNotEmpty) {
-        final decision = await showDialog<String>(
-          context: context,
-          builder: (context) => AppDialog(
-            title: context.l10n.unsavedContent,
-            width: 460,
-            actions: [
-              AppButton(
-                label: context.l10n.cancel,
-                onPressed: () => Navigator.pop(context),
-              ),
-              AppButton(
-                label: vm.filePreferences.recovery
-                    ? context.l10n.keepDraftClose
-                    : context.l10n.discard,
-                onPressed: () => Navigator.pop(
-                  context,
-                  vm.filePreferences.recovery ? 'draft' : 'discard',
-                ),
-              ),
-              AppButton(
-                label: context.l10n.saveAll,
-                primary: true,
-                onPressed: () => Navigator.pop(context, 'save'),
-              ),
-            ],
-            child: Text(
-              context.l10n.unsavedDocuments(dirty.length),
-              style: const TextStyle(fontSize: 13, height: 1.8),
-            ),
-          ),
+        final decision = await showUnsavedDialog(
+          context,
+          dirty,
+          recovery: vm.filePreferences.recovery,
         );
         if (decision == null) {
           _closing = false;
@@ -437,6 +413,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       return;
     }
     switch (action) {
+      case 'new-window' || 'document-window':
+        unawaited(
+          _run(() => _openWindow(currentDocument: action == 'document-window')),
+        );
       case 'new':
         vm.newDocument();
       case 'save-all':
@@ -625,6 +605,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         _typographyMenu.isOpen
             ? _typographyMenu.close()
             : _typographyMenu.open();
+      case 'map-appearance':
+        if (!vm.layout.panes.contains('map')) vm.setLayout(WorkspaceLayout.map);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _mapAppearanceMenu.open();
+        });
       case 'summary':
         unawaited(showSummarySettings(context, vm));
       case 'settings':
@@ -688,43 +673,55 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     return true;
   }
 
+  Future<void> _openWindow({required bool currentDocument}) async {
+    if (!_desktop) return;
+    vm.endGuide();
+    final arguments = <String>[];
+    if (currentDocument) {
+      final document = vm.current;
+      if (document.path == null || document.editor.session.isDirty) {
+        final approved = await showDialog<bool>(
+          context: context,
+          builder: (context) => AppDialog(
+            title: context.l10n.documentWindow,
+            actions: [
+              AppButton(
+                label: context.l10n.cancel,
+                onPressed: () => Navigator.pop(context),
+              ),
+              AppButton(
+                label: context.l10n.save,
+                primary: true,
+                onPressed: () => Navigator.pop(context, true),
+              ),
+            ],
+            child: Text(context.l10n.unsavedDocuments(1)),
+          ),
+        );
+        if (approved != true || !mounted || !vm.documents.contains(document)) {
+          return;
+        }
+        if (!await vm.save(document: document)) return;
+      }
+      if (document.path == null || document.editor.session.isDirty) return;
+      arguments.add(document.path!);
+    }
+    await Process.start(
+      Platform.resolvedExecutable,
+      arguments,
+      mode: ProcessStartMode.detached,
+    );
+  }
+
   Future<void> _closeDocument() async {
     vm.endGuide();
     final document = vm.current;
     final revision = document.editor.session.revision;
     var keepDraft = false;
     if (document.editor.session.isDirty) {
-      final decision = await showDialog<String>(
-        context: context,
-        builder: (context) => AppDialog(
-          title: context.l10n.unsavedContent,
-          width: 520,
-          actions: [
-            AppButton(
-              label: context.l10n.cancel,
-              onPressed: () => Navigator.pop(context),
-            ),
-            AppButton(
-              label: vm.filePreferences.recovery
-                  ? context.l10n.keepDraftClose
-                  : context.l10n.discard,
-              onPressed: () => Navigator.pop(
-                context,
-                vm.filePreferences.recovery ? 'draft' : 'discard',
-              ),
-            ),
-            AppButton(
-              label: context.l10n.save,
-              primary: true,
-              onPressed: () => Navigator.pop(context, 'save'),
-            ),
-          ],
-          child: Text(
-            document.name,
-            style: const TextStyle(fontSize: 14, height: 1.8),
-          ),
-        ),
-      );
+      final decision = await showUnsavedDialog(context, [
+        document,
+      ], recovery: vm.filePreferences.recovery);
       if (decision == null || !mounted || !vm.documents.contains(document)) {
         return;
       }
@@ -1467,7 +1464,12 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   );
 
   List<Widget> _menuChildren(List<WorkspaceMenuEntry> items) =>
-      workspaceMenuWidgets(context, items, _action);
+      workspaceMenuWidgets(
+        context,
+        items,
+        _action,
+        availableSize: vm.windowSize,
+      );
 
   Future<void> _touchMenu(double width) async {
     final action = await showWorkspaceTouchMenu(
@@ -1810,6 +1812,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       fit: StackFit.expand,
       children: [
         WorkspacePanes(
+          mapAppearanceController: _mapAppearanceMenu,
           typographyControl: _typographyPicker(state),
           editingKey: _guideEditing,
           mapKey: _guideMap,

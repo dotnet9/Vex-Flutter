@@ -237,14 +237,14 @@ void main() {
     await tester.tap(find.text('视图(V)'));
     await tester.pumpAndSettle();
     final submenuContext = tester.element(
-      find.byKey(const ValueKey('menu-writing')),
+      find.byKey(const ValueKey('menu-appearance')),
     );
     final arrow =
         MenuTheme.of(submenuContext).submenuIcon!.resolve({})! as AppGlyph;
     expect(arrow.size, 16);
     expect(
       tester
-          .widget<SubmenuButton>(find.byKey(const ValueKey('menu-writing')))
+          .widget<SubmenuButton>(find.byKey(const ValueKey('menu-appearance')))
           .trailingIcon,
       isNull,
     );
@@ -289,16 +289,28 @@ void main() {
       );
       await tester.tap(mermaid);
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey('touch-menu-mermaid-group-0')),
+      expect(
+        find.byKey(const ValueKey('touch-menu-mermaid:flowchart')),
+        findsOneWidget,
       );
-      await tester.pumpAndSettle();
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(
-        find.byKey(const ValueKey('touch-menu-mermaid-group-0')),
-        findsOneWidget,
+        tester
+            .widget<Text>(find.byKey(const ValueKey('touch-menu-heading')))
+            .data,
+        workspaceMenuLabel(vm.strings.menuParagraph),
       );
+      await tester.scrollUntilVisible(
+        mermaid,
+        180,
+        scrollable: find.descendant(
+          of: sheet,
+          matching: find.byType(Scrollable),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(mermaid.hitTestable(), findsOneWidget);
       await tester.tap(find.byTooltip(vm.strings.close).hitTestable().last);
       await tester.pumpAndSettle();
       expect(sheet, findsNothing);
@@ -308,6 +320,64 @@ void main() {
     },
     variant: TargetPlatformVariant.only(TargetPlatform.iOS),
   );
+
+  for (final size in [const Size(390, 844), const Size(844, 390)]) {
+    for (final scale in [1.0, 2.0]) {
+      testWidgets(
+        'Android menu clears navigation bar at $size and text scale $scale',
+        (tester) async {
+          await tester.binding.setSurfaceSize(size);
+          tester.view.devicePixelRatio = 1;
+          tester.view.padding = const FakeViewPadding(bottom: 48);
+          tester.view.viewPadding = const FakeViewPadding(bottom: 48);
+          tester.platformDispatcher.textScaleFactorTestValue = scale;
+          addTearDown(() async {
+            tester.view.resetDevicePixelRatio();
+            tester.view.resetPadding();
+            tester.view.resetViewPadding();
+            tester.platformDispatcher.clearTextScaleFactorTestValue();
+            await tester.binding.setSurfaceSize(null);
+          });
+          final vm = fakeWorkspace();
+          await tester.pumpWidget(VexApp(viewModel: vm));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('workspace-more-menu')));
+          await tester.pumpAndSettle();
+          final sheet = find.byKey(const ValueKey('touch-workspace-menu'));
+          final help = find.byKey(const ValueKey('touch-menu-help'));
+          await tester.scrollUntilVisible(
+            help,
+            180,
+            scrollable: find.descendant(
+              of: sheet,
+              matching: find.byType(Scrollable),
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            tester.getBottomRight(sheet).dy,
+            lessThanOrEqualTo(size.height - 48),
+          );
+          expect(
+            tester.getBottomRight(help).dy,
+            lessThanOrEqualTo(size.height - 48),
+          );
+          await tester.tap(help);
+          await tester.pumpAndSettle();
+          expect(
+            tester
+                .widget<Text>(find.byKey(const ValueKey('touch-menu-heading')))
+                .data,
+            workspaceMenuLabel(vm.strings.menuHelp),
+          );
+          expect(tester.takeException(), isNull);
+          await tester.pumpWidget(const SizedBox());
+          vm.dispose();
+        },
+        variant: TargetPlatformVariant.only(TargetPlatform.android),
+      );
+    }
+  }
 
   testWidgets('macOS exposes native menus without duplicate custom chrome', (
     tester,

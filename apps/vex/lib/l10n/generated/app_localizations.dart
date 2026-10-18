@@ -101,6 +101,12 @@ abstract class AppLocalizations {
     Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
   ];
 
+  /// No description provided for @preferencesUnavailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂时无法读取设置或恢复草稿，请重启后重试。原文件不会被覆盖。'**
+  String get preferencesUnavailable;
+
   /// No description provided for @typeAcademic.
   ///
   /// In zh, this message translates to:

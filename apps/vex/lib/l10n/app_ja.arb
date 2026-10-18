@@ -1,5 +1,6 @@
 {
   "@@locale": "ja",
+  "preferencesUnavailable": "設定または復元用下書きを読み込めませんでした。再起動して再試行してください。元のファイルは上書きされません。",
   "typeAcademic": "論文",
   "typeJournal": "手記",
   "typeHandbook": "手引き",

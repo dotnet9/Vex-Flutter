@@ -10,6 +10,7 @@ import 'package:vex/ui/workspace/workspace_dialogs.dart';
 import 'package:vex/ui/core/app_theme.dart';
 import 'package:vex/ui/core/app_widgets.dart';
 import 'package:vex_editor/vex_editor.dart';
+import 'package:vex/domain/workspace.dart';
 
 import 'support/fakes.dart';
 
@@ -29,32 +30,43 @@ void main() {
   testWidgets('bundled acknowledgements can open native licenses', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      const BuiltinDocumentApp(
-        document: BuiltinDocument.thanks,
-        source: '# 鸣谢\n\n[开源组件许可](../design/Third-Party-Licenses.html)',
-        windowIntegration: false,
-      ),
+    final vm = fakeWorkspace();
+    vm.openBundledDocument(
+      '鸣谢.md',
+      '# 鸣谢\n\n[开源组件许可](../design/Third-Party-Licenses.html)',
     );
+    await tester.pumpWidget(VexApp(viewModel: vm));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('开源组件许可', findRichText: true));
     await tester.pumpAndSettle();
     expect(find.byType(LicensePage), findsOneWidget);
     expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    vm.dispose();
   });
 
   for (final brightness in Brightness.values) {
     testWidgets('separate builtin reader uses neutral $brightness colors', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        BuiltinDocumentApp(
-          document: BuiltinDocument.changelog,
-          source: '# Changelog\n\n## Version\n\n- Update',
-          brightness: brightness,
-          windowIntegration: false,
-        ),
+      final vm = fakeWorkspace();
+      vm.openBundledDocument(
+        '更新日志.md',
+        '# Changelog\n\n## Version\n\n- Update',
       );
-      final actual = Theme.of(tester.element(find.byType(MarkdownReader)));
+      vm.updateAppearance(
+        mode: brightness == Brightness.light ? ThemeMode.light : ThemeMode.dark,
+      );
+      await tester.pumpWidget(VexApp(viewModel: vm));
+      await tester.pumpAndSettle();
+      expect(vm.fileListMode, FileListMode.list);
+      expect(vm.layout, WorkspaceLayout.read);
+      expect(vm.current.saveCopy, isTrue);
+      expect(vm.current.path, isNull);
+      expect(vm.editor.session.isDirty, isFalse);
+      final actual = Theme.of(
+        tester.element(find.byType(MarkdownReader).first),
+      );
       final expected = documentTheme(appTheme('weft', brightness));
       expect(actual.colorScheme, expected.colorScheme);
       expect(
@@ -66,6 +78,8 @@ void main() {
         findsWidgets,
       );
       expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      vm.dispose();
     });
   }
 

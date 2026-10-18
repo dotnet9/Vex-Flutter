@@ -7,7 +7,7 @@ import 'workspace_menu.dart';
 List<WorkspaceMenuEntry> workspaceTouchMenus(List<WorkspaceMenuEntry> menus) {
   final file = menus.firstWhere((item) => item.id == 'file');
   return [
-    for (final id in ['new', 'open', 'save', 'export'])
+    for (final id in ['new', 'open', 'save', 'export:html'])
       file.children.firstWhere((item) => item.id == id),
     const WorkspaceMenuEntry.separator(),
     ...menus,
@@ -24,7 +24,13 @@ Future<String?> showWorkspaceTouchMenu(
   useSafeArea: true,
   showDragHandle: false,
   constraints: const BoxConstraints(maxWidth: 520),
-  builder: (context) => _TouchMenu(menus: menus, title: title),
+  builder: (context) => Padding(
+    padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+    child: SafeArea(
+      top: false,
+      child: _TouchMenu(menus: menus, title: title),
+    ),
+  ),
 );
 
 class _TouchMenu extends StatefulWidget {
