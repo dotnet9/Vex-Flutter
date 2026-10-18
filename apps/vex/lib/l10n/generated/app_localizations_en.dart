@@ -890,20 +890,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String cursorPosition(int line, int column) {
-    final intl.NumberFormat lineNumberFormat = intl.NumberFormat.decimalPattern(
-      localeName,
-    );
-    final String lineString = lineNumberFormat.format(line);
-    final intl.NumberFormat columnNumberFormat =
-        intl.NumberFormat.decimalPattern(localeName);
-    final String columnString = columnNumberFormat.format(column);
-
-    return 'Ln $lineString, Col $columnString';
-  }
-
-  @override
-  String characterCount(int count) {
+  String wordCount(int count) {
     final intl.NumberFormat countNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
     final String countString = countNumberFormat.format(count);
@@ -911,8 +898,8 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$countString characters',
-      one: 'One character',
+      other: '$countString words',
+      one: '1 word',
     );
     return '$_temp0';
   }
@@ -1247,7 +1234,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get prefZoom => 'Content zoom';
 
   @override
-  String get prefStatusbar => 'Show status bar';
+  String get showWordCount => 'Show word count';
+
+  @override
+  String get searchOutline => 'Find a heading…';
+
+  @override
+  String get clearSearch => 'Clear search';
+
+  @override
+  String get noSearchResults => 'No matches';
+
+  @override
+  String get fileTreeView => 'Switch to tree view';
+
+  @override
+  String get fileListView => 'Switch to list view';
+
+  @override
+  String get fileActions => 'File actions';
+
+  @override
+  String get revealFolder => 'Show in file manager';
+
+  @override
+  String get refreshFolder => 'Refresh folder';
+
+  @override
+  String get fileSortAscending => 'File name A to Z';
+
+  @override
+  String get fileSortDescending => 'File name Z to A';
 
   @override
   String get prefMotion => 'Interface animations';

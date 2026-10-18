@@ -116,6 +116,7 @@ class MarkdownReader extends StatelessWidget {
         .merge(bodyStyle);
     return MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
       p: body,
+      em: fonts.emphasis(body),
       pPadding: inline
           ? EdgeInsets.zero
           : EdgeInsets.only(bottom: compact ? 9 : fontSize, right: 3),
@@ -280,7 +281,7 @@ class MarkdownReader extends StatelessWidget {
               4 => sheet.h4!,
               5 => sheet.h5!,
               _ => sheet.h6!,
-            }),
+            }, MarkdownFontFamilies.of(context)),
         },
       ),
     );
@@ -389,6 +390,8 @@ class _CodeBlockBuilder extends MarkdownElementBuilder {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: MarkdownCodeBlock(
+        language:
+            code?.attributes['class']?.replaceFirst('language-', '') ?? '',
         code: element.textContent.replaceFirst(RegExp(r'\n$'), ''),
         selectable: selectable,
         fontSize: preferences?.codeSize ?? fontSize,
@@ -543,10 +546,11 @@ class MarkdownHeadingFrame extends StatelessWidget {
 }
 
 class _HeadingBuilder extends MarkdownElementBuilder {
-  _HeadingBuilder(this.reader, this.level, this.style);
+  _HeadingBuilder(this.reader, this.level, this.style, this.fonts);
   final MarkdownReader reader;
   final int level;
   final TextStyle style;
+  final MarkdownFontFamilies fonts;
   @override
   bool isBlockElement() => true;
   @override
@@ -599,18 +603,19 @@ class _HeadingBuilder extends MarkdownElementBuilder {
           style: style,
           children: _headingSpans(
             node.children ?? [],
-            style.copyWith(
-              fontWeight: node.tag == 'strong'
-                  ? FontWeight.w700
-                  : style.fontWeight,
-              fontStyle: node.tag == 'em' ? FontStyle.italic : style.fontStyle,
-              decoration: node.tag == 'del'
-                  ? TextDecoration.lineThrough
-                  : style.decoration,
-              backgroundColor: node.tag == 'mark'
-                  ? const Color(0xffffe49b)
-                  : style.backgroundColor,
-            ),
+            style
+                .merge(node.tag == 'em' ? fonts.emphasis(style) : null)
+                .copyWith(
+                  fontWeight: node.tag == 'strong'
+                      ? FontWeight.w700
+                      : style.fontWeight,
+                  decoration: node.tag == 'del'
+                      ? TextDecoration.lineThrough
+                      : style.decoration,
+                  backgroundColor: node.tag == 'mark'
+                      ? const Color(0xffffe49b)
+                      : style.backgroundColor,
+                ),
           ),
         ),
   ];

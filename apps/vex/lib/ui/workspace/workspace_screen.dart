@@ -12,9 +12,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../data/services/file_service.dart';
-import '../../domain/file_preferences.dart';
 import '../../domain/workspace.dart';
 import '../../l10n/l10n.dart';
+import '../core/app_theme.dart';
 import '../core/app_widgets.dart';
 import '../core/palette_tokens.dart';
 import 'builtin_documents.dart';
@@ -55,6 +55,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   bool _dragging = false, _closing = false, _nativeCloseApproved = false;
   bool _changingPresentation = false;
   bool _maximized = false;
+  String _lastNotice = '';
   bool? _presentationWasFullscreen;
   FocusNode? _presentationPreviousFocus;
   WorkspaceViewModel get vm => context.read<WorkspaceViewModel>();
@@ -468,8 +469,25 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         vm.updateWatermark(preview: !vm.watermark.preview);
       case 'pairs':
         vm.updateEditorPreferences(autoPair: !vm.editingPreferences.autoPair);
-      case 'statusbar':
-        vm.updateAppearance(statusbar: !vm.statusbar);
+      case 'word-count':
+        vm.updateAppearance(wordCountVisible: !vm.wordCountVisible);
+      case 'folder-refresh':
+        unawaited(_run(vm.refreshFolder));
+      case 'reveal-folder':
+        final path = vm.folder?.path;
+        final message = context.l10n.revealFolder;
+        if (path != null) {
+          unawaited(
+            _run(() async {
+              if (!await launchUrl(
+                Uri.directory(path),
+                mode: LaunchMode.externalApplication,
+              )) {
+                throw FileSystemException(message, path);
+              }
+            }),
+          );
+        }
       case 'motion':
         vm.updateAppearance(motion: !vm.motion);
       case 'website' || 'feedback':
@@ -745,6 +763,23 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   Widget build(BuildContext context) {
     final state = context.watch<WorkspaceViewModel>(),
         c = Theme.of(context).colorScheme;
+    if (state.notice != _lastNotice) {
+      _lastNotice = state.notice;
+      final notice = _lastNotice;
+      if (notice.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || state.notice != notice) return;
+          final messenger = ScaffoldMessenger.of(_scaffold.currentContext!);
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(notice),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        });
+      }
+    }
     final workspace = LayoutBuilder(
       builder: (context, constraints) {
         // Constraints rebuild all panes; deriving the viewport must neither
@@ -805,6 +840,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                       child: SafeArea(
                         child: WorkspaceSidebar(
                           vm: state,
+                          onAction: _action,
+                          onNavigate: () => Navigator.pop(context),
                           onOpenPath: (path) {
                             Navigator.pop(context);
                             unawaited(_run(() => state.openPath(path)));
@@ -909,6 +946,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                         width: width,
                                         child: WorkspaceSidebar(
                                           vm: state,
+                                          onAction: _action,
                                           onOpenPath: (path) => unawaited(
                                             _run(() => state.openPath(path)),
                                           ),
@@ -949,13 +987,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                           ))
                                             _formatbar(state, phone),
                                           Expanded(
-                                            child: WorkspacePanes(
-                                              editingKey: _guideEditing,
-                                              mapKey: _guideMap,
-                                              mapToolbarKey: _guideMapToolbar,
-                                              vm: state,
-                                              onAction: _action,
-                                              onError: _error,
+                                            child: _documentSurface(
+                                              state,
+                                              phone,
                                             ),
                                           ),
                                         ],
@@ -964,8 +998,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                   ],
                                 ),
                               ),
-                              if (!phone && state.statusbar)
-                                _statusbar(state, constraints.maxWidth),
                               if (phone) _mobileNav(state),
                             ],
                           ),
@@ -1338,20 +1370,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       ),
       child: Row(
         children: [
-          AppButton(
-            icon: 'sidebar',
-            height: 30,
-            selected: state.sidebar,
-            tooltip: context.l10n.filesOutline,
-            onPressed: () {
-              if (phone) {
-                _scaffold.currentState?.openDrawer();
-              } else {
-                state.toggleSidebar();
-              }
-            },
-          ),
-          const SizedBox(width: 12),
           Expanded(
             child: Text(
               '${state.current.name}${state.editor.session.isDirty ? ' •' : ''}',
@@ -1476,29 +1494,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       ),
       child: Row(
         children: [
-          if (!phone) ...[
-            AppButton(
-              label: context.l10n.instantRendering,
-              selected: state.layout.panes.contains('instant'),
-              height: 26,
-              onPressed: () => state.setLayout(
-                state.layout.panes.contains('map')
-                    ? WorkspaceLayout.instantMap
-                    : WorkspaceLayout.instant,
-              ),
-            ),
-            AppButton(
-              label: context.l10n.source,
-              selected: state.layout.panes.contains('source'),
-              height: 26,
-              onPressed: () => state.setLayout(
-                state.layout.panes.contains('map')
-                    ? WorkspaceLayout.sourceMap
-                    : WorkspaceLayout.source,
-              ),
-            ),
-            const SizedBox(width: 10),
-          ],
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -1676,77 +1671,89 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       ],
     ),
   );
-  Widget _statusbar(WorkspaceViewModel state, double width) {
-    final c = Theme.of(context).colorScheme;
-    final position = state.editor.document.position(
-      state.editor.selection.isValid ? state.editor.selection.extentOffset : 0,
-    );
-    return Container(
-      height: 32,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: c.surfaceContainerLow,
-        border: Border(top: BorderSide(color: c.outlineVariant)),
-      ),
-      child: DefaultTextStyle(
-        style: TextStyle(fontSize: 12, color: c.onSurfaceVariant),
-        child: Row(
-          children: [
-            AppGlyph(
-              state.editor.session.isDirty ? 'edit' : 'check',
-              size: 12,
-              color: c.primary,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              state.editor.session.isDirty
-                  ? context.l10n.unsaved
-                  : context.l10n.unmodified,
-            ),
-            if (width > 1100) ...[
-              const SizedBox(width: 16),
-              Text(
-                context.l10n.layoutName(state.layout),
-                style: TextStyle(color: c.primary),
-              ),
-            ],
-            if (state.status.isNotEmpty && width > 1200)
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 16),
-                  child: Text(
-                    state.status,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              )
-            else
-              const Spacer(),
-            Text(context.l10n.cursorPosition(position.line, position.column)),
-            if (width > 900) ...[
-              const SizedBox(width: 16),
-              Text(context.l10n.characterCount(state.editor.characterCount)),
-            ],
-            const SizedBox(width: 16),
-            Text(
-              '${switch (state.current.format.encoding) {
-                DocumentEncoding.utf8 => 'UTF-8',
-                DocumentEncoding.utf8Bom => 'UTF-8 BOM',
-                DocumentEncoding.gb18030 => 'GB18030',
-              }} · ${state.current.format.newline == DocumentNewline.crlf || (state.current.format.newline == DocumentNewline.system && Platform.isWindows) ? 'CRLF' : 'LF'}',
-            ),
-            const SizedBox(width: 10),
-            AppButton(
-              icon: 'palette',
-              tooltip: context.l10n.appearance,
-              height: 25,
-              padding: 2,
-              onPressed: () => _action('appearance'),
-            ),
-          ],
+  Widget _documentSurface(WorkspaceViewModel state, bool phone) {
+    final document = documentTheme(Theme.of(context));
+    final c = document.colorScheme;
+    final source = state.layout.panes.contains('source');
+    return Stack(
+      key: const ValueKey('document-surface'),
+      fit: StackFit.expand,
+      children: [
+        WorkspacePanes(
+          editingKey: _guideEditing,
+          mapKey: _guideMap,
+          mapToolbarKey: _guideMapToolbar,
+          vm: state,
+          onAction: _action,
+          onError: _error,
         ),
-      ),
+        Positioned(
+          left: 8,
+          bottom: 8,
+          child: Theme(
+            data: document,
+            child: Material(
+              color: c.surface.withValues(alpha: .94),
+              borderRadius: BorderRadius.circular(5),
+              child: Row(
+                children: [
+                  AppButton(
+                    key: const ValueKey('document-sidebar-toggle'),
+                    icon: 'sidebar',
+                    tooltip: context.l10n.toggleSidebar,
+                    height: phone ? 44 : 32,
+                    onPressed: () {
+                      if (phone) {
+                        _scaffold.currentState?.openDrawer();
+                      } else if (state.focusMode) {
+                        state.toggleFocus();
+                      } else {
+                        state.toggleSidebar();
+                      }
+                    },
+                  ),
+                  AppButton(
+                    key: const ValueKey('document-source-toggle'),
+                    icon: 'code',
+                    tooltip: source
+                        ? context.l10n.instantEditing
+                        : context.l10n.markdownSource,
+                    selected: source,
+                    height: phone ? 44 : 32,
+                    onPressed: () => state.setLayout(
+                      state.layout.panes.contains('map') &&
+                              state.layout.panes.length > 1
+                          ? source
+                                ? WorkspaceLayout.instantMap
+                                : WorkspaceLayout.sourceMap
+                          : source
+                          ? WorkspaceLayout.instant
+                          : WorkspaceLayout.source,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (state.wordCountVisible && !state.focusMode)
+          Positioned(
+            right: 16,
+            bottom: state.layout.panes.last == 'map' ? 70 : 13,
+            child: Container(
+              key: const ValueKey('document-word-count'),
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+              decoration: BoxDecoration(
+                color: c.surface.withValues(alpha: .94),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                context.l10n.wordCount(state.editor.wordCount),
+                style: TextStyle(fontSize: 12, color: c.onSurfaceVariant),
+              ),
+            ),
+          ),
+      ],
     );
   }
 

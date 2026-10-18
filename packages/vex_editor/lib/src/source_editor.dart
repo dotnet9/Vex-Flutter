@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:re_editor/re_editor.dart';
 
 import 'code_block.dart';
+import 'code_highlighting.dart';
 import 'context_request.dart';
 import 'context_shortcuts.dart';
 import 'controller.dart';
@@ -44,6 +45,7 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
   late _SourceViewport _viewport;
   bool _restoringScroll = false;
   double _viewportHeight = 0;
+  double _gutterWidth = 0;
   late final _vertical = ScrollController(
     initialScrollOffset: _viewport.vertical,
     keepScrollOffset: false,
@@ -221,7 +223,7 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
           offset +
           paragraph.offset +
           Offset(
-            (widget.lineNumbers ? 48 : 0) - _horizontal.offset,
+            _gutterWidth - _horizontal.offset,
             paragraph.preferredLineHeight - _vertical.offset,
           );
       _showContext(
@@ -254,6 +256,11 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme;
     final font = MarkdownCodeBlock.textStyle(context, widget.fontSize);
+    final lineNumberStyle = font.copyWith(
+      fontSize: MediaQuery.textScalerOf(context).scale(widget.fontSize),
+      height: 1.9,
+      color: color.onSurfaceVariant,
+    );
     return LayoutBuilder(
       key: _editorRegion,
       builder: (context, constraints) {
@@ -288,6 +295,16 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
               backgroundColor: Colors.transparent,
               cursorColor: color.primary,
               selectionColor: color.primary.withValues(alpha: .18),
+              codeTheme: CodeHighlightTheme(
+                languages: {
+                  'markdown': CodeHighlightThemeMode(
+                    mode: MarkdownCodeHighlighting.languages['markdown']!,
+                    maxSize: 256 * 1024,
+                    maxLineLength: 16 * 1024,
+                  ),
+                },
+                theme: MarkdownCodeHighlighting.theme(color.brightness),
+              ),
             ),
             padding: EdgeInsets.fromLTRB(
               widget.lineNumbers ? 4 : 28,
@@ -297,9 +314,18 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
             ),
             indicatorBuilder: (context, editing, chunks, notifier) {
               _indicator = notifier;
+              final painter = TextPainter(
+                text: TextSpan(
+                  text: '0' * editing.lineCount.toString().length.clamp(3, 12),
+                  style: lineNumberStyle,
+                ),
+                textDirection: Directionality.of(context),
+              )..layout();
+              _gutterWidth = widget.lineNumbers ? painter.width.ceil() + 16 : 0;
+              painter.dispose();
               return widget.lineNumbers
                   ? SizedBox(
-                      width: 48,
+                      width: _gutterWidth,
                       child: Padding(
                         padding: const EdgeInsets.only(right: 12),
                         child: Align(
@@ -307,12 +333,8 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
                           child: DefaultCodeLineNumber(
                             controller: editing,
                             notifier: notifier,
-                            textStyle: font.copyWith(
-                              fontSize: 10,
-                              color: color.onSurfaceVariant,
-                            ),
-                            focusedTextStyle: font.copyWith(
-                              fontSize: 10,
+                            textStyle: lineNumberStyle,
+                            focusedTextStyle: lineNumberStyle.copyWith(
                               color: color.primary,
                             ),
                           ),

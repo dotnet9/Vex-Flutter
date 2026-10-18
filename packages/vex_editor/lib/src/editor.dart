@@ -9,6 +9,7 @@ import 'package:super_sliver_list/super_sliver_list.dart';
 import 'package:vex_markdown_core/vex_markdown_core.dart';
 
 import 'code_block.dart';
+import 'code_highlighting.dart';
 import 'context_request.dart';
 import 'context_shortcuts.dart';
 import 'controller.dart';
@@ -64,12 +65,13 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
     with SingleTickerProviderStateMixin {
   final _input = MarkdownInlineEditingController();
   final _language = TextEditingController();
-  final _focus = FocusNode();
+  late final _focus = FocusNode(onKeyEvent: (_, event) => _inputKey(event));
   final _languageFocus = FocusNode();
   final _bodyRegion = GlobalKey();
   final _viewportRegion = GlobalKey();
   final _scroll = ScrollController();
   final _list = ListController();
+  double _minimumActiveHeight = 0;
   late final _navigation = MarkdownListNavigator(
     vsync: this,
     list: _list,
@@ -447,12 +449,15 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
     _clearDocumentSelection();
     _finish();
     final source = widget.controller.session.text;
+    _minimumActiveHeight = block == null
+        ? 0
+        : _selectionGeometries[block.range.start]?.box?.size.height ?? 0;
     final raw = block?.range.slice(source) ?? '';
     final marker = block?.kind == MarkdownBlockKind.heading
         ? RegExp(r'^ {0,3}#{1,6}(?:[ \t]+|$)').firstMatch(raw)?.group(0)
         : null;
     _prefix = marker ?? '';
-    _ending = RegExp(r'(?:\r\n|\n|\r)$').firstMatch(raw)?.group(0) ?? '';
+    _ending = RegExp(r'(?:\r\n|\n|\r)+$').firstMatch(raw)?.group(0) ?? '';
     _newline =
         RegExp(r'\r\n|\n|\r').firstMatch(raw)?.group(0) ??
         widget.controller.document.newline;
@@ -737,95 +742,172 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
     ),
   );
 
-  Widget _fieldRegion(ColorScheme colors) => TextFieldTapRegion(
-    groupId: this,
-    child: Focus(
-      onKeyEvent: (_, event) {
-        if ((_input.value.composing.isValid &&
-                !_input.value.composing.isCollapsed) ||
-            (_language.value.composing.isValid &&
-                !_language.value.composing.isCollapsed)) {
-          return KeyEventResult.ignored;
-        }
-        if (event is! KeyDownEvent) return KeyEventResult.ignored;
-        if (event.logicalKey == LogicalKeyboardKey.escape) {
-          _isMermaid || _kind == MarkdownBlockKind.math ? _finish() : _cancel();
-          return KeyEventResult.handled;
-        }
-        if ((HardwareKeyboard.instance.isControlPressed ||
-                HardwareKeyboard.instance.isMetaPressed) &&
-            event.logicalKey == LogicalKeyboardKey.enter) {
-          _finish();
-          return KeyEventResult.handled;
-        }
-        if (_focus.hasFocus &&
-            _input.selection.isCollapsed &&
-            !HardwareKeyboard.instance.isControlPressed &&
-            !HardwareKeyboard.instance.isMetaPressed &&
-            !HardwareKeyboard.instance.isAltPressed &&
-            !HardwareKeyboard.instance.isShiftPressed) {
-          final offset = _input.selection.extentOffset;
-          final backward =
-              event.logicalKey == LogicalKeyboardKey.arrowLeft ||
-              event.logicalKey == LogicalKeyboardKey.arrowUp;
-          final forward =
-              event.logicalKey == LogicalKeyboardKey.arrowRight ||
-              event.logicalKey == LogicalKeyboardKey.arrowDown;
-          if ((backward && offset == 0 && _moveToBlock(false)) ||
-              (forward && offset == _input.text.length && _moveToBlock(true))) {
+  KeyEventResult _inputKey(KeyEvent event) {
+    if (!_input.value.composing.isCollapsed ||
+        event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (!_input.selection.isCollapsed ||
+        HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isMetaPressed ||
+        HardwareKeyboard.instance.isAltPressed ||
+        HardwareKeyboard.instance.isShiftPressed) {
+      return KeyEventResult.ignored;
+    }
+    final key = event.logicalKey, offset = _input.selection.extentOffset;
+    final backward =
+        key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowUp;
+    final forward =
+        key == LogicalKeyboardKey.arrowRight ||
+        key == LogicalKeyboardKey.arrowDown;
+    final editable = _editable();
+    final caret = editable?.getLocalRectForCaret(_input.selection.extent);
+    final firstLine =
+        caret != null && caret.top < editable!.preferredLineHeight;
+    final lastLine =
+        caret != null &&
+        caret.bottom > editable!.size.height - editable.preferredLineHeight;
+    if ((backward &&
+            (offset == 0 || key == LogicalKeyboardKey.arrowUp && firstLine) &&
+            _moveToBlock(false)) ||
+        (forward &&
+            (offset == _input.text.length ||
+                key == LogicalKeyboardKey.arrowDown && lastLine) &&
+            _moveToBlock(true))) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  Widget _fieldRegion(ColorScheme colors) => ConstrainedBox(
+    constraints: BoxConstraints(minHeight: _minimumActiveHeight),
+    child: TextFieldTapRegion(
+      groupId: this,
+      child: Focus(
+        onKeyEvent: (_, event) {
+          if ((_input.value.composing.isValid &&
+                  !_input.value.composing.isCollapsed) ||
+              (_language.value.composing.isValid &&
+                  !_language.value.composing.isCollapsed)) {
+            return KeyEventResult.ignored;
+          }
+          if (event is! KeyDownEvent) return KeyEventResult.ignored;
+          if (event.logicalKey == LogicalKeyboardKey.escape) {
+            _isMermaid || _kind == MarkdownBlockKind.math
+                ? _finish()
+                : _cancel();
             return KeyEventResult.handled;
           }
-        }
-        return KeyEventResult.ignored;
-      },
-      child: _isMermaid
-          ? _codeBody(colors)
-          : _codeFence == null
-          ? _proseField(colors)
-          : Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: MarkdownCodeBlock(
-                code: _input.text,
-                fontSize: _codeFontSize,
-                footer: SizedBox(
-                  width: 180,
-                  height: 26,
-                  child: _languageField(colors),
+          if ((HardwareKeyboard.instance.isControlPressed ||
+                  HardwareKeyboard.instance.isMetaPressed) &&
+              event.logicalKey == LogicalKeyboardKey.enter) {
+            _finish();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: _isMermaid
+            ? _codeBody(colors)
+            : _codeFence == null
+            ? _proseField(colors)
+            : Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: MarkdownCodeBlock(
+                  code: _input.text,
+                  fontSize: _codeFontSize,
+                  footer: SizedBox(
+                    width: 180,
+                    height: 26,
+                    child: _languageField(colors),
+                  ),
+                  child: _codeBody(colors),
                 ),
-                child: _codeBody(colors),
               ),
-            ),
+      ),
     ),
   );
 
   Widget _languageField(ColorScheme colors) => Semantics(
     label: widget.labels.codeLanguage,
-    child: TextField(
-      key: const ValueKey('instant-code-language'),
-      groupId: this,
-      controller: _language,
+    child: RawAutocomplete<String>(
+      textEditingController: _language,
       focusNode: _languageFocus,
-      onTapOutside: (_) => _finish(),
-      onSubmitted: (_) => _focus.requestFocus(),
-      autocorrect: false,
-      enableSuggestions: false,
-      inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'[\s`]'))],
-      style: MarkdownCodeBlock.textStyle(context, 12),
-      textAlign: TextAlign.center,
-      decoration: InputDecoration(
-        hintText: 'text',
-        hintStyle: TextStyle(color: colors.onSurfaceVariant),
-        isDense: true,
-        filled: true,
-        fillColor: colors.surfaceContainerLow,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(3),
-          borderSide: BorderSide(color: colors.outlineVariant),
+      optionsViewOpenDirection: OptionsViewOpenDirection.up,
+      optionsBuilder: (value) {
+        return MarkdownCodeHighlighting.matching(value.text);
+      },
+      onSelected: (_) => _focus.requestFocus(),
+      optionsViewBuilder: (context, select, options) => Align(
+        alignment: Alignment.bottomRight,
+        child: TextFieldTapRegion(
+          groupId: this,
+          child: Material(
+            elevation: 6,
+            borderRadius: BorderRadius.circular(5),
+            child: SizedBox(
+              width: 180,
+              height: (options.length * 36.0).clamp(36, 216),
+              child: ListView.builder(
+                padding: EdgeInsets.zero,
+                itemCount: options.length,
+                itemExtent: 36,
+                itemBuilder: (context, index) {
+                  final name = options.elementAt(index);
+                  return InkWell(
+                    onTap: () => select(name),
+                    child: ColoredBox(
+                      color: AutocompleteHighlightedOption.of(context) == index
+                          ? colors.primary.withValues(alpha: .12)
+                          : Colors.transparent,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            MarkdownCodeHighlighting.label(name),
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(3),
-          borderSide: BorderSide(color: colors.primary),
+      ),
+      fieldViewBuilder: (context, controller, focus, submit) => TextField(
+        key: const ValueKey('instant-code-language'),
+        groupId: this,
+        controller: _language,
+        focusNode: _languageFocus,
+        onTapOutside: (_) => _finish(),
+        onSubmitted: (_) => submit(),
+        autocorrect: false,
+        enableSuggestions: false,
+        inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'[\s`]'))],
+        style: MarkdownCodeBlock.textStyle(context, 12),
+        textAlign: TextAlign.center,
+        decoration: InputDecoration(
+          hintText: 'text',
+          hintStyle: TextStyle(color: colors.onSurfaceVariant),
+          isDense: true,
+          filled: true,
+          fillColor: colors.surfaceContainerLow,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 3,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(3),
+            borderSide: BorderSide(color: colors.outlineVariant),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(3),
+            borderSide: BorderSide(color: colors.primary),
+          ),
         ),
       ),
     ),
@@ -866,7 +948,9 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
         )
       : Padding(
           padding: EdgeInsets.only(
-            bottom: _reader.styleSheet(context).pPadding!.bottom,
+            bottom: _kind == MarkdownBlockKind.list
+                ? 0
+                : _reader.styleSheet(context).pPadding!.bottom,
           ),
           child: _bodyField(colors),
         );
@@ -900,6 +984,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
     _input.presentationEnabled =
         _codeFence == null && _kind != MarkdownBlockKind.math;
     _input.preferences = widget.preferences;
+    _input.codeLanguage = _codeFence == null ? null : _language.text;
     return KeyedSubtree(
       key: _bodyRegion,
       child: MarkdownContextShortcuts(
@@ -966,6 +1051,12 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
             style: _codeFence != null
                 ? MarkdownCodeBlock.textStyle(context, _codeFontSize)
                 : _activeStyle,
+            strutStyle: _codeFence == null
+                ? null
+                : StrutStyle.fromTextStyle(
+                    MarkdownCodeBlock.textStyle(context, _codeFontSize),
+                    forceStrutHeight: true,
+                  ),
             textAlign:
                 _kind == MarkdownBlockKind.heading &&
                     widget.typography == MarkdownTypography.editorial

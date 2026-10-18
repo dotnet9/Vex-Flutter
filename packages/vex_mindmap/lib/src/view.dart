@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -21,6 +22,7 @@ class MindMapView extends StatefulWidget {
     this.onActivate,
     this.onMove,
     this.onRename,
+    this.onCommand,
     this.nodeBuilder,
     this.showControls = true,
     this.enableKeyboardNavigation = true,
@@ -32,6 +34,7 @@ class MindMapView extends StatefulWidget {
   final ValueChanged<MindMapNode>? onSelect, onActivate;
   final void Function(String sourceId, String targetId)? onMove;
   final void Function(MindMapNode node, String title)? onRename;
+  final void Function(MindMapNode node, String command)? onCommand;
   final MindMapNodeBuilder? nodeBuilder;
   final bool showControls, enableKeyboardNavigation;
 
@@ -123,9 +126,40 @@ class _MindMapViewState extends State<MindMapView> {
               if (!enableKeyboardNavigation || _editing != null) {
                 return KeyEventResult.ignored;
               }
-              if (event is! KeyDownEvent) return KeyEventResult.ignored;
+              if (event is! KeyDownEvent ||
+                  HardwareKeyboard.instance.isControlPressed ||
+                  HardwareKeyboard.instance.isMetaPressed ||
+                  HardwareKeyboard.instance.isAltPressed) {
+                return KeyEventResult.ignored;
+              }
               final node = layout.nodes[controller.selectedId];
               if (node == null) return KeyEventResult.ignored;
+              final command = switch (event.logicalKey) {
+                LogicalKeyboardKey.enter =>
+                  node.id == controller.root.id ? 'child' : 'sibling',
+                LogicalKeyboardKey.tab => 'child',
+                LogicalKeyboardKey.delete => 'delete',
+                _ => null,
+              };
+              if (command != null &&
+                  widget.onCommand != null &&
+                  !node.summary) {
+                widget.onCommand!(node, command);
+                if (command != 'delete') {
+                  final added = controller.layout.nodes[controller.selectedId];
+                  if (added != null && !identical(added, node)) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      final current = controller.layout.nodes[added.id];
+                      if (mounted &&
+                          controller.selectedId == added.id &&
+                          current != null) {
+                        _activate(current);
+                      }
+                    });
+                  }
+                }
+                return KeyEventResult.handled;
+              }
               if (event.logicalKey == LogicalKeyboardKey.enter ||
                   event.logicalKey == LogicalKeyboardKey.f2) {
                 _activate(node);
@@ -150,161 +184,207 @@ class _MindMapViewState extends State<MindMapView> {
                 }
                 return KeyEventResult.handled;
               }
+              if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
+                  event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                final parent = layout.nodes.values
+                    .where((p) => p.children.any((c) => c.id == node.id))
+                    .firstOrNull;
+                final siblings = parent?.children ?? [controller.root];
+                final index = siblings.indexWhere((n) => n.id == node.id);
+                final next =
+                    index +
+                    (event.logicalKey == LogicalKeyboardKey.arrowUp ? -1 : 1);
+                if (next >= 0 && next < siblings.length) {
+                  controller.select(siblings[next].id);
+                  onSelect?.call(siblings[next]);
+                }
+                return KeyEventResult.handled;
+              }
               return KeyEventResult.ignored;
             },
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _GridPainter(color.outlineVariant),
+            child: Listener(
+              onPointerSignal: (event) {
+                if (event is! PointerScrollEvent ||
+                    event.kind == PointerDeviceKind.trackpad) {
+                  return;
+                }
+                GestureBinding.instance.pointerSignalResolver.register(event, (
+                  _,
+                ) {
+                  if (HardwareKeyboard.instance.isControlPressed ||
+                      HardwareKeyboard.instance.isMetaPressed) {
+                    controller.zoom(
+                      math.exp(-event.scrollDelta.dy.clamp(-120, 120) / 1200),
+                      viewport,
+                    );
+                  } else {
+                    final matrix = controller.transformation.value.clone();
+                    matrix.setTranslationRaw(
+                      matrix.storage[12] - event.scrollDelta.dx,
+                      matrix.storage[13] - event.scrollDelta.dy,
+                      0,
+                    );
+                    controller.transformation.value = matrix;
+                  }
+                });
+              },
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _GridPainter(color.outlineVariant),
+                    ),
                   ),
-                ),
-                Positioned.fill(
-                  child: InteractiveViewer.builder(
-                    transformationController: controller.transformation,
-                    minScale: controller.minimumScaleFor(viewport),
-                    maxScale: 3,
-                    boundaryMargin: const EdgeInsets.all(800),
-                    builder: (context, quad) {
-                      final points = [
-                        quad.point0,
-                        quad.point1,
-                        quad.point2,
-                        quad.point3,
-                      ];
-                      final visible = Rect.fromLTRB(
-                        points.map((p) => p.x).reduce(math.min),
-                        points.map((p) => p.y).reduce(math.min),
-                        points.map((p) => p.x).reduce(math.max),
-                        points.map((p) => p.y).reduce(math.max),
-                      ).inflate(100 / controller.scale);
-                      final overview =
-                          layout.nodes.length > 300 &&
-                          controller.scale < overviewThreshold;
-                      var doubleTapPosition = Offset.zero;
-                      void selectAt(Offset point, {bool activate = false}) {
-                        for (final entry in layout.rects.entries) {
-                          if (!entry.value.contains(point)) continue;
-                          final node = layout.nodes[entry.key]!;
-                          controller.select(node.id);
-                          if (activate) {
-                            _activate(node);
-                          } else {
-                            onSelect?.call(node);
+                  Positioned.fill(
+                    child: InteractiveViewer.builder(
+                      transformationController: controller.transformation,
+                      scaleFactor: double.infinity,
+                      minScale: controller.minimumScaleFor(viewport),
+                      maxScale: 3,
+                      boundaryMargin: const EdgeInsets.all(800),
+                      builder: (context, quad) {
+                        final points = [
+                          quad.point0,
+                          quad.point1,
+                          quad.point2,
+                          quad.point3,
+                        ];
+                        final visible = Rect.fromLTRB(
+                          points.map((p) => p.x).reduce(math.min),
+                          points.map((p) => p.y).reduce(math.min),
+                          points.map((p) => p.x).reduce(math.max),
+                          points.map((p) => p.y).reduce(math.max),
+                        ).inflate(100 / controller.scale);
+                        final overview =
+                            layout.nodes.length > 300 &&
+                            controller.scale < overviewThreshold;
+                        var doubleTapPosition = Offset.zero;
+                        void selectAt(Offset point, {bool activate = false}) {
+                          for (final entry in layout.rects.entries) {
+                            if (!entry.value.contains(point)) continue;
+                            final node = layout.nodes[entry.key]!;
+                            controller.select(node.id);
+                            if (activate) {
+                              _activate(node);
+                            } else {
+                              onSelect?.call(node);
+                            }
+                            return;
                           }
-                          return;
                         }
-                      }
 
-                      return SizedBox(
-                        width: layout.size.width,
-                        height: layout.size.height,
-                        child: GestureDetector(
-                          behavior: overview
-                              ? HitTestBehavior.opaque
-                              : HitTestBehavior.deferToChild,
-                          onTapUp: overview
-                              ? (details) => selectAt(details.localPosition)
-                              : null,
-                          onDoubleTapDown: overview
-                              ? (details) =>
-                                    doubleTapPosition = details.localPosition
-                              : null,
-                          onDoubleTap: overview
-                              ? () =>
-                                    selectAt(doubleTapPosition, activate: true)
-                              : null,
-                          child: Stack(
-                            children: [
-                              Positioned.fill(
-                                child: CustomPaint(
-                                  painter: _EdgesPainter(
-                                    layout,
-                                    color.primary,
-                                    visible,
-                                  ),
-                                ),
-                              ),
-                              if (overview)
+                        return SizedBox(
+                          width: layout.size.width,
+                          height: layout.size.height,
+                          child: GestureDetector(
+                            behavior: overview
+                                ? HitTestBehavior.opaque
+                                : HitTestBehavior.deferToChild,
+                            onTapUp: overview
+                                ? (details) => selectAt(details.localPosition)
+                                : null,
+                            onDoubleTapDown: overview
+                                ? (details) =>
+                                      doubleTapPosition = details.localPosition
+                                : null,
+                            onDoubleTap: overview
+                                ? () => selectAt(
+                                    doubleTapPosition,
+                                    activate: true,
+                                  )
+                                : null,
+                            child: Stack(
+                              children: [
                                 Positioned.fill(
                                   child: CustomPaint(
-                                    painter: _OverviewPainter(
+                                    painter: _EdgesPainter(
                                       layout,
-                                      color,
-                                      controller.selectedId,
-                                      controller.root.id,
+                                      color.primary,
                                       visible,
                                     ),
                                   ),
-                                )
-                              else
-                                for (final entry in layout.rects.entries)
-                                  if (entry.value.overlaps(visible))
-                                    AnimatedPositioned.fromRect(
-                                      key: ValueKey(entry.key),
-                                      rect: entry.value,
-                                      duration:
-                                          MediaQuery.disableAnimationsOf(
-                                            context,
-                                          )
-                                          ? Duration.zero
-                                          : const Duration(milliseconds: 180),
-                                      curve: Curves.easeOutCubic,
-                                      child: _node(
-                                        context,
-                                        layout.nodes[entry.key]!,
+                                ),
+                                if (overview)
+                                  Positioned.fill(
+                                    child: CustomPaint(
+                                      painter: _OverviewPainter(
+                                        layout,
+                                        color,
+                                        controller.selectedId,
+                                        controller.root.id,
+                                        visible,
                                       ),
                                     ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                if (showControls)
-                  Positioned(
-                    right: 14,
-                    bottom: 14,
-                    child: Material(
-                      color: color.surface,
-                      elevation: 2,
-                      borderRadius: BorderRadius.circular(8),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            tooltip: labels.zoomOut,
-                            visualDensity: VisualDensity.compact,
-                            onPressed: () =>
-                                controller.zoom(1 / 1.15, viewport),
-                            icon: const Icon(Icons.remove, size: 16),
-                          ),
-                          SizedBox(
-                            width: 48,
-                            child: Text(
-                              '${(controller.scale * 100).round()}%',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 11),
+                                  )
+                                else
+                                  for (final entry in layout.rects.entries)
+                                    if (entry.value.overlaps(visible))
+                                      AnimatedPositioned.fromRect(
+                                        key: ValueKey(entry.key),
+                                        rect: entry.value,
+                                        duration:
+                                            MediaQuery.disableAnimationsOf(
+                                              context,
+                                            )
+                                            ? Duration.zero
+                                            : const Duration(milliseconds: 180),
+                                        curve: Curves.easeOutCubic,
+                                        child: _node(
+                                          context,
+                                          layout.nodes[entry.key]!,
+                                        ),
+                                      ),
+                              ],
                             ),
                           ),
-                          IconButton(
-                            tooltip: labels.zoomIn,
-                            visualDensity: VisualDensity.compact,
-                            onPressed: () => controller.zoom(1.15, viewport),
-                            icon: const Icon(Icons.add, size: 16),
-                          ),
-                          IconButton(
-                            tooltip: labels.fitCanvas,
-                            visualDensity: VisualDensity.compact,
-                            onPressed: () => controller.fit(viewport),
-                            icon: const Icon(Icons.fit_screen, size: 16),
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                   ),
-              ],
+                  if (showControls)
+                    Positioned(
+                      right: 14,
+                      bottom: 14,
+                      child: Material(
+                        color: color.surface,
+                        elevation: 2,
+                        borderRadius: BorderRadius.circular(8),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: labels.zoomOut,
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () =>
+                                  controller.zoom(1 / 1.15, viewport),
+                              icon: const Icon(Icons.remove, size: 16),
+                            ),
+                            SizedBox(
+                              width: 48,
+                              child: Text(
+                                '${(controller.scale * 100).round()}%',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: labels.zoomIn,
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () => controller.zoom(1.15, viewport),
+                              icon: const Icon(Icons.add, size: 16),
+                            ),
+                            IconButton(
+                              tooltip: labels.fitCanvas,
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () => controller.fit(viewport),
+                              icon: const Icon(Icons.fit_screen, size: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           );
         },
@@ -405,7 +485,7 @@ class _MindMapViewState extends State<MindMapView> {
         label: node.title,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () {
+          onTapDown: (_) {
             _canvasFocus.requestFocus();
             controller.select(node.id);
             onSelect?.call(node);

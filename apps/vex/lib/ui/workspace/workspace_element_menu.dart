@@ -8,6 +8,7 @@ import 'package:vex_markdown_core/vex_markdown_core.dart';
 
 import '../../domain/workspace.dart';
 import '../../l10n/l10n.dart';
+import '../core/app_theme.dart';
 import '../core/app_widgets.dart';
 import 'document_image.dart';
 import 'element_editor_dialog.dart';
@@ -227,10 +228,16 @@ class _WorkspaceElementMenuState extends State<WorkspaceElementMenu> {
                     alt: media.description,
                   ),
                 )
-              : MarkdownReader(
-                  data: target.raw,
-                  labels: context.l10n.editorLabels,
-                  preferences: widget.vm.markdownPreferences,
+              : Theme(
+                  data: documentTheme(Theme.of(context)),
+                  child: ColoredBox(
+                    color: documentTheme(Theme.of(context)).colorScheme.surface,
+                    child: MarkdownReader(
+                      data: target.raw,
+                      labels: context.l10n.editorLabels,
+                      preferences: widget.vm.markdownPreferences,
+                    ),
+                  ),
                 ),
         ),
       );

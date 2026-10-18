@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'code_highlighting.dart';
 import 'font_families.dart';
 
 /// Shared, quiet code surface for reading and instant editing.
@@ -13,9 +14,11 @@ class MarkdownCodeBlock extends StatelessWidget {
     this.child,
     this.footer,
     this.wrap = false,
+    this.language = '',
   });
 
   final String code;
+  final String language;
   final bool selectable;
   final bool wrap;
   final double fontSize;
@@ -37,7 +40,16 @@ class MarkdownCodeBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final style = textStyle(context, fontSize);
-    final text = Text(code.isEmpty ? ' ' : code, style: style);
+    final text = Text.rich(
+      MarkdownCodeHighlighting.span(
+        code.isEmpty ? ' ' : code,
+        language,
+        style,
+        colors.brightness,
+      ),
+      style: style,
+      strutStyle: StrutStyle.fromTextStyle(style, forceStrutHeight: true),
+    );
     final content = selectable && SelectionContainer.maybeOf(context) == null
         ? SelectionArea(child: text)
         : text;

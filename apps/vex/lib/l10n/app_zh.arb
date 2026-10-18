@@ -359,21 +359,8 @@
       }
     }
   },
-  "cursorPosition": "行 {line}，列 {column}",
-  "@cursorPosition": {
-    "placeholders": {
-      "line": {
-        "type": "int",
-        "format": "decimalPattern"
-      },
-      "column": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
-  "characterCount": "{count} 字符",
-  "@characterCount": {
+  "wordCount": "{count} 词",
+  "@wordCount": {
     "placeholders": {
       "count": {
         "type": "int",
@@ -544,7 +531,17 @@
   "prefAssetFolder": "资源目录",
   "prefFolderError": "请输入不含 .. 的相对目录",
   "prefZoom": "内容缩放",
-  "prefStatusbar": "显示状态栏",
+  "showWordCount": "显示词数",
+  "searchOutline": "查找标题…",
+  "clearSearch": "清空查找",
+  "noSearchResults": "没有匹配的内容",
+  "fileTreeView": "切换为树视图",
+  "fileListView": "切换为列表视图",
+  "fileActions": "文件操作",
+  "revealFolder": "在文件管理器中显示",
+  "refreshFolder": "刷新文件夹",
+  "fileSortAscending": "文件名 A → Z",
+  "fileSortDescending": "文件名 Z → A",
   "prefMotion": "界面动效",
   "prefDefaultFormat": "默认格式",
   "prefDefaultDirectory": "默认目录",

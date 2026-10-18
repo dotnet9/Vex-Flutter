@@ -39,6 +39,7 @@ final class FileConflict implements Exception {
 abstract interface class DocumentFileService {
   Future<OpenedDocument?> pick();
   Future<OpenedDocument> read(String path);
+  Future<String> readPreview(String path);
   Future<OpenedFolder?> folder();
   Future<OpenedFolder> readFolder(String path);
   Future<String?> saveAs(
@@ -56,6 +57,22 @@ abstract interface class DocumentFileService {
 }
 
 final class NativeDocumentFileService implements DocumentFileService {
+  @override
+  Future<String> readPreview(String path) async {
+    final handle = await File(path).open();
+    try {
+      var bytes = await handle.read(8192);
+      // End at a complete line when truncating a multibyte-encoded document.
+      if (bytes.length == 8192) {
+        final newline = bytes.lastIndexOf(10);
+        if (newline > 0) bytes = bytes.sublist(0, newline);
+      }
+      return (await decodeDocument(bytes)).text;
+    } finally {
+      await handle.close();
+    }
+  }
+
   @override
   Future<OpenedDocument?> pick() async {
     final file = await FilePicker.pickFile(

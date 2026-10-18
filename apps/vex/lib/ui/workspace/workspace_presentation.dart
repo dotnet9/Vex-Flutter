@@ -8,6 +8,7 @@ import 'package:vex_mindmap/vex_mindmap.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/l10n.dart';
+import '../core/app_theme.dart';
 import '../core/app_widgets.dart';
 import 'document_image.dart';
 import 'presentation_controller.dart';
@@ -145,13 +146,21 @@ class WorkspacePresentation extends StatelessWidget {
                                   )
                                 : controller.mapMode
                                 ? _PresentationMap(controller: controller)
-                                : _PresentationBody(
-                                    key: ValueKey(controller.page),
-                                    controller: controller,
-                                    typography: typography,
-                                    fontSize: fontSize * controller.scale,
-                                    preferences: preferences,
-                                    documentPath: documentPath,
+                                : Theme(
+                                    data: documentTheme(Theme.of(context)),
+                                    child: ColoredBox(
+                                      color: documentTheme(Theme.of(context))
+                                          .colorScheme
+                                          .surface,
+                                      child: _PresentationBody(
+                                        key: ValueKey(controller.page),
+                                        controller: controller,
+                                        typography: typography,
+                                        fontSize: fontSize * controller.scale,
+                                        preferences: preferences,
+                                        documentPath: documentPath,
+                                      ),
+                                    ),
                                   ),
                           ),
                         ],

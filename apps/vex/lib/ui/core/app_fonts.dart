@@ -57,6 +57,17 @@ abstract final class AppFonts {
     serifFallback: const ['Noto Serif SC', 'serif', ...fallback],
     monospace: 'CascadiaCode',
     monospaceFallback: fallback,
+    sansItalic: switch (defaultTargetPlatform) {
+      TargetPlatform.windows => 'Segoe UI',
+      TargetPlatform.iOS || TargetPlatform.macOS => 'Arial',
+      _ => 'sans-serif',
+    },
+    serifItalic: switch (defaultTargetPlatform) {
+      TargetPlatform.windows ||
+      TargetPlatform.iOS ||
+      TargetPlatform.macOS => 'Georgia',
+      _ => 'serif',
+    },
   );
 
   static MarkdownFontFamilies markdownFor(String language) {

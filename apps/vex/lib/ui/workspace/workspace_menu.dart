@@ -242,7 +242,7 @@ List<WorkspaceMenuEntry> workspaceMenus(
         item('lines', l.sourceLineNumbers, checked: vm.lineNumbers),
         item('watermark', l.watermarkPreview, checked: vm.watermark.preview),
         item('pairs', l.prefAutoPair, checked: vm.editingPreferences.autoPair),
-        if (desktop) item('statusbar', l.prefStatusbar, checked: vm.statusbar),
+        item('word-count', l.showWordCount, checked: vm.wordCountVisible),
       ]),
       group('writing', l.menuWriting, [
         item(

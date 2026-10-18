@@ -39,7 +39,7 @@ void main() {
       expect(find.byType(ModalBarrier).evaluate().toList(), routeBarriers);
       expect(
         tester
-            .widget<MarkdownReader>(find.byType(MarkdownReader).first)
+            .widget<MarkdownReader>(find.byType(MarkdownReader).last)
             .typography,
         MarkdownTypography.book,
       );
@@ -49,7 +49,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(vm.typography, MarkdownTypography.technical);
       // One outside click both dismisses the panel and performs the action.
-      await tester.tap(find.byTooltip('文件与大纲'));
+      await tester.tap(find.byKey(const ValueKey('document-sidebar-toggle')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('typography-picker')), findsNothing);
       if (size.width < 700) {

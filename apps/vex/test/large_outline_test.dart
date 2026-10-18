@@ -22,16 +22,16 @@ void main() {
       matching: find.byType(TextButton),
     );
     expect(rows.evaluate().length, lessThan(40));
-    expect(find.text('H2   Heading 2999'), findsNothing);
+    expect(find.text('Heading 2999'), findsNothing);
     final list = find.descendant(of: sidebar, matching: find.byType(ListView));
     await tester.drag(list, const Offset(0, -300));
     await tester.pumpAndSettle();
     expect(rows.evaluate().length, lessThan(50));
     final visible = find
-        .descendant(of: sidebar, matching: find.textContaining('H2   Heading'))
+        .descendant(of: sidebar, matching: find.textContaining('Heading'))
         .hitTestable()
         .first;
-    final title = tester.widget<Text>(visible).data!.substring(5);
+    final title = tester.widget<Text>(visible).data!;
     await tester.tap(visible);
     await tester.pumpAndSettle();
     expect(vm.selectedHeading!.title, title);

@@ -856,25 +856,12 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String cursorPosition(int line, int column) {
-    final intl.NumberFormat lineNumberFormat = intl.NumberFormat.decimalPattern(
-      localeName,
-    );
-    final String lineString = lineNumberFormat.format(line);
-    final intl.NumberFormat columnNumberFormat =
-        intl.NumberFormat.decimalPattern(localeName);
-    final String columnString = columnNumberFormat.format(column);
-
-    return '$lineString 行、$columnString 列';
-  }
-
-  @override
-  String characterCount(int count) {
+  String wordCount(int count) {
     final intl.NumberFormat countNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
     final String countString = countNumberFormat.format(count);
 
-    return '$countString 文字';
+    return '$countString 語';
   }
 
   @override
@@ -1204,7 +1191,37 @@ class AppLocalizationsJa extends AppLocalizations {
   String get prefZoom => 'コンテンツの拡大率';
 
   @override
-  String get prefStatusbar => 'ステータスバーを表示';
+  String get showWordCount => '語数を表示';
+
+  @override
+  String get searchOutline => '見出しを検索…';
+
+  @override
+  String get clearSearch => '検索をクリア';
+
+  @override
+  String get noSearchResults => '一致する項目はありません';
+
+  @override
+  String get fileTreeView => 'ツリー表示に切り替え';
+
+  @override
+  String get fileListView => 'リスト表示に切り替え';
+
+  @override
+  String get fileActions => 'ファイル操作';
+
+  @override
+  String get revealFolder => 'ファイルマネージャーで表示';
+
+  @override
+  String get refreshFolder => 'フォルダーを更新';
+
+  @override
+  String get fileSortAscending => 'ファイル名 A → Z';
+
+  @override
+  String get fileSortDescending => 'ファイル名 Z → A';
 
   @override
   String get prefMotion => '画面アニメーション';

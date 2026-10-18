@@ -4,6 +4,60 @@ import 'app_fonts.dart';
 import 'app_widgets.dart';
 import 'palette_tokens.dart';
 
+/// Reading colors are independent of the workspace's accent palette.
+ThemeData documentTheme(ThemeData shell) {
+  final dark = shell.brightness == Brightness.dark;
+  final scheme =
+      ColorScheme.fromSeed(
+        seedColor: const Color(0xff3975a5),
+        brightness: shell.brightness,
+      ).copyWith(
+        surface: dark ? const Color(0xff202124) : Colors.white,
+        onSurface: dark ? const Color(0xffe4e5e7) : const Color(0xff30343b),
+        onSurfaceVariant: dark
+            ? const Color(0xffafb4bb)
+            : const Color(0xff606770),
+        surfaceContainerLow: dark
+            ? const Color(0xff292b2f)
+            : const Color(0xfff6f7f8),
+        surfaceContainer: dark
+            ? const Color(0xff303238)
+            : const Color(0xfff1f3f5),
+        outlineVariant: dark
+            ? const Color(0xff484c53)
+            : const Color(0xffdde1e5),
+        primary: dark ? const Color(0xff91bffa) : const Color(0xff3975a5),
+      );
+  return shell.copyWith(
+    colorScheme: scheme,
+    scaffoldBackgroundColor: scheme.surface,
+    iconTheme: IconThemeData(color: scheme.onSurfaceVariant, size: 16),
+    dividerColor: scheme.outlineVariant,
+    dividerTheme: shell.dividerTheme.copyWith(color: scheme.outlineVariant),
+    textSelectionTheme: TextSelectionThemeData(
+      cursorColor: scheme.primary,
+      selectionColor: scheme.primary.withValues(alpha: .22),
+    ),
+    inputDecorationTheme: shell.inputDecorationTheme.copyWith(
+      fillColor: scheme.surfaceContainer,
+      hintStyle: TextStyle(color: scheme.onSurfaceVariant),
+      border: shell.inputDecorationTheme.border?.copyWith(
+        borderSide: BorderSide(color: scheme.outlineVariant),
+      ),
+      enabledBorder: shell.inputDecorationTheme.enabledBorder?.copyWith(
+        borderSide: BorderSide(color: scheme.outlineVariant),
+      ),
+      focusedBorder: shell.inputDecorationTheme.focusedBorder?.copyWith(
+        borderSide: BorderSide(color: scheme.primary),
+      ),
+    ),
+    textTheme: shell.textTheme.apply(
+      bodyColor: scheme.onSurface,
+      displayColor: scheme.onSurface,
+    ),
+  );
+}
+
 ThemeData appTheme(
   String palette,
   Brightness brightness, {

@@ -7,6 +7,7 @@ import 'package:vex_mindmap/vex_mindmap.dart';
 import '../../domain/workspace.dart';
 import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
+import '../core/app_theme.dart';
 import 'workspace_view_model.dart';
 
 enum WorkspacePicker { layout, typography }
@@ -271,7 +272,7 @@ class TypographyChoices extends StatelessWidget {
           _ChoiceCard(
             key: ValueKey('typography-${type.name}'),
             width: (width - (columns - 1) * 8) / columns,
-            height: 112,
+            height: 176,
             selected: vm.typography == type,
             label: context.l10n.typographyName(type),
             onTap: () => vm.updateAppearance(typography: type),
@@ -285,15 +286,6 @@ class TypographyChoices extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  context.l10n.typographyDescription(type),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -394,75 +386,35 @@ class _TypographySample extends StatelessWidget {
   const _TypographySample(this.type);
   final MarkdownTypography type;
   @override
-  Widget build(BuildContext context) {
-    final c = Theme.of(context).colorScheme;
-    final accent = type == MarkdownTypography.column
-        ? const Color(0xffa04d35)
-        : c.primary;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
-      decoration: BoxDecoration(
-        color: c.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(3),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 3),
-            decoration: BoxDecoration(
-              color: type == MarkdownTypography.technical
-                  ? accent.withValues(alpha: .08)
-                  : null,
-              border: switch (type) {
-                MarkdownTypography.column || MarkdownTypography.technical =>
-                  Border(left: BorderSide(color: accent, width: 2)),
-                MarkdownTypography.document => Border(
-                  bottom: BorderSide(color: c.outlineVariant),
+  Widget build(BuildContext context) => Theme(
+    data: documentTheme(Theme.of(context)),
+    child: ClipRect(
+      child: FittedBox(
+        alignment: Alignment.topLeft,
+        fit: BoxFit.contain,
+        child: SizedBox(
+          width: 360,
+          height: 420,
+          child: ColoredBox(
+            color: documentTheme(Theme.of(context)).colorScheme.surface,
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: IgnorePointer(
+                child: SingleChildScrollView(
+                  primary: false,
+                  child: MarkdownReader(
+                    data:
+                        '# ${context.l10n.sampleHeading}\n\n## ${context.l10n.outline}\n\n### ${context.l10n.sampleHeading}\n\n#### ${context.l10n.sampleHeading}',
+                    typography: type,
+                    fontSize: 18,
+                    selectable: false,
+                  ),
                 ),
-                MarkdownTypography.editorial => Border.symmetric(
-                  horizontal: BorderSide(color: c.outlineVariant),
-                ),
-                _ => null,
-              },
-            ),
-            child: Text(
-              context.l10n.sampleHeading,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: type == MarkdownTypography.editorial
-                  ? TextAlign.center
-                  : TextAlign.start,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                fontFamily: type == MarkdownTypography.book
-                    ? MarkdownFontFamilies.of(context).serif
-                    : null,
-                fontFamilyFallback: type == MarkdownTypography.book
-                    ? MarkdownFontFamilies.of(context).serifFallback
-                    : null,
-                color:
-                    type == MarkdownTypography.simple ||
-                        type == MarkdownTypography.book
-                    ? c.onSurface
-                    : accent,
               ),
             ),
           ),
-          const SizedBox(height: 5),
-          for (final fraction in [1.0, .72])
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: FractionallySizedBox(
-                widthFactor: fraction,
-                alignment: Alignment.centerLeft,
-                child: Container(height: 2, color: c.outlineVariant),
-              ),
-            ),
-        ],
+        ),
       ),
-    );
-  }
+    ),
+  );
 }

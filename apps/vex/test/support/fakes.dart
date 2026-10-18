@@ -36,6 +36,7 @@ final class MemoryFiles implements DocumentFileService {
   Future<void> Function(String path)? beforeRead;
   Future<void> Function(String path)? beforeReadFolder;
   final readPaths = <String>[];
+  final previewPaths = <String>[];
   final readFolderPaths = <String>[];
   OpenedDocument? picked;
   String? nextSave = '/notes/saved.md';
@@ -43,6 +44,13 @@ final class MemoryFiles implements DocumentFileService {
   List<String> folderDirectories = [];
   Uint8List? lastSavedBytes;
   String? lastSaveName, lastInitialDirectory;
+  @override
+  Future<String> readPreview(String path) async {
+    previewPaths.add(path);
+    final text = content[path]!;
+    return text.substring(0, text.length.clamp(0, 8192));
+  }
+
   @override
   Future<OpenedDocument?> pick() async => picked;
   @override

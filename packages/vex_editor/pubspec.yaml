@@ -14,6 +14,7 @@ dependencies:
   markdown: ^7.3.1
   super_sliver_list: ^0.4.1
   re_editor: ^0.10.0
+  re_highlight: ^0.0.3
   mermaid_flutter: ^0.3.0
   mermaid_core: ^0.3.0
   val_latex_flutter: ^0.1.3

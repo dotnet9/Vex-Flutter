@@ -28,16 +28,8 @@ final class MarkdownEditorController extends ChangeNotifier {
       source.value.composing.isValid ? source.text : session.text;
   MarkdownDocument get document => session.document;
   TextSelection get selection => source.selection;
-  MarkdownDocument? _countedDocument;
-  int _characterCount = 0;
-
-  int get characterCount {
-    if (!identical(_countedDocument, document)) {
-      _characterCount = session.text.characters.length;
-      _countedDocument = document;
-    }
-    return _characterCount;
-  }
+  final _wordCounter = MarkdownWordCounter();
+  int get wordCount => _wordCounter.count(document);
 
   void _inputChanged() {
     if (_syncing) return;

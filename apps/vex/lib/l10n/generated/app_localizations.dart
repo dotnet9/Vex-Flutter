@@ -1673,17 +1673,11 @@ abstract class AppLocalizations {
   /// **'{count} 处匹配'**
   String matchCount(int count);
 
-  /// No description provided for @cursorPosition.
+  /// No description provided for @wordCount.
   ///
   /// In zh, this message translates to:
-  /// **'行 {line}，列 {column}'**
-  String cursorPosition(int line, int column);
-
-  /// No description provided for @characterCount.
-  ///
-  /// In zh, this message translates to:
-  /// **'{count} 字符'**
-  String characterCount(int count);
+  /// **'{count} 词'**
+  String wordCount(int count);
 
   /// No description provided for @preferencesLoadFailed.
   ///
@@ -2279,11 +2273,71 @@ abstract class AppLocalizations {
   /// **'内容缩放'**
   String get prefZoom;
 
-  /// No description provided for @prefStatusbar.
+  /// No description provided for @showWordCount.
   ///
   /// In zh, this message translates to:
-  /// **'显示状态栏'**
-  String get prefStatusbar;
+  /// **'显示词数'**
+  String get showWordCount;
+
+  /// No description provided for @searchOutline.
+  ///
+  /// In zh, this message translates to:
+  /// **'查找标题…'**
+  String get searchOutline;
+
+  /// No description provided for @clearSearch.
+  ///
+  /// In zh, this message translates to:
+  /// **'清空查找'**
+  String get clearSearch;
+
+  /// No description provided for @noSearchResults.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有匹配的内容'**
+  String get noSearchResults;
+
+  /// No description provided for @fileTreeView.
+  ///
+  /// In zh, this message translates to:
+  /// **'切换为树视图'**
+  String get fileTreeView;
+
+  /// No description provided for @fileListView.
+  ///
+  /// In zh, this message translates to:
+  /// **'切换为列表视图'**
+  String get fileListView;
+
+  /// No description provided for @fileActions.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件操作'**
+  String get fileActions;
+
+  /// No description provided for @revealFolder.
+  ///
+  /// In zh, this message translates to:
+  /// **'在文件管理器中显示'**
+  String get revealFolder;
+
+  /// No description provided for @refreshFolder.
+  ///
+  /// In zh, this message translates to:
+  /// **'刷新文件夹'**
+  String get refreshFolder;
+
+  /// No description provided for @fileSortAscending.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件名 A → Z'**
+  String get fileSortAscending;
+
+  /// No description provided for @fileSortDescending.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件名 Z → A'**
+  String get fileSortDescending;
 
   /// No description provided for @prefMotion.
   ///

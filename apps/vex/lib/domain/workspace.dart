@@ -3,6 +3,8 @@ import 'package:vex_markdown_core/vex_markdown_core.dart';
 
 import 'file_preferences.dart';
 
+enum FileListMode { tree, list }
+
 enum WorkspaceViewport {
   phone(1),
   tablet(2),

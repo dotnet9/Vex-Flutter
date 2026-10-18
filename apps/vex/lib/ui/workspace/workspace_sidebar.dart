@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
+import 'package:vex_markdown_core/vex_markdown_core.dart';
 
 import '../../domain/workspace.dart';
 import '../../l10n/l10n.dart';
@@ -11,9 +12,13 @@ class WorkspaceSidebar extends StatefulWidget {
     super.key,
     required this.vm,
     required this.onOpenPath,
+    required this.onAction,
+    this.onNavigate,
   });
   final WorkspaceViewModel vm;
   final ValueChanged<String> onOpenPath;
+  final ValueChanged<String> onAction;
+  final VoidCallback? onNavigate;
 
   @override
   State<WorkspaceSidebar> createState() => _WorkspaceSidebarState();
@@ -22,21 +27,33 @@ class WorkspaceSidebar extends StatefulWidget {
 class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
   final _collapsed = <String>{};
   late final _search = TextEditingController(text: widget.vm.filter);
+  late final _outlineSearch = TextEditingController(
+    text: widget.vm.outlineFilter,
+  );
+  final _searchFocus = FocusNode();
+  final _previews = <String, Future<String>>{};
+  final _openPreviews = <String, (String, String)>{};
   String? _folderPath;
+  int _folderRevision = -1;
   WorkspaceViewModel get vm => widget.vm;
 
   @override
   void dispose() {
     _search.dispose();
+    _outlineSearch.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).colorScheme;
-    if (_folderPath != vm.folder?.path) {
+    if (_folderPath != vm.folder?.path ||
+        _folderRevision != vm.folderRevision) {
+      if (_folderPath != vm.folder?.path) _collapsed.clear();
       _folderPath = vm.folder?.path;
-      _collapsed.clear();
+      _folderRevision = vm.folderRevision;
+      _previews.clear();
     }
     return ColoredBox(
       color: c.surfaceContainerLow,
@@ -96,94 +113,379 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            child: SizedBox(
+              height: 34,
+              child: TextField(
+                key: ValueKey(vm.outline ? 'outline-search' : 'sidebar-search'),
+                controller: vm.outline ? _outlineSearch : _search,
+                focusNode: vm.outline ? null : _searchFocus,
+                onChanged: vm.outline ? vm.setOutlineFilter : vm.setFilter,
+                style: const TextStyle(fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: vm.outline
+                      ? context.l10n.searchOutline
+                      : context.l10n.searchDocuments,
+                  prefixIcon: const Padding(
+                    padding: EdgeInsets.all(8),
+                    child: AppGlyph('search'),
+                  ),
+                  prefixIconConstraints: const BoxConstraints(maxWidth: 32),
+                  suffixIconConstraints: const BoxConstraints(maxWidth: 32),
+                  suffixIcon:
+                      (vm.outline ? vm.outlineFilter : vm.filter).isEmpty
+                      ? null
+                      : AppButton(
+                          key: const ValueKey('sidebar-clear-search'),
+                          icon: 'x',
+                          tooltip: context.l10n.clearSearch,
+                          height: 30,
+                          padding: 4,
+                          onPressed: () {
+                            (vm.outline ? _outlineSearch : _search).clear();
+                            vm.outline
+                                ? vm.setOutlineFilter('')
+                                : vm.setFilter('');
+                          },
+                        ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
+                ),
+              ),
+            ),
+          ),
           if (vm.outline)
             Expanded(
-              child: ListView.builder(
-                key: PageStorageKey('outline-${vm.current.id}'),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 12,
-                ),
-                itemCount: vm.editor.document.headings.isEmpty
-                    ? 1
-                    : vm.editor.document.headings.length,
-                itemBuilder: (context, index) {
-                  final headings = vm.editor.document.headings;
-                  if (headings.isEmpty) {
-                    return Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Text(
-                        context.l10n.outlineHint,
-                        style: const TextStyle(fontSize: 13),
-                      ),
-                    );
-                  }
-                  final heading = headings[index];
-                  return Padding(
-                    key: ValueKey(heading.id),
-                    padding: EdgeInsets.only(left: (heading.level - 1) * 9),
-                    child: TextButton(
-                      onPressed: () => vm.selectHeading(heading),
-                      style: TextButton.styleFrom(
-                        alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        minimumSize: const Size(0, 32),
-                        foregroundColor: vm.selectedHeadingId == heading.id
-                            ? c.primary
-                            : c.onSurfaceVariant,
-                        backgroundColor: vm.selectedHeadingId == heading.id
-                            ? c.primaryContainer
-                            : null,
-                        textStyle: const TextStyle(fontSize: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                      ),
-                      child: Text(
-                        'H${heading.level}   ${heading.title}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+              child: Builder(
+                builder: (context) {
+                  final query = vm.outlineFilter.trim().toLowerCase();
+                  final headings = vm.editor.document.headings
+                      .where(
+                        (heading) =>
+                            heading.title.toLowerCase().contains(query),
+                      )
+                      .toList();
+                  return ListView.builder(
+                    key: PageStorageKey('outline-${vm.current.id}'),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 12,
                     ),
+                    itemCount: headings.isEmpty ? 1 : headings.length,
+                    itemBuilder: (context, index) {
+                      if (headings.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Text(
+                            query.isEmpty
+                                ? context.l10n.outlineHint
+                                : context.l10n.noSearchResults,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        );
+                      }
+                      final heading = headings[index];
+                      return Padding(
+                        key: ValueKey(heading.id),
+                        padding: EdgeInsets.only(left: (heading.level - 1) * 9),
+                        child: TextButton(
+                          onPressed: () {
+                            vm.selectHeading(heading);
+                            widget.onNavigate?.call();
+                          },
+                          style: TextButton.styleFrom(
+                            alignment: Alignment.centerLeft,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            minimumSize: const Size(0, 32),
+                            foregroundColor: vm.selectedHeadingId == heading.id
+                                ? c.primary
+                                : c.onSurfaceVariant,
+                            backgroundColor: vm.selectedHeadingId == heading.id
+                                ? c.primaryContainer
+                                : null,
+                            textStyle: const TextStyle(fontSize: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                          ),
+                          child: Text(
+                            heading.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
             )
           else ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
-              child: SizedBox(
-                height: 30,
-                child: TextField(
-                  key: const ValueKey('sidebar-search'),
-                  controller: _search,
-                  onChanged: vm.setFilter,
-                  style: const TextStyle(fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: context.l10n.searchDocuments,
-                    prefixIcon: const Padding(
-                      padding: EdgeInsets.all(8),
-                      child: AppGlyph('search', size: 13),
-                    ),
-                    prefixIconConstraints: const BoxConstraints(maxWidth: 28),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 6,
-                    ),
-                  ),
-                ),
-              ),
-            ),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                children: _files(context, vm.filter.toLowerCase()),
-              ),
+              child: vm.fileListMode == FileListMode.list
+                  ? _fileList(context)
+                  : ListView(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      children: _files(context, vm.filter.toLowerCase()),
+                    ),
             ),
+            _footer(context),
           ],
         ],
       ),
     );
+  }
+
+  Widget _footer(BuildContext context) {
+    final l = context.l10n, c = Theme.of(context).colorScheme;
+    final buttonHeight = vm.viewport == WorkspaceViewport.phone ? 44.0 : 32.0;
+    return Container(
+      key: const ValueKey('sidebar-footer'),
+      height: vm.viewport == WorkspaceViewport.phone ? 52 : 40,
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: c.outlineVariant)),
+      ),
+      child: Row(
+        children: [
+          AppButton(
+            height: buttonHeight,
+            icon: 'plus',
+            tooltip: l.newDocument,
+            onPressed: () {
+              widget.onAction('new');
+              widget.onNavigate?.call();
+            },
+          ),
+          Expanded(
+            child: Tooltip(
+              message: vm.folder?.path ?? l.openFolder,
+              child: TextButton(
+                onPressed: () => widget.onAction('folder'),
+                child: Text(
+                  vm.folder == null
+                      ? l.openFolder
+                      : p.basename(vm.folder!.path),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ),
+            ),
+          ),
+          MenuAnchor(
+            consumeOutsideTap: true,
+            alignmentOffset: const Offset(0, -4),
+            menuChildren: [
+              MenuItemButton(
+                leadingIcon: const AppGlyph('plus'),
+                onPressed: () => widget.onAction('new'),
+                child: Text(l.newDocument),
+              ),
+              MenuItemButton(
+                leadingIcon: const AppGlyph('search'),
+                onPressed: _searchFocus.requestFocus,
+                child: Text(l.searchDocuments),
+              ),
+              MenuItemButton(
+                leadingIcon: const AppGlyph('folder'),
+                onPressed: () => widget.onAction('folder'),
+                child: Text(l.openFolder),
+              ),
+              if (vm.viewport == WorkspaceViewport.desktop)
+                MenuItemButton(
+                  leadingIcon: const AppGlyph('ext'),
+                  onPressed: vm.folder == null
+                      ? null
+                      : () => widget.onAction('reveal-folder'),
+                  child: Text(l.revealFolder),
+                ),
+              MenuItemButton(
+                leadingIcon: const AppGlyph('refresh'),
+                onPressed: vm.folder == null
+                    ? null
+                    : () => widget.onAction('folder-refresh'),
+                child: Text(l.refreshFolder),
+              ),
+              const Divider(),
+              MenuItemButton(
+                leadingIcon: vm.fileSortDescending
+                    ? null
+                    : const AppGlyph('check'),
+                onPressed: () => vm.setFileSortDescending(false),
+                child: Text(l.fileSortAscending),
+              ),
+              MenuItemButton(
+                leadingIcon: vm.fileSortDescending
+                    ? const AppGlyph('check')
+                    : null,
+                onPressed: () => vm.setFileSortDescending(true),
+                child: Text(l.fileSortDescending),
+              ),
+            ],
+            builder: (context, controller, _) => AppButton(
+              height: buttonHeight,
+              key: const ValueKey('sidebar-file-actions'),
+              icon: 'more',
+              tooltip: l.fileActions,
+              onPressed: () =>
+                  controller.isOpen ? controller.close() : controller.open(),
+            ),
+          ),
+          AppButton(
+            height: buttonHeight,
+            key: const ValueKey('sidebar-view-toggle'),
+            icon: vm.fileListMode == FileListMode.tree ? 'list' : 'map',
+            tooltip: vm.fileListMode == FileListMode.tree
+                ? l.fileListView
+                : l.fileTreeView,
+            onPressed: () => vm.setFileListMode(
+              vm.fileListMode == FileListMode.tree
+                  ? FileListMode.list
+                  : FileListMode.tree,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _excerpt(String source) =>
+      markdownSummaryText(source.substring(0, source.length.clamp(0, 8192)))
+          .characters
+          .take(120)
+          .join();
+
+  Widget _fileList(BuildContext context) {
+    final open = {for (final doc in vm.documents) doc.path ?? doc.id: doc};
+    _openPreviews.removeWhere((path, _) => !open.containsKey(path));
+    final entries =
+        {...?vm.folder?.files, ...open.keys}
+            .where(
+              (path) => (open[path]?.name ?? p.basename(path))
+                  .toLowerCase()
+                  .contains(vm.filter.trim().toLowerCase()),
+            )
+            .toList()
+          ..sort(_comparePaths);
+    if (entries.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text(context.l10n.noSearchResults),
+        ),
+      );
+    }
+    return ListView.builder(
+      key: const PageStorageKey('sidebar-file-list'),
+      itemCount: entries.length,
+      itemExtent: 92,
+      itemBuilder: (context, index) {
+        final path = entries[index], doc = open[path];
+        final c = Theme.of(context).colorScheme;
+        final selected = identical(doc, vm.current);
+        final preview = doc == null
+            ? _previews.putIfAbsent(
+                path,
+                () => vm.files
+                    .readPreview(path)
+                    .then(_excerpt)
+                    .catchError((Object _) => ''),
+              )
+            : null;
+        return Material(
+          color: selected ? c.primaryContainer : Colors.transparent,
+          child: InkWell(
+            key: ValueKey('sidebar-file-$path'),
+            onTap: () {
+              if (doc != null && doc.path == null) {
+                vm.switchDocument(doc);
+                widget.onNavigate?.call();
+              } else {
+                widget.onOpenPath(path);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+              decoration: BoxDecoration(
+                border: Border(
+                  left: BorderSide(
+                    width: 3,
+                    color: selected ? c.primary : Colors.transparent,
+                  ),
+                  bottom: BorderSide(
+                    color: c.outlineVariant.withValues(alpha: .5),
+                  ),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${doc?.name ?? p.basename(path)}${doc?.editor.session.isDirty == true ? ' •' : ''}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: selected ? c.primary : c.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  if (doc != null)
+                    Text(
+                      _openExcerpt(path, doc.editor.text),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.5,
+                        color: c.onSurfaceVariant,
+                      ),
+                    )
+                  else
+                    FutureBuilder<String>(
+                      future: preview,
+                      builder: (context, snapshot) => Text(
+                        snapshot.data?.isNotEmpty == true
+                            ? snapshot.data!
+                            : p.relative(path, from: vm.folder?.path),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.5,
+                          color: c.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  int _comparePaths(String a, String b) {
+    final result = p
+        .basename(a)
+        .toLowerCase()
+        .compareTo(p.basename(b).toLowerCase());
+    final compared = result == 0 ? a.compareTo(b) : result;
+    return vm.fileSortDescending ? -compared : compared;
+  }
+
+  String _openExcerpt(String path, String text) {
+    final cached = _openPreviews[path];
+    if (cached != null && identical(cached.$1, text)) return cached.$2;
+    final excerpt = _excerpt(text);
+    _openPreviews[path] = (text, excerpt);
+    return excerpt;
   }
 
   List<Widget> _files(BuildContext context, String filter) {
@@ -235,9 +537,8 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
     final c = Theme.of(context).colorScheme;
     final expanded = filter.isNotEmpty || !_collapsed.contains(node.path);
     final directories = node.directories.values.toList()
-      ..sort((a, b) => a.path.toLowerCase().compareTo(b.path.toLowerCase()));
-    final files = node.files.toList()
-      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+      ..sort((a, b) => _comparePaths(a.path, b.path));
+    final files = node.files.toList()..sort(_comparePaths);
     return [
       TextButton(
         key: ValueKey('sidebar-directory-${node.path}'),

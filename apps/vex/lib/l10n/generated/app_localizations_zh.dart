@@ -851,25 +851,12 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String cursorPosition(int line, int column) {
-    final intl.NumberFormat lineNumberFormat = intl.NumberFormat.decimalPattern(
-      localeName,
-    );
-    final String lineString = lineNumberFormat.format(line);
-    final intl.NumberFormat columnNumberFormat =
-        intl.NumberFormat.decimalPattern(localeName);
-    final String columnString = columnNumberFormat.format(column);
-
-    return '行 $lineString，列 $columnString';
-  }
-
-  @override
-  String characterCount(int count) {
+  String wordCount(int count) {
     final intl.NumberFormat countNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
     final String countString = countNumberFormat.format(count);
 
-    return '$countString 字符';
+    return '$countString 词';
   }
 
   @override
@@ -1199,7 +1186,37 @@ class AppLocalizationsZh extends AppLocalizations {
   String get prefZoom => '内容缩放';
 
   @override
-  String get prefStatusbar => '显示状态栏';
+  String get showWordCount => '显示词数';
+
+  @override
+  String get searchOutline => '查找标题…';
+
+  @override
+  String get clearSearch => '清空查找';
+
+  @override
+  String get noSearchResults => '没有匹配的内容';
+
+  @override
+  String get fileTreeView => '切换为树视图';
+
+  @override
+  String get fileListView => '切换为列表视图';
+
+  @override
+  String get fileActions => '文件操作';
+
+  @override
+  String get revealFolder => '在文件管理器中显示';
+
+  @override
+  String get refreshFolder => '刷新文件夹';
+
+  @override
+  String get fileSortAscending => '文件名 A → Z';
+
+  @override
+  String get fileSortDescending => '文件名 Z → A';
 
   @override
   String get prefMotion => '界面动效';
@@ -2360,25 +2377,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String cursorPosition(int line, int column) {
-    final intl.NumberFormat lineNumberFormat = intl.NumberFormat.decimalPattern(
-      localeName,
-    );
-    final String lineString = lineNumberFormat.format(line);
-    final intl.NumberFormat columnNumberFormat =
-        intl.NumberFormat.decimalPattern(localeName);
-    final String columnString = columnNumberFormat.format(column);
-
-    return '第 $lineString 行，第 $columnString 欄';
-  }
-
-  @override
-  String characterCount(int count) {
+  String wordCount(int count) {
     final intl.NumberFormat countNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
     final String countString = countNumberFormat.format(count);
 
-    return '$countString 字元';
+    return '$countString 詞';
   }
 
   @override
@@ -2708,7 +2712,37 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get prefZoom => '內容縮放';
 
   @override
-  String get prefStatusbar => '顯示狀態列';
+  String get showWordCount => '顯示詞數';
+
+  @override
+  String get searchOutline => '尋找標題…';
+
+  @override
+  String get clearSearch => '清除搜尋';
+
+  @override
+  String get noSearchResults => '沒有符合的內容';
+
+  @override
+  String get fileTreeView => '切換為樹狀檢視';
+
+  @override
+  String get fileListView => '切換為清單檢視';
+
+  @override
+  String get fileActions => '檔案操作';
+
+  @override
+  String get revealFolder => '在檔案管理器中顯示';
+
+  @override
+  String get refreshFolder => '重新整理資料夾';
+
+  @override
+  String get fileSortAscending => '檔名 A → Z';
+
+  @override
+  String get fileSortDescending => '檔名 Z → A';
 
   @override
   String get prefMotion => '介面動效';

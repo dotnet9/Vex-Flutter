@@ -7,6 +7,7 @@ import 'package:vex_mindmap/vex_mindmap.dart';
 import '../../domain/workspace.dart';
 import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
+import '../core/app_theme.dart';
 import 'document_image.dart';
 import 'document_watermark.dart';
 import 'workspace_element_menu.dart';
@@ -86,7 +87,9 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
     };
     return ColoredBox(
       key: ValueKey('${vm.current.id}-$pane'),
-      color: pane == 'source' ? c.surfaceContainer : c.surface,
+      color: pane == 'map'
+          ? c.surface
+          : documentTheme(Theme.of(context)).colorScheme.surface,
       child: Column(
         children: [
           if (titled)
@@ -164,15 +167,18 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
 
   Widget _contentScale(String pane, Widget child) => pane == 'map'
       ? child
-      : MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(
-              MediaQuery.textScalerOf(context).scale(1) * vm.contentZoom,
+      : Theme(
+          data: documentTheme(Theme.of(context)),
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(
+                MediaQuery.textScalerOf(context).scale(1) * vm.contentZoom,
+              ),
             ),
+            child: pane == 'source'
+                ? child
+                : DocumentWatermark(preferences: vm.watermark, child: child),
           ),
-          child: pane == 'source'
-              ? child
-              : DocumentWatermark(preferences: vm.watermark, child: child),
         );
 
   Widget _mapPane() => LayoutBuilder(
@@ -264,6 +270,34 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                     onMove: (from, to) => _command(() => vm.moveNode(from, to)),
                     onRename: (node, title) =>
                         _command(() => vm.renameNode(node, title)),
+                    onCommand: (node, command) async {
+                      vm.selectNode(node);
+                      if (command == 'delete') {
+                        final heading = vm.selectedHeading;
+                        if (heading == null) return;
+                        final mode = await _confirmDeleteSection(
+                          context,
+                          heading.title,
+                        );
+                        if (mounted &&
+                            mode != null &&
+                            vm.editor.document.heading(heading.id) != null) {
+                          _command(
+                            () => vm.editor.session.deleteHeading(
+                              heading.id,
+                              keepContents: mode == 'keep',
+                            ),
+                          );
+                        }
+                        return;
+                      }
+                      _command(
+                        () => vm.addMapHeading(
+                          child: command == 'child',
+                          title: context.l10n.newSectionTitle,
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -454,6 +488,30 @@ class _DocumentReadingState extends State<_DocumentReading>
   }
 }
 
+Future<String?> _confirmDeleteSection(BuildContext context, String title) =>
+    showDialog<String>(
+      context: context,
+      builder: (context) => AppDialog(
+        title: context.l10n.deleteNamedSection(title),
+        actions: [
+          AppButton(
+            label: context.l10n.cancel,
+            onPressed: () => Navigator.pop(context),
+          ),
+          AppButton(
+            label: context.l10n.keepBody,
+            onPressed: () => Navigator.pop(context, 'keep'),
+          ),
+          AppButton(
+            label: context.l10n.deleteWholeSection,
+            primary: true,
+            onPressed: () => Navigator.pop(context, 'all'),
+          ),
+        ],
+        child: Text(context.l10n.deleteSectionHint),
+      ),
+    );
+
 class ChapterInspector extends StatefulWidget {
   const ChapterInspector({
     super.key,
@@ -607,29 +665,9 @@ class _ChapterInspectorState extends State<ChapterInspector> {
                       AppButton(
                         label: context.l10n.deleteSection,
                         onPressed: () async {
-                          final mode = await showDialog<String>(
-                            context: context,
-                            builder: (context) => AppDialog(
-                              title: context.l10n.deleteNamedSection(h.title),
-                              actions: [
-                                AppButton(
-                                  label: context.l10n.cancel,
-                                  onPressed: () => Navigator.pop(context),
-                                ),
-                                AppButton(
-                                  label: context.l10n.keepBody,
-                                  onPressed: () =>
-                                      Navigator.pop(context, 'keep'),
-                                ),
-                                AppButton(
-                                  label: context.l10n.deleteWholeSection,
-                                  primary: true,
-                                  onPressed: () =>
-                                      Navigator.pop(context, 'all'),
-                                ),
-                              ],
-                              child: Text(context.l10n.deleteSectionHint),
-                            ),
+                          final mode = await _confirmDeleteSection(
+                            context,
+                            h.title,
                           );
                           if (mode != null && mounted) {
                             _command(

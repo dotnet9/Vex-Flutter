@@ -23,7 +23,7 @@ void main() {
         contentZoom: 1.25,
         fontSize: 24,
         motion: false,
-        statusbar: false,
+        wordCountVisible: false,
       );
       final restored = WorkspaceViewModel(
         files: vm.files,
@@ -38,7 +38,7 @@ void main() {
       );
       expect(restored.contentZoom, 1.25);
       expect(restored.motion, isFalse);
-      expect(restored.statusbar, isFalse);
+      expect(restored.wordCountVisible, isFalse);
       expect(restored.fontSize, 24);
       expect(vm.editor.text, '# unchanged');
       vm.dispose();

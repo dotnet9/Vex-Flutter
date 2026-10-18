@@ -81,15 +81,28 @@ final class WorkspaceViewModel extends ChangeNotifier {
       const MarkdownEditingPreferences();
   MarkdownPreferences markdownPreferences = const MarkdownPreferences();
   double contentZoom = 1;
-  bool statusbar = true, motion = true;
+  bool wordCountVisible = true, motion = true;
+  FileListMode fileListMode = FileListMode.tree;
+  bool fileSortDescending = false;
+  int folderRevision = 0;
   PresentationController? presenter;
   bool get presentation => presenter != null;
   bool paragraphs = true, lists = true, blocks = false;
   int summaryLength = 30;
   double sidebarWidth = 226, fontSize = 16;
-  String filter = '', findQuery = '', replacement = '';
+  String filter = '', outlineFilter = '', findQuery = '', replacement = '';
   String Function(AppLocalizations)? _statusMessage;
   String get status => _statusMessage?.call(strings) ?? '';
+  bool _announceStatus = false;
+  String get notice => _announceStatus ? status : '';
+  void _setStatus(
+    String Function(AppLocalizations)? message, {
+    bool announce = true,
+  }) {
+    _statusMessage = message;
+    _announceStatus = announce;
+  }
+
   bool matchCase = false, regex = false, wholeWord = false;
   int matchIndex = -1;
   List<SourceRange> matches = [];
@@ -158,7 +171,13 @@ final class WorkspaceViewModel extends ChangeNotifier {
         .9,
         1.25,
       );
-      statusbar = preferences['statusbar'] != false;
+      wordCountVisible = preferences['wordCountVisible'] != false;
+      fileListMode =
+          FileListMode.values
+              .where((mode) => mode.name == preferences['fileListMode'])
+              .firstOrNull ??
+          FileListMode.tree;
+      fileSortDescending = preferences['fileSortDescending'] == true;
       motion = preferences['motion'] != false;
       sidebarWidth = (preferences['sidebarWidth'] as num? ?? 226)
           .toDouble()
@@ -188,7 +207,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
       }
       await mcp.load(preferences['mcp']);
     } catch (error) {
-      _statusMessage = (l) => l.preferencesLoadFailed(error.toString());
+      _setStatus((l) => l.preferencesLoadFailed(error.toString()));
     }
     ready = true;
     _refreshMap();
@@ -249,8 +268,15 @@ final class WorkspaceViewModel extends ChangeNotifier {
     if (!_mapDirty) return;
     _mapDirty = false;
     _map.setRoot(_tree());
-    if (_map.selectedId != selectedHeadingId) _map.select(selectedHeadingId);
+    final selected = _mapNodeForHeading(selectedHeadingId);
+    if (_map.selectedId != selected) _map.select(selected);
   }
+
+  String? _mapNodeForHeading(String? id) => id == null
+      ? null
+      : _headingForNode[current.id] == id
+      ? current.id
+      : id;
 
   MindMapNode _tree() {
     _headingForNode.clear();
@@ -351,7 +377,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   void selectHeading(MarkdownHeading heading) {
     selectedHeadingId = heading.id;
     editor.reveal(heading.header.start, end: heading.header.end);
-    if (!_mapDirty) _map.select(heading.id);
+    if (!_mapDirty) _map.select(_mapNodeForHeading(heading.id));
     _notify();
   }
 
@@ -364,7 +390,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
       return false;
     }
     if (fragment.isEmpty) {
-      _statusMessage = null;
+      _setStatus(null);
       selectedHeadingId = null;
       if (!_mapDirty) _map.select(null);
       editor.reveal(0);
@@ -376,11 +402,11 @@ final class WorkspaceViewModel extends ChangeNotifier {
       preferences: markdownPreferences,
     )[fragment];
     if (heading == null) {
-      _statusMessage = (l) => l.anchorNotFound(fragment);
+      _setStatus((l) => l.anchorNotFound(fragment));
       _notify();
       return false;
     }
-    _statusMessage = null;
+    _setStatus(null);
     selectHeading(heading);
     return true;
   }
@@ -394,7 +420,36 @@ final class WorkspaceViewModel extends ChangeNotifier {
   void renameNode(MindMapNode node, String title) {
     _ensureMapCurrent();
     final id = _headingForNode[node.id];
-    if (id != null && !node.summary) editor.session.renameHeading(id, title);
+    if (id == null || node.summary) return;
+    final heading = editor.document.heading(id);
+    if (heading == null) return;
+    editor.session.renameHeading(id, title);
+    selectedHeadingId = editor.document.headings
+        .where((h) => h.header.start == heading.header.start)
+        .firstOrNull
+        ?.id;
+    _ensureMapCurrent();
+    _map.select(_mapNodeForHeading(selectedHeadingId));
+    _notify();
+  }
+
+  void addMapHeading({required bool child, required String title}) {
+    final heading = selectedHeading;
+    final offset = heading == null
+        ? editor.text.length
+        : child
+        ? heading.body.end
+        : heading.section.end;
+    editor.session.addHeading(heading?.id, child: child, title: title);
+    final added = editor.document.headings
+        .where((h) => h.header.start >= offset && h.title == title)
+        .firstOrNull;
+    if (added != null) {
+      selectedHeadingId = added.id;
+      _ensureMapCurrent();
+      _map.select(_mapNodeForHeading(added.id));
+      _notify();
+    }
   }
 
   void setLayout(WorkspaceLayout value) {
@@ -413,7 +468,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     bool? lineNumbers,
     double? fontSize,
     double? contentZoom,
-    bool? statusbar,
+    bool? wordCountVisible,
     bool? motion,
   }) {
     this.palette = palette ?? this.palette;
@@ -429,7 +484,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     this.lineNumbers = lineNumbers ?? this.lineNumbers;
     this.fontSize = (fontSize ?? this.fontSize).clamp(12, 24);
     this.contentZoom = (contentZoom ?? this.contentZoom).clamp(.9, 1.25);
-    this.statusbar = statusbar ?? this.statusbar;
+    this.wordCountVisible = wordCountVisible ?? this.wordCountVisible;
     this.motion = motion ?? this.motion;
     _notify();
     persist();
@@ -569,6 +624,23 @@ final class WorkspaceViewModel extends ChangeNotifier {
   void setFilter(String value) {
     filter = value;
     _notify();
+  }
+
+  void setOutlineFilter(String value) {
+    outlineFilter = value;
+    _notify();
+  }
+
+  void setFileListMode(FileListMode value) {
+    fileListMode = value;
+    _notify();
+    persist();
+  }
+
+  void setFileSortDescending(bool value) {
+    fileSortDescending = value;
+    _notify();
+    persist();
   }
 
   void resizeSidebar(double value) {
@@ -818,10 +890,22 @@ final class WorkspaceViewModel extends ChangeNotifier {
     final selected = await files.folder();
     if (selected == null || _disposed || request != _folderRequest) return;
     folder = selected;
+    folderRevision++;
     sidebar = true;
     outline = false;
     _notify();
     persist();
+  }
+
+  Future<void> refreshFolder() async {
+    final path = folder?.path;
+    if (path == null) return;
+    final request = ++_folderRequest;
+    final refreshed = await files.readFolder(path);
+    if (_disposed || request != _folderRequest || folder?.path != path) return;
+    folder = refreshed;
+    folderRevision++;
+    _notify();
   }
 
   Future<void> _restoreWorkspace(Map workspace) async {
@@ -910,9 +994,11 @@ final class WorkspaceViewModel extends ChangeNotifier {
       if (_disposed || !documents.contains(doc)) return;
       unawaited(
         _saveDocument(doc).catchError((Object error) {
-          _statusMessage = error is FileConflict
-              ? (l) => l.fileConflict
-              : (l) => l.operationFailed(error.toString());
+          _setStatus(
+            error is FileConflict
+                ? (l) => l.fileConflict
+                : (l) => l.operationFailed(error.toString()),
+          );
           if (identical(doc, current)) unawaited(checkExternal());
           _notify();
           return false;
@@ -960,7 +1046,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     required bool saveAs,
   }) async {
     if (_guiding) {
-      _statusMessage = (l) => l.finishGuideBeforeSaving;
+      _setStatus((l) => l.finishGuideBeforeSaving);
       _notify();
       return false;
     }
@@ -989,7 +1075,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     doc.editor.session.markSaved(savedText: text);
     if (identical(doc, current)) externalChange = null;
     final savedName = doc.name;
-    _statusMessage = (l) => l.savedFile(savedName);
+    _setStatus((l) => l.savedFile(savedName), announce: false);
     persist();
     await flushRecovery();
     _notify();
@@ -1045,7 +1131,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
         ...recoverable,
         ..._activeSnapshots(),
       ], throwOnError: true);
-      _statusMessage = (l) => l.documentChanged;
+      _setStatus((l) => l.documentChanged);
       _notify();
       return;
     }
@@ -1074,7 +1160,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
         ...recoverable,
         ..._activeSnapshots(),
       ], throwOnError: true);
-      _statusMessage = (l) => l.documentChanged;
+      _setStatus((l) => l.documentChanged);
       _notify();
       return;
     }
@@ -1118,7 +1204,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
         }
       }
     } catch (error) {
-      _statusMessage = (l) => l.fileReadFailed(error.toString());
+      _setStatus((l) => l.fileReadFailed(error.toString()));
       _notify();
     } finally {
       _checking = false;
@@ -1179,7 +1265,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     try {
       await recovery.save(filePreferences.recovery ? snapshots : []);
     } catch (error) {
-      _statusMessage = (l) => l.recoverySaveFailed(error.toString());
+      _setStatus((l) => l.recoverySaveFailed(error.toString()));
       _notify();
       if (throwOnError) rethrow;
     }
@@ -1233,7 +1319,9 @@ final class WorkspaceViewModel extends ChangeNotifier {
           'editor': editingPreferences.toJson(),
           'markdown': markdownPreferences.toJson(),
           'contentZoom': contentZoom,
-          'statusbar': statusbar,
+          'wordCountVisible': wordCountVisible,
+          'fileListMode': fileListMode.name,
+          'fileSortDescending': fileSortDescending,
           'motion': motion,
           'sidebarWidth': sidebarWidth,
           'summaryLength': summaryLength,
@@ -1263,7 +1351,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
           if (revision != _preferencesRevision) return;
           preferencesSaving = false;
           preferencesError = error.toString();
-          _statusMessage = (l) => l.preferencesSaveFailed(error.toString());
+          _setStatus((l) => l.preferencesSaveFailed(error.toString()));
           _notify();
         });
     _notify();

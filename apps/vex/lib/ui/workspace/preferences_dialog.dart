@@ -616,9 +616,9 @@ class _PreferencesDialogState extends State<PreferencesDialog> {
             onChanged: (v) => vm.updateAppearance(contentZoom: v),
           ),
           PreferenceSwitch(
-            label: l.prefStatusbar,
-            value: vm.statusbar,
-            onChanged: (v) => vm.updateAppearance(statusbar: v),
+            label: l.showWordCount,
+            value: vm.wordCountVisible,
+            onChanged: (v) => vm.updateAppearance(wordCountVisible: v),
           ),
           PreferenceSwitch(
             label: l.prefMotion,

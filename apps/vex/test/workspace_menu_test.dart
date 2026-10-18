@@ -86,7 +86,7 @@ void main() {
         'format:clear',
         'watermark',
         'pairs',
-        'statusbar',
+        'word-count',
         'motion',
       ]),
     );

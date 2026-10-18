@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'code_highlighting.dart';
 import 'font_families.dart';
 import 'markdown_preferences.dart';
 import 'selection_projection.dart';
@@ -9,6 +10,7 @@ import 'selection_projection.dart';
 class MarkdownInlineEditingController extends TextEditingController {
   MarkdownInlineEditingController({super.text});
   bool presentationEnabled = true;
+  String? codeLanguage;
   bool inlineOnly = false;
   MarkdownPreferences preferences = const MarkdownPreferences();
   String? _parsedText;
@@ -22,6 +24,14 @@ class MarkdownInlineEditingController extends TextEditingController {
     TextStyle? style,
     required bool withComposing,
   }) {
+    if (codeLanguage != null && value.composing.isCollapsed) {
+      return MarkdownCodeHighlighting.span(
+        text,
+        codeLanguage!,
+        style,
+        Theme.of(context).brightness,
+      );
+    }
     if (!presentationEnabled || !value.composing.isCollapsed) {
       return super.buildTextSpan(
         context: context,
@@ -72,7 +82,7 @@ class MarkdownInlineEditingController extends TextEditingController {
         }
         runStyle = runStyle.merge(switch (token.tag) {
           'strong' => const TextStyle(fontWeight: FontWeight.w700),
-          'em' => const TextStyle(fontStyle: FontStyle.italic),
+          'em' => fonts.emphasis(style),
           'code' => TextStyle(
             fontFamily: fonts.monospace,
             fontFamilyFallback: fonts.monospaceFallback,
