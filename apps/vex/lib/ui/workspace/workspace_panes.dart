@@ -85,72 +85,80 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
       'map' => context.l10n.mindMap,
       _ => context.l10n.instantEditing,
     };
-    return ColoredBox(
-      key: ValueKey('${vm.current.id}-$pane'),
-      color: pane == 'map'
-          ? c.surface
-          : documentTheme(Theme.of(context)).colorScheme.surface,
-      child: Column(
-        children: [
-          if (titled)
-            PanelHeader(
-              title: title,
-              icon: switch (pane) {
-                'map' => 'map',
-                'read' => 'eye',
-                _ => 'edit',
-              },
-              trailing: AppButton(
-                icon: 'max',
-                tooltip: context.l10n.showPaneOnly(title),
-                height: 25,
-                padding: 4,
-                onPressed: () => vm.setLayout(
-                  WorkspaceLayout.values.firstWhere(
-                    (l) => l.panes.length == 1 && l.panes.first == pane,
+    return Focus(
+      onFocusChange: (focused) {
+        if (focused) vm.activatePane(pane);
+      },
+      child: Listener(
+        onPointerDown: (_) => vm.activatePane(pane),
+        child: ColoredBox(
+          key: ValueKey('${vm.current.id}-$pane'),
+          color: pane == 'map'
+              ? c.surface
+              : documentTheme(Theme.of(context)).colorScheme.surface,
+          child: Column(
+            children: [
+              if (titled)
+                PanelHeader(
+                  title: title,
+                  icon: switch (pane) {
+                    'map' => 'map',
+                    'read' => 'eye',
+                    _ => 'edit',
+                  },
+                  trailing: AppButton(
+                    icon: 'max',
+                    tooltip: context.l10n.showPaneOnly(title),
+                    height: 25,
+                    padding: 4,
+                    onPressed: () => vm.setLayout(
+                      WorkspaceLayout.values.firstWhere(
+                        (l) => l.panes.length == 1 && l.panes.first == pane,
+                      ),
+                    ),
                   ),
                 ),
+              Expanded(
+                child: _contentScale(pane, switch (pane) {
+                  'source' => MarkdownSourceEditor(
+                    onContextMenu: _onContextMenu,
+                    key: widget.editingKey,
+                    controller: vm.editor,
+                    lineNumbers: vm.lineNumbers,
+                    typewriter: vm.typewriter,
+                    fontSize: vm.editingPreferences.codeSize,
+                    editingPreferences: vm.editingPreferences,
+                  ),
+                  'read' => _DocumentReading(
+                    vm: vm,
+                    padding: _documentPadding(titled),
+                    onContextMenu: _onContextMenu,
+                  ),
+                  'map' => _mapPane(),
+                  _ => MarkdownInstantEditor(
+                    onContextMenu: _onContextMenu,
+                    imageBuilder: (uri, title, alt) => DocumentImage(
+                      uri: uri,
+                      documentPath: vm.current.path,
+                      alt: alt,
+                    ),
+                    key: widget.editingKey,
+                    controller: vm.editor,
+                    labels: context.l10n.editorLabels,
+                    typography: vm.typography,
+                    compact: vm.compact,
+                    typewriter: vm.typewriter,
+                    focusMode: vm.focusMode,
+                    preferences: vm.markdownPreferences,
+                    fontSize: vm.fontSize,
+                    editingPreferences: vm.editingPreferences,
+                    padding: _documentPadding(titled),
+                  ),
+                }),
               ),
-            ),
-          Expanded(
-            child: _contentScale(pane, switch (pane) {
-              'source' => MarkdownSourceEditor(
-                onContextMenu: _onContextMenu,
-                key: widget.editingKey,
-                controller: vm.editor,
-                lineNumbers: vm.lineNumbers,
-                typewriter: vm.typewriter,
-                fontSize: vm.editingPreferences.codeSize,
-                editingPreferences: vm.editingPreferences,
-              ),
-              'read' => _DocumentReading(
-                vm: vm,
-                padding: _documentPadding(titled),
-                onContextMenu: _onContextMenu,
-              ),
-              'map' => _mapPane(),
-              _ => MarkdownInstantEditor(
-                onContextMenu: _onContextMenu,
-                imageBuilder: (uri, title, alt) => DocumentImage(
-                  uri: uri,
-                  documentPath: vm.current.path,
-                  alt: alt,
-                ),
-                key: widget.editingKey,
-                controller: vm.editor,
-                labels: context.l10n.editorLabels,
-                typography: vm.typography,
-                compact: vm.compact,
-                typewriter: vm.typewriter,
-                focusMode: vm.focusMode,
-                preferences: vm.markdownPreferences,
-                fontSize: vm.fontSize,
-                editingPreferences: vm.editingPreferences,
-                padding: _documentPadding(titled),
-              ),
-            }),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

@@ -167,12 +167,16 @@ void main() {
         }
         vm.setLayout(WorkspaceLayout.instant);
         await tester.pumpAndSettle();
-        await tester.tap(find.byTooltip(l.workspaceLayout));
-        await tester.pumpAndSettle();
-        expect(find.text(l.workspaceLayout), findsWidgets);
-        expect(tester.takeException(), isNull);
-        await tester.tap(find.byTooltip(l.closePicker));
-        await tester.pumpAndSettle();
+        if (size.width >= 700) {
+          await tester.tap(find.byTooltip(l.workspaceLayout));
+          await tester.pumpAndSettle();
+          expect(find.text(l.workspaceLayout), findsWidgets);
+          expect(tester.takeException(), isNull);
+          await tester.tap(find.byTooltip(l.closePicker));
+          await tester.pumpAndSettle();
+        } else {
+          expect(find.byTooltip(l.workspaceLayout), findsNothing);
+        }
         final context = tester.element(find.byType(Scaffold).first);
         for (final open in <Future<void> Function()>[
           () => showSettings(context, vm),

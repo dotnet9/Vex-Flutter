@@ -4,6 +4,16 @@ import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
 import 'workspace_menu.dart';
 
+List<WorkspaceMenuEntry> workspaceTouchMenus(List<WorkspaceMenuEntry> menus) {
+  final file = menus.firstWhere((item) => item.id == 'file');
+  return [
+    for (final id in ['new', 'open', 'save', 'export'])
+      file.children.firstWhere((item) => item.id == id),
+    const WorkspaceMenuEntry.separator(),
+    ...menus,
+  ];
+}
+
 Future<String?> showWorkspaceTouchMenu(
   BuildContext context,
   List<WorkspaceMenuEntry> menus, {
@@ -36,10 +46,13 @@ class _TouchMenuState extends State<_TouchMenu> {
       onPopInvokedWithResult: (popped, _) {
         if (!popped && _path.isNotEmpty) setState(() => _path.removeLast());
       },
-      child: SizedBox(
+      child: ConstrainedBox(
         key: const ValueKey('touch-workspace-menu'),
-        height: MediaQuery.sizeOf(context).height * .74,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * .8,
+        ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
@@ -74,7 +87,7 @@ class _TouchMenuState extends State<_TouchMenu> {
               ),
             ),
             Divider(height: 1, color: c.outlineVariant),
-            Expanded(
+            Flexible(
               child: AnimatedSwitcher(
                 duration: MediaQuery.disableAnimationsOf(context)
                     ? Duration.zero
@@ -90,6 +103,7 @@ class _TouchMenuState extends State<_TouchMenu> {
                   ),
                 ),
                 child: ListView(
+                  shrinkWrap: true,
                   key: ValueKey(_path.map((item) => item.id).join('/')),
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   children: [

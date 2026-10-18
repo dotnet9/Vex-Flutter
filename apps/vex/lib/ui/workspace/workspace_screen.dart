@@ -374,6 +374,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   }
 
   void _action(String action) {
+    if (const ['cut', 'paste'].contains(action) &&
+        _focusedClipboardAction(action))
+      return;
+    if (workspaceCommandEditsText(action) && !vm.canEditText) return;
     if (action.startsWith('table:')) {
       final target = vm.editor.tableTarget();
       if (target == null) return;
@@ -581,7 +585,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
               if (!mounted ||
                   !identical(vm.current, document) ||
                   editor.text != source ||
-                  editor.selection != selection) {
+                  editor.selection != selection ||
+                  !vm.canEditText) {
                 return;
               }
               editor.replaceSelection('');
@@ -598,7 +603,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             if (!mounted ||
                 !identical(vm.current, document) ||
                 editor.text != source ||
-                editor.selection != selection) {
+                editor.selection != selection ||
+                !vm.canEditText) {
               return;
             }
             if (data?.text != null) editor.replaceSelection(data!.text!);
@@ -1462,7 +1468,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       workspaceMenuWidgets(context, items, _action);
 
   Future<void> _touchMenu(double width) async {
-    final action = await showWorkspaceTouchMenu(context, _menus(width));
+    final action = await showWorkspaceTouchMenu(
+      context,
+      workspaceTouchMenus(_menus(width)),
+    );
     if (!mounted || action == null) return;
     _action(action);
   }
@@ -1494,20 +1503,21 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             _viewSwitch(state, width),
             SizedBox(width: width < 1100 ? 8 : 14),
           ],
-          WorkspacePickerAnchor(
-            vm: state,
-            picker: WorkspacePicker.layout,
-            controller: _layoutsMenu,
-            child: AppButton(
-              label: phone ? null : context.l10n.layoutDropdown,
-              icon: 'columns',
-              trailingIcon: phone ? null : 'chevron-down',
-              tooltip: context.l10n.workspaceLayout,
-              bordered: !phone,
-              padding: 11,
-              onPressed: () => _action('layouts'),
+          if (!phone)
+            WorkspacePickerAnchor(
+              vm: state,
+              picker: WorkspacePicker.layout,
+              controller: _layoutsMenu,
+              child: AppButton(
+                label: phone ? null : context.l10n.layoutDropdown,
+                icon: 'columns',
+                trailingIcon: phone ? null : 'chevron-down',
+                tooltip: context.l10n.workspaceLayout,
+                bordered: !phone,
+                padding: 11,
+                onPressed: () => _action('layouts'),
+              ),
             ),
-          ),
           if (!phone) const SizedBox(width: 14),
           if (phone)
             _workActions(state, phone, width)
@@ -1732,7 +1742,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             ),
             AppButton(
               label: context.l10n.replace,
-              onPressed: () => state.showFind(replace: !state.replaceVisible),
+              onPressed: state.canEditText
+                  ? () => state.showFind(replace: !state.replaceVisible)
+                  : null,
             ),
             AppCloseButton(
               tooltip: context.l10n.closeFind,
@@ -1740,7 +1752,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             ),
           ],
         ),
-        if (state.replaceVisible)
+        if (state.replaceVisible && state.canEditText)
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Row(

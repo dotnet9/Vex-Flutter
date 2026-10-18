@@ -67,6 +67,19 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }
 
   MarkdownEditorController get editor => current.editor;
+  String _activePane = 'instant';
+  bool get canEditText {
+    final panes = layout.panes;
+    final active = panes.contains(_activePane) ? _activePane : panes.first;
+    return active == 'source' || active == 'instant';
+  }
+
+  void activatePane(String pane) {
+    if (_activePane == pane) return;
+    _activePane = pane;
+    _notify();
+  }
+
   WorkspaceLayout _layout = WorkspaceLayout.instant;
   WorkspaceViewport viewport = WorkspaceViewport.desktop;
   WorkspaceLayout get layout => _layout.constrainedTo(viewport);
@@ -523,6 +536,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
 
   void setLayout(WorkspaceLayout value) {
     layout = value;
+    if (!layout.panes.contains(_activePane)) _activePane = layout.panes.first;
     if (layout.panes.contains('map')) _ensureMapCurrent();
     _notify();
     persist();

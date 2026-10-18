@@ -92,6 +92,7 @@ void main() {
           matching: find.byType(Scrollable),
         ),
       );
+      await tester.pumpAndSettle();
       expect(
         tester.getTopLeft(find.byKey(const ValueKey('touch-menu-heading'))),
         header,

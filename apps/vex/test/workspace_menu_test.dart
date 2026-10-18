@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vex/app.dart';
+import 'package:vex/l10n/l10n.dart';
 import 'package:vex/domain/workspace.dart';
 import 'package:vex/ui/core/app_widgets.dart';
 import 'package:vex/ui/workspace/workspace_menu.dart';
+import 'package:vex/ui/workspace/workspace_touch_menu.dart';
 
 import 'support/fakes.dart';
 
@@ -18,6 +20,80 @@ Iterable<WorkspaceMenuEntry> flatten(List<WorkspaceMenuEntry> entries) sync* {
 }
 
 void main() {
+  test('read-only panes disable all source mutation commands', () {
+    final vm = fakeWorkspace();
+    addTearDown(vm.dispose);
+    vm.editor.replaceSelection('Keep this');
+    vm.editor.select(0, 4);
+    for (final layout in [
+      WorkspaceLayout.read,
+      WorkspaceLayout.map,
+      WorkspaceLayout.sourceRender,
+    ]) {
+      vm.setLayout(layout);
+      if (layout == WorkspaceLayout.sourceRender) vm.activatePane('read');
+      final commands = flatten(
+        workspaceMenus(vm, macOS: false, desktop: true, maxPanes: 3),
+      );
+      expect(
+        commands
+            .where((item) => workspaceCommandEditsText(item.id))
+            .every((item) => !item.enabled),
+        isTrue,
+      );
+      if (layout == WorkspaceLayout.sourceRender) {
+        vm.activatePane('source');
+        expect(vm.canEditText, isTrue);
+      }
+    }
+  });
+
+  testWidgets(
+    'format shortcuts cannot modify a stale selection in reading mode',
+    (tester) async {
+      final vm = fakeWorkspace();
+      vm.editor.session.replace('Keep this');
+      vm.editor.select(0, 4);
+      vm.setLayout(WorkspaceLayout.read);
+      await tester.pumpWidget(VexApp(viewModel: vm));
+      await tester.pumpAndSettle();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyB);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+      expect(vm.editor.text, 'Keep this');
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      vm.dispose();
+    },
+  );
+
+  testWidgets('short touch menus shrink to their content', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => showWorkspaceTouchMenu(context, const [
+              WorkspaceMenuEntry('copy', 'Copy'),
+            ]),
+            child: const Text('Open'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getSize(find.byKey(const ValueKey('touch-workspace-menu'))).height,
+      lessThan(220),
+    );
+    expect(tester.takeException(), isNull);
+  });
   testWidgets(
     'Alt menu access and delayed paste never modify a switched document',
     (tester) async {

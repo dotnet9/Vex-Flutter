@@ -41,6 +41,12 @@ final class WorkspaceMenuEntry {
 String workspaceMenuLabel(String label) =>
     label.replaceFirst(RegExp(r'\([A-Z]\)$'), '');
 
+bool workspaceCommandEditsText(String id) =>
+    id.startsWith('format:') ||
+    id.startsWith('mermaid:') ||
+    (id.startsWith('table:') && id != 'table:copy') ||
+    const ['undo', 'redo', 'cut', 'paste', 'replace'].contains(id);
+
 String workspaceShortcutLabel(SingleActivator? shortcut) {
   if (shortcut == null) return '';
   return [
@@ -81,7 +87,7 @@ List<WorkspaceMenuEntry> workspaceMenus(
     label,
     shortcut: shortcut,
     checked: checked,
-    enabled: enabled,
+    enabled: enabled && (!workspaceCommandEditsText(id) || vm.canEditText),
   );
   WorkspaceMenuEntry group(
     String id,
@@ -185,7 +191,11 @@ List<WorkspaceMenuEntry> workspaceMenus(
       group(
         'table',
         l.table,
-        workspaceTableEntries(l, vm.editor.tableTarget()),
+        workspaceTableEntries(
+          l,
+          vm.editor.tableTarget(),
+          readOnly: !vm.canEditText,
+        ),
       ),
       item('format:code', l.codeBlock),
       item('format:math', l.mathBlock),
