@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/foundation.dart';
+import 'package:vex/data/app_version.dart';
 import 'package:vex/data/services/mcp_server.dart';
 
 import 'support/fakes.dart';
@@ -97,6 +98,10 @@ void main() {
     expect(
       ((await call(init)).$2 as Map)['result']['protocolVersion'],
       '2025-06-18',
+    );
+    expect(
+      ((await call(init)).$2 as Map)['result']['serverInfo']['version'],
+      vexVersion.split('+').first,
     );
     final list =
         (await call({'jsonrpc': '2.0', 'id': 2, 'method': 'tools/list'})).$2

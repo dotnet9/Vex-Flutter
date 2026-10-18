@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import '../app_version.dart';
 import 'mcp_arguments.dart';
 
 /// Stateless Streamable HTTP MCP. All document access is supplied by the host.
@@ -160,7 +161,10 @@ final class McpServer {
                 ? requested
                 : '2025-11-25',
             'capabilities': {'tools': <String, Object?>{}},
-            'serverInfo': {'name': 'Vex', 'version': '0.3.1'},
+            'serverInfo': {
+              'name': 'Vex',
+              'version': vexVersion.split('+').first,
+            },
           };
         case 'ping':
           result = <String, Object?>{};

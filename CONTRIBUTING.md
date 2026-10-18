@@ -64,6 +64,8 @@ flutter test integration_test/touch_selection_test.dart --flavor preview -d <And
 
 品牌源为根目录 `logo.svg`、`logo.png`、`logo.ico`，通过 `python scripts/sync_brand_assets.py` 同步，需要 Pillow。不要手动修改派生图标。原型与应用的内置 Markdown、版本信息及第三方许可通过现有同步脚本维护。
 
+修改 `design/documents` 中的内置文档后，运行 `node design/scripts/sync-documents.cjs` 和 `python scripts/sync_builtin_documents.py`，同时更新原型内嵌数据和应用资源；仅复制 Markdown 会遗漏浏览器原型使用的数据。修改应用版本或依赖后运行 `python scripts/sync_project_info.py`，同步 MCP 版本、原型信息和主要依赖许可。
+
 安装包与标签流程见 [安装包与自动发布](docs/安装包与自动发布.md)。iOS IPA、HarmonyOS HAP 在签名与适配条件具备前暂缓发布，不使用未签名文件或便携压缩包代替安装包，不绕过发布校验。
 
 提交和 PR 应说明修改目的、验证命令、实际测试平台及剩余限制。安全问题按照 [安全政策](SECURITY.md) 私下报告，不附在公开 Issue 或 PR 中。
