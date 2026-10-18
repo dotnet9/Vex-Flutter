@@ -1726,11 +1726,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             Text(context.l10n.cursorPosition(position.line, position.column)),
             if (width > 900) ...[
               const SizedBox(width: 16),
-              Text(
-                context.l10n.characterCount(
-                  state.editor.characterCount,
-                ),
-              ),
+              Text(context.l10n.characterCount(state.editor.characterCount)),
             ],
             const SizedBox(width: 16),
             Text(
