@@ -104,6 +104,33 @@ void main() {
     },
   );
 
+  test(
+    'repeated close requests keep only one snapshot and dispose once',
+    () async {
+      final vm = fakeWorkspace();
+      addTearDown(vm.dispose);
+      final recovery = vm.recovery as MemoryRecovery;
+      vm.editor.session.replace('draft');
+      final entered = Completer<void>(), release = Completer<void>();
+      var writes = 0;
+      recovery.beforeSave = () async {
+        writes++;
+        if (!entered.isCompleted) entered.complete();
+        await release.future;
+      };
+      final first = vm.closeCurrent(keepDraft: true);
+      await entered.future;
+      final second = vm.closeCurrent(keepDraft: true);
+      release.complete();
+      await Future.wait([first, second]);
+
+      expect(writes, 1);
+      expect(vm.documents, isEmpty);
+      expect(vm.recoverable, hasLength(1));
+      expect(recovery.value.single['text'], 'draft');
+    },
+  );
+
   test('closing one draft preserves the other documents recovery', () async {
     final vm = fakeWorkspace();
     addTearDown(vm.dispose);

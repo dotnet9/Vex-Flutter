@@ -105,6 +105,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   Timer? _recoveryTimer, _externalTimer;
   final _saveTimers = <WorkspaceDocument, Timer>{};
   final _saveQueues = <WorkspaceDocument, Future<bool>>{};
+  final _closingDocuments = <WorkspaceDocument>{};
   int _openRequest = 0;
   final _headingForNode = <String, String>{};
   List<Map<String, Object?>> recoverable = [];
@@ -959,6 +960,18 @@ final class WorkspaceViewModel extends ChangeNotifier {
   Future<void> closeCurrent({bool keepDraft = false}) async {
     endGuide();
     final document = current;
+    if (!_closingDocuments.add(document)) return;
+    try {
+      await _closeDocument(document, keepDraft: keepDraft);
+    } finally {
+      _closingDocuments.remove(document);
+    }
+  }
+
+  Future<void> _closeDocument(
+    WorkspaceDocument document, {
+    required bool keepDraft,
+  }) async {
     _saveTimers.remove(document)?.cancel();
     await _saveQueues[document]?.catchError((Object _) => false);
     final revision = document.editor.session.revision;
