@@ -1,6 +1,7 @@
 """Check public package branding while keeping installed upgrade identities stable."""
 from pathlib import Path
 import importlib.util
+import re
 import struct
 import unittest
 
@@ -8,6 +9,21 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class InstallerContractTest(unittest.TestCase):
+    def test_optional_test_identity_stays_outside_production_registration(self):
+        pattern = r'^Texweft\.Installer\.Test(?:[.-][A-Za-z0-9_-]+)*$'
+        for name in ('package_windows.ps1', 'test_windows_installer.ps1'):
+            script = (ROOT / 'scripts' / name).read_text(encoding='utf-8-sig')
+            self.assertIn(f"[ValidatePattern('{pattern}')]", script)
+            self.assertIn("[ValidateLength(1, 100)]", script)
+            self.assertIn('A custom test identity requires -InstallerTest.', script)
+        self.assertIsNotNone(re.fullmatch(pattern, 'Texweft.Installer.Test.Close-20261018'))
+        self.assertIsNone(re.fullmatch(pattern, '{51E79E85-AD4C-4D48-92EC-C1EA09FB4E56}'))
+        self.assertIsNone(re.fullmatch(pattern, 'Texweft.Installer.Test/Other'))
+        self.assertIsNone(re.fullmatch(pattern, 'Texweft.Installer.Test"Other'))
+        setup = (ROOT / 'scripts/installer/Texweft.iss').read_text(encoding='utf-8-sig')
+        self.assertIn('AppId={#InstallerTestId}', setup)
+        self.assertIn('DefaultDirName={localappdata}\\Temp\\{#InstallerTestId}', setup)
+
     def test_finder_drag_layout_and_retina_assets(self):
         spec = importlib.util.spec_from_file_location('macos_dmg', ROOT / 'scripts/build_macos_dmg.py')
         module = importlib.util.module_from_spec(spec)

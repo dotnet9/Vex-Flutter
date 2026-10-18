@@ -2,11 +2,17 @@
 param(
     [Parameter(Mandatory)] [string] $Installer,
     [Parameter(Mandatory)] [string] $Version,
-    [switch] $InstallerTest
+    [switch] $InstallerTest,
+    [ValidatePattern('^Texweft\.Installer\.Test(?:[.-][A-Za-z0-9_-]+)*$')]
+    [ValidateLength(1, 100)]
+    [string] $InstallerTestId = 'Texweft.Installer.Test'
 )
 $ErrorActionPreference = 'Stop'
+if (-not $InstallerTest -and $InstallerTestId -ne 'Texweft.Installer.Test') {
+    throw 'A custom test identity requires -InstallerTest.'
+}
 $appId = '{51E79E85-AD4C-4D48-92EC-C1EA09FB4E56}'
-if ($InstallerTest) { $appId = 'Texweft.Installer.Test' }
+if ($InstallerTest) { $appId = $InstallerTestId }
 $registryPath = "Software\Microsoft\Windows\CurrentVersion\Uninstall\${appId}_is1"
 foreach ($hive in @('HKCU:', 'HKLM:')) {
     if (Test-Path -LiteralPath "$hive\$registryPath") { throw 'An existing installation was found. Run this smoke test on a clean account or runner.' }

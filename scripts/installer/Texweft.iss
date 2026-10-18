@@ -8,10 +8,15 @@
 #ifndef OutputDir
   #error OutputDir is required
 #endif
+#ifdef InstallerTest
+  #ifndef InstallerTestId
+    #define InstallerTestId "Texweft.Installer.Test"
+  #endif
+#endif
 
 [Setup]
 #ifdef InstallerTest
-AppId=Texweft.Installer.Test
+AppId={#InstallerTestId}
 AppName=Vex Installer Test
 UninstallDisplayName=Vex Installer Test
 #else
@@ -25,7 +30,7 @@ AppPublisherURL=https://codewf.com
 AppSupportURL=https://github.com/dotnet9/Vex-Flutter/issues
 AppUpdatesURL=https://github.com/dotnet9/Vex-Flutter/releases
 #ifdef InstallerTest
-DefaultDirName={localappdata}\Temp\Texweft-Installer-Test
+DefaultDirName={localappdata}\Temp\{#InstallerTestId}
 #else
 DefaultDirName={localappdata}\Programs\Vex
 #endif

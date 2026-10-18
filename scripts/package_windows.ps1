@@ -4,9 +4,15 @@ param(
     [Parameter(Mandatory)] [string] $Compiler,
     [string] $BundleDirectory = '',
     [string] $OutputDirectory = '',
-    [switch] $InstallerTest
+    [switch] $InstallerTest,
+    [ValidatePattern('^Texweft\.Installer\.Test(?:[.-][A-Za-z0-9_-]+)*$')]
+    [ValidateLength(1, 100)]
+    [string] $InstallerTestId = 'Texweft.Installer.Test'
 )
 $ErrorActionPreference = 'Stop'
+if (-not $InstallerTest -and $InstallerTestId -ne 'Texweft.Installer.Test') {
+    throw 'A custom test identity requires -InstallerTest.'
+}
 $root = Split-Path -Parent $PSScriptRoot
 if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw 'Version must be x.y.z.' }
 if (-not $BundleDirectory) { $BundleDirectory = Join-Path $root 'apps/texweft/build/windows/x64/runner/Release' }
@@ -31,7 +37,7 @@ Copy-Item -Path (Join-Path $crt.FullName '*.dll') -Destination $bundle -Force
 Copy-Item -LiteralPath (Join-Path $root 'LICENSE') -Destination (Join-Path $bundle 'LICENSE.txt') -Force
 New-Item -ItemType Directory -Path $output -Force | Out-Null
 $defines = @("/DAppVersion=$Version", "/DSourceDir=$bundle", "/DOutputDir=$output")
-if ($InstallerTest) { $defines += '/DInstallerTest' }
+if ($InstallerTest) { $defines += @('/DInstallerTest', "/DInstallerTestId=$InstallerTestId") }
 & $Compiler @defines (Join-Path $PSScriptRoot 'installer/Texweft.iss')
 if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed: $LASTEXITCODE" }
 $installer = Join-Path $output "Vex-v$Version-windows-x64-setup.exe"
