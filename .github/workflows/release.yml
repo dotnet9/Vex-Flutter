@@ -307,7 +307,7 @@ jobs:
         run: python scripts/packaging/build.py ios-check --skip-tests
 
   release:
-    name: 校验安装包并创建 GitHub 预发布
+    name: 校验安装包并创建 GitHub Release
     needs: [metadata, checks, desktop, android, ios-check]
     if: >-
       ${{ !cancelled() && needs.metadata.result == 'success' &&
@@ -372,7 +372,7 @@ jobs:
               // target_commitish avoids requesting permission to modify workflows.
               ({ data: release } = await github.rest.repos.createRelease({
                 ...repo, tag_name: tag, name: `维刻 Vex ${tag}`, body,
-                draft: true, prerelease: true,
+                draft: true, prerelease: false,
               }));
             }
             const release_id = release.id;
@@ -407,9 +407,9 @@ jobs:
             // immutable here, and integration tokens cannot rewrite old workflow refs.
             const { data: published } = await github.rest.repos.updateRelease({
               ...repo, release_id, name: `维刻 Vex ${tag}`, body,
-              draft: false, prerelease: true,
+              draft: false, prerelease: false, make_latest: 'legacy',
             });
-            if (published.draft || !published.prerelease || published.tag_name !== tag ||
+            if (published.draft || published.prerelease || published.tag_name !== tag ||
                 published.assets.length !== files.length) {
               throw new Error('Published release metadata or asset count is incorrect.');
             }

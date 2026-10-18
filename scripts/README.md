@@ -5,6 +5,7 @@
 | 用途 | 目录 / 脚本 | 什么时候使用 |
 | --- | --- | --- |
 | **构建安装包** | [packaging/](packaging/README.md) | 按 Windows、Linux、macOS、Android 及架构归类，本机和 CI 共用 |
+| **远程全平台发布** | 根目录 `publish-release.bat` / `packaging/publish.py` | 经确认后 SSH 推送新标签，由 GitHub Actions 构建并公开 Release；不是本机跨平台编译 |
 | 安装器源码与静态资源 | `installer/` | 修改安装界面、安装行为、许可或背景资源 |
 | 脚本自动测试 | `tests/` | `python -m unittest discover -s scripts/tests -v` |
 | Windows 安装卸载验收 | `test_windows_installer.ps1`、`test_windows_shutdown.ps1` | 单独执行，遵循安装测试的隔离要求，不是日常打包入口 |

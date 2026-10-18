@@ -2,6 +2,16 @@
 
 > 本机打包不会安装 Vex、提交 / 推送代码、创建 tag 或发布 Release。成功看到本轮 `READY` 后，再自行运行安装包。
 
+## 一键让 GitHub 构建所有安装包
+
+Windows 双击根目录 **`publish-release.bat`**；任意平台也可在根目录执行 `python scripts/packaging/publish.py`（Linux / macOS 用 `python3`）。这是远程发布入口，与下面的本机 `build.*` 分开：不需要本机安装全部原生工具链，也不需要 GitHub CLI 或个人 API token。
+
+发布前先在 `apps/vex/pubspec.yaml` 更新版本及递增构建号，准备 `.github/release-notes/v版本.md`，测试后提交并将 `main` 推送到 GitHub。要求 Git、Python 3.11+、可用的 GitHub SSH 权限、干净工作区、本地与远程 main 一致、新版本标签尚不存在。脚本不会替你提交文件或忽略未提交内容。
+
+输入显示的版本标签确认后，脚本创建附注标签并通过 SSH 推送，只打开 Actions 页面；推送成功不代表安装包已完成。工作流在各自系统上制作 Windows x64、macOS 通用、Linux x64 / ARM64、Android 三架构安装包。测试、安装检查、全部七个安装包及校验文件通过后才公开到 [Releases](https://github.com/dotnet9/Vex-Flutter/releases)，并进入 `releases/latest` 默认下载与应用更新检查。iOS / HarmonyOS 可安装包继续暂缓。
+
+`python scripts/packaging/publish.py --check-only` 仅预检，不创建或推送标签。已有标签请从 Actions 重试对应运行，不删除 / 移动 / 强推标签；网络错误后先核对远程是否已经收到标签，再决定后续操作。`build-windows.bat` 和各平台 `build.*` 仍然只在本机构建，不发布。
+
 ## 按平台找脚本
 
 ```text
