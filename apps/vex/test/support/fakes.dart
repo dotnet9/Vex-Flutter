@@ -32,6 +32,8 @@ final class MemoryRecovery implements RecoveryRepository {
 final class MemoryFiles implements DocumentFileService {
   final content = <String, String>{};
   Future<void> Function()? beforeWrite;
+  Future<void> Function(String path)? beforeRead;
+  final readPaths = <String>[];
   String? nextSave = '/notes/saved.md';
   String? folderPath = '/notes';
   List<String> folderDirectories = [];
@@ -49,8 +51,12 @@ final class MemoryFiles implements DocumentFileService {
     directories: folderDirectories,
   );
   @override
-  Future<OpenedDocument> read(String path) async =>
-      OpenedDocument(path.split('/').last, content[path]!, path);
+  Future<OpenedDocument> read(String path) async {
+    readPaths.add(path);
+    if (beforeRead != null) await beforeRead!(path);
+    return OpenedDocument(path.split('/').last, content[path]!, path);
+  }
+
   @override
   Future<String?> saveAs(
     String name,

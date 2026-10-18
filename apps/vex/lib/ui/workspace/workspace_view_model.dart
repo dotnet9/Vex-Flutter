@@ -105,6 +105,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   Timer? _recoveryTimer, _externalTimer;
   final _saveTimers = <WorkspaceDocument, Timer>{};
   final _saveQueues = <WorkspaceDocument, Future<bool>>{};
+  int _openRequest = 0;
   final _headingForNode = <String, String>{};
   List<Map<String, Object?>> recoverable = [];
 
@@ -671,6 +672,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }
 
   void switchDocument(WorkspaceDocument document) {
+    _openRequest++;
     endGuide();
     if (_guiding) endGuide();
     presenter?.dispose();
@@ -716,21 +718,37 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }
 
   Future<void> open() async {
+    final request = ++_openRequest;
     final opened = await files.pick();
-    if (opened != null) acceptOpened(opened);
+    if (opened != null) {
+      acceptOpened(opened, activate: request == _openRequest);
+    }
   }
 
-  Future<void> openPath(String path) async =>
-      acceptOpened(await files.read(path));
-  void acceptOpened(OpenedDocument opened) {
-    endGuide();
-    final existing = documents
-        .where(
-          (d) => opened.path != null && p.equals(d.path ?? '', opened.path!),
-        )
-        .firstOrNull;
+  WorkspaceDocument? _documentAt(String path) => documents
+      .where(
+        (document) => document.path != null && p.equals(document.path!, path),
+      )
+      .firstOrNull;
+
+  Future<void> openPath(String path) async {
+    if (_disposed) return;
+    final request = ++_openRequest;
+    final existing = _documentAt(path);
     if (existing != null) {
       switchDocument(existing);
+      return;
+    }
+    final opened = await files.read(path);
+    acceptOpened(opened, activate: request == _openRequest);
+  }
+
+  void acceptOpened(OpenedDocument opened, {bool activate = true}) {
+    if (_disposed) return;
+    if (activate) endGuide();
+    final existing = opened.path == null ? null : _documentAt(opened.path!);
+    if (existing != null) {
+      if (activate) switchDocument(existing);
       return;
     }
     final doc = WorkspaceDocument(
@@ -742,13 +760,17 @@ final class WorkspaceViewModel extends ChangeNotifier {
       format: opened.format,
     );
     _add(doc);
-    switchDocument(doc);
+    if (activate) {
+      switchDocument(doc);
+    } else {
+      _notify();
+    }
     if (opened.path != null) _remember(opened.path!);
   }
 
   Future<void> openFolder() async {
     final selected = await files.folder();
-    if (selected == null) return;
+    if (selected == null || _disposed) return;
     folder = selected;
     sidebar = true;
     outline = false;
