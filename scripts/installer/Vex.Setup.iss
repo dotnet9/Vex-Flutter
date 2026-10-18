@@ -430,7 +430,7 @@ begin
       VMove(DC,ScaleX(3),ScaleY(12),0); VLineTo(DC,ScaleX(6),ScaleY(15)); VLineTo(DC,ScaleX(11),ScaleY(9));
       VSelectObject(DC,Previous); VDeleteObject(Pen);
     end;
-    VTextColor(DC,TWMuted); VTextMode(DC,1); Font:=VSelectObject(DC,TWCheckFont);
+    VTextColor(DC,TWText); VTextMode(DC,1); Font:=VSelectObject(DC,TWCheckFont);
     Bounds.Left:=ScaleX(22); VDrawText(DC,Check.Caption,-1,Bounds,$24); VSelectObject(DC,Font);
     if VGetFocus=Window then TWRound(DC,1,1,Check.Width-3,Check.Height-3,3,TWAccent,True);
     if Message=$000F then VEndPaint(Window,Paint); Result:=0; exit;
@@ -452,9 +452,9 @@ end;
 procedure TWDrawClose(DC: LongWord; X,Y: Integer; Color: TColor);
 var Pen,Previous: LongWord;
 begin
-  Pen:=VCreatePen(0,ScaleX(1),Color); Previous:=VSelectObject(DC,Pen);
-  VMove(DC,X-ScaleX(4),Y-ScaleY(4),0); VLineTo(DC,X+ScaleX(4),Y+ScaleY(4));
-  VMove(DC,X+ScaleX(4),Y-ScaleY(4),0); VLineTo(DC,X-ScaleX(4),Y+ScaleY(4));
+  Pen:=VCreatePen(0,ScaleX(2),Color); Previous:=VSelectObject(DC,Pen);
+  VMove(DC,X-ScaleX(5),Y-ScaleY(5),0); VLineTo(DC,X+ScaleX(6),Y+ScaleY(6));
+  VMove(DC,X+ScaleX(5),Y-ScaleY(5),0); VLineTo(DC,X-ScaleX(6),Y+ScaleY(6));
   VSelectObject(DC,Previous); VDeleteObject(Pen);
 end;
 
@@ -472,7 +472,7 @@ begin
   if Message=$002B then begin
     VCopyItem(Item,LParam,48);
     for I:=0 to 10 do if (TWButtons[I]<>nil) and (Item.ItemWindow=TWButtons[I].Handle) then begin
-      Bounds:=Item.Bounds; Color:=TWSurface; Foreground:=TWMuted;
+      Bounds:=Item.Bounds; Color:=TWSurface; Foreground:=TWText;
       if I=3 then Color:=TWChrome;
       if (I=0) or (I=10) then begin Color:=TWAccent; Foreground:=TWPrimaryText; end;
       if I=2 then Foreground:=TWAccent;
@@ -594,6 +594,7 @@ begin
   TWButtons[9]:=TWNewButton(TWTextFor('留下','Stay','続ける'),@TWModalBack); TWBounds(TWButtons[9],596,431,72,37);
   TWButtons[10]:=TWNewButton('',@TWModalAccept); TWBounds(TWButtons[10],676,431,119,37);
   WizardForm.DirEdit.Parent:=WizardForm; WizardForm.DirEdit.BorderStyle:=bsNone; TWFont(WizardForm.DirEdit.Font,10,False); TWBounds(WizardForm.DirEdit,360,386,335,17);
+  WizardForm.DirEdit.Hint:=TWTextFor('应用程序安装位置','Application installation folder','アプリのインストール先'); WizardForm.DirEdit.ShowHint:=True;
   TWDesktop:=TNewCheckBox.Create(WizardForm); TWDesktop.Parent:=WizardForm; TWDesktop.Caption:=TWTextFor('创建桌面快捷方式','Create desktop shortcut','デスクトップにショートカットを作成'); TWBounds(TWDesktop,351,430,425,20);
   TWAssociation:=TNewCheckBox.Create(WizardForm); TWAssociation.Parent:=WizardForm; TWAssociation.Caption:=CustomMessage('TWAssociation'); TWBounds(TWAssociation,351,459,425,20);
   TWDesktop.Color:=TWSurface; TWAssociation.Color:=TWSurface; TWFont(TWDesktop.Font,10,False); TWFont(TWAssociation.Font,10,False); TWDesktop.Font.Color:=TWMuted; TWAssociation.Font.Color:=TWMuted;
@@ -601,17 +602,17 @@ begin
   TWLicense:=TRichEditViewer.Create(WizardForm); TWLicense.Parent:=WizardForm; TWLicense.ReadOnly:=True; TWLicense.ScrollBars:=ssVertical; TWLicense.BorderStyle:=bsNone; TWLicense.Color:=TWSurface; TWLicense.Font.Color:=TWText; TWFont(TWLicense.Font,11,False); TWBounds(TWLicense,335,225,460,175);
   TWPreviousProc:=VSetLong(WizardForm.Handle,-4,CreateCallback(@TWWindowProc));
   for I:=0 to 10 do begin
-    Pixels:=13; Weight:=400; Face:='Segoe UI';
+    Pixels:=14; Weight:=400; Face:='Segoe UI';
     if ActiveLanguage='chinesesimplified' then Face:='Microsoft YaHei UI';
     if (I=0) or (I=10) then Weight:=600;
     if (I=7) or (I=8) then Pixels:=12;
-    if (I=2) or (I=4) then Pixels:=12;
+    if (I=2) or (I=4) then Pixels:=13;
     if I=3 then Pixels:=16;
-    TWButtonFonts[I]:=VCreateFont(-ScaleY(Pixels),0,0,0,Weight,0,0,0,1,0,0,4,0,Face);
+    TWButtonFonts[I]:=VCreateFont(-ScaleY(Pixels),0,0,0,Weight,0,0,0,1,0,0,5,0,Face);
     VSetLong(TWButtons[I].Handle,-16,(VGetLong(TWButtons[I].Handle,-16) and not $F) or $B);
     TWButtonProcs[I]:=VSetLong(TWButtons[I].Handle,-4,CreateCallback(@TWButtonProc));
   end;
-  TWCheckFont:=VCreateFont(-ScaleY(14),0,0,0,400,0,0,0,1,0,0,4,0,Face);
+  TWCheckFont:=VCreateFont(-ScaleY(14),0,0,0,400,0,0,0,1,0,0,5,0,Face);
   TWCheckProcs[0]:=VSetLong(TWDesktop.Handle,-4,CreateCallback(@TWCheckProc));
   TWCheckProcs[1]:=VSetLong(TWAssociation.Handle,-4,CreateCallback(@TWCheckProc));
   TWSurfaceBrush:=VBrush(TWSurface); TWInitialized:=True; TWLayout; VSetTimer(WizardForm.Handle,41,50,0);

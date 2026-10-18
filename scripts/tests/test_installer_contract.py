@@ -63,6 +63,7 @@ class InstallerContractTest(unittest.TestCase):
         self.assertIn('Vex.Markdown', windows)
         self.assertIn('OutputBaseFilename=Vex-v', windows)
         self.assertIn('DefaultDirName={localappdata}\\Programs\\Vex', windows)
+        self.assertIn('UsePreviousAppDir=no', windows)
         linux = (ROOT / 'scripts/packaging/linux/package.sh').read_text(encoding='utf-8')
         self.assertIn('Package: vex', linux)
         self.assertIn('Name=Vex', linux)

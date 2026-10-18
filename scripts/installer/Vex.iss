@@ -35,6 +35,9 @@ DefaultDirName={localappdata}\Temp\{#InstallerTestId}
 DefaultDirName={localappdata}\Programs\Vex
 #endif
 DefaultGroupName=Vex
+; Fresh installs use the current product path, not a stale directory record.
+; The maintenance screen separately preserves an existing installation's path.
+UsePreviousAppDir=no
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
