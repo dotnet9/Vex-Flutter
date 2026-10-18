@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/services.dart';
 import 'package:vex/data/services/document_codec.dart';
 import 'package:vex/data/services/file_service.dart';
 import 'package:vex/domain/file_preferences.dart';
@@ -171,6 +172,38 @@ void main() {
     expect(vm.current.persistedText, 'second');
     expect(vm.editor.session.isDirty, isFalse);
   });
+
+  test(
+    'manual save writes committed text without clearing an IME candidate',
+    () async {
+      final vm = fakeWorkspace();
+      addTearDown(vm.dispose);
+      final files = vm.files as MemoryFiles;
+      files.content['/a.md'] = 'old';
+      await vm.openPath('/a.md');
+      vm.editor.session.replace('accepted');
+      final candidate = const TextEditingValue(
+        text: 'accepted ni',
+        selection: TextSelection.collapsed(offset: 11),
+        composing: TextRange(start: 9, end: 11),
+      );
+      vm.editor.source.value = candidate;
+
+      expect(await vm.save(), isTrue);
+
+      expect(files.content['/a.md'], 'accepted');
+      expect(vm.editor.source.value, candidate);
+      expect(vm.editor.session.isDirty, isFalse);
+      vm.editor.source.value = const TextEditingValue(
+        text: 'accepted 你',
+        selection: TextSelection.collapsed(offset: 10),
+      );
+      expect(vm.editor.session.isDirty, isTrue);
+      vm.editor.session.undo();
+      expect(vm.editor.session.text, 'accepted');
+      expect(vm.editor.session.isDirty, isFalse);
+    },
+  );
 
   test(
     'startup restoration and defaults are persisted independently of recovery',

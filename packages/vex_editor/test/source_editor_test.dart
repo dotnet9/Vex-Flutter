@@ -88,6 +88,59 @@ void main() {
     expect(editor.text, '头\r\n尾');
   });
 
+  test(
+    'saving the baseline preserves source composition and one-step undo',
+    () {
+      final editor = MarkdownEditorController(text: 'body');
+      final code = MarkdownSourceEditingController(editor);
+      addTearDown(editor.dispose);
+      addTearDown(code.dispose);
+      editor.select(4);
+      code.value = CodeLineEditingValue(
+        codeLines: CodeLines.fromText('body ni'),
+        selection: const CodeLineSelection.collapsed(index: 0, offset: 7),
+        composing: const TextRange(start: 5, end: 7),
+      );
+      final candidate = editor.source.value;
+
+      editor.session.markSaved();
+
+      expect(editor.source.value, candidate);
+      expect(code.composing, const TextRange(start: 5, end: 7));
+      expect(editor.session.text, 'body');
+      expect(editor.session.canUndo, isFalse);
+      code.value = CodeLineEditingValue(
+        codeLines: CodeLines.fromText('body 你'),
+        selection: const CodeLineSelection.collapsed(index: 0, offset: 6),
+      );
+      expect(editor.session.text, 'body 你');
+      expect(editor.session.isDirty, isTrue);
+      code.undo();
+      expect(editor.session.text, 'body');
+      expect(editor.session.isDirty, isFalse);
+    },
+  );
+
+  test('external edits still invalidate an active source composition', () {
+    final editor = MarkdownEditorController(text: 'body');
+    final code = MarkdownSourceEditingController(editor);
+    addTearDown(editor.dispose);
+    addTearDown(code.dispose);
+    editor.select(4);
+    code.value = CodeLineEditingValue(
+      codeLines: CodeLines.fromText('body ni'),
+      selection: const CodeLineSelection.collapsed(index: 0, offset: 7),
+      composing: const TextRange(start: 5, end: 7),
+    );
+
+    editor.session.replace('external');
+
+    expect(editor.source.text, 'external');
+    expect(code.text, 'external');
+    expect(editor.source.value.composing, TextRange.empty);
+    expect(code.isComposing, isFalse);
+  });
+
   test('deleting one of adjacent mixed EOLs uses the actual selection', () {
     final editor = MarkdownEditorController(text: '甲\r\n\n乙\r丙');
     final code = MarkdownSourceEditingController(editor);

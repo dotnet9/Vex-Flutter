@@ -13,6 +13,7 @@ final class MarkdownRevealRequest {
 final class MarkdownEditorController extends ChangeNotifier {
   MarkdownEditorController({MarkdownSession? session, String text = ''})
     : session = session ?? MarkdownSession(text) {
+    _documentRevision = this.session.revision;
     source = TextEditingController(text: this.session.text);
     source.addListener(_inputChanged);
     this.session.addListener(_documentChanged);
@@ -22,6 +23,7 @@ final class MarkdownEditorController extends ChangeNotifier {
   final sourceFocus = FocusNode();
   final navigation = ValueNotifier<MarkdownRevealRequest?>(null);
   bool _syncing = false;
+  late int _documentRevision;
   String get text =>
       source.value.composing.isValid ? source.text : session.text;
   MarkdownDocument get document => session.document;
@@ -40,8 +42,11 @@ final class MarkdownEditorController extends ChangeNotifier {
   }
 
   void _documentChanged() {
-    navigation.value = null;
-    if (source.text != session.text) {
+    final textChanged = _documentRevision != session.revision;
+    _documentRevision = session.revision;
+    if (textChanged) navigation.value = null;
+    // Saving changes the disk baseline, not an in-progress IME candidate.
+    if (textChanged && source.text != session.text) {
       final selection = source.selection;
       _syncing = true;
       source.value = TextEditingValue(

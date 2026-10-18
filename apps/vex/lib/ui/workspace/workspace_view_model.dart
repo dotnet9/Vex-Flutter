@@ -844,7 +844,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }
 
   Future<bool> _saveDocument(WorkspaceDocument doc, {bool saveAs = false}) {
-    final text = doc.editor.text;
+    final text = doc.editor.session.text;
     _saveTimers.remove(doc)?.cancel();
     // A manual save and a pending autosave share one ordered queue per document.
     final task = (_saveQueues[doc] ?? Future.value(true))
