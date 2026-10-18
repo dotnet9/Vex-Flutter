@@ -59,6 +59,7 @@ Future<void> showBuiltinDocument(
     builder: (context) => AppDialog(
       title: document.title(context.l10n),
       width: 640,
+      bodyColor: documentTheme(Theme.of(context)).colorScheme.surface,
       actions: [
         AppButton(
           label: context.l10n.close,
@@ -74,15 +75,18 @@ class _BuiltinBody extends StatelessWidget {
   const _BuiltinBody({required this.source});
   final String source;
   @override
-  Widget build(BuildContext context) => MarkdownReader(
-    data: source,
-    selectable: false,
-    onTapLink: (_, href, _) {
-      final uri = href == null ? null : Uri.tryParse(href);
-      if (uri != null && ['https', 'http', 'mailto'].contains(uri.scheme)) {
-        launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-    },
+  Widget build(BuildContext context) => Theme(
+    data: documentTheme(Theme.of(context)),
+    child: MarkdownReader(
+      data: source,
+      selectable: false,
+      onTapLink: (_, href, _) {
+        final uri = href == null ? null : Uri.tryParse(href);
+        if (uri != null && ['https', 'http', 'mailto'].contains(uri.scheme)) {
+          launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      },
+    ),
   );
 }
 
@@ -163,18 +167,21 @@ class BuiltinDocumentApp extends StatelessWidget {
               ),
             const Divider(),
             Expanded(
-              child: SelectionArea(
-                child: SingleChildScrollView(
-                  key: const ValueKey('builtin-document-scroll'),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 40,
-                    vertical: 30,
-                  ),
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 900),
-                      child: _BuiltinBody(source: source),
+              child: ColoredBox(
+                color: documentTheme(Theme.of(context)).colorScheme.surface,
+                child: SelectionArea(
+                  child: SingleChildScrollView(
+                    key: const ValueKey('builtin-document-scroll'),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 40,
+                      vertical: 30,
+                    ),
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 900),
+                        child: _BuiltinBody(source: source),
+                      ),
                     ),
                   ),
                 ),

@@ -231,11 +231,13 @@ class AppDialog extends StatelessWidget {
     required this.title,
     required this.child,
     this.width = 560,
+    this.bodyColor,
     this.actions = const [],
   });
   final String title;
   final Widget child;
   final double width;
+  final Color? bodyColor;
   final List<Widget> actions;
   @override
   Widget build(BuildContext context) => Dialog(
@@ -273,10 +275,13 @@ class AppDialog extends StatelessWidget {
           ),
           const Divider(height: 1),
           Flexible(
-            child: SingleChildScrollView(
-              primary: false,
-              padding: const EdgeInsets.all(22),
-              child: child,
+            child: ColoredBox(
+              color: bodyColor ?? Colors.transparent,
+              child: SingleChildScrollView(
+                primary: false,
+                padding: const EdgeInsets.all(22),
+                child: child,
+              ),
             ),
           ),
           if (actions.isNotEmpty)

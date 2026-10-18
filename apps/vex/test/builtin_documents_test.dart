@@ -6,10 +6,40 @@ import 'package:vex/app.dart';
 import 'package:vex/l10n/l10n.dart';
 import 'package:vex/ui/workspace/builtin_documents.dart';
 import 'package:vex/ui/workspace/workspace_dialogs.dart';
+import 'package:vex/ui/core/app_theme.dart';
+import 'package:vex/ui/core/app_widgets.dart';
+import 'package:vex_editor/vex_editor.dart';
 
 import 'support/fakes.dart';
 
 void main() {
+  for (final brightness in Brightness.values) {
+    testWidgets('separate builtin reader uses neutral $brightness colors', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        BuiltinDocumentApp(
+          document: BuiltinDocument.changelog,
+          source: '# Changelog\n\n## Version\n\n- Update',
+          brightness: brightness,
+          windowIntegration: false,
+        ),
+      );
+      final actual = Theme.of(tester.element(find.byType(MarkdownReader)));
+      final expected = documentTheme(appTheme('weft', brightness));
+      expect(actual.colorScheme, expected.colorScheme);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is ColoredBox &&
+              widget.color == expected.colorScheme.surface,
+        ),
+        findsWidgets,
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   test('only known bundled document flags select a document', () {
     expect(
       BuiltinDocument.fromArguments(['--builtin-document=thanks']),
@@ -64,6 +94,7 @@ void main() {
           addTearDown(tester.view.resetPhysicalSize);
           addTearDown(tester.view.resetDevicePixelRatio);
           final vm = fakeWorkspace();
+          vm.updateAppearance(palette: 'rose');
           await tester.pumpWidget(VexApp(viewModel: vm));
           final context = tester.element(find.byType(Scaffold).first);
           await tester.runAsync(() async {
@@ -73,6 +104,18 @@ void main() {
           await tester.pumpAndSettle();
           final dialog = find.byType(Dialog);
           expect(dialog, findsOneWidget);
+          final reader = find.descendant(
+            of: dialog,
+            matching: find.byType(MarkdownReader),
+          );
+          expect(
+            Theme.of(tester.element(reader)).colorScheme.surface,
+            Colors.white,
+          );
+          expect(
+            tester.widget<AppDialog>(find.byType(AppDialog)).bodyColor,
+            Colors.white,
+          );
           final scrolls = find.descendant(
             of: dialog,
             matching: find.byWidgetPredicate(
