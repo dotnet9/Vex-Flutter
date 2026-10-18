@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:texweft_markdown_core/texweft_markdown_core.dart';
 
 import 'markdown_preferences.dart';
@@ -58,7 +59,7 @@ final class MarkdownSelectionGeometry {
         final at = projection.text.indexOf(text, cursor);
         if (at >= 0) {
           final chars = projection.characters.sublist(at, at + text.length);
-          result.add(_TextRun(object as RenderBox, chars));
+          result.add(_TextRun(object as RenderBox, chars, text));
           cursor = at + text.length;
         } else if (object is RenderEditable) {
           final literal = MarkdownSelectionProjection.literal(raw);
@@ -69,6 +70,7 @@ final class MarkdownSelectionGeometry {
               _TextRun(
                 object,
                 literal.characters.sublist(offset, offset + text.length),
+                text,
               ),
             );
             final next = projection.characters.indexWhere(
@@ -107,6 +109,92 @@ final class MarkdownSelectionGeometry {
             : run.characters[offset.clamp(0, run.characters.length - 1)].start);
   }
 
+  TextSelection wordAt(Offset global) {
+    final runs = _runs()
+      ..sort((a, b) => a.distance(global).compareTo(b.distance(global)));
+    if (runs.isEmpty) {
+      return TextSelection(baseOffset: start, extentOffset: start + raw.length);
+    }
+    final run = runs.first;
+    final position = run.box is RenderParagraph
+        ? (run.box as RenderParagraph).getPositionForOffset(
+            run.box.globalToLocal(global),
+          )
+        : (run.box as RenderEditable).getPositionForPoint(global);
+    final word = run.box is RenderParagraph
+        ? (run.box as RenderParagraph).getWordBoundary(position)
+        : (run.box as RenderEditable).getWordBoundary(position);
+    final from = word.start.clamp(0, run.characters.length - 1);
+    final to = (word.end - 1).clamp(from, run.characters.length - 1);
+    return TextSelection(
+      baseOffset: start + run.characters[from].start,
+      extentOffset: start + run.characters[to].end,
+    );
+  }
+
+  bool containsText(Offset global) {
+    for (final run in _runs()) {
+      final selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: run.characters.length,
+      );
+      final boxes = run.box is RenderParagraph
+          ? (run.box as RenderParagraph).getBoxesForSelection(selection)
+          : (run.box as RenderEditable).getBoxesForSelection(selection);
+      final local = run.box.globalToLocal(global);
+      if (boxes.any((box) => box.toRect().inflate(2).contains(local))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  MarkdownSelectionEndpoint? endpoint(int sourceOffset, {required bool end}) {
+    final root = box;
+    if (root == null) return null;
+    final runs = _runs();
+    if (runs.isEmpty) {
+      return MarkdownSelectionEndpoint(
+        root.localToGlobal(
+          end ? root.size.bottomRight(Offset.zero) : Offset.zero,
+        ),
+        24,
+        TextDirection.ltr,
+      );
+    }
+    _TextRun? nearest;
+    var index = 0, distance = raw.length + 1;
+    for (final run in runs) {
+      for (var i = 0; i < run.characters.length; i++) {
+        final char = run.characters[i];
+        final delta = (start + (end ? char.end : char.start) - sourceOffset)
+            .abs();
+        if (delta < distance) {
+          nearest = run;
+          index = i;
+          distance = delta;
+        }
+      }
+    }
+    if (nearest == null) return null;
+    final boundary = CharacterBoundary(nearest.text);
+    final selected = TextSelection(
+      baseOffset: boundary.getLeadingTextBoundaryAt(index) ?? index,
+      extentOffset: boundary.getTrailingTextBoundaryAt(index) ?? index + 1,
+    );
+    final boxes = nearest.box is RenderParagraph
+        ? (nearest.box as RenderParagraph).getBoxesForSelection(selected)
+        : (nearest.box as RenderEditable).getBoxesForSelection(selected);
+    if (boxes.isEmpty) return null;
+    final edge = end ? boxes.last : boxes.first;
+    final x = end ? edge.end : edge.start;
+    return MarkdownSelectionEndpoint(
+      nearest.box.localToGlobal(Offset(x, edge.bottom)),
+      edge.bottom - edge.top,
+      edge.direction,
+    );
+  }
+
   List<Rect> selectionRects(TextSelection selection) {
     final root = box;
     if (root == null ||
@@ -137,10 +225,18 @@ final class MarkdownSelectionGeometry {
   }
 }
 
+final class MarkdownSelectionEndpoint {
+  const MarkdownSelectionEndpoint(this.point, this.height, this.direction);
+  final Offset point;
+  final double height;
+  final TextDirection direction;
+}
+
 final class _TextRun {
-  _TextRun(this.box, this.characters);
+  _TextRun(this.box, this.characters, this.text);
   final RenderBox box;
   final List<SourceRange> characters;
+  final String text;
   double distance(Offset global) {
     final local = box.globalToLocal(global);
     final dx = local.dx < 0

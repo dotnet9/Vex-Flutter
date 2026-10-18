@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart' show cupertinoTextSelectionControls;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -26,6 +27,7 @@ import 'typing_formatter.dart';
 export 'source_editor.dart';
 
 part 'editor_selection.dart';
+part 'editor_touch_selection.dart';
 
 class MarkdownInstantEditor extends StatefulWidget {
   const MarkdownInstantEditor({
@@ -93,6 +95,10 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
   String _selectedOriginal = '';
   int _selectionRevision = -1;
   Offset _selectionAnchor = Offset.zero;
+  PointerDeviceKind? _lastPointerKind;
+  bool _touchSelection = false, _touchToolbar = false, _touchKeyboard = false;
+  bool? _touchHandleStart;
+  Offset _touchHandleDelta = Offset.zero;
 
   void _rebuildSelection(VoidCallback update) => setState(update);
 
@@ -171,7 +177,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
 
   Widget _contextBlock(MarkdownBlock block, String source) {
     final child = _selectionBlock(block, source, _displayBlock(block, source));
-    if (widget.onContextMenu == null || block.kind == MarkdownBlockKind.table) {
+    if (block.kind == MarkdownBlockKind.table) {
       return child;
     }
     return GestureDetector(
@@ -179,8 +185,20 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
       behavior: HitTestBehavior.translucent,
       onSecondaryTapUp: (event) =>
           _openBlockContext(block, event.globalPosition),
-      onLongPressStart: (event) =>
-          _openBlockContext(block, event.globalPosition),
+      onLongPressStart: (event) {
+        if (_lastPointerKind == PointerDeviceKind.mouse ||
+            (widget.onContextMenu != null &&
+                !(_geometryAt(event.globalPosition)
+                        ?.containsText(event.globalPosition) ??
+                    false))) {
+          _openBlockContext(block, event.globalPosition);
+        } else {
+          _startTouchSelection(event.globalPosition);
+        }
+      },
+      onLongPressMoveUpdate: (event) =>
+          _moveTouchSelection(event.globalPosition),
+      onLongPressEnd: (_) => _endTouchSelectionDrag(),
       child: child,
     );
   }
@@ -214,6 +232,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
         end: block.range.end,
         style: _reader.styleSheet(context).p!,
         onContextMenu: widget.onContextMenu,
+        onTouchSelection: _touchContextRequest,
         onSelectionChanged: (selection) {
           if (!_documentSelection) {
             widget.controller.select(
@@ -872,26 +891,31 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
             groupId: this,
             controller: _input,
             focusNode: _focus,
-            contextMenuBuilder: widget.onContextMenu == null
-                ? null
-                : (context, editable) {
-                    final position = editable.contextMenuAnchors.primaryAnchor;
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (!mounted) return;
-                      editable.hideToolbar();
-                      final selection = widget.controller.selection;
-                      widget.onContextMenu!(
-                        MarkdownContextRequest(
-                          offset: selection.isValid ? selection.start : _start,
-                          selection: selection,
-                          position: position,
-                          onEdit: () => _focus.requestFocus(),
-                          onEditAt: _editAt,
-                        ),
-                      );
-                    });
-                    return const SizedBox.shrink();
-                  },
+            contextMenuBuilder: (context, editable) {
+              if ((!_isTouchPointer ||
+                      editable.textEditingValue.selection.isCollapsed) &&
+                  widget.onContextMenu == null) {
+                return AdaptiveTextSelectionToolbar.editableText(
+                  editableTextState: editable,
+                );
+              }
+              final position = editable.contextMenuAnchors.primaryAnchor;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                editable.hideToolbar();
+                final selection = widget.controller.selection;
+                _touchContextRequest(
+                  MarkdownContextRequest(
+                    offset: selection.isValid ? selection.start : _start,
+                    selection: selection,
+                    position: position,
+                    onEdit: () => _focus.requestFocus(),
+                    onEditAt: _editAt,
+                  ),
+                );
+              });
+              return const SizedBox.shrink();
+            },
             maxLines: null,
             autocorrect: _codeFence == null,
             enableSuggestions: _codeFence == null,
@@ -1037,6 +1061,26 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
               ),
             ),
             if (_documentSelection) _documentSelectionInput(colors),
+            if (_documentSelection && _touchSelection)
+              Positioned.fill(
+                child: _MarkdownTouchSelectionOverlay(
+                  selection: widget.controller.selection,
+                  sourceLength: source.length,
+                  geometries: _selectionGeometries,
+                  scroll: _scroll,
+                  toolbar: _touchToolbar,
+                  onHandleStart: _startTouchHandle,
+                  onHandleUpdate: _moveTouchHandle,
+                  onHandleEnd: _endTouchSelectionDrag,
+                  onCopy: () => unawaited(_selectionCopy()),
+                  onCut: () => unawaited(_selectionCopy(cut: true)),
+                  onPaste: () => unawaited(_selectionPaste()),
+                  onSelectAll: _selectWholeDocument,
+                  onMore: widget.onContextMenu == null
+                      ? null
+                      : _showTouchSelectionContext,
+                ),
+              ),
           ],
         );
       },

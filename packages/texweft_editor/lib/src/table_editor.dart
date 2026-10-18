@@ -21,6 +21,7 @@ class MarkdownTableEditor extends StatefulWidget {
     required this.end,
     required this.style,
     this.onContextMenu,
+    this.onTouchSelection,
     this.onSelectionChanged,
     this.preferences = const MarkdownPreferences(),
     this.editingPreferences,
@@ -31,6 +32,7 @@ class MarkdownTableEditor extends StatefulWidget {
   final int start, end;
   final TextStyle style;
   final ValueChanged<MarkdownContextRequest>? onContextMenu;
+  final ValueChanged<MarkdownContextRequest>? onTouchSelection;
   final ValueChanged<TextSelection>? onSelectionChanged;
   final MarkdownPreferences preferences;
   final MarkdownEditingPreferences? editingPreferences;
@@ -45,6 +47,7 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
   final _focus = <String, FocusNode>{};
   final _compositions = <String, (MarkdownEditorController, int)>{};
   bool _syncing = false, _writing = false;
+  PointerDeviceKind? _pointerKind;
   List<List<TableCellSource>> get _rows => parseTableCells(
     widget.controller.text,
     widget.start,
@@ -233,20 +236,20 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
     return FocusTraversalOrder(
       order: NumericFocusOrder((row * columns + col).toDouble()),
       child: Listener(
-        onPointerDown: widget.onContextMenu == null
-            ? null
-            : (event) {
-                if (event.buttons == kSecondaryMouseButton) {
-                  widget.onContextMenu!(
-                    MarkdownContextRequest(
-                      offset: cell.range.start,
-                      position: event.position,
-                      tableRow: row,
-                      tableColumn: col,
-                    ),
-                  );
-                }
-              },
+        onPointerDown: (event) {
+          _pointerKind = event.kind;
+          if (event.buttons == kSecondaryMouseButton &&
+              widget.onContextMenu != null) {
+            widget.onContextMenu!(
+              MarkdownContextRequest(
+                offset: cell.range.start,
+                position: event.position,
+                tableRow: row,
+                tableColumn: col,
+              ),
+            );
+          }
+        },
         child: ListenableBuilder(
           listenable: focus,
           builder: (context, _) => MarkdownContextShortcuts(
@@ -288,18 +291,32 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
                       MarkdownTableAlignment.right => TextAlign.right,
                       _ => TextAlign.left,
                     },
-                    contextMenuBuilder: widget.onContextMenu == null
+                    contextMenuBuilder:
+                        widget.onContextMenu == null &&
+                            widget.onTouchSelection == null
                         ? null
                         : (context, editable) {
+                            final select =
+                                _pointerKind != PointerDeviceKind.mouse &&
+                                    !widget.controller.selection.isCollapsed
+                                ? widget.onTouchSelection
+                                : null;
+                            final callback = select ?? widget.onContextMenu;
+                            if (callback == null) {
+                              return AdaptiveTextSelectionToolbar.editableText(
+                                editableTextState: editable,
+                              );
+                            }
                             final anchor =
                                 editable.contextMenuAnchors.primaryAnchor;
                             WidgetsBinding.instance.addPostFrameCallback((_) {
                               if (!mounted) return;
                               editable.hideToolbar();
-                              widget.onContextMenu!(
+                              callback(
                                 MarkdownContextRequest(
                                   offset: cell.range.start,
                                   position: anchor,
+                                  selection: widget.controller.selection,
                                   tableRow: row,
                                   tableColumn: col,
                                 ),

@@ -65,6 +65,12 @@ extension _InstantDocumentSelection on _MarkdownInstantEditorState {
 
   void _documentPointerDown(PointerDownEvent event) {
     _navigation.cancel();
+    _lastPointerKind = event.kind;
+    if (event.kind != PointerDeviceKind.mouse &&
+        _documentSelection &&
+        _selectionInput.value.composing.isCollapsed) {
+      _rebuildSelection(_clearDocumentSelection);
+    }
     if (event.kind != PointerDeviceKind.mouse ||
         event.buttons != kPrimaryMouseButton ||
         !_input.value.composing.isCollapsed) {
@@ -103,6 +109,10 @@ extension _InstantDocumentSelection on _MarkdownInstantEditorState {
     }
     _dragPosition = event.position;
     _updateDocumentDrag(event.position);
+    _startDocumentDragScroll();
+  }
+
+  void _startDocumentDragScroll() {
     _dragScrollTimer ??= Timer.periodic(const Duration(milliseconds: 16), (_) {
       final position = _dragPosition;
       final viewport =
@@ -138,7 +148,18 @@ extension _InstantDocumentSelection on _MarkdownInstantEditorState {
     final geometry = _geometryAt(position), base = _dragSourceBase;
     if (geometry == null || base == null) return;
     if (_documentSelection || geometry.start != _dragBlockStart) {
-      _setDocumentSelection(base, geometry.hit(position), position);
+      var extent = geometry.hit(position);
+      if (_touchHandleStart != null) {
+        final source = widget.controller.text;
+        final boundary = CharacterBoundary(source);
+        extent = _touchHandleStart!
+            ? extent.clamp(0, boundary.getLeadingTextBoundaryAt(base - 1) ?? 0)
+            : extent.clamp(
+                boundary.getTrailingTextBoundaryAt(base) ?? source.length,
+                source.length,
+              );
+      }
+      _setDocumentSelection(base, extent, position);
       return;
     }
     if (_checkpoint == null || geometry.start != _start) return;
@@ -161,19 +182,31 @@ extension _InstantDocumentSelection on _MarkdownInstantEditorState {
   void _clearDocumentSelection() {
     if (!_documentSelection) return;
     _documentSelection = false;
+    _touchSelection = _touchToolbar = _touchKeyboard = false;
+    _touchHandleStart = null;
+    _endDocumentDrag();
     _selectionFocus.unfocus();
     _selectionSync = true;
     _selectionInput.clear();
     _selectionSync = false;
   }
 
-  void _setDocumentSelection(int base, int extent, Offset anchor) {
+  void _setDocumentSelection(
+    int base,
+    int extent,
+    Offset anchor, {
+    bool touch = false,
+  }) {
     final source = widget.controller.session.text;
     final selection = TextSelection(
       baseOffset: base.clamp(0, source.length),
       extentOffset: extent.clamp(0, source.length),
     );
     if (selection.isCollapsed && !_documentSelection) return;
+    if (touch && !_touchSelection) {
+      _touchKeyboard =
+          _focus.hasFocus || MediaQuery.viewInsetsOf(context).bottom > 0;
+    }
     if (!_documentSelection) _finish();
     _writing = true;
     try {
@@ -195,6 +228,7 @@ extension _InstantDocumentSelection on _MarkdownInstantEditorState {
     _rebuildSelection(() {
       _documentSelection = true;
       _selectionAnchor = anchor;
+      if (touch) _touchSelection = _touchToolbar = true;
     });
     _selectionFocus.requestFocus();
   }
@@ -206,7 +240,18 @@ extension _InstantDocumentSelection on _MarkdownInstantEditorState {
         !controller.source.value.composing.isCollapsed) {
       return;
     }
-    if (!selection.isValid || selection.isCollapsed) return;
+    if (!selection.isValid || selection.isCollapsed) {
+      if (_documentSelection) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted &&
+              widget.controller == controller &&
+              controller.selection == selection) {
+            _rebuildSelection(_clearDocumentSelection);
+          }
+        });
+      }
+      return;
+    }
     if (_checkpoint != null &&
         selection.start >= _start &&
         selection.end <= _end) {
@@ -430,6 +475,9 @@ extension _InstantDocumentSelection on _MarkdownInstantEditorState {
                 groupId: this,
                 controller: _selectionInput,
                 focusNode: _selectionFocus,
+                keyboardType: _touchSelection && !_touchKeyboard
+                    ? TextInputType.none
+                    : TextInputType.multiline,
                 maxLines: null,
                 autocorrect: false,
                 enableSuggestions: false,
