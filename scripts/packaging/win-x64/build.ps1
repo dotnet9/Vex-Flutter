@@ -32,7 +32,7 @@ function Find-Flutter {
         }
         return (Resolve-Path -LiteralPath $ExplicitPath).Path
     }
-    $command = Get-Command flutter.bat -CommandType Application -ErrorAction SilentlyContinue
+    $command = Get-Command flutter.bat -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($command) { return $command.Source }
 
     # A previously resolved workspace can locate its SDK without a machine path in Git.
@@ -68,7 +68,7 @@ try {
     Write-Host "Log: $log"
 
     $flutterPath = Find-Flutter $Flutter
-    $pythonCommand = Get-Command python -CommandType Application -ErrorAction SilentlyContinue
+    $pythonCommand = Get-Command python -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
     if (-not $pythonCommand) { throw 'Install Python 3.11+ and enable its python command in PATH.' }
     $python = $pythonCommand.Source
     Invoke-Checked -Executable $python -Arguments @('-c', 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)')

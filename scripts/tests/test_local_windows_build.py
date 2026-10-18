@@ -1,6 +1,10 @@
 """Keep the double-click entry local, reproducible and separate from installation."""
 from pathlib import Path
+import os
 import re
+import shutil
+import subprocess
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -57,6 +61,31 @@ class LocalWindowsBuildTest(unittest.TestCase):
         self.assertEqual(script.count('Get-FileHash -LiteralPath $download -Algorithm SHA256'), 2)
         self.assertIn('Get-AuthenticodeSignature', script)
         self.assertLess(script.index('Get-AuthenticodeSignature'), script.index('Start-Process'))
+
+    def test_command_resolution_selects_one_executable_when_path_has_duplicates(self):
+        script = (ROOT / 'scripts/packaging/win-x64/build.ps1').read_text(encoding='ascii')
+        expressions = [re.search(r'Get-Command ' + re.escape(name) + r'[^\n]+', script).group(0)
+                       for name in ('python', 'flutter.bat')]
+        for expression in expressions:
+            self.assertIn('| Select-Object -First 1', expression)
+        if os.name != 'nt':
+            return
+        shell = Path(os.environ['SystemRoot']) / 'System32/WindowsPowerShell/v1.0/powershell.exe'
+        with tempfile.TemporaryDirectory(prefix='vex command paths ') as temporary:
+            paths = [Path(temporary) / name for name in ('first', 'second')]
+            for path in paths:
+                path.mkdir()
+                shutil.copyfile(Path(os.environ['SystemRoot']) / 'System32/cmd.exe', path / 'python.exe')
+                (path / 'flutter.bat').write_text('@exit /b 0\n', encoding='ascii')
+            for name, expression in zip(('python.exe', 'flutter.bat'), expressions):
+                expected = str(paths[0] / name).replace("'", "''")
+                command = (f"$env:PATH='{';'.join(str(path) for path in paths)}'; "
+                           f"$found=@({expression}); "
+                           f"if ($found.Count -ne 1 -or $found[0].Source -ne '{expected}') {{ exit 1 }}")
+                environment = dict(os.environ, PSModulePath=str(shell.parents[1] / 'v1.0/Modules'))
+                result = subprocess.run([str(shell), '-NoLogo', '-NoProfile', '-Command', command],
+                                        env=environment, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
 if __name__ == '__main__':
