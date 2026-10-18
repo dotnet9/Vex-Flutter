@@ -31,8 +31,11 @@ for (const y of [80,650]) {
 const preferences = fs.readFileSync(path.join(root,'assets/preferences.js'),'utf8');
 assert.ok(preferences.includes('watermarkPreview:false,watermarkExport:false'));
 const changelog = fs.readFileSync(path.join(root,'documents/CHANGELOG.md'),'utf8');
-assert.match(changelog,/## v0\.2\.2（2026-10-17）\n\n- /);
-assert.match(changelog,/## v0\.2\.1（2026-10-17）\n\n- /);
+const releaseDates = [...changelog.matchAll(/^## .*（(\d{4}-\d{2}-\d{2})）$/gm)].map(match => match[1]);
+assert.equal(new Set(releaseDates).size, releaseDates.length, 'One release section per day');
+assert.ok(releaseDates.includes('2026-10-17'));
+assert.ok(releaseDates.includes('2026-10-18'));
+assert.match(changelog,/### 待发布改进/);
 const app = fs.readFileSync(path.join(root,'assets/app.js'),'utf8');
 const adaptive = fs.readFileSync(path.join(root,'Vex-Adaptive.html'),'utf8');
 const css = fs.readFileSync(path.join(root,'assets/prototype.css'),'utf8');
