@@ -108,6 +108,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   final _closingDocuments = <WorkspaceDocument>{};
   Future<void> _recoveryQueue = Future.value();
   int _openRequest = 0;
+  int _folderRequest = 0;
   final _headingForNode = <String, String>{};
   List<Map<String, Object?>> recoverable = [];
 
@@ -740,6 +741,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     final existing = _documentAt(path);
     if (existing != null) {
       switchDocument(existing);
+      await _loadParentFolder(existing.path, _openRequest);
       return;
     }
     final opened = await files.read(path);
@@ -749,11 +751,38 @@ final class WorkspaceViewModel extends ChangeNotifier {
   Future<void> _prepareOpened(OpenedDocument opened, int request) async {
     if (_disposed) return;
     final parsed = await MarkdownDocument.parseAsync(opened.text);
-    _acceptOpened(opened, parsed: parsed, activate: request == _openRequest);
+    final activate = request == _openRequest;
+    _acceptOpened(opened, parsed: parsed, activate: activate);
+    if (activate) await _loadParentFolder(opened.path, _openRequest);
   }
 
-  void acceptOpened(OpenedDocument opened, {bool activate = true}) =>
-      _acceptOpened(opened, activate: activate);
+  void acceptOpened(OpenedDocument opened, {bool activate = true}) {
+    _acceptOpened(opened, activate: activate);
+    if (activate) unawaited(_loadParentFolder(opened.path, _openRequest));
+  }
+
+  Future<void> _loadParentFolder(String? path, int openRequest) async {
+    if (_disposed) return;
+    final request = ++_folderRequest;
+    // Mobile picker copies have no accessible parent; never scan their cache.
+    if (path == null) return;
+    final root = folder?.path;
+    if (root != null && p.isWithin(root, path)) return;
+    try {
+      // Only enumerate names. Other documents remain unread until opened.
+      final selected = await files.readFolder(p.dirname(path));
+      if (_disposed ||
+          request != _folderRequest ||
+          openRequest != _openRequest) {
+        return;
+      }
+      folder = selected;
+      _notify();
+      persist();
+    } on FileSystemException {
+      // A readable file may have an inaccessible parent. Keep the document open.
+    }
+  }
 
   void _acceptOpened(
     OpenedDocument opened, {
@@ -785,8 +814,9 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }
 
   Future<void> openFolder() async {
+    final request = ++_folderRequest;
     final selected = await files.folder();
-    if (selected == null || _disposed) return;
+    if (selected == null || _disposed || request != _folderRequest) return;
     folder = selected;
     sidebar = true;
     outline = false;

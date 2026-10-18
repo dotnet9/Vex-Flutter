@@ -6,6 +6,40 @@ import 'package:vex/ui/workspace/workspace_sidebar.dart';
 import 'support/fakes.dart';
 
 void main() {
+  testWidgets('opening a file shows its siblings in a nested directory tree', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final vm = fakeWorkspace();
+    final files = vm.files as MemoryFiles;
+    files.content.addAll({
+      '/notes/first.md': '# First',
+      '/notes/topic/child.md': '# Child',
+    });
+    await vm.openPath('/notes/first.md');
+    vm.editor.select(0);
+    await tester.pumpWidget(VexApp(viewModel: vm));
+    await tester.pumpAndSettle();
+    final sidebar = find.byType(WorkspaceSidebar);
+    final child = find.descendant(of: sidebar, matching: find.text('child.md'));
+    expect(
+      find.descendant(of: sidebar, matching: find.text('first.md')),
+      findsOneWidget,
+    );
+    expect(child, findsOneWidget);
+    expect(
+      tester.getTopLeft(child).dx,
+      greaterThan(tester.getTopLeft(find.text('topic')).dx),
+    );
+    await tester.tap(find.text('topic'));
+    await tester.pumpAndSettle();
+    expect(child, findsNothing);
+    expect(files.readPaths, ['/notes/first.md']);
+    await tester.pumpWidget(const SizedBox());
+    vm.dispose();
+  });
+
   testWidgets(
     'directory search opens one document and restores collapsed folders',
     (tester) async {

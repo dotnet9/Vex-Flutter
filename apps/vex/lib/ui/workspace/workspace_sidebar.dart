@@ -325,6 +325,7 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
             ),
             child: Row(
               children: [
+                if (depth > 0) const SizedBox(width: 19),
                 AppGlyph(
                   'file',
                   size: 14,

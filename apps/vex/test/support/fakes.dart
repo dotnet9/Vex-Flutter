@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:path/path.dart' as p;
 import 'package:vex/data/repositories/recovery_repository.dart';
 import 'package:vex/data/repositories/settings_repository.dart';
 import 'package:vex/data/services/file_service.dart';
@@ -33,23 +34,33 @@ final class MemoryFiles implements DocumentFileService {
   final content = <String, String>{};
   Future<void> Function()? beforeWrite;
   Future<void> Function(String path)? beforeRead;
+  Future<void> Function(String path)? beforeReadFolder;
   final readPaths = <String>[];
+  final readFolderPaths = <String>[];
+  OpenedDocument? picked;
   String? nextSave = '/notes/saved.md';
   String? folderPath = '/notes';
   List<String> folderDirectories = [];
   Uint8List? lastSavedBytes;
   String? lastSaveName, lastInitialDirectory;
   @override
-  Future<OpenedDocument?> pick() async => null;
+  Future<OpenedDocument?> pick() async => picked;
   @override
   Future<OpenedFolder?> folder() async =>
       folderPath == null ? null : readFolder(folderPath!);
   @override
-  Future<OpenedFolder> readFolder(String path) async => OpenedFolder(
-    path,
-    files: content.keys.toList(),
-    directories: folderDirectories,
-  );
+  Future<OpenedFolder> readFolder(String path) async {
+    readFolderPaths.add(path);
+    await beforeReadFolder?.call(path);
+    return OpenedFolder(
+      path,
+      files: content.keys.where((file) => p.isWithin(path, file)).toList(),
+      directories: folderDirectories
+          .where((directory) => p.isWithin(path, directory))
+          .toList(),
+    );
+  }
+
   @override
   Future<OpenedDocument> read(String path) async {
     readPaths.add(path);
