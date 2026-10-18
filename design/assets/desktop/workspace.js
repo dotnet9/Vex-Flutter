@@ -31,6 +31,16 @@
   var parking = document.createElement('div'); parking.hidden = true; parking.id = 'view-parking'; area.appendChild(parking);
   var surface = document.createElement('div'); surface.className = 'view-surface'; surface.id = 'view-surface'; area.appendChild(surface);
   var workbar = document.querySelector('.workbar'), actions = document.querySelector('.work-actions');
+  var typeButton=$('edit-options').querySelector('[data-action="typography"]');
+  typeButton.setAttribute('aria-haspopup','dialog');typeButton.setAttribute('aria-controls','typography-panel');typeButton.title='正文排版';
+  panels.editor.querySelector('.view-heading').appendChild(typeButton);
+  panels.editor.insertBefore($('edit-options'),panels.editor.querySelector('.view-body'));
+  var readingTypeButton=typeButton.cloneNode(true);panels.render.querySelector('.view-heading').appendChild(readingTypeButton);
+  $('reading-pane').querySelector('[data-action="typography"]').remove();
+  var mapButton=document.createElement('button');mapButton.className='map-appearance-trigger';mapButton.dataset.action='map-appearance';mapButton.hidden=true;
+  mapButton.setAttribute('aria-haspopup','dialog');mapButton.setAttribute('aria-expanded','false');mapButton.setAttribute('aria-controls','map-appearance-panel');mapButton.title='导图样式';
+  mapButton.innerHTML=icon('map')+'<span>导图样式</span>'+icon('chevron-down');panels.map.querySelector('.view-heading').appendChild(mapButton);
+  var mapAppearance=VexMapAppearance.create({parent:document.querySelector('.window-body'),scene:$('map-scene'),getLayout:function(){return $('map-layout').value;},setLayout:function(key){$('map-layout').value=key;$('map-layout').dispatchEvent(new Event('change'));},isTemporary:function(){return guideActive;},beforeOpen:function(){VexTypography.close();closeMenus();$('map-settings').hidden=true;}});
   var layoutButton = document.createElement('button'); layoutButton.className = 'workspace-layout-button'; layoutButton.id = 'workspace-layout';
   layoutButton.setAttribute('aria-haspopup', 'dialog'); layoutButton.setAttribute('aria-expanded', 'false');
   layoutButton.innerHTML = icon('columns') + '<span>布局</span>' + icon('chevron-down');
@@ -53,6 +63,11 @@
     $('reading-pane').hidden = !displayed.includes('render'); $('map-pane').hidden = !displayed.includes('map');
     panels.editor.querySelector('.view-title').textContent = source ? '源码' : '即时编辑'; panels.render.querySelector('.view-title').textContent = '阅读'; panels.map.querySelector('.view-title').textContent = '思维导图';
     surface.dataset.single = String(displayed.length === 1); $('edit-options').hidden = !displayed.includes('editor');
+    typeButton.hidden=!displayed.includes('editor')||source;
+    readingTypeButton.hidden=!displayed.includes('render');
+    mapButton.hidden=!displayed.includes('map');
+    if(typeButton.hidden&&readingTypeButton.hidden)VexTypography.close();
+    if(mapButton.hidden)mapAppearance.close();
     W.state.source = displayed.includes('editor') && source; $('map-source-toggle').setAttribute('aria-pressed', String(W.state.source)); $('map-source-toggle').classList.toggle('on', W.state.source);
     document.querySelector('.workspace').classList.toggle('source-only', source && displayed.length === 1); area.dataset.paneCount = displayed.length;
     $('edit-source').setAttribute('aria-pressed', String(source && displayed.includes('editor')));
@@ -75,19 +90,21 @@
   function locateEditor(line) { editorMode = 'source'; changing = true; W.setEditMode('source'); changing = false; openPanel('editor'); renderLayout(); saveLayout(); W.focusLine(line); }
   function navigate(line) { if (leaves(tree).includes('editor')) W.focusLine(line); else if (leaves(tree).includes('render')) $('markdown-preview').querySelector('[data-line="' + line + '"]')?.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
   function handleAction(action) {
+    if(action==='map-appearance'){if(!leaves(tree).includes('map'))openPanel('map');mapAppearance.toggle(mapButton);return true;}
+    if(action==='typography'){mapAppearance.close();if(typeButton.hidden&&readingTypeButton.hidden)return true;}
     if (action === 'undo' || action === 'redo') { W.history(action); return true; }
     if (action === 'map-source') { setLayout(leaves(tree).includes('editor') ? 'map' : 'source-map'); return true; }
     if (action === 'locate-source') { var node = W.state.nodes.find(function (candidate) { return candidate.id === W.state.selected; }); if (node) locateEditor(node.line); return true; }
     if (action === 'map-settings' && !$('map-pane').hidden) { var open = !$('map-settings').hidden; $('map-settings').hidden = open; $('map-settings-button').setAttribute('aria-expanded', String(!open)); $('node-inspector').hidden = true; return true; }
     return false;
   }
-  window.VexWorkspace = { setLayout: setLayout, openPanel: openPanel, handleAction: handleAction, locateEditor: locateEditor, navigate: navigate, get current() { return current; }, get tree() { return clone(tree); }, get editorMode() { return editorMode; } };
+  window.VexWorkspace = { setLayout: setLayout, openPanel: openPanel, handleAction: handleAction, locateEditor: locateEditor, navigate: navigate, closeAppearance:function(){mapAppearance.close();}, get current() { return current; }, get tree() { return clone(tree); }, get editorMode() { return editorMode; } };
   window.addEventListener('vex-view-changed', function (event) { if (changing) return; var view = event.detail.view, mode = event.detail.editMode; if (view === 'edit' && mode !== editorMode && leaves(tree).includes('editor')) switchEditorMode(mode); else setLayout(view === 'edit' ? mode : view === 'read' ? 'read' : 'map'); });
   document.addEventListener('keydown', function (event) { if (event.key === 'Escape') closeMenus(); if (event.isComposing || !(event.ctrlKey || event.metaKey) || !['z', 'y'].includes(event.key.toLowerCase())) return; var field = event.target.closest('input, textarea, [contenteditable="true"]'); if (field && field.id !== 'markdown-input' && !field.classList.contains('instant-block')) return; event.preventDefault(); W.finish(); handleAction(event.key.toLowerCase() === 'y' || event.shiftKey ? 'redo' : 'undo'); });
-  document.addEventListener('pointerdown', function (event) { if (!layoutMenu.contains(event.target) && !layoutButton.contains(event.target)) closeMenus(); });
+  document.addEventListener('pointerdown', function (event) { if (!layoutMenu.contains(event.target) && !layoutButton.contains(event.target) && !event.target.closest('.tour-card')) closeMenus(); });
   var beginGuide = VexProto.beginGuideSession, endGuide = VexProto.endGuideSession;
-  VexProto.beginGuideSession = function () { var layout = { current: current, tree: clone(tree), mode: editorMode }; guideActive = true; var result = beginGuide(); result.workspace = layout; return result; };
-  VexProto.endGuideSession = function (snapshot) { endGuide(snapshot); if (snapshot?.workspace) { editorMode = snapshot.workspace.mode; tree = snapshot.workspace.tree; current = snapshot.workspace.current; renderLayout(); } guideActive = false; requestAnimationFrame(function () { requestAnimationFrame(saveLayout); }); };
+  VexProto.beginGuideSession = function () { var layout = { current: current, tree: clone(tree), mode: editorMode, mapStyle: mapAppearance.style }; guideActive = true; var result = beginGuide(); result.workspace = layout; return result; };
+  VexProto.endGuideSession = function (snapshot) { endGuide(snapshot); if (snapshot?.workspace) { editorMode = snapshot.workspace.mode; tree = snapshot.workspace.tree; current = snapshot.workspace.current; mapAppearance.choose(snapshot.workspace.mapStyle); renderLayout(); } guideActive = false; requestAnimationFrame(function () { requestAnimationFrame(saveLayout); }); };
   var savedLayout; try { savedLayout = JSON.parse(VexStorage.getItem('vex-design-layout') || 'null'); } catch (_) {}
   var requested = query.get('layout'); if (requested === 'source-read') requested = 'source-render';
   if (requested && presets.some(function (preset) { return preset.id === requested; })) setLayout(requested);

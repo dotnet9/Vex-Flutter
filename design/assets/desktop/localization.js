@@ -9,6 +9,11 @@ window.VEX_DATA = {"languages":{"zh-CN":{"AppName":"Vex","ChineseName":"维刻",
     '保持窗口在最前':'AlwaysOnTop','全屏':'ToggleFullScreen','图片':'Image','行内代码':'InlineCode','打印预览':'Print','查看排版样式…':'WBTypographyTitle'
   };
   const extra = {
+    '导出 HTML':['导出 HTML','匯出 HTML','Export HTML','HTML に書き出す'],
+    '导出 PDF':['导出 PDF','匯出 PDF','Export PDF','PDF に書き出す'],
+    '导出 PNG 长图':['导出 PNG 长图','匯出 PNG 長圖','Export PNG image','PNG 画像に書き出す'],
+    '导出 Word（.docx）':['导出 Word（.docx）','匯出 Word（.docx）','Export Word (.docx)','Word (.docx) に書き出す'],
+    '复制到微信公众号':['复制到微信公众号','複製到微信公眾號','Copy to WeChat','WeChat 向けにコピー'],
     '关于':['关于','關於','About','このアプリについて'],
     '维刻 Vex · 写下想法，看见脉络。':['维刻 Vex · 写下想法，看见脉络。','維刻 Vex · 寫下想法，看見脈絡。','Vex · Write your thoughts. See the connections.','Vex · 思いを書き、つながりを見つける。'],
     '编辑显示':['编辑显示','編輯顯示','Editor display','エディター表示'],

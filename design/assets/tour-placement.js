@@ -7,16 +7,17 @@
     const right = target.x + target.width, bottom = target.y + target.height;
     const cx = target.x + target.width / 2, cy = target.y + target.height / 2;
     const overlap = (a, b) => Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
-    const candidates = ['bottom','right','left','top'].map(side => {
-      let x = side === 'right' ? right + gap : side === 'left' ? target.x - width - gap : cx - width / 2;
-      let y = side === 'bottom' ? bottom + gap : side === 'top' ? target.y - height - gap : cy - height / 2;
+    const candidates = ['bottom','right','left','top'].flatMap(side => ['center','start','end'].map(align => {
+      const horizontal = side === 'top' || side === 'bottom';
+      let x = horizontal ? align === 'start' ? target.x : align === 'end' ? right - width : cx - width / 2 : side === 'right' ? right + gap : target.x - width - gap;
+      let y = !horizontal ? align === 'start' ? target.y : align === 'end' ? bottom - height : cy - height / 2 : side === 'bottom' ? bottom + gap : target.y - height - gap;
       const rawX = x, rawY = y;
       x = clamp(x, bounds.x + margin, bounds.x + bounds.width - width - margin);
       y = clamp(y, bounds.y + margin, bounds.y + bounds.height - height - margin);
       const rect = {x,y,width,height};
-      const score = overlap(rect,target) * 20 + avoid.reduce((sum, r) => sum + overlap(rect,r),0) * 2 + Math.abs(rawX-x) + Math.abs(rawY-y) + (side === preferred ? 0 : 16);
+      const score = overlap(rect,target) * 20 + avoid.reduce((sum, r) => sum + overlap(rect,r),0) * 2 + Math.abs(rawX-x) + Math.abs(rawY-y) + (side === preferred ? 0 : 16) + (align === 'center' ? 0 : 1);
       return {x,y,side,score,offset:side === 'top' || side === 'bottom' ? clamp(cx-x,22,width-22) : clamp(cy-y,22,height-22)};
-    });
+    }));
     return candidates.sort((a,b) => a.score-b.score)[0];
   }
   function attach(card, pointer, target, bounds, preferred, avoid) {

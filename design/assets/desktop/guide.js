@@ -1,9 +1,9 @@
-/* 六步演练使用真实控件；退出时恢复当前文档、布局与偏好。 */
+/* 引导演练使用真实控件；退出时恢复当前文档、布局与偏好。 */
 (function () {
   'use strict';
   var $ = function (selector) { return document.querySelector(selector); };
   var open = false, preparing = false, completed = false, session = null, stepIndex = 0, previousFocus;
-  var frame, settledTimer, feedback = [], stepText = '';
+  var frame, settledTimer, feedback = [], stepText = '', chapterFitKey = '';
   var storageKey = 'vex-design-guide';
   var layer = document.createElement('div'); layer.id = 'vex-guide'; layer.className = 'tour-layer'; layer.hidden = true;
   layer.innerHTML = '<svg class="tour-mask" aria-hidden="true"><defs><mask id="tour-cutouts" maskUnits="userSpaceOnUse"><rect width="100%" height="100%" fill="white"></rect><g class="tour-cutouts" fill="black"></g></mask></defs><rect class="tour-scrim" width="100%" height="100%" mask="url(#tour-cutouts)"></rect></svg><div class="tour-rings"></div><section class="tour-card" role="dialog" aria-modal="false" aria-labelledby="tour-title" aria-describedby="tour-description"></section>';
@@ -20,45 +20,60 @@
     },
     {
       name: '导航', title: '文件与大纲', description: '文件列表切换当前文档，大纲帮你快速定位章节。', tip: '点一个大纲章节，看看正文定位到哪里。',
-      targets: function () { return ['.side-tabs', '#view-surface'].concat($('.side-tab.on').dataset.pane === 'outline' ? ['#outline-body'] : ['.sidebar-search', '.file-row.selected']); },
+      targets: function () { return ['.side-tabs'].concat($('.side-tab.on').dataset.pane === 'outline' ? ['#outline-body'] : ['.sidebar-search', '.file-row.selected']); },
       allow: '.side-tabs button, #outline-body button, #file-filter, .file-row.selected',
       prepare: function () { VexWorkspace.setLayout('instant'); VexProto.handleAction('pane-outline'); }
     },
     {
-      name: '章节', title: '先梳理，再展开', description: '双击修改标题；拖动章节时，正文和子章节一起移动。', tip: '也可以从节点详情新增同级或子章节。',
-      targets: function () { return ['@chapters'].concat(visible('#node-inspector') ? ['#node-inspector'] : []).concat(visible('#chapter-delete-dialog') ? ['#chapter-delete-dialog > section'] : []); },
-      allow: '#map-viewport, .chapter-toolbar, #node-inspector, #chapter-delete-dialog',
+      name: '章节', title: '先梳理，再展开', description: '用导图整理章节，也可以试选不同的结构和风格。', tip: '双击修改标题；拖动章节时，正文和子章节一起移动。',
+      targets: function () { return ['@chapters', '[data-action="map-appearance"]'].concat(visible('#map-appearance-panel') ? ['#map-appearance-panel'] : []).concat(visible('#node-inspector') ? ['#node-inspector'] : []).concat(visible('#chapter-delete-dialog') ? ['#chapter-delete-dialog > section'] : []); },
+      allow: '#map-viewport, .chapter-toolbar, #node-inspector, #chapter-delete-dialog, [data-action="map-appearance"], #map-appearance-panel',
+      anchor: '#map-appearance-panel',
       prepare: function () {
         VexWorkspace.setLayout('map');
         if ($('#chapter-headings-only').getAttribute('aria-pressed') !== 'true') $('#chapter-headings-only').click();
-        requestAnimationFrame(function () { requestAnimationFrame(function () { if (open && stepIndex === 2) fitChapters(); }); });
+        VexProto.handleAction('map-appearance');
       }
     },
     {
       name: '布局', title: '边写边看全局', description: '试选视图组合，源码、正文和导图始终同步。', tip: '试选八种组合；三视图在上方编辑与预览，下方整理文章脉络。',
-      targets: function () { return ['#workspace-layout', '.view-switch', '#view-surface'].concat(visible('#workspace-layout-menu') ? ['#workspace-layout-menu'] : []); },
+      targets: function () { return ['#workspace-layout', '.view-switch'].concat(visible('#workspace-layout-menu') ? ['#workspace-layout-menu'] : []); },
       allow: '#workspace-layout, .view-switch button, #workspace-layout-menu .layout-preset, #reset-workspace, #workspace-layout-menu .workspace-menu-heading button',
-      prepare: function () { VexWorkspace.setLayout('instant-map'); fitComparison(); }
+      anchor: '#workspace-layout-menu',
+      prepare: function () { VexWorkspace.setLayout('instant-map'); $('#workspace-layout').click(); fitComparison(); }
     },
     {
-      name: '排版', title: '让文章有自己的样子', description: '点击排版试选正文样式，也可以切换紧凑布局。', tip: '正文排版与界面配色分别设置。',
-      targets: function () { return ['#edit-options [data-action="typography"]', '#view-surface'].concat(visible('#typography-panel') ? ['#typography-panel'] : []); },
-      allow: '#edit-options [data-action="typography"], #typography-panel',
-      prepare: function () { VexWorkspace.setLayout('instant'); $('.instant-scroll').scrollTop = 0; }
+      name: '排版', title: '让文章有自己的样子', description: '试选正文排版，也可以切换紧凑布局。', tip: '选择后面板保持展开，方便比较；正文排版与界面配色分别设置。',
+      targets: function () { return ['.view-panel[data-document=editor] .view-heading [data-action="typography"]'].concat(visible('#typography-panel') ? ['#typography-panel'] : []); },
+      allow: '.view-panel[data-document=editor] .view-heading [data-action="typography"], #typography-panel',
+      anchor: '#typography-panel',
+      prepare: function () { VexWorkspace.setLayout('instant'); $('.instant-scroll').scrollTop = 0; VexTypography.toggle($('.view-panel[data-document=editor] .view-heading [data-action="typography"]')); }
     },
     {
-      name: '分享', title: '保存，也方便分享', description: '保存文档，或将排好版的内容导出、复制到发布平台。', tip: '文件 → 导出；工具 → 复制到公众号等平台。',
+      name: '保存', title: '保存，也方便带走', description: '保存 Markdown，或把排好版的文章导出。', tip: '当前是演练文档，保存与导出会下载副本，不会覆盖原文。',
       targets: function () {
-        return ['.save-button', '.tb-menuitem[data-menu="文件(F)"]', '.tb-menuitem[data-menu="工具(T)"]'].concat(visible('.menu-flyout') ? ['.menu-flyout'] : []).concat(visible('.submenu[data-parent-label="导出"]') ? ['.submenu[data-parent-label="导出"]'] : []);
+        return ['.tb-menuitem[data-menu="文件(F)"]', '.menu-flyout [data-menu-action="save"]', '@exports'];
       },
-      allow: '.save-button, .tb-menuitem[data-menu="文件(F)"], .tb-menuitem[data-menu="工具(T)"], .menu-item[data-menu-action="save"], .menu-item[data-menu-label="导出"], .menu-item[data-menu-action="export-html"], .menu-item[data-menu-label^="复制到"]',
-      prepare: function () { VexWorkspace.setLayout('read'); $('.reading-scroll').scrollTop = 0; }
+      allow: '.save-button, .tb-menuitem[data-menu="文件(F)"], .menu-item[data-menu-action="save"], .menu-item[data-menu-action="export-html"]',
+      anchor: '@exports',
+      prepare: function () { VexWorkspace.setLayout('read'); $('.reading-scroll').scrollTop = 0; openMenu('文件(F)'); }
+    },
+    {
+      name: '分享', title: '把文章分享出去', description: '将排好版的文章复制到微信公众号、知乎，或把 Markdown 复制到稀土掘金。', tip: '从“工具”菜单直接选择发布平台。',
+      targets: function () { return ['.tb-menuitem[data-menu="工具(T)"]', '@share']; },
+      allow: '.tb-menuitem[data-menu="工具(T)"], .menu-item[data-menu-action^="copy-"]',
+      anchor: '@share',
+      prepare: function () { VexWorkspace.setLayout('read'); openMenu('工具(T)'); }
     }
   ];
   try { $('#guide-launch').hidden = !!VexStorage.getItem(storageKey); } catch (_) {}
+  function openMenu(menu) {
+    $('.tb-menuitem[data-menu="' + menu + '"]').click();
+  }
   function hideExtras() {
     if (visible('#chapter-delete-dialog')) $('#chapter-delete-cancel').click();
-    ['#typography-panel', '#map-settings', '#node-inspector', '#workspace-layout-menu'].forEach(function (selector) { var node = $(selector); if (node) node.hidden = true; });
+    VexTypography.close(); VexWorkspace.closeAppearance();
+    ['#map-settings', '#node-inspector', '#workspace-layout-menu'].forEach(function (selector) { var node = $(selector); if (node) node.hidden = true; });
     var languageMenu = $('#vex-language-menu'); if (languageMenu) languageMenu.open = false;
     $('#workspace-layout').setAttribute('aria-expanded', 'false'); VexProto.closeMenu();
   }
@@ -73,13 +88,13 @@
     card.innerHTML = '<div class="tour-meta"><span>快速上手</span><span class="tour-count">' + (stepIndex + 1) + ' / ' + steps.length + '</span><button class="tour-close" data-tour="close" aria-label="退出引导">×</button></div>' +
       '<h2 id="tour-title">' + step.title + '</h2><p class="tour-description" id="tour-description">' + step.description + '</p>' +
       '<p class="tour-feedback' + (feedback[stepIndex] ? ' done' : '') + '" aria-live="polite">' + (feedback[stepIndex] || step.tip) + '</p>' +
-      (stepIndex === 5 ? '<details class="tour-more"><summary>还有 AI 协作</summary><p>从“工具 → MCP 设置”连接 AI 客户端，协助整理当前文档。</p></details>' : '') +
+      (stepIndex === steps.length - 1 ? '<details class="tour-more"><summary>还有 AI 协作</summary><p>从“工具 → MCP 设置”连接 AI 客户端，协助整理当前文档。</p></details>' : '') +
       '<nav class="tour-progress" aria-label="引导步骤">' + steps.map(function (item, index) { return '<button data-tour-step="' + index + '" aria-label="第 ' + (index + 1) + ' 步：' + item.name + '"' + (index === stepIndex ? ' aria-current="step"' : '') + (index < stepIndex ? ' class="passed"' : '') + '></button>'; }).join('') + '</nav>' +
       '<div class="tour-actions"><button class="tour-skip" data-tour="close">跳过</button><button class="tour-previous" data-tour="previous"' + (stepIndex === 0 ? ' hidden' : '') + '>上一步</button><button class="tour-next" data-tour="next">' + (stepIndex === steps.length - 1 ? '完成' : '下一步') + '<span aria-hidden="true">→</span></button></div>';
   }
   function go(index) {
     if (!open) return;
-    preparing = true; hideExtras(); stepIndex = Math.max(0, Math.min(steps.length - 1, index));
+    preparing = true; hideExtras(); stepIndex = Math.max(0, Math.min(steps.length - 1, index)); chapterFitKey = '';
     layer.dataset.step = stepIndex + 1; $('.app-window').dataset.guideStep = stepIndex + 1;
     steps[stepIndex].prepare(); stepText = VexWorkbench.text; renderCard(); preparing = false; schedule();
     if (!matchMedia('(prefers-reduced-motion:reduce)').matches && document.documentElement.dataset.motion !== 'false') card.animate([{opacity:0,translate:'0 5px'},{opacity:1,translate:'0 0'}],{duration:180,easing:'cubic-bezier(.2,.8,.2,1)'});
@@ -121,6 +136,7 @@
     var target = event.target;
     if (stepIndex === 1 && target.closest('.outline-item')) mark(1, '已定位到该章节，可以继续浏览大纲。');
     if (stepIndex === 3 && target.closest('.layout-preset, #reset-workspace, .view-switch button')) { fitComparison(); requestAnimationFrame(function () { mark(3, '视图已同步，可继续试选其他组合。'); }); }
+    if (stepIndex === 2 && target.closest('[data-map-layout], [data-map-style-choice]')) requestAnimationFrame(function () { fitChapters(); mark(2, '导图样式已应用，可继续比较。'); });
     if (stepIndex === 4 && target.closest('[data-typography-key]')) requestAnimationFrame(function () { mark(4, '正文排版已应用，可继续比较。'); });
     if (stepIndex === 5 && target.closest('.save-button, [data-menu-action="save"], [data-menu-action="export-html"]')) mark(5, '演练内容已下载为副本。');
     schedule();
@@ -142,7 +158,9 @@
     var editing = event.target.closest('input, textarea, [contenteditable="true"]');
     if (event.key === 'Escape') {
       if (stepIndex === 3 && visible('#workspace-layout-menu')) { $('#workspace-layout-menu').hidden = true; $('#workspace-layout').setAttribute('aria-expanded', 'false'); schedule(); }
-      else if (stepIndex === 4 && visible('#typography-panel')) { $('#typography-panel').hidden = true; schedule(); }
+      else if (stepIndex === 2 && visible('#map-appearance-panel')) { VexWorkspace.closeAppearance(); schedule(); }
+      else if (stepIndex === 4 && visible('#typography-panel')) { VexTypography.close(); schedule(); }
+      else if (stepIndex >= 5 && visible('.menu-flyout')) { VexProto.closeMenu(); schedule(); }
       else { close(); }
       event.preventDefault(); event.stopImmediatePropagation(); return;
     }
@@ -150,7 +168,7 @@
       event.preventDefault(); event.stopImmediatePropagation(); var items = focusables(), index = items.indexOf(document.activeElement);
       if (items.length) items[(index + (event.shiftKey ? items.length - 1 : 1)) % items.length].focus({ preventScroll: true }); return;
     }
-    if (!editing && !event.target.closest('.menu-flyout, .view-switch, .tour-more') && !event.ctrlKey && !event.metaKey && ['ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); event.stopImmediatePropagation(); go(stepIndex + (event.key === 'ArrowRight' ? 1 : -1)); return; }
+    if (!editing && !event.target.closest('.menu-flyout, .submenu, .view-switch, .tour-more, #map-appearance-panel, #typography-panel') && !event.ctrlKey && !event.metaKey && ['ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); event.stopImmediatePropagation(); go(stepIndex + (event.key === 'ArrowRight' ? 1 : -1)); return; }
     if ((event.ctrlKey || event.metaKey) && ['s','o','n','w','p','f','h'].includes(event.key.toLowerCase())) {
       if (stepIndex === 5 && event.key.toLowerCase() === 's') { mark(5, '演练内容已下载为副本。'); return; }
       event.preventDefault(); event.stopImmediatePropagation();
@@ -160,15 +178,20 @@
   document.addEventListener('focusin', function (event) { if (open && !preparing && !allowed(event.target)) $('.tour-next')?.focus({ preventScroll: true }); });
   function appBounds() { return $('.app-window').getBoundingClientRect(); }
   function targetRect(selector) {
-    if (selector === '@chapters') {
-      var items = Array.from(document.querySelectorAll('.map-node')).map(function (node) { return node.getBoundingClientRect(); });
+    var group = {'@chapters':'.map-node', '@exports':'.menu-flyout [data-menu-label^="导出 "]', '@share':'.menu-flyout [data-menu-action^="copy-"]'}[selector];
+    if (group) {
+      var items = Array.from(document.querySelectorAll(group)).map(function (node) { return node.getBoundingClientRect(); }).filter(function (rect) {return rect.width > 0;});
       if (!items.length) return null;
-      return clipRect({ left: Math.min.apply(null, items.map(function (r) { return r.left; })), top: Math.min.apply(null, items.map(function (r) { return r.top; })), right: Math.max.apply(null, items.map(function (r) { return r.right; })), bottom: Math.max.apply(null, items.map(function (r) { return r.bottom; })) }, $('#map-viewport').getBoundingClientRect(), 'area');
+      var rect = clipRect({ left: Math.min.apply(null, items.map(function (r) { return r.left; })), top: Math.min.apply(null, items.map(function (r) { return r.top; })), right: Math.max.apply(null, items.map(function (r) { return r.right; })), bottom: Math.max.apply(null, items.map(function (r) { return r.bottom; })) }, $(selector === '@chapters' ? '#map-viewport' : '.menu-flyout > .flyout').getBoundingClientRect(), selector === '@chapters' ? 'area' : 'control');
+      if(rect)rect.selector=selector;
+      return rect;
     }
     if (!visible(selector)) return null;
-    var node = $(selector), viewport = node.closest('.instant-scroll, .reading-scroll, #map-viewport');
+    var node = $(selector), viewport = node.closest('.instant-scroll, .reading-scroll, #map-viewport, .menu-flyout > .flyout');
     var kind = node.matches('.instant-block, #markdown-input') ? 'text' : node.id === 'view-surface' ? 'preview' : 'control';
-    return clipRect(node.getBoundingClientRect(), viewport ? viewport.getBoundingClientRect() : appBounds(), kind);
+    var rect = clipRect(node.getBoundingClientRect(), viewport ? viewport.getBoundingClientRect() : appBounds(), kind);
+    if (rect) rect.selector = selector;
+    return rect;
   }
   function clipRect(rect, bounds, kind) {
     var app = appBounds(), pad = kind === 'text' ? 4 : 6;
@@ -190,15 +213,20 @@
     var bounds = appBounds(), candidates = rects.filter(function (r) { return r.kind !== 'preview'; });
     var target = rects.find(function (r) { return r.kind === 'text'; }) || candidates[0];
     if (stepIndex >= 2 && candidates.length > 1) target = candidates[candidates.length-1];
+    target = candidates.find(function (r) { return r.selector === steps[stepIndex].anchor; }) || target;
     pointer.hidden = !target;
-    if (target) VexTourPlacement.attach(card,pointer,target,bounds,['bottom','right','left','bottom','bottom','bottom'][stepIndex],candidates.filter(function (r) { return r !== target; }));
+    if (target) VexTourPlacement.attach(card,pointer,target,bounds,['bottom','right','left','left','left','right','right'][stepIndex],candidates.filter(function (r) { return r !== target; }));
   }
   function fitChapters() {
     if (!open || stepIndex !== 2 || !VexWorkbench.state.bounds) return;
     var viewport = $('#map-viewport').getBoundingClientRect(), bounds = VexWorkbench.state.bounds;
-    var left = Math.max(viewport.left,appBounds().left+18+card.offsetWidth+18), width = Math.max(100,viewport.right-left-18), height = viewport.height-36;
+    var panel = visible('#map-appearance-panel') ? $('#map-appearance-panel').getBoundingClientRect() : null;
+    var left = panel ? viewport.left + 18 : Math.max(viewport.left,appBounds().left+18+card.offsetWidth+18);
+    var right = panel ? panel.left - 24 : viewport.right - 18;
+    var top = panel ? Math.min(viewport.bottom - 100, panel.top + card.offsetHeight + 30) : viewport.top + 18;
+    var width = Math.max(100,right-left), height = Math.max(80,viewport.bottom-top-18);
     var state = VexWorkbench.state; state.scale = Math.min(1,width/bounds.width,height/bounds.height);
-    state.x = left-viewport.left; state.y = (viewport.height-bounds.height*state.scale)/2;
+    state.x = left-viewport.left; state.y = top-viewport.top+(height-bounds.height*state.scale)/2;
     VexWorkbench.renderMap(); schedule();
   }
   function fitComparison() {
@@ -206,7 +234,16 @@
       if (open && stepIndex === 3 && visible('#map-pane')) { VexWorkbench.fit(false); schedule(); }
     }); });
   }
-  function layout() { if (!open) return; var rects = steps[stepIndex].targets().map(targetRect).filter(Boolean); position(rects); draw(rects); }
+  function layout() {
+    if (!open) return;
+    if (stepIndex === 2) {
+      var panel = visible('#map-appearance-panel') ? $('#map-appearance-panel').getBoundingClientRect() : null;
+      var viewport = $('#map-viewport').getBoundingClientRect(), bounds = VexWorkbench.state.bounds;
+      var key = [viewport.width, viewport.height, card.offsetHeight, panel?.left, panel?.top, bounds?.width, bounds?.height].join(':');
+      if (key !== chapterFitKey) { chapterFitKey = key; fitChapters(); }
+    }
+    var rects = steps[stepIndex].targets().map(targetRect).filter(Boolean); position(rects); draw(rects);
+  }
   function schedule() { if (!open) return; cancelAnimationFrame(frame); frame = requestAnimationFrame(layout); }
   new MutationObserver(schedule).observe($('.app-window'), {subtree:true,childList:true,attributes:true,attributeFilter:['hidden','style','data-active']});
   new ResizeObserver(schedule).observe($('.app-window'));
@@ -214,6 +251,6 @@
   window.addEventListener('resize', function () { schedule(); if (stepIndex === 2) requestAnimationFrame(fitChapters); });
   window.addEventListener('vex-menu-positioned',schedule);
   document.addEventListener('scroll', schedule, true);
-  window.VexGuide = {start:start,close:close,get active() {return open;}};
+  window.VexGuide = {start:start,close:close,allows:allowed,get active() {return open;}};
   if (new URLSearchParams(location.search).get('tour') === '1') requestAnimationFrame(start);
 })();

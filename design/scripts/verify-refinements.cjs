@@ -28,6 +28,17 @@ for (const y of [80,650]) {
   assert.ok(p.x >= 20 && p.x+310 <= 382);
   assert.equal(p.side,y === 80 ? 'bottom' : 'top');
 }
+const panel = {x:720,y:150,width:528,height:600};
+const chapters = {x:290,y:490,width:390,height:260};
+const adjacent = place(panel,bounds,size,'left',[chapters]);
+assert.equal(adjacent.side,'left');
+assert.ok(adjacent.y+size.height<=chapters.y, 'Guide must use free space beside a panel, not cover the highlighted map');
+const guide = fs.readFileSync(path.join(root,'assets/desktop/guide.js'),'utf8');
+assert.ok(!guide.includes("'#view-surface'"), 'Navigation, layout and appearance guides must not illuminate the entire document');
+assert.match(guide,/openMenu\('文件\(F\)'\)/);
+assert.match(guide,/openMenu\('工具\(T\)'\)/);
+assert.match(guide,/anchor: '#typography-panel'/);
+assert.match(guide,/anchor: '#map-appearance-panel'/);
 const preferences = fs.readFileSync(path.join(root,'assets/preferences.js'),'utf8');
 assert.ok(preferences.includes('watermarkPreview:false,watermarkExport:false'));
 const changelog = fs.readFileSync(path.join(root,'../docs/更新日志.md'),'utf8');

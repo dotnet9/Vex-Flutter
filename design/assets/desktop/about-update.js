@@ -1,7 +1,7 @@
 /* 原型使用离线状态演示；页面仅呈现普通用户需要的更新操作。 */
 (function () {
   const $ = id => document.getElementById(id);
-  let state = 'idle', scenario = 'available', retry = 'checking', timer, generation = 0;
+  let state = 'idle', scenario = 'current', retry = 'checking', timer, generation = 0;
   const failures = new Set();
   const labels = { idle:'AboutCheckUpdate', checking:'AboutCheckingUpdate', available:'AboutDownload', downloading:'AboutDownloading', downloaded:'AboutInstall', installing:'AboutInstalling', current:'AboutCheckUpdate', canceled:'AboutCheckUpdate', manual:'AboutOpenRelease', installed:'AboutCheckUpdate' };
   const failureMessages = { 'check-failed':'检查失败，请重试。', 'download-failed':'下载失败，请重试。', 'checksum-failed':'校验失败，请重新下载。', 'install-failed':'安装失败，请重试。' };
@@ -9,7 +9,7 @@
     $('vex-update').textContent = state === 'failed' ? VexL.label('重试') : VexL.get(labels[state]);
     $('vex-update').disabled = ['checking','downloading','installing'].includes(state);
     $('layer-about').dataset.updateState = state;
-    const key = { checking:'AboutCheckingUpdate', available:'AboutUpdateAvailable', downloading:'AboutDownloading', downloaded:'AboutDownloaded', installing:'AboutInstalling', current:'AboutUpToDate', canceled:'AboutCanceled' }[state];
+    const key = { available:'AboutUpdateAvailable', downloading:'AboutDownloading', downloaded:'AboutDownloaded', installing:'AboutInstalling', canceled:'AboutCanceled' }[state];
     const message = state === 'failed' ? VexL.label(failureMessages[scenario]) : state === 'installed' ? VexL.label('更新已安装。') : state === 'manual' ? VexL.label('请前往发布页下载安装包。') : key ? VexL.get(key).replace('{0}', '99.0.0') : '';
     $('vex-update-status').textContent = message;
     $('vex-update-status').hidden = !message;
@@ -27,6 +27,7 @@
       if (shouldFail && !failures.has(scenario)) { failures.add(scenario); state = 'failed'; }
       else state = next === 'checking' ? scenario === 'current' ? 'current' : scenario === 'missing' ? 'manual' : 'available' : next === 'downloading' ? 'downloaded' : 'installed';
       render();
+      if (state === 'current') VexProto.toast(VexL.get('AboutUpToDate'));
     }, 250);
   }
   $('vex-update').onclick = () => {

@@ -16,8 +16,10 @@ button:not(:disabled) { transition:background-color var(--vex-fast),border-color
 button:disabled { cursor:default; opacity:.45; }
 .menu-flyout,.submenu,.popover,.menu-popover,.typography-popover,.settings-popover { transform-origin:top left; animation:vex-menu-in var(--vex-fast) var(--vex-ease) both; border-radius:8px; }
 .menu-flyout { overflow:visible; }
-.menu-flyout>.flyout { overflow-y:auto; overflow-x:hidden; }
-body>.submenu { max-width:calc(100vw - 16px); max-height:calc(100vh - 16px); overflow-y:auto; overflow-x:hidden; z-index:1100; box-sizing:border-box; }
+.menu-flyout>.flyout,body>.submenu.flyout { width:max-content; max-width:none; max-height:none; overflow:visible; grid-auto-flow:column; grid-auto-columns:max-content; }
+.menu-column { display:flow-root; min-width:248px; }
+.menu-column+.menu-column { border-left:1px solid var(--border); margin-left:7px; padding-left:7px; }
+body>.submenu { z-index:1100; box-sizing:border-box; }
 .phone-sheet-host { position:absolute; inset:0; z-index:55; display:flex; align-items:flex-end; background:#0b211e52; animation:vex-fade-in var(--vex-duration) both; }
 .phone-sheet { box-sizing:border-box; width:100%; max-height:calc(100% - 52px); display:flex; flex-direction:column; background:var(--surface); color:var(--fg); border-radius:8px 8px 0 0; padding-bottom:max(18px,env(safe-area-inset-bottom)); box-shadow:0 -8px 36px #0b211e18; outline:none; overflow:hidden; transform:translateY(var(--sheet-drag,0px)); animation:vex-sheet-in 260ms var(--vex-ease) both; }
 .phone-sheet:focus-visible { outline:none; }

@@ -42,6 +42,8 @@
   var MENUS = [
     { key: 'file', label: '文件(F)', items: [
       { label: '新建文档', gesture: 'Ctrl+N', action: 'new' },
+      { label: '新建窗口', gesture: 'Ctrl+Shift+N', action: 'new-window' },
+      { label: '在新窗口打开当前文档', action: 'document-window' },
       { sep: true },
       { label: '打开文档…', gesture: 'Ctrl+O', action: 'open' },
       { label: '打开文件夹…', toast: '选择文件夹并载入文档列表（桌面版操作演示）' },
@@ -58,11 +60,11 @@
       { sep: true },
       { label: '保存', gesture: 'Ctrl+S', action: 'save' },
       { label: '另存为…', gesture: 'Ctrl+Shift+S', action: 'save' },
-      { label: '导出', sub: [
-        { label: 'HTML', action: 'export-html' }, { label: 'PDF', action: 'export-pdf' },
-        { label: 'PNG 长图', toast: 'PNG 长图导出（桌面版操作演示）' },
-        { label: 'Word（.docx）', toast: 'Word 导出（桌面版操作演示）' }
-      ]},
+      { sep: true },
+      { label: '导出 HTML', action: 'export-html' }, { label: '导出 PDF', action: 'export-pdf' },
+      { label: '导出 PNG 长图', toast: 'PNG 长图导出（桌面版操作演示）' },
+      { label: '导出 Word（.docx）', toast: 'Word 导出（桌面版操作演示）' },
+      { sep: true },
       { label: '打印预览', gesture: 'Ctrl+Shift+P', action: 'print' },
       { sep: true },
       { label: '文档属性', gesture: 'Alt+Enter', act: 'dlg-properties' },
@@ -95,37 +97,32 @@
     { key: 'view', label: '视图(V)', items: [
       { label: '编辑视图', check: true, action: 'view-edit' }, { label: '阅读视图', check: true, action: 'view-read' },
       { label: '思维导图', check: true, action: 'view-mindmap' },
-      { label: '编辑方式', sub: [
-        { label: '即时渲染', check: true, action: 'edit-instant' }, { label: '源码', check: true, action: 'edit-source' }
-      ]},
       { sep: true },
-      { label: '文档导航', sub: [
-        { label: '侧边栏', check: true, action: 'toggle-sidebar' }, { label: '文档列表', action: 'pane-files' }, { label: '文档大纲', action: 'pane-outline' }
-      ]},
-      { label: '编辑显示', sub: [
-        { label: '显示行号', check: true, action: 'toggle-lines' },
-        { label: '显示文档水印', check: true, action: 'toggle-watermark' },
-        { label: '自动配对输入', check: true, action: 'toggle-pairs' }, { label: '显示词数', check: true, action: 'toggle-word-count' }
-      ]},
-      { label: '写作辅助', sub: [
-        { label: '演示模式', gesture: 'F5', action: 'presentation' },
-        { label: '专注模式', gesture: 'F8', check: true, action: 'toggle-focus' }, { label: '打字机模式', check: true, action: 'toggle-typewriter' },
-        { label: '界面动效', check: true, action: 'toggle-motion' }
-      ]},
+      { label: '即时渲染', check: true, action: 'edit-instant' }, { label: '源码', check: true, action: 'edit-source' },
+      { sep: true },
+      { label: '侧边栏', check: true, action: 'toggle-sidebar' }, { label: '文档列表', action: 'pane-files' }, { label: '文档大纲', action: 'pane-outline' },
+      { sep: true },
+      { label: '显示行号', check: true, action: 'toggle-lines' },
+      { label: '显示文档水印', check: true, action: 'toggle-watermark' },
+      { label: '自动配对输入', check: true, action: 'toggle-pairs' }, { label: '显示词数', check: true, action: 'toggle-word-count' },
+      { sep: true },
+      { label: '演示模式', gesture: 'F5', action: 'presentation' },
+      { label: '专注模式', gesture: 'F8', check: true, action: 'toggle-focus' }, { label: '打字机模式', check: true, action: 'toggle-typewriter' },
+      { label: '界面动效', check: true, action: 'toggle-motion' },
       { sep: true },
       { label: '界面配色', sub: THEME_ITEMS },
       { label: 'Markdown 排版', sub: VexTypes.map(function(t){return {label:t.label,action:'typography-select',arg:t.key,check:true};}).concat([{sep:true},{label:'紧凑布局',action:'toggle-compact',check:true}]) },
-      { label: '窗口', sub: [
-        { label: '全屏', gesture: 'F11', check: true, action: 'toggle-fullscreen' },
-        { label: '保持窗口在最前', check: true, action: 'toggle-topmost' }, { label: '最大化 / 还原', action: 'maximize' }
-      ]}
+      { label: '导图样式…', action: 'map-appearance' },
+      { sep: true },
+      { label: '全屏', gesture: 'F11', check: true, action: 'toggle-fullscreen' },
+      { label: '保持窗口在最前', check: true, action: 'toggle-topmost' }, { label: '最大化 / 还原', action: 'maximize' }
     ]},
     { key: 'tools', label: '工具(T)', items: [
       { label: '导图显示设置', action: 'map-settings' }, { label: '字数统计', act: 'dlg-statistics' },
       { label: '刷新内容', gesture: 'F5', action: 'refresh' }, { sep: true },
-      { label: '复制到公众号', toast: '公众号富文本复制（桌面版操作演示）' },
-      { label: '复制到知乎', toast: '知乎富文本复制（桌面版操作演示）' },
-      { label: '复制到稀土掘金', toast: '掘金富文本复制（桌面版操作演示）' },
+      { label: '复制到微信公众号', action: 'copy-wechat' },
+      { label: '复制到知乎', action: 'copy-zhihu' },
+      { label: '复制到稀土掘金', action: 'copy-juejin' },
       { sep: true }, { label: 'MCP 设置', act: 'dlg-mcp' }, { label: 'MCP 审计', toast: '查看调用记录与操作结果（桌面版操作演示）' }
     ]},
     { key: 'help', label: '帮助(H)', items: [
@@ -141,7 +138,7 @@
   var toolsMenu = MENUS.find(function (menu) { return menu.key === 'tools'; });
   toolsMenu.items.unshift({label:'偏好设置…',gesture:'Ctrl+,',action:'preferences'},{sep:true});
   toolsMenu.items = toolsMenu.items.map(function (item) { return item.label === 'MCP 设置' ? {label:'MCP 设置',action:'preferences-mcp'} : item.label === 'MCP 审计' ? {label:'MCP 审计',action:'mcp-audit'} : item; });
-  if (new URLSearchParams(location.search).get('platform') === 'macos') MENUS.unshift({key:'app',label:'Vex',items:[{label:'关于 Vex',act:'dlg-about'},{label:'偏好设置…',gesture:'⌘,',action:'preferences'},{sep:true},{label:'退出 Vex',gesture:'⌘Q',action:'close'}]});
+  if (new URLSearchParams(location.search).get('platform') === 'macos') MENUS.unshift({key:'app',label:'Vex',items:[{label:'关于 Vex',act:'dlg-about'},{label:'偏好设置…',gesture:'⌘,',action:'preferences'},{sep:true},{label:'退出 Vex',gesture:'⌘Q',action:'exit-app'}]});
   VexProto.menuData = MENUS;
   var menuNav = document.querySelector('.tb-menu');
   menuNav.innerHTML = MENUS.map(function (menu) { return '<button class="tb-menuitem" type="button" aria-haspopup="true" aria-expanded="false">' + menu.label + '</button>'; }).join('');
@@ -163,12 +160,64 @@
     openMenuKey = null;
     document.querySelectorAll('.tb-menuitem.open').forEach(function (m) { m.classList.remove('open'); });
     document.querySelectorAll('.tb-menuitem').forEach(function (m) { m.setAttribute('aria-expanded', 'false'); });
+    window.dispatchEvent(new CustomEvent('vex-menu-positioned'));
   }
   VexProto.closeMenu = closeOpenMenu;
 
+  function fitMenu(menu, availableHeight) {
+    var rows = menu._rows || (menu._rows = Array.from(menu.querySelectorAll('.menu-item, .menu-sep')));
+    menu.replaceChildren.apply(menu, rows);
+    menu.style.display = 'block';
+    var style = getComputedStyle(menu);
+    var chrome = ['paddingTop','paddingBottom','borderTopWidth','borderBottomWidth'].reduce(function (sum, key) { return sum + (parseFloat(style[key]) || 0); }, 0);
+    var limit = Math.max(36, availableHeight - chrome);
+    var groups = [], group = { rows: [], height: 0, separator: null };
+    rows.forEach(function (row) {
+      if (row.classList.contains('menu-sep')) {
+        if (group.rows.length) groups.push(group);
+        var margins = getComputedStyle(row);
+        group = { rows: [], height: 0, separator: row, gap: row.offsetHeight + parseFloat(margins.marginTop) + parseFloat(margins.marginBottom) };
+      } else { group.rows.push(row); group.height += row.offsetHeight; }
+    });
+    if (group.rows.length) groups.push(group);
+    // Keep related commands together; only split groups taller than the window.
+    var units = groups.flatMap(function (group) {
+      return group.height <= limit ? [group] : group.rows.map(function (row, index) {
+        return { rows: [row], height: row.offsetHeight, separator: index ? null : group.separator, gap: group.gap };
+      });
+    });
+    function partition(height) {
+      var columns = [], column = [], used = 0;
+      units.forEach(function (unit) {
+        var gap = column.length && unit.separator ? unit.gap : 0;
+        if (column.length && used + gap + unit.height > height) { columns.push(column); column = []; used = 0; gap = 0; }
+        column.push(unit); used += gap + unit.height;
+      });
+      if (column.length) columns.push(column);
+      return columns;
+    }
+    var count = partition(limit).length;
+    var low = Math.max.apply(null, units.map(function (unit) { return unit.height; })), high = Math.floor(limit);
+    while (low < high) {
+      var middle = Math.floor((low + high) / 2);
+      if (partition(middle).length <= count) high = middle; else low = middle + 1;
+    }
+    var columns = partition(low);
+    menu.replaceChildren();
+    columns.forEach(function (units) {
+      var column = document.createElement('div'); column.className = 'menu-column'; column.setAttribute('role','presentation');
+      units.forEach(function (unit, index) {
+        if (index && unit.separator) column.appendChild(unit.separator);
+        unit.rows.forEach(function (row) { column.appendChild(row); });
+      });
+      menu.appendChild(column);
+    });
+    menu.style.display = 'grid';
+  }
+
   function buildItem(it, toastAll, depth) {
     depth = depth || 0;
-    if (it.sep) { var s = document.createElement('div'); s.className = 'menu-sep'; return s; }
+    if (it.sep) { var s = document.createElement('div'); s.className = 'menu-sep'; s.setAttribute('role','separator'); return s; }
     if (it.check && it.action && VexProto.isActionChecked) it.on = VexProto.isActionChecked(it.action, it);
     if (it.action === 'theme') it.on = document.documentElement.dataset.themeMode === it.arg;
     if (it.action === 'palette') it.on = document.documentElement.dataset.palette === it.arg;
@@ -183,12 +232,12 @@
     el.addEventListener('keydown', function (event) {
       if (event.target !== el) return;
       if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); el.click(); }
-      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); event.stopPropagation(); var siblings = Array.from(el.parentElement.children).filter(function (item) { return item.classList.contains('menu-item') && item.getAttribute('aria-disabled') !== 'true'; }); siblings[(siblings.indexOf(el) + (event.key === 'ArrowDown' ? 1 : siblings.length - 1)) % siblings.length]?.focus(); }
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); event.stopPropagation(); var siblings = Array.from(el.closest('[role=menu]').querySelectorAll('.menu-item:not([aria-disabled=true])')); siblings[(siblings.indexOf(el) + (event.key === 'ArrowDown' ? 1 : siblings.length - 1)) % siblings.length]?.focus(); }
       if (event.key === 'ArrowRight' && el._sub) { event.preventDefault(); event.stopPropagation(); el._placeSub(); el._sub.querySelector('.menu-item:not([aria-disabled=true])')?.focus(); }
-      if (event.key === 'ArrowLeft' && el.parentElement.classList.contains('submenu')) { event.preventDefault(); event.stopPropagation(); var parent = el.parentElement; hideSubmenu(parent); parent._owner.focus(); }
+      if (event.key === 'ArrowLeft' && el.closest('.submenu')) { event.preventDefault(); event.stopPropagation(); var parent = el.closest('.submenu'); hideSubmenu(parent); parent._owner.focus(); }
     });
     el.className = 'menu-item' + (it.danger ? ' danger' : '') + (it.on ? ' checked' : '') + (it.sub ? ' has-sub' : '');
-    el.addEventListener('mouseenter',function () { submenus.filter(function (sub) {return sub._depth >= depth && sub !== el._sub;}).forEach(hideSubmenu); });
+    el.addEventListener('mouseenter',function () { if(window.VexGuide?.active&&!VexGuide.allows(el))return;submenus.filter(function (sub) {return sub._depth >= depth && sub !== el._sub;}).forEach(hideSubmenu); });
     var indicator = document.createElement('span'); indicator.className = 'menu-state'; indicator.setAttribute('aria-hidden', 'true'); indicator.textContent = it.on ? '✓' : ''; el.appendChild(indicator);
     var label = document.createElement('span'); label.className = 'menu-label'; label.textContent = window.VexL ? VexL.label(it.label) : it.label; el.appendChild(label);
     if (it.gesture) {
@@ -217,15 +266,17 @@
         var r = el.getBoundingClientRect();
         sub.style.display = 'block';
         sub.style.position = 'fixed';
-        var right = r.right + 4, left = r.left - sub.offsetWidth - 4;
+        fitMenu(sub, innerHeight - 16);
+        var parent = el.closest('[role=menu]').getBoundingClientRect();
+        var right = parent.right + 4, left = parent.left - sub.offsetWidth - 4;
         sub.style.left = Math.max(8, Math.min(right + sub.offsetWidth <= innerWidth - 8 ? right : left, innerWidth - sub.offsetWidth - 8)) + 'px';
         sub.style.top = Math.max(8, Math.min(r.top - 6, window.innerHeight - sub.offsetHeight - 8)) + 'px';
         el.setAttribute('aria-expanded','true');
         window.dispatchEvent(new CustomEvent('vex-menu-positioned'));
       }
       function branchHovered(menu) { return menu.matches(':hover') || submenus.some(function (child) { return child._owner.closest('.submenu') === menu && child.style.display === 'block' && branchHovered(child); }); }
-      function scheduleHide() { clearTimeout(sub._hideTimer); sub._hideTimer = setTimeout(function () { if (!branchHovered(sub) && !el.matches(':hover')) hideSubmenu(sub); },180); }
-      el.addEventListener('mouseenter', placeSub);
+      function scheduleHide() { clearTimeout(sub._hideTimer); sub._hideTimer = setTimeout(function () { if (!window.VexGuide?.active && !branchHovered(sub) && !el.matches(':hover')) hideSubmenu(sub); },180); }
+      el.addEventListener('mouseenter', function () { if(!window.VexGuide?.active||VexGuide.allows(el))placeSub(); });
       el.addEventListener('mouseleave', scheduleHide);
       sub.addEventListener('mouseenter', function () { clearTimeout(sub._hideTimer); });
       sub.addEventListener('mouseleave',scheduleHide);
@@ -285,10 +336,12 @@
       item.setAttribute('aria-expanded', 'true');
       box.setAttribute('role', 'menu');
       host.style.display = 'block';
-      host.style.left = Math.max(0, Math.min(item.offsetLeft, bar.offsetWidth - 268)) + 'px';
+      host.style.left = item.getBoundingClientRect().left - bar.getBoundingClientRect().left + 'px';
       host.style.top = (nav.offsetTop + nav.offsetHeight + 2) + 'px';
-      box.style.maxHeight = Math.max(120,innerHeight-host.getBoundingClientRect().top-12) + 'px';
-      box.addEventListener('scroll',function () { submenus.forEach(hideSubmenu); });
+      var windowBottom = Math.min(innerHeight,nav.closest('.app-window').getBoundingClientRect().bottom);
+      fitMenu(box, windowBottom - box.getBoundingClientRect().top - 12);
+      var app = nav.closest('.app-window').getBoundingClientRect(), bounds = host.getBoundingClientRect();
+      host.style.left = Math.max(app.left + 8, Math.min(bounds.left, app.right - bounds.width - 8)) - bar.getBoundingClientRect().left + 'px';
       openMenuKey = data.key;
     }
 
@@ -304,6 +357,7 @@
       });
       item.addEventListener('keydown', function (event) { if (event.key === 'ArrowDown') { event.preventDefault(); openFor(item); host.querySelector('.menu-item').focus(); } });
       item.addEventListener('mouseenter', function () {
+        if(window.VexGuide?.active&&!VexGuide.allows(item))return;
         if (openMenuKey && openMenuKey !== key) {
           document.querySelectorAll('.tb-menuitem.open').forEach(function (m) { m.classList.remove('open'); });
           item.classList.add('open');
