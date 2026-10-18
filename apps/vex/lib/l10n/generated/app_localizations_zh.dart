@@ -188,6 +188,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get checking => '正在检查…';
 
   @override
+  String get updateCurrent => '当前已是最新正式版本。';
+
+  @override
+  String updateAvailable(String version) {
+    return '发现新版本 $version。';
+  }
+
+  @override
+  String get updateLocalNewer => '本机版本比最新正式版更新，无需降级。';
+
+  @override
+  String get updateInvalidResponse => '发布信息不完整，暂时无法判断是否需要更新。';
+
+  @override
   String get noRelease => '尚无已发布的正式版本。';
 
   @override
@@ -1712,6 +1726,20 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get checking => '正在檢查…';
+
+  @override
+  String get updateCurrent => '目前已是最新正式版本。';
+
+  @override
+  String updateAvailable(String version) {
+    return '發現新版本 $version。';
+  }
+
+  @override
+  String get updateLocalNewer => '本機版本比最新正式版更新，無需降級。';
+
+  @override
+  String get updateInvalidResponse => '發行資訊不完整，暫時無法判斷是否需要更新。';
 
   @override
   String get noRelease => '尚未發布正式版本。';

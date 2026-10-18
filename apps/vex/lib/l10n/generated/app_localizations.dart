@@ -455,6 +455,30 @@ abstract class AppLocalizations {
   /// **'正在检查…'**
   String get checking;
 
+  /// No description provided for @updateCurrent.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前已是最新正式版本。'**
+  String get updateCurrent;
+
+  /// No description provided for @updateAvailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'发现新版本 {version}。'**
+  String updateAvailable(String version);
+
+  /// No description provided for @updateLocalNewer.
+  ///
+  /// In zh, this message translates to:
+  /// **'本机版本比最新正式版更新，无需降级。'**
+  String get updateLocalNewer;
+
+  /// No description provided for @updateInvalidResponse.
+  ///
+  /// In zh, this message translates to:
+  /// **'发布信息不完整，暂时无法判断是否需要更新。'**
+  String get updateInvalidResponse;
+
   /// No description provided for @noRelease.
   ///
   /// In zh, this message translates to:

@@ -190,6 +190,20 @@ class AppLocalizationsJa extends AppLocalizations {
   String get checking => '確認中…';
 
   @override
+  String get updateCurrent => '最新の正式版を使用しています。';
+
+  @override
+  String updateAvailable(String version) {
+    return '新しいバージョン $version が利用できます。';
+  }
+
+  @override
+  String get updateLocalNewer => '使用中のバージョンは最新の正式版より新しいものです。';
+
+  @override
+  String get updateInvalidResponse => 'リリース情報が不完全なため、更新を確認できません。';
+
+  @override
   String get noRelease => '正式版はまだ公開されていません。';
 
   @override

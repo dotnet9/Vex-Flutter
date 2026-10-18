@@ -192,6 +192,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get checking => 'Checking…';
 
   @override
+  String get updateCurrent => 'You have the latest stable version.';
+
+  @override
+  String updateAvailable(String version) {
+    return 'Version $version is available.';
+  }
+
+  @override
+  String get updateLocalNewer =>
+      'Your local version is newer than the latest stable release.';
+
+  @override
+  String get updateInvalidResponse =>
+      'Release information is incomplete. Cannot determine update status.';
+
+  @override
   String get noRelease => 'No stable version has been published yet.';
 
   @override

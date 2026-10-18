@@ -12,6 +12,7 @@ import 'package:vex_mindmap/vex_mindmap.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/services/export_service.dart';
+import '../../data/services/update_service.dart';
 import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
 import 'workspace_pickers.dart';
@@ -318,10 +319,11 @@ Future<void> showSummarySettings(BuildContext context, WorkspaceViewModel vm) =>
 Future<void> showSettings(BuildContext context, WorkspaceViewModel vm) =>
     showPreferences(context, vm);
 
-Future<void> showAbout(BuildContext context) => showDialog<void>(
-  context: context,
-  builder: (context) => const _AboutDialog(),
-);
+Future<void> showAbout(BuildContext context, {UpdateChecker? updates}) =>
+    showDialog<void>(
+      context: context,
+      builder: (context) => _AboutDialog(updates: updates),
+    );
 
 Future<PackageInfo?> _packageInfo() async {
   try {
@@ -349,51 +351,59 @@ Future<void> _showLicenses(BuildContext context) async {
 }
 
 class _AboutDialog extends StatefulWidget {
-  const _AboutDialog();
+  const _AboutDialog({this.updates});
+  final UpdateChecker? updates;
   @override
   State<_AboutDialog> createState() => _AboutDialogState();
 }
 
 class _AboutDialogState extends State<_AboutDialog> {
   late final Future<PackageInfo?> _info = _packageInfo();
+  late final UpdateChecker _updates = widget.updates ?? GitHubUpdateChecker();
+  Uri _release = UpdateCheckResult.releases;
   String _update = '';
   bool _checking = false;
   Future<void> _check() async {
     setState(() {
       _checking = true;
       _update = context.l10n.checking;
+      _release = UpdateCheckResult.releases;
     });
-    final client = HttpClient()
-      ..connectionTimeout = const Duration(seconds: 15);
     try {
-      final request = await client.getUrl(
-        Uri.parse(
-          'https://api.github.com/repos/dotnet9/Vex-Flutter/releases/latest',
-        ),
-      );
       final info = await _info;
-      request.headers.set('User-Agent', 'Vex/${info?.version ?? 'dev'}');
-      final response = await request.close().timeout(
-        const Duration(seconds: 20),
-      );
-      final body = await utf8.decoder.bind(response).join();
+      if (!mounted) return;
+      final result = await _updates.check(info?.version);
       if (!mounted) return;
       setState(() {
-        if (response.statusCode == 404) {
-          _update = context.l10n.noRelease;
-        } else if (response.statusCode != 200) {
-          _update = context.l10n.updateHttpError(response.statusCode);
-        } else {
-          final data = jsonDecode(body) as Map;
-          _update = context.l10n.latestVersion(data['tag_name'].toString());
-        }
+        _release = result.releasePage;
+        _update = switch (result.status) {
+          UpdateStatus.noRelease => context.l10n.noRelease,
+          UpdateStatus.current => context.l10n.updateCurrent,
+          UpdateStatus.available => context.l10n.updateAvailable(result.tag!),
+          UpdateStatus.localNewer => context.l10n.updateLocalNewer,
+          UpdateStatus.unknownCurrent => context.l10n.latestVersion(
+            result.tag!,
+          ),
+        };
       });
+    } on UpdateHttpException catch (error) {
+      if (mounted)
+        setState(
+          () => _update = context.l10n.updateHttpError(error.statusCode),
+        );
+    } on FormatException {
+      if (mounted) setState(() => _update = context.l10n.updateInvalidResponse);
     } catch (_) {
       if (mounted) setState(() => _update = context.l10n.githubUnavailable);
     } finally {
-      client.close();
       if (mounted) setState(() => _checking = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _updates.close();
+    super.dispose();
   }
 
   @override
@@ -467,7 +477,34 @@ class _AboutDialogState extends State<_AboutDialog> {
         if (_update.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(left: 64, bottom: 10),
-            child: Text(_update, style: const TextStyle(fontSize: 12)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_update, style: const TextStyle(fontSize: 12)),
+                if (!_checking)
+                  AppButton(
+                    key: const ValueKey('about-open-release'),
+                    label: context.l10n.releasesDownloads,
+                    height: 28,
+                    padding: 0,
+                    onPressed: () async {
+                      try {
+                        if (await launchUrl(
+                          _release,
+                          mode: LaunchMode.externalApplication,
+                        ))
+                          return;
+                      } catch (_) {
+                        // Keep the dialog usable when the OS cannot open a browser.
+                      }
+                      if (mounted)
+                        setState(
+                          () => _update = context.l10n.githubUnavailable,
+                        );
+                    },
+                  ),
+              ],
+            ),
           ),
         _row(
           context.l10n.aboutAuthorLabel,
