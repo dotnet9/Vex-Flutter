@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:desktop_drop/desktop_drop.dart';
@@ -50,6 +51,18 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       _guideMapToolbar = GlobalKey();
   final _guideTypography = GlobalKey(), _guideFileMenu = GlobalKey();
   final _guideSave = GlobalKey();
+  final _guideSidebar = GlobalKey(), _guideMobileViews = GlobalKey();
+  final _guideLayoutPopup = GlobalKey(), _guideTypographyPopup = GlobalKey();
+  final _guideMapPopup = GlobalKey();
+  final _guideFileCommands = GlobalKey(), _guideShareCommands = GlobalKey();
+  GlobalKey get _guideCommands =>
+      vm.guideStep == 6 ? _guideShareCommands : _guideFileCommands;
+  final _guideOverlay = OverlayPortalController();
+  int? _preparedGuideStep;
+  WorkspaceViewport? _preparedGuideViewport;
+  bool _guideTouchMenu = false;
+  ModalRoute<String>? _guideTouchRoute;
+  int _guideTouchGeneration = 0;
   final _find = TextEditingController(), _replace = TextEditingController();
   final _findFocus = FocusNode();
   final _layoutsMenu = MenuController(), _typographyMenu = MenuController();
@@ -351,6 +364,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   }
 
   void _action(String action) {
+    if (vm.guiding && const ['save', 'save-as', 'save-all'].contains(action)) {
+      unawaited(_run(_saveGuideCopy));
+      return;
+    }
     if (const ['cut', 'paste'].contains(action) &&
         _focusedClipboardAction(action)) {
       return;
@@ -750,6 +767,15 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     await showExportDialog(context, vm);
   }
 
+  Future<void> _saveGuideCopy() async {
+    final source = vm.editor.text;
+    await vm.files.saveAs(
+      '${vm.strings.quickStart}.md',
+      Uint8List.fromList(utf8.encode(source)),
+      dialogTitle: vm.strings.saveAs,
+    );
+  }
+
   bool _copyingForPublishing = false;
 
   Future<void> _copyForPublishing(PublishingPlatform platform) async {
@@ -861,6 +887,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           height: constraints.maxHeight,
           desktop: _desktop,
         );
+        _scheduleGuideStep(state);
         final phone = state.viewport == WorkspaceViewport.phone;
         final desktop = _desktop && !phone;
         final showSidebar = !phone && state.sidebar && !state.focusMode;
@@ -911,6 +938,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                       width: 280,
                       child: SafeArea(
                         child: WorkspaceSidebar(
+                          key: _guideSidebar,
                           vm: state,
                           onAction: _action,
                           onNavigate: () => Navigator.pop(context),
@@ -1017,6 +1045,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                       SizedBox(
                                         width: width,
                                         child: WorkspaceSidebar(
+                                          key: _guideSidebar,
                                           vm: state,
                                           onAction: _action,
                                           onOpenPath: (path) => unawaited(
@@ -1075,7 +1104,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                           ),
                         ),
                       ),
-                      if (state.guiding) Positioned.fill(child: _guide(state)),
+                      OverlayPortal(
+                        overlayLocation: OverlayChildLocation.rootOverlay,
+                        controller: _guideOverlay,
+                        overlayChildBuilder: (context) => Positioned.fill(
+                          child: SafeArea(child: _guide(state)),
+                        ),
+                      ),
                       if (state.presentation)
                         Positioned.fill(
                           child: WorkspacePresentation(
@@ -1267,7 +1302,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                 menu.id,
                                 MenuController.new,
                               ),
-                              menuChildren: _menuChildren(menu.children),
+                              menuChildren: _guideMenuChildren(menu),
                               child: Text(workspaceMenuLabel(menu.label)),
                             ),
                         ],
@@ -1475,7 +1510,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   }) => MenuAnchor(
     key: key,
     controller: _topMenus.putIfAbsent(menu.id, MenuController.new),
-    menuChildren: _menuChildren(menu.children),
+    menuChildren: _guideMenuChildren(menu),
     builder: (context, controller, _) => MouseRegion(
       onEnter: (_) {
         if (!controller.isOpen && _topMenus.values.any((menu) => menu.isOpen)) {
@@ -1512,6 +1547,23 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         _action,
         availableSize: vm.windowSize,
       );
+
+  List<Widget> _guideMenuChildren(WorkspaceMenuEntry menu) {
+    final items = _menuChildren(menu.children);
+    final selected =
+        vm.guiding &&
+        ((vm.guideStep == 5 && menu.id == 'file') ||
+            (vm.guideStep == 6 && menu.id == 'tools'));
+    return selected
+        ? [
+            Column(
+              key: _guideCommands,
+              mainAxisSize: MainAxisSize.min,
+              children: items,
+            ),
+          ]
+        : items;
+  }
 
   Future<void> _touchMenu(double width) async {
     final action = await showWorkspaceTouchMenu(
@@ -1551,6 +1603,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           ],
           if (!phone)
             WorkspacePickerAnchor(
+              popupKey: _guideLayoutPopup,
               vm: state,
               picker: WorkspacePicker.layout,
               controller: _layoutsMenu,
@@ -1721,6 +1774,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   Widget _typographyPicker(WorkspaceViewModel state, {bool iconOnly = false}) =>
       WorkspacePickerAnchor(
         key: _guideTypography,
+        popupKey: _guideTypographyPopup,
         vm: state,
         picker: WorkspacePicker.typography,
         controller: _typographyMenu,
@@ -1855,6 +1909,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       children: [
         WorkspacePanes(
           mapAppearanceController: _mapAppearanceMenu,
+          mapAppearancePopupKey: _guideMapPopup,
           typographyControl: _typographyPicker(state),
           editingKey: _guideEditing,
           mapKey: _guideMap,
@@ -1934,6 +1989,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   }
 
   Widget _mobileNav(WorkspaceViewModel state) => Container(
+    key: _guideMobileViews,
     height: 56,
     decoration: BoxDecoration(
       color: Theme.of(context).colorScheme.surfaceContainerLow,
@@ -1970,15 +2026,17 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       (context.l10n.guideArrangeTitle, context.l10n.guideArrangeBody),
       (context.l10n.guideTypographyTitle, context.l10n.guideTypographyBody),
       (context.l10n.guideFinishTitle, context.l10n.guideFinishBody),
+      (context.l10n.guideShareTitle, context.l10n.guideShareBody),
     ];
     final target = switch (state.guideStep) {
-      2 => _guideMap,
-      3 => _guideMapToolbar,
-      4 => _guideTypography,
-      5 =>
-        _macOS && state.viewport != WorkspaceViewport.phone
-            ? _guideSave
-            : _guideFileMenu,
+      1 => _guideSidebar,
+      2 => _guideMapPopup,
+      3 =>
+        state.viewport == WorkspaceViewport.phone
+            ? _guideMobileViews
+            : _guideLayoutPopup,
+      4 => _guideTypographyPopup,
+      5 || 6 => _guideCommands,
       _ => _guideEditing,
     };
     return WorkspaceGuide(
@@ -1986,8 +2044,135 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       step: state.guideStep,
       title: steps[state.guideStep].$1,
       description: steps[state.guideStep].$2,
-      onClose: state.endGuide,
-      onStep: state.advanceGuide,
+      onClose: _endGuide,
+      onStep: (step) {
+        _closeGuidePanels();
+        state.advanceGuide(step);
+      },
     );
+  }
+
+  void _closeGuidePanels() {
+    for (final menu in _topMenus.values) {
+      menu.close();
+    }
+    _overflowMenu.close();
+    _layoutsMenu.close();
+    _typographyMenu.close();
+    _mapAppearanceMenu.close();
+    if (_guideTouchMenu) {
+      _guideTouchMenu = false;
+      _guideTouchGeneration++;
+      final route = _guideTouchRoute;
+      _guideTouchRoute = null;
+      if (route != null) _dismissGuideRoute(route);
+    }
+    _scaffold.currentState?.closeDrawer();
+  }
+
+  void _dismissGuideRoute(ModalRoute<String> route) {
+    final navigator = route.navigator;
+    if (navigator == null || !route.isActive) return;
+    if (route.isCurrent) {
+      navigator.pop();
+    } else {
+      navigator.removeRoute(route);
+    }
+  }
+
+  void _endGuide() {
+    _closeGuidePanels();
+    _guideOverlay.hide();
+    vm.endGuide();
+  }
+
+  void _scheduleGuideStep(WorkspaceViewModel state) {
+    final step = state.guiding ? state.guideStep : null;
+    final viewport = state.viewport;
+    if (_preparedGuideStep == step && _preparedGuideViewport == viewport) {
+      return;
+    }
+    _preparedGuideStep = step;
+    _preparedGuideViewport = viewport;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          _preparedGuideStep != step ||
+          _preparedGuideViewport != viewport) {
+        return;
+      }
+      _closeGuidePanels();
+      if (step == null) {
+        _guideOverlay.hide();
+        return;
+      }
+      switch (step) {
+        case 1:
+          if (state.viewport == WorkspaceViewport.phone) {
+            _scaffold.currentState?.openDrawer();
+          }
+        case 2:
+          _mapAppearanceMenu.open();
+        case 3:
+          if (state.viewport != WorkspaceViewport.phone) _layoutsMenu.open();
+        case 4:
+          _typographyMenu.open();
+        case 5 || 6:
+          final id = step == 5 ? 'file' : 'tools';
+          if (_desktop &&
+              !_macOS &&
+              state.viewport != WorkspaceViewport.phone) {
+            _openTopMenu(id);
+          } else {
+            final menu = _menus(state.windowSize.width)
+                .firstWhere((item) => item.id == id);
+            final commands = menu.children
+                .where(
+                  (item) => step == 5
+                      ? const ['save', 'save-as'].contains(item.id) ||
+                            item.id.startsWith('export:')
+                      : item.id.startsWith('publish:'),
+                )
+                .toList();
+            _guideTouchMenu = true;
+            final generation = ++_guideTouchGeneration;
+            unawaited(
+              showWorkspaceTouchMenu(
+                context,
+                commands,
+                title: workspaceMenuLabel(menu.label),
+                contentKey: _guideCommands,
+                onRoute: (route) {
+                  if (generation == _guideTouchGeneration) {
+                    _guideTouchRoute = route;
+                  } else {
+                    WidgetsBinding.instance.addPostFrameCallback(
+                      (_) => _dismissGuideRoute(route),
+                    );
+                  }
+                },
+              ).then((action) {
+                if (generation == _guideTouchGeneration) {
+                  _guideTouchMenu = false;
+                  _guideTouchRoute = null;
+                }
+                if (mounted &&
+                    generation == _guideTouchGeneration &&
+                    action != null &&
+                    state.guiding &&
+                    state.guideStep == step) {
+                  _action(action);
+                }
+              }),
+            );
+          }
+      }
+      // Put the card above the actual menu/picker, then measure its final bounds.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && state.guiding && state.guideStep == step) {
+          _guideOverlay.show();
+        }
+      });
+      WidgetsBinding.instance.scheduleFrame();
+    });
   }
 }

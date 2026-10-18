@@ -1418,13 +1418,13 @@ abstract class AppLocalizations {
   /// No description provided for @guideViewsTitle.
   ///
   /// In zh, this message translates to:
-  /// **'两个视角，同一份内容'**
+  /// **'文件与大纲'**
   String get guideViewsTitle;
 
   /// No description provided for @guideViewsBody.
   ///
   /// In zh, this message translates to:
-  /// **'左侧编辑源码，右侧立即查看正文。试着添加一个标题。'**
+  /// **'文件页切换文档，大纲帮你定位章节。试着点击一个章节。'**
   String get guideViewsBody;
 
   /// No description provided for @guideMapTitle.
@@ -1436,19 +1436,19 @@ abstract class AppLocalizations {
   /// No description provided for @guideMapBody.
   ///
   /// In zh, this message translates to:
-  /// **'导图显示章节与正文摘要。拖动画布、折叠分支，试试双击章节。'**
+  /// **'用导图整理章节，也可以试选不同的结构和风格；双击章节修改标题。'**
   String get guideMapBody;
 
   /// No description provided for @guideArrangeTitle.
   ///
   /// In zh, this message translates to:
-  /// **'直接整理章节'**
+  /// **'边写边看全局'**
   String get guideArrangeTitle;
 
   /// No description provided for @guideArrangeBody.
   ///
   /// In zh, this message translates to:
-  /// **'使用新增章节和编排工具，修改标题、正文、顺序或层级。所有改动都可以撤销。'**
+  /// **'试选适合屏幕的视图组合，源码、正文和导图始终同步。手机保持单视图。'**
   String get guideArrangeBody;
 
   /// No description provided for @guideTypographyTitle.
@@ -1460,19 +1460,19 @@ abstract class AppLocalizations {
   /// No description provided for @guideTypographyBody.
   ///
   /// In zh, this message translates to:
-  /// **'打开排版，比较六种正文样式。配色与排版不会改变原文。'**
+  /// **'试选九套正文排版，面板保持打开方便比较。正文排版与界面配色分别设置。'**
   String get guideTypographyBody;
 
   /// No description provided for @guideFinishTitle.
   ///
   /// In zh, this message translates to:
-  /// **'开始自己的写作'**
+  /// **'保存，也方便带走'**
   String get guideFinishTitle;
 
   /// No description provided for @guideFinishBody.
   ///
   /// In zh, this message translates to:
-  /// **'完成后恢复进入引导前的内容和撤销历史，再打开或新建自己的文档。'**
+  /// **'保存 Markdown，或把文章导出。演练内容只保存副本，不覆盖原文；结束后恢复原文与撤销历史。'**
   String get guideFinishBody;
 
   /// No description provided for @endGuide.

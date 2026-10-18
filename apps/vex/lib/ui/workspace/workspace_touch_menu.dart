@@ -18,23 +18,29 @@ Future<String?> showWorkspaceTouchMenu(
   BuildContext context,
   List<WorkspaceMenuEntry> menus, {
   String? title,
+  GlobalKey? contentKey,
+  ValueChanged<ModalRoute<String>>? onRoute,
 }) => showModalBottomSheet<String>(
   context: context,
   isScrollControlled: true,
   useSafeArea: true,
   showDragHandle: false,
   constraints: const BoxConstraints(maxWidth: 520),
-  builder: (context) => Padding(
-    padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-    child: SafeArea(
-      top: false,
-      child: _TouchMenu(menus: menus, title: title),
-    ),
-  ),
+  builder: (context) {
+    final route = ModalRoute.of<String>(context);
+    if (route != null) onRoute?.call(route);
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SafeArea(
+        top: false,
+        child: _TouchMenu(key: contentKey, menus: menus, title: title),
+      ),
+    );
+  },
 );
 
 class _TouchMenu extends StatefulWidget {
-  const _TouchMenu({required this.menus, this.title});
+  const _TouchMenu({super.key, required this.menus, this.title});
   final List<WorkspaceMenuEntry> menus;
   final String? title;
   @override

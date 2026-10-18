@@ -143,17 +143,23 @@ class WorkspacePickerAnchor extends StatelessWidget {
     required this.picker,
     required this.controller,
     required this.child,
+    this.popupKey,
   });
   final WorkspaceViewModel vm;
   final WorkspacePicker picker;
   final MenuController controller;
   final Widget child;
+  final GlobalKey? popupKey;
 
   @override
   Widget build(BuildContext context) {
     final width = math.min(
       picker == WorkspacePicker.typography ? 650.0 : 496.0,
-      vm.windowSize.width - 24,
+      vm.guiding &&
+              vm.windowSize.shortestSide < 600 &&
+              vm.windowSize.width > vm.windowSize.height
+          ? vm.windowSize.width / 2 - 24
+          : vm.windowSize.width - 24,
     );
     return MenuAnchor(
       controller: controller,
@@ -176,8 +182,11 @@ class WorkspacePickerAnchor extends StatelessWidget {
                 key: ValueKey('${picker.name}-picker'),
                 width: width,
                 child: ConstrainedBox(
+                  key: popupKey,
                   constraints: BoxConstraints(
-                    maxHeight: math.max(160, vm.windowSize.height - 220),
+                    maxHeight: vm.guiding && vm.windowSize.width < 600
+                        ? math.max(160, vm.windowSize.height * .4)
+                        : math.max(160, vm.windowSize.height - 220),
                   ),
                   child: SingleChildScrollView(
                     primary: false,

@@ -64,7 +64,7 @@ void main() {
       for (final mode in [ThemeMode.light, ThemeMode.dark]) {
         vm.updateAppearance(mode: mode);
         vm.startGuide();
-        for (var step = 0; step < 6; step++) {
+        for (var step = 0; step < 7; step++) {
           vm.advanceGuide(step);
           await tester.pumpAndSettle();
           if (size.width < 700) expect(vm.layout.panes.length, 1);

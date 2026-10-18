@@ -15,9 +15,11 @@ class WorkspaceGuide extends StatefulWidget {
     required this.description,
     required this.onClose,
     required this.onStep,
+    this.totalSteps = 7,
   });
   final GlobalKey target;
   final int step;
+  final int totalSteps;
   final String title, description;
   final VoidCallback onClose;
   final ValueChanged<int> onStep;
@@ -41,7 +43,10 @@ class _WorkspaceGuideState extends State<WorkspaceGuide> {
     final box = _root.currentContext?.findRenderObject();
     final target = widget.target.currentContext?.findRenderObject();
     final card = _card.currentContext?.findRenderObject();
-    if (box is! RenderBox || target is! RenderBox || !target.hasSize) return;
+    if (box is! RenderBox || target is! RenderBox || !target.hasSize) {
+      if (_target != null) setState(() => _target = null);
+      return;
+    }
     final origin = box.globalToLocal(target.localToGlobal(Offset.zero));
     final bounds = (origin & target.size).intersect(Offset.zero & box.size);
     final height = card is RenderBox && card.hasSize
@@ -65,18 +70,21 @@ class _WorkspaceGuideState extends State<WorkspaceGuide> {
       final target = _target;
       var x = constraints.maxWidth - width - 24, y = 150.0;
       if (target != null) {
-        if (target.width < constraints.maxWidth * .7 &&
-            target.left > width + 28) {
+        if (constraints.maxWidth - target.right >= width + 26) {
+          x = target.right + 10;
+          y = target.top;
+        } else if (target.left >= width + 26) {
           x = target.left - width - 10;
           y = target.top;
+        } else if (constraints.maxHeight - target.bottom >= _cardHeight + 26) {
+          x = target.center.dx - width / 2;
+          y = target.bottom + 10;
+        } else if (target.top >= _cardHeight + 26) {
+          x = target.center.dx - width / 2;
+          y = target.top - _cardHeight - 10;
         } else {
           x = target.left + 12;
-          y = target.height < 120 ? target.bottom + 10 : target.top + 18;
-          if (target.height < 120 &&
-              y + _cardHeight > constraints.maxHeight - 16 &&
-              target.top > _cardHeight + 26) {
-            y = target.top - _cardHeight - 10;
-          }
+          y = target.top + 18;
         }
       }
       x = x.clamp(16, math.max(16, constraints.maxWidth - width - 16));
@@ -138,7 +146,7 @@ class _WorkspaceGuideState extends State<WorkspaceGuide> {
                           ),
                           const Spacer(),
                           Text(
-                            '${widget.step + 1} / 6',
+                            '${widget.step + 1} / ${widget.totalSteps}',
                             style: const TextStyle(fontSize: 12),
                           ),
                           const SizedBox(width: 8),
@@ -161,7 +169,7 @@ class _WorkspaceGuideState extends State<WorkspaceGuide> {
                       const SizedBox(height: 20),
                       Row(
                         children: [
-                          for (var i = 0; i < 6; i++)
+                          for (var i = 0; i < widget.totalSteps; i++)
                             Expanded(
                               child: Container(
                                 height: 3,
@@ -191,11 +199,12 @@ class _WorkspaceGuideState extends State<WorkspaceGuide> {
                               onPressed: () => widget.onStep(widget.step - 1),
                             ),
                           AppButton(
-                            label: widget.step == 5
+                            label: widget.step == widget.totalSteps - 1
                                 ? context.l10n.done
                                 : context.l10n.next,
                             primary: true,
-                            onPressed: () => widget.step == 5
+                            onPressed: () =>
+                                widget.step == widget.totalSteps - 1
                                 ? widget.onClose()
                                 : widget.onStep(widget.step + 1),
                           ),

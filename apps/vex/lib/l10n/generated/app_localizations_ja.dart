@@ -677,36 +677,37 @@ class AppLocalizationsJa extends AppLocalizations {
       '本文をクリックして直接編集できます。ライブ編集とソースは同じ Markdown を共有します。';
 
   @override
-  String get guideViewsTitle => 'ふたつの表示、ひとつの文書';
+  String get guideViewsTitle => 'ファイルとアウトライン';
 
   @override
-  String get guideViewsBody => '左でソースを編集し、右で本文をすぐに確認できます。見出しを追加してみましょう。';
+  String get guideViewsBody => 'ファイルで文書を切り替え、アウトラインで節に移動します。見出しを選んでみてください。';
 
   @override
   String get guideMapTitle => '文章のつながりを見る';
 
   @override
-  String get guideMapBody => 'マップには節と要約が表示されます。移動、枝の折りたたみ、節のダブルクリックを試してください。';
+  String get guideMapBody => 'マップで節を整理し、構造とスタイルを比較します。節をダブルクリックして見出しを変更できます。';
 
   @override
-  String get guideArrangeTitle => '節を直接整理する';
+  String get guideArrangeTitle => '全体を見ながら書く';
 
   @override
-  String get guideArrangeBody => '節の追加・構成ツールで見出し、本文、順序、階層を変更できます。変更はすべて元に戻せます。';
+  String get guideArrangeBody =>
+      '画面に合う表示の組み合わせを試してください。ソース・本文・マップは同期し、スマートフォンでは単一表示を使います。';
 
   @override
   String get guideTypographyTitle => '文章に合う書式を選ぶ';
 
   @override
   String get guideTypographyBody =>
-      '書式パネルで 6 種類のスタイルを比較できます。配色や書式を変えても原文は変わりません。';
+      '9 種類の書式をパネルを閉じずに比較できます。本文書式と画面の配色は独立しています。';
 
   @override
-  String get guideFinishTitle => '自分の文章を書き始める';
+  String get guideFinishTitle => '保存して持ち出す';
 
   @override
   String get guideFinishBody =>
-      'ガイド終了後は元の内容と履歴に戻ります。その後、自分の文書を開くか、新しく作成してください。';
+      'Markdown を保存したり文書を出力したりできます。練習ではコピーのみ保存し、終了時に元の内容と履歴を復元します。';
 
   @override
   String get endGuide => 'ガイドを終了';

@@ -196,12 +196,13 @@ void main() {
           await future;
         }
         vm.startGuide();
-        for (var step = 0; step < 6; step++) {
+        for (var step = 0; step < 7; step++) {
           vm.advanceGuide(step);
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull, reason: 'guide $step');
         }
         vm.endGuide();
+        await tester.pumpAndSettle();
         await tester.pumpWidget(const SizedBox());
         vm.dispose();
       });

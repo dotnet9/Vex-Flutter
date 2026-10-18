@@ -672,34 +672,35 @@ class AppLocalizationsZh extends AppLocalizations {
   String get guideWriteBody => '点击正文，直接修改内容。即时编辑和源码使用同一份 Markdown。';
 
   @override
-  String get guideViewsTitle => '两个视角，同一份内容';
+  String get guideViewsTitle => '文件与大纲';
 
   @override
-  String get guideViewsBody => '左侧编辑源码，右侧立即查看正文。试着添加一个标题。';
+  String get guideViewsBody => '文件页切换文档，大纲帮你定位章节。试着点击一个章节。';
 
   @override
   String get guideMapTitle => '看见文章的脉络';
 
   @override
-  String get guideMapBody => '导图显示章节与正文摘要。拖动画布、折叠分支，试试双击章节。';
+  String get guideMapBody => '用导图整理章节，也可以试选不同的结构和风格；双击章节修改标题。';
 
   @override
-  String get guideArrangeTitle => '直接整理章节';
+  String get guideArrangeTitle => '边写边看全局';
 
   @override
-  String get guideArrangeBody => '使用新增章节和编排工具，修改标题、正文、顺序或层级。所有改动都可以撤销。';
+  String get guideArrangeBody => '试选适合屏幕的视图组合，源码、正文和导图始终同步。手机保持单视图。';
 
   @override
   String get guideTypographyTitle => '找到适合文字的排版';
 
   @override
-  String get guideTypographyBody => '打开排版，比较六种正文样式。配色与排版不会改变原文。';
+  String get guideTypographyBody => '试选九套正文排版，面板保持打开方便比较。正文排版与界面配色分别设置。';
 
   @override
-  String get guideFinishTitle => '开始自己的写作';
+  String get guideFinishTitle => '保存，也方便带走';
 
   @override
-  String get guideFinishBody => '完成后恢复进入引导前的内容和撤销历史，再打开或新建自己的文档。';
+  String get guideFinishBody =>
+      '保存 Markdown，或把文章导出。演练内容只保存副本，不覆盖原文；结束后恢复原文与撤销历史。';
 
   @override
   String get endGuide => '结束';
@@ -2308,34 +2309,35 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get guideWriteBody => '點選內文，直接修改內容。即時編輯和原始碼使用同一份 Markdown。';
 
   @override
-  String get guideViewsTitle => '兩個視角，同一份內容';
+  String get guideViewsTitle => '檔案與大綱';
 
   @override
-  String get guideViewsBody => '左側編輯原始碼，右側立即檢視內文。試著新增一個標題。';
+  String get guideViewsBody => '檔案頁切換文件，大綱幫你定位章節。試著點選一個章節。';
 
   @override
   String get guideMapTitle => '看見文章的脈絡';
 
   @override
-  String get guideMapBody => '心智圖顯示章節與內文摘要。拖動畫布、摺疊分支，試試按兩下章節。';
+  String get guideMapBody => '用心智圖整理章節，也可以試選不同結構和風格；按兩下章節修改標題。';
 
   @override
-  String get guideArrangeTitle => '直接整理章節';
+  String get guideArrangeTitle => '邊寫邊看全局';
 
   @override
-  String get guideArrangeBody => '使用新增章節和編排工具，修改標題、內文、順序或層級。所有改動都可以復原。';
+  String get guideArrangeBody => '試選適合螢幕的檢視組合，原始碼、內文和心智圖保持同步。手機維持單一檢視。';
 
   @override
   String get guideTypographyTitle => '找到適合文字的排版';
 
   @override
-  String get guideTypographyBody => '開啟排版，比較六種內文樣式。配色與排版不會改變原文。';
+  String get guideTypographyBody => '試選九套內文排版，面板保持開啟方便比較。內文排版與介面配色分別設定。';
 
   @override
-  String get guideFinishTitle => '開始自己的寫作';
+  String get guideFinishTitle => '儲存，也方便帶走';
 
   @override
-  String get guideFinishBody => '完成後恢復進入引導前的內容和復原歷史，再開啟或新建自己的文件。';
+  String get guideFinishBody =>
+      '儲存 Markdown，或將文章匯出。演練只儲存副本，不覆蓋原文；結束後還原原文與復原歷史。';
 
   @override
   String get endGuide => '結束';

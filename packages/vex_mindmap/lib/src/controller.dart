@@ -5,6 +5,22 @@ import 'package:flutter/material.dart';
 import 'layout.dart';
 import 'style.dart';
 
+final class MindMapViewState {
+  MindMapViewState._(MindMapController controller)
+    : mode = controller.mode,
+      style = controller.style,
+      selectedId = controller.selectedId,
+      collapsed = Set.unmodifiable(controller.collapsed),
+      _transformation = Matrix4.copy(controller.transformation.value),
+      fitRequested = controller.fitRequested;
+  final MindMapLayoutMode mode;
+  final MindMapStyle style;
+  final String? selectedId;
+  final Set<String> collapsed;
+  final Matrix4 _transformation;
+  final bool fitRequested;
+}
+
 final class MindMapController extends ChangeNotifier {
   MindMapController(MindMapNode root) : _root = root {
     _layout = MindMapLayout.compute(root);
@@ -37,6 +53,21 @@ final class MindMapController extends ChangeNotifier {
   MindMapNode get root => _root;
   MindMapLayout get layout => _layout;
   Set<String> get collapsed => Set.unmodifiable(_collapsed);
+  MindMapViewState snapshotView() => MindMapViewState._(this);
+
+  void restoreView(MindMapViewState state) {
+    _mode = state.mode;
+    _style = state.style;
+    _selected = state.selectedId;
+    _collapsed
+      ..clear()
+      ..addAll(state.collapsed);
+    _layout = MindMapLayout.compute(root, collapsed: _collapsed, mode: _mode);
+    fitRequested = state.fitRequested;
+    transformation.value = Matrix4.copy(state._transformation);
+    notifyListeners();
+  }
+
   String? get selectedId => _selected;
   double get scale {
     // This is a 2D transform; the unchanged Z axis is 1 even below 100% zoom.

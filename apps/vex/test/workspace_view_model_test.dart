@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/material.dart';
+import 'package:vex_editor/vex_editor.dart';
+import 'package:vex_mindmap/vex_mindmap.dart';
 import 'package:path/path.dart' as p;
 import 'package:vex/data/services/file_service.dart';
 import 'package:vex/domain/workspace.dart';
@@ -114,15 +117,58 @@ void main() {
     vm.editor.session.replace('# 我的内容');
     final original = vm.editor.session.text;
     vm.setLayout(WorkspaceLayout.three);
+    vm.sidebar = false;
+    vm.outline = false;
+    vm.focusMode = true;
+    vm.filter = 'existing';
+    vm.outlineFilter = 'chapter';
+    vm.setMapStyle(MindMapStyle.capsule);
+    vm.setSummary(mode: MindMapLayoutMode.balanced);
+    vm.map.select(vm.map.root.id);
+    vm.map.fit(const Size(500, 400));
+    vm.map.zoom(1.5, const Size(500, 400));
+    final transform = Matrix4.copy(vm.map.transformation.value);
+    final selected = vm.map.selectedId;
     vm.startGuide();
+    vm.advanceGuide(1);
+    expect(vm.sidebar, isTrue);
+    vm.setMapStyle(MindMapStyle.mono);
+    vm.setSummary(mode: MindMapLayoutMode.radial);
+    vm.updateAppearance(typography: MarkdownTypography.book, compact: true);
     vm.advanceGuide(3);
     vm.editor.session.addHeading(null, child: false);
     vm.endGuide();
     expect(vm.editor.session.text, original);
     expect(vm.layout, WorkspaceLayout.three);
+    expect(vm.sidebar, isFalse);
+    expect(vm.outline, isFalse);
+    expect(vm.focusMode, isTrue);
+    expect(vm.filter, 'existing');
+    expect(vm.outlineFilter, 'chapter');
+    expect(vm.typography, MarkdownTypography.simple);
+    expect(vm.compact, isFalse);
+    expect(vm.map.style, MindMapStyle.capsule);
+    expect(vm.map.mode, MindMapLayoutMode.balanced);
+    expect(vm.map.selectedId, selected);
+    expect(vm.map.transformation.value, transform);
     vm.editor.session.undo();
     expect(vm.editor.session.text, isEmpty);
   });
+  test(
+    'saving a guided exercise cannot queue an overwrite after guide ends',
+    () async {
+      final vm = fakeWorkspace();
+      addTearDown(vm.dispose);
+      final files = vm.files as MemoryFiles;
+      files.content['/notes/original.md'] = '# Original';
+      await vm.openPath('/notes/original.md');
+      vm.startGuide();
+      final saving = vm.save();
+      vm.endGuide();
+      expect(await saving, isFalse);
+      expect(files.content['/notes/original.md'], '# Original');
+    },
+  );
   test(
     'recovered drafts preserve the saved comparison and stay dirty',
     () async {

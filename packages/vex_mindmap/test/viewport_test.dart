@@ -3,6 +3,49 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vex_mindmap/vex_mindmap.dart';
 
 void main() {
+  test(
+    'view snapshots restore independent transform, collapse and selection',
+    () {
+      final controller = MindMapController(
+        const MindMapNode(
+          id: 'root',
+          title: 'Root',
+          children: [
+            MindMapNode(
+              id: 'branch',
+              title: 'Branch',
+              children: [MindMapNode(id: 'leaf', title: 'Leaf')],
+            ),
+          ],
+        ),
+      );
+      addTearDown(controller.dispose);
+      controller.setMode(MindMapLayoutMode.balanced);
+      controller.setStyle(MindMapStyle.capsule);
+      controller.toggle('branch');
+      controller.select('branch');
+      controller.fit(const Size(700, 500));
+      controller.zoom(1.5, const Size(700, 500));
+      final expected = Matrix4.copy(controller.transformation.value);
+      final snapshot = controller.snapshotView();
+      controller.toggleAll();
+      controller.setMode(MindMapLayoutMode.fishbone);
+      controller.setStyle(MindMapStyle.mono);
+      controller.select(null);
+      controller.fit(const Size(400, 300));
+      controller.restoreView(snapshot);
+      expect(controller.collapsed, {'branch'});
+      expect(controller.selectedId, 'branch');
+      expect(controller.mode, MindMapLayoutMode.balanced);
+      expect(controller.style, MindMapStyle.capsule);
+      expect(controller.fitRequested, isFalse);
+      expect(controller.transformation.value, expected);
+      controller.transformation.value.translateByDouble(20, 30, 0, 1);
+      controller.restoreView(snapshot);
+      expect(controller.transformation.value, expected);
+    },
+  );
+
   testWidgets(
     'full overview avoids thousands of widgets and still opens a node',
     (tester) async {

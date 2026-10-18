@@ -1188,6 +1188,11 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }
 
   Future<bool> _saveDocument(WorkspaceDocument doc, {bool saveAs = false}) {
+    if (_guiding) {
+      _setStatus((l) => l.finishGuideBeforeSaving);
+      _notify();
+      return Future.value(false);
+    }
     final text = doc.editor.session.text;
     _saveTimers.remove(doc)?.cancel();
     // A manual save and a pending autosave share one ordered queue per document.
@@ -1543,6 +1548,20 @@ final class WorkspaceViewModel extends ChangeNotifier {
   TextSelection? _guideSelection;
   MarkdownTypography? _guideTypography;
   bool _guideCompact = false;
+  MindMapViewState? _guideMapView;
+  ({
+    bool sidebar,
+    bool outline,
+    bool focus,
+    String filter,
+    String outlineFilter,
+    String? heading,
+    String pane,
+    bool paragraphs,
+    bool lists,
+    bool blocks,
+  })?
+  _guideView;
   void startGuide() {
     if (_guiding) return;
     _guideSnapshot = editor.session.snapshot();
@@ -1550,24 +1569,47 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _guideTypography = typography;
     _guideCompact = compact;
     _guideLayout = _layout;
+    _guideMapView = map.snapshotView();
+    _guideView = (
+      sidebar: sidebar,
+      outline: outline,
+      focus: focusMode,
+      filter: filter,
+      outlineFilter: outlineFilter,
+      heading: selectedHeadingId,
+      pane: _activePane,
+      paragraphs: paragraphs,
+      lists: lists,
+      blocks: blocks,
+    );
     _guiding = true;
     guideStep = 0;
     editor.session.replace(strings.guideDocument, label: '引导演练');
     layout = WorkspaceLayout.instant;
+    focusMode = false;
+    filter = outlineFilter = '';
     _notify();
   }
 
   void advanceGuide(int step) {
-    guideStep = step.clamp(0, 5);
+    if (!_guiding) return;
+    guideStep = step.clamp(0, 6);
     layout = switch (guideStep) {
-      1 => WorkspaceLayout.sourceRender,
-      2 || 3 =>
+      2 => WorkspaceLayout.map,
+      3 =>
         viewport == WorkspaceViewport.phone
-            ? WorkspaceLayout.map
+            ? WorkspaceLayout.instant
             : WorkspaceLayout.instantMap,
-      4 => WorkspaceLayout.read,
+      4 || 5 || 6 => WorkspaceLayout.read,
       _ => WorkspaceLayout.instant,
     };
+    if (guideStep == 1) {
+      sidebar = true;
+      outline = true;
+    }
+    if (guideStep == 2) paragraphs = lists = blocks = false;
+    _activePane = layout.panes.first;
+    _refreshMap();
     _notify();
   }
 
@@ -1581,9 +1623,25 @@ final class WorkspaceViewModel extends ChangeNotifier {
     typography = _guideTypography!;
     compact = _guideCompact;
     layout = _guideLayout!;
+    final view = _guideView!;
+    sidebar = view.sidebar;
+    outline = view.outline;
+    focusMode = view.focus;
+    filter = view.filter;
+    outlineFilter = view.outlineFilter;
+    selectedHeadingId = view.heading;
+    _activePane = view.pane;
+    paragraphs = view.paragraphs;
+    lists = view.lists;
+    blocks = view.blocks;
+    _refreshMap();
+    _ensureMapCurrent();
+    _map.restoreView(_guideMapView!);
     _guiding = false;
     guideSeen = true;
     _guideSnapshot = null;
+    _guideMapView = null;
+    _guideView = null;
     _scheduleSave(current);
     persist();
     _notify();

@@ -26,6 +26,7 @@ class WorkspacePanes extends StatefulWidget {
     this.mapToolbarKey,
     this.typographyControl,
     this.mapAppearanceController,
+    this.mapAppearancePopupKey,
   });
   final WorkspaceViewModel vm;
   final ValueChanged<String> onAction;
@@ -33,6 +34,7 @@ class WorkspacePanes extends StatefulWidget {
   final GlobalKey? editingKey, mapKey, mapToolbarKey;
   final Widget? typographyControl;
   final MenuController? mapAppearanceController;
+  final GlobalKey? mapAppearancePopupKey;
   @override
   State<WorkspacePanes> createState() => _WorkspacePanesState();
 }
@@ -119,6 +121,7 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                     children: [
                       if (pane == 'map')
                         WorkspacePickerAnchor(
+                          popupKey: widget.mapAppearancePopupKey,
                           vm: vm,
                           picker: WorkspacePicker.map,
                           controller: mapAppearance,

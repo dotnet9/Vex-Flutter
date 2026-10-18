@@ -691,39 +691,39 @@ class AppLocalizationsEn extends AppLocalizations {
       'Click the document to edit it. Instant and source views share the same Markdown.';
 
   @override
-  String get guideViewsTitle => 'Two views, one document';
+  String get guideViewsTitle => 'Files and outline';
 
   @override
   String get guideViewsBody =>
-      'Edit source on the left and preview it on the right. Try adding a heading.';
+      'Switch documents in Files or jump to a section in Outline. Try selecting a heading.';
 
   @override
   String get guideMapTitle => 'See your document structure';
 
   @override
   String get guideMapBody =>
-      'The map shows sections and summaries. Pan, collapse branches, or double-click a section.';
+      'Organize sections and compare map structures and styles. Double-click a section to rename it.';
 
   @override
-  String get guideArrangeTitle => 'Arrange sections directly';
+  String get guideArrangeTitle => 'Write with the bigger picture';
 
   @override
   String get guideArrangeBody =>
-      'Add and arrange sections to edit their headings, text, order and hierarchy. Every change can be undone.';
+      'Compare view combinations for this screen. Source, reading and map stay in sync; phones use one view at a time.';
 
   @override
   String get guideTypographyTitle => 'Choose a style for your words';
 
   @override
   String get guideTypographyBody =>
-      'Open typography to compare six styles. Colors and typography preserve your source.';
+      'Compare nine typography styles without closing the panel. Document typography and interface colors are independent.';
 
   @override
-  String get guideFinishTitle => 'Start writing your own document';
+  String get guideFinishTitle => 'Save and take it with you';
 
   @override
   String get guideFinishBody =>
-      'Finishing restores your previous content and undo history. Then open or create your own document.';
+      'Save Markdown or export the article. Practice saves a copy, never the original; finishing restores your content and undo history.';
 
   @override
   String get endGuide => 'End guide';
