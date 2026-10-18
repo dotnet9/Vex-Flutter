@@ -52,10 +52,10 @@
     $('source-pane').hidden = !source || !displayed.includes('editor'); $('instant-pane').hidden = source || !displayed.includes('editor');
     $('reading-pane').hidden = !displayed.includes('render'); $('map-pane').hidden = !displayed.includes('map');
     panels.editor.querySelector('.view-title').textContent = source ? '源码' : '即时编辑'; panels.render.querySelector('.view-title').textContent = '阅读'; panels.map.querySelector('.view-title').textContent = '思维导图';
-    surface.dataset.single = String(displayed.length === 1); $('edit-options').hidden = !displayed.includes('editor'); $('cursor-position').hidden = !displayed.includes('editor');
+    surface.dataset.single = String(displayed.length === 1); $('edit-options').hidden = !displayed.includes('editor');
     W.state.source = displayed.includes('editor') && source; $('map-source-toggle').setAttribute('aria-pressed', String(W.state.source)); $('map-source-toggle').classList.toggle('on', W.state.source);
     document.querySelector('.workspace').classList.toggle('source-only', source && displayed.length === 1); area.dataset.paneCount = displayed.length;
-    $('status-view').textContent = displayed.map(function (id) { return id === 'editor' ? source ? '源码' : '即时编辑' : labels[id]; }).join(' + ');
+    $('edit-source').setAttribute('aria-pressed', String(source && displayed.includes('editor')));
     var single = displayed.length === 1 ? displayed[0] : null, quickView = single === 'editor' ? 'edit' : single === 'render' ? 'read' : single === 'map' ? 'mindmap' : 'custom';
     var quickSwitch = document.querySelector('.view-switch'); quickSwitch.dataset.active = quickView;
     quickSwitch.querySelectorAll('button').forEach(function (button) { button.setAttribute('aria-selected', String(button.dataset.view === quickView)); button.title = '单独打开' + button.textContent.trim() + '视图'; button.tabIndex = button.dataset.view === quickView || quickView === 'custom' && button.dataset.view === 'edit' ? 0 : -1; });

@@ -6,6 +6,7 @@
   var builtin = window.VexDocuments?.[new URLSearchParams(location.search).get('document')];
   if (builtin) docs = [{name:builtin.name,text:builtin.text,readOnly:true}];
   var workspaceFolder = '演示文档';
+  var fileListMode = VexStorage.getItem('vex-design-file-list-mode') || 'tree', fileDescending = false;
   var settings = { length: 30, paragraphs: true, lists: true, blocks: false, layout: 'right' };
   try {
     var saved = JSON.parse(VexStorage.getItem('vex-design-mindmap') || '{}');
@@ -93,43 +94,22 @@
     window.dispatchEvent(new CustomEvent('vex-document-loaded'));
   }
   function renderFiles() {
-    var collapsed = new Set(Array.from($('file-list').querySelectorAll('details:not([open])')).map(function (node) { return node.dataset.path; }));
-    $('file-list').innerHTML = '';
-    function directory(parent, name, path) {
-      var group = document.createElement('details'); group.className = 'file-directory'; group.dataset.path = path;
-      group.open = !collapsed.has(path);
-      var summary = document.createElement('summary');
-      summary.innerHTML = '<svg class="ico tree-chevron" aria-hidden="true"><use href="#i-chevron"/></svg>' + icon('folder') + '<span>' + escape(name) + '</span>';
-      summary.title = name; group.appendChild(summary);
-      var children = document.createElement('div'); children.className = 'file-children'; group.appendChild(children); parent.appendChild(group);
-      return children;
-    }
-    var root = directory($('file-list'), workspaceFolder, ''), folders = new Map([['', root]]);
-    docs.forEach(function (doc, index) {
-      var parts = (doc.path || doc.name).split('/'), path = '', parent = root;
-      parts.slice(0, -1).forEach(function (part) {
-        path += '/' + part;
-        if (!folders.has(path)) folders.set(path, directory(parent, part, path));
-        parent = folders.get(path);
-      });
-      var button = document.createElement('button'); button.className = 'file-row' + (index === state.doc ? ' selected' : '');
-      button.innerHTML = icon('file') + '<span>' + escape(doc.name) + '</span>';
-      button.title = doc.name; button.setAttribute('aria-current', index === state.doc ? 'page' : 'false');
-      button.onclick = function () { if (index !== state.doc) confirmSwitch(function () { loadDoc(index); }); };
-      parent.appendChild(button);
-    });
-    filterFiles();
+    $('folder-name').textContent = workspaceFolder;
+    $('file-list-toggle').innerHTML = icon(fileListMode === 'tree' ? 'list' : 'map');
+    $('file-list-toggle').title = $('file-list-toggle').ariaLabel = fileListMode === 'tree' ? '切换为列表视图' : '切换为树视图';
+    var visibleDocs = docs.map(function (doc, index) { return index === state.doc ? Object.assign({}, doc, {text:input.value}) : doc; });
+    VexWriting.renderFiles({container:$('file-list'), docs:visibleDocs, current:visibleDocs[state.doc], folder:workspaceFolder, mode:fileListMode, descending:fileDescending, query:$('file-filter').value, icon:icon,
+      onOpen:function (_, index) { if (index !== state.doc) confirmSwitch(function () { loadDoc(index); }); }});
+    $('file-empty').hidden = true;
   }
   function filterFiles() {
-    var keyword = $('file-filter').value.trim().toLowerCase(), count = 0;
-    $('file-list').querySelectorAll('.file-row').forEach(function (row) { row.hidden = !row.textContent.toLowerCase().includes(keyword); if (!row.hidden) count++; });
-    $('file-list').querySelectorAll('.file-directory').forEach(function (folder) {
-      folder.hidden = !folder.querySelector('.file-row:not([hidden])');
-      if (keyword && !folder.hidden) folder.open = true;
-    });
-    $('file-empty').hidden = count !== 0;
+    renderFiles();
   }
   $('file-filter').oninput = filterFiles;
+  $('outline-filter').oninput = renderOutline;
+  document.querySelectorAll('.side-tab').forEach(function (tab) { tab.addEventListener('click', function () { $('file-navigation-footer').hidden = tab.dataset.pane !== 'files'; }); });
+  document.addEventListener('pointerdown', function (event) { if (!event.target.closest('.file-navigation-footer')) $('file-navigation-menu').hidden = true; });
+  document.addEventListener('keydown', function (event) { if (event.key === 'Escape') $('file-navigation-menu').hidden = true; });
   function inline(text) {
     return VexRendering.inline(text);
   }
@@ -163,12 +143,13 @@
   }
   function renderOutline() {
     $('outline-body').innerHTML = '';
-    var headings = state.nodes.filter(function (node) { return node.kind === 'heading' && node.level > 0; });
+    var query = $('outline-filter').value.trim().toLowerCase();
+    var headings = state.nodes.filter(function (node) { return node.kind === 'heading' && node.level > 0 && node.text.toLowerCase().includes(query); });
     headings.forEach(function (node) {
       var button = document.createElement('button'); button.className = 'outline-item';
       button.dataset.sourceLine = node.line;
       button.style.paddingLeft = (8 + Math.max(0, node.level - 1) * 12) + 'px';
-      button.innerHTML = '<small>H' + node.level + '</small>' + escape(node.text);
+      button.textContent = node.text;
       button.onclick = function () {
         if (state.view === 'mindmap') {
           var ancestors = [];
@@ -183,7 +164,7 @@
       };
       $('outline-body').appendChild(button);
     });
-    if (!headings.length) $('outline-body').innerHTML = '<div class="empty-state">添加标题后，会在这里显示大纲。</div>';
+    if (!headings.length) $('outline-body').innerHTML = '<div class="empty-state">' + (query ? '没有匹配的标题' : '添加标题后，会在这里显示大纲。') + '</div>';
   }
   function refresh() {
     if (state.parsed && state.lastText === input.value && state.lastDoc === state.doc) { updateMeta(); updateCursor(); return; }
@@ -201,20 +182,16 @@
   }
   function updateMeta() {
     $('dirty-dot').hidden = !state.dirty;
-    $('save-text').textContent = input.readOnly ? '只读 · 随应用安装的文档' : state.dirty ? '未保存修改' : '未修改';
-    $('save-status').querySelector('.ico').style.color = state.dirty ? 'var(--warning)' : 'var(--success)';
-    $('sb-wordcount').textContent = contentCount().toLocaleString() + ' 字符';
+    $('sb-wordcount').textContent = contentCount().toLocaleString() + ' 词';
   }
   function refreshNow() { clearTimeout(state.pending); refresh(); }
   input.addEventListener('input', function () {
     state.dirty = input.value !== docs[state.doc].text;
-    $('dirty-dot').hidden = !state.dirty; $('save-text').textContent = state.dirty ? '未保存修改' : '未修改';
+    $('dirty-dot').hidden = !state.dirty;
     clearTimeout(state.pending); state.pending = setTimeout(refresh, 180);
   });
   input.addEventListener('beforeinput', function () { remember(input.value); });
   function updateCursor() {
-    var before = input.value.slice(0, input.selectionStart).split('\n');
-    $('cursor-position').textContent = '行 ' + before.length + '，列 ' + (MM.characters(before[before.length - 1]).length + 1);
     if (state.typewriter) typewriter.request();
   }
   ['click', 'keyup', 'select'].forEach(function (event) { input.addEventListener(event, updateCursor); });
@@ -269,12 +246,9 @@
     $('reading-pane').hidden = view !== 'read';
     $('map-pane').hidden = view !== 'mindmap';
     $('reading-title').textContent = view === 'read' ? '阅读' : '正文预览';
-    $('edit-instant').setAttribute('aria-pressed', String(state.editMode === 'instant'));
     $('edit-source').setAttribute('aria-pressed', String(state.editMode === 'source'));
     document.querySelector('.workspace').classList.toggle('source-only', view === 'edit' && state.editMode === 'source');
     document.querySelectorAll('.content-area > section').forEach(function (pane) { pane.classList.remove('pane-enter'); void pane.offsetWidth; if (!pane.hidden) pane.classList.add('pane-enter'); });
-    $('status-view').textContent = { edit: state.editMode === 'instant' ? '编辑 · 即时渲染' : '编辑 · 源码', read: '阅读视图', mindmap: '思维导图' }[view];
-    $('cursor-position').hidden = view !== 'edit' && !state.source;
     $('map-settings').hidden = true; $('map-settings-button').setAttribute('aria-expanded', 'false');
     if (view === 'mindmap' && !state.mapVisited) { state.mapVisited = true; requestAnimationFrame(function () { fit(true); }); }
     window.dispatchEvent(new CustomEvent('vex-view-changed', { detail: { view: view, editMode: state.editMode } }));
@@ -421,7 +395,7 @@
   }
   function applySource() {
     $('source-pane').hidden = !state.source; $('map-source-toggle').classList.toggle('on', state.source);
-    $('map-source-toggle').setAttribute('aria-pressed', String(state.source)); $('cursor-position').hidden = !state.source;
+    $('map-source-toggle').setAttribute('aria-pressed', String(state.source));
     window.dispatchEvent(new CustomEvent('vex-source-toggled', { detail: state.source }));
     requestAnimationFrame(function () { fit(true); });
   }
@@ -448,7 +422,7 @@
   }
   function save() {
     instant.finish();
-    refreshNow(); download(input.value, docs[state.doc].name); docs[state.doc].text = input.value; state.dirty = false; refresh(); $('save-text').textContent = '副本已下载';
+    refreshNow(); download(input.value, docs[state.doc].name); docs[state.doc].text = input.value; state.dirty = false; refresh();
     VexProto.toast('已下载 Markdown 副本');
   }
   function insert(text, activate) {
@@ -464,7 +438,7 @@
     if (!document.execCommand('insertText', false, text)) input.setRangeText(text, input.selectionStart, input.selectionEnd, 'end');
     input.dispatchEvent(new Event('input'));
   }
-  function contentCount() { return MM.characters(state.parsed.blocks.map(function (block) { return block.text; }).join('')).length; }
+  function contentCount() { return VexWriting.metrics(input.value).count; }
   function findNext() {
     var term = $('find-input').value;
     if (!term) return;
@@ -541,6 +515,13 @@
       return true;
     }
     switch (action) {
+      case 'toggle-source': setEditMode(state.editMode === 'source' ? 'instant' : 'source'); break;
+      case 'clear-file-search': $('file-filter').value = ''; renderFiles(); $('file-filter').focus(); break;
+      case 'clear-outline-search': $('outline-filter').value = ''; renderOutline(); $('outline-filter').focus(); break;
+      case 'file-list-toggle': fileListMode = fileListMode === 'tree' ? 'list' : 'tree'; VexStorage.setItem('vex-design-file-list-mode', fileListMode); renderFiles(); break;
+      case 'file-actions': $('file-navigation-menu').hidden = !$('file-navigation-menu').hidden; document.querySelector('[data-action=file-actions]').setAttribute('aria-expanded', String(!$('file-navigation-menu').hidden)); break;
+      case 'refresh-files': renderFiles(); $('file-navigation-menu').hidden = true; break;
+      case 'sort-files': fileDescending = !fileDescending; renderFiles(); $('file-navigation-menu').hidden = true; break;
       case 'new': confirmSwitch(function () { docs.push({ name: '未命名文档.md', text: '# 未命名文档\n\n' }); loadDoc(docs.length - 1); setView('edit'); if (state.editMode === 'instant') instant.focusAt(1); else input.focus(); }); break;
       case 'open': $('open-file-input').click(); break;
       case 'open-folder': $('open-folder-input').click(); break;
@@ -581,7 +562,7 @@
       case 'typography-select': VexTypography.choose(item.arg); break;
       case 'toggle-compact': VexTypography.toggleCompact(); break;
       case 'language': state.language = item.arg; VexL.set(item.arg); break;
-      case 'toggle-status': document.querySelector('.statusbar').hidden = !document.querySelector('.statusbar').hidden; break;
+      case 'toggle-word-count': VexPreferences.set('wordCountVisible', !VexPreferences.values.wordCountVisible); break;
       case 'maximize': document.querySelector('.app-window').classList.toggle('expanded'); break;
       case 'toggle-fullscreen': document.querySelector('.app-window').classList.toggle('expanded'); break;
       case 'toggle-topmost': state.topmost = !state.topmost; VexProto.toast(state.topmost ? '窗口置顶（桌面版操作演示）' : '取消置顶（桌面版操作演示）'); break;
@@ -668,7 +649,7 @@
       sidebar: state.sidebar, focus: state.focus, source: state.source,
       sideTab: document.querySelector('.side-tab.on').dataset.pane,
       fileFilter: $('file-filter').value,
-      statusHidden: document.querySelector('.statusbar').hidden, findHidden: $('findbar').hidden,
+      countHidden: $('sb-wordcount').hidden, findHidden: $('findbar').hidden,
       typography: Object.assign({}, VexTypography.state), settings: Object.assign({}, settings),
       undo: state.undo.slice(), redo: state.redo.slice(), selection: [input.selectionStart, input.selectionEnd],
       scrolls: ['.instant-scroll', '.reading-scroll', '.source-scroll'].map(function (selector) { return document.querySelector(selector).scrollTop; }),
@@ -676,7 +657,7 @@
       editPreference: VexStorage.getItem('vex-design-edit-method')
     };
     state.focus = false; document.querySelector('.app-window').classList.remove('focus-mode');
-    document.querySelector('.statusbar').hidden = false; $('findbar').hidden = true;
+    $('sb-wordcount').hidden = false; $('findbar').hidden = true;
     if (!state.sidebar) VexProto.handleAction('toggle-sidebar');
     $('file-filter').value = ''; filterFiles();
     VexProto.handleAction('pane-files'); state.source = false; state.editMode = 'instant';
@@ -695,7 +676,7 @@
     state.focus = snapshot.focus; document.querySelector('.app-window').classList.toggle('focus-mode', snapshot.focus);
     if (state.sidebar !== snapshot.sidebar) VexProto.handleAction('toggle-sidebar');
     document.querySelector('.side-tab[data-pane="' + snapshot.sideTab + '"]').click();
-    document.querySelector('.statusbar').hidden = snapshot.statusHidden; $('findbar').hidden = snapshot.findHidden;
+    $('sb-wordcount').hidden = snapshot.countHidden; $('findbar').hidden = snapshot.findHidden;
     settings = snapshot.settings; syncSettings();
     VexTypography.state.compact = snapshot.typography.compact; VexTypography.choose(snapshot.typography.key);
     try { if (snapshot.editPreference === null) VexStorage.removeItem('vex-design-edit-method'); else VexStorage.setItem('vex-design-edit-method', snapshot.editPreference); } catch (_) {}
@@ -735,7 +716,7 @@
     if (Object.prototype.hasOwnProperty.call(checks, action)) return checks[action];
     return action.startsWith('view-') ? state.view === action.slice(5) : action === 'toggle-sidebar' ? state.sidebar
       : action === 'toggle-lines' ? !document.querySelector('.source-scroll').classList.contains('no-lines')
-      : action === 'toggle-status' ? !document.querySelector('.statusbar').hidden : false;
+      : action === 'toggle-word-count' ? !$('sb-wordcount').hidden : false;
   };
   document.addEventListener('click', function (event) {
     var button = event.target.closest('[data-action]'); if (button) { event.stopPropagation(); VexProto.handleAction(button.dataset.action); }
@@ -795,7 +776,7 @@
       if (key === 'font') document.documentElement.dataset.writingFont = value;
       if (key === 'zoom') document.documentElement.style.setProperty('--vex-content-zoom',value / 100);
       if (key === 'lineNumbers') document.querySelector('.source-scroll').classList.toggle('no-lines',!value);
-      if (key === 'statusbar') document.querySelector('.statusbar').hidden = !value;
+      if (key === 'wordCountVisible') $('sb-wordcount').hidden = !value;
       if (key === 'autoPair') state.autoPair = value;
       if (key === 'typewriter') { state.typewriter = value; typewriter.refresh(); }
       if (key === 'focus') { state.focus = value; document.querySelector('.app-window').classList.toggle('focus-mode',value); }

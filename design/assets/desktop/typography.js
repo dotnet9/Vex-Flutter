@@ -13,7 +13,7 @@
   var panel = document.createElement('section'); panel.id = 'typography-panel'; panel.className = 'typography-popover'; panel.hidden = true;
   panel.setAttribute('aria-label', 'Markdown 排版主题');
   panel.innerHTML = '<div class="popover-title">Markdown 排版<button class="icon-button" id="typography-close" aria-label="关闭排版主题">×</button></div><p class="typography-note">六种阅读结构 · 与界面配色分别设置</p><div class="typography-grid">' + items.map(function (item) {
-    return '<button class="typography-card" data-typography-key="' + item.key + '" style="--swatch:' + item.light + '"><span class="type-swatch" data-preview-type="' + item.key + '" aria-hidden="true"><b>落笔成文</b><i></i><i></i></span><strong>' + item.label + '</strong><small>' + item.note + '</small></button>';
+    return '<button class="typography-card" data-typography-key="' + item.key + '">' + VexTypePreview(item.key) + '<strong>' + item.label + '</strong></button>';
   }).join('') + '</div><label class="typography-compact">紧凑布局<input type="checkbox" id="typography-compact"></label>';
   document.querySelector('.window-body').appendChild(panel);
   function apply() {

@@ -105,7 +105,7 @@
       { label: '编辑显示', sub: [
         { label: '显示行号', check: true, action: 'toggle-lines' },
         { label: '显示文档水印', check: true, action: 'toggle-watermark' },
-        { label: '自动配对输入', check: true, action: 'toggle-pairs' }, { label: '显示状态栏', check: true, action: 'toggle-status' }
+        { label: '自动配对输入', check: true, action: 'toggle-pairs' }, { label: '显示词数', check: true, action: 'toggle-word-count' }
       ]},
       { label: '写作辅助', sub: [
         { label: '演示模式', gesture: 'F5', action: 'presentation' },
