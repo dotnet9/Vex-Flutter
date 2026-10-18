@@ -874,8 +874,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
     });
   }
 
-  Future<bool> save({bool saveAs = false}) =>
-      _saveDocument(current, saveAs: saveAs);
+  Future<bool> save({bool saveAs = false, WorkspaceDocument? document}) =>
+      _saveDocument(document ?? current, saveAs: saveAs);
 
   Future<void> finishPendingSaves() async {
     for (final timer in _saveTimers.values) {
@@ -957,15 +957,30 @@ final class WorkspaceViewModel extends ChangeNotifier {
     persist();
   }
 
-  Future<void> closeCurrent({bool keepDraft = false}) async {
+  Future<void> closeCurrent({bool keepDraft = false}) =>
+      closeDocument(current, keepDraft: keepDraft);
+
+  Future<void> closeDocument(
+    WorkspaceDocument document, {
+    bool keepDraft = false,
+    int? expectedRevision,
+  }) async {
+    if (_disposed ||
+        (!documents.contains(document) && !identical(document, _blank))) {
+      return;
+    }
     endGuide();
-    final document = current;
+    final revision = expectedRevision ?? document.editor.session.revision;
     if (!_closingDocuments.add(document)) return;
     _saveTimers.remove(document)?.cancel();
     try {
       await _saveQueues[document]?.catchError((Object _) => false);
       await _queueRecovery(
-        () => _closeDocument(document, keepDraft: keepDraft),
+        () => _closeDocument(
+          document,
+          keepDraft: keepDraft,
+          expectedRevision: revision,
+        ),
       );
     } finally {
       _closingDocuments.remove(document);
@@ -975,8 +990,18 @@ final class WorkspaceViewModel extends ChangeNotifier {
   Future<void> _closeDocument(
     WorkspaceDocument document, {
     required bool keepDraft,
+    required int expectedRevision,
   }) async {
     if (_disposed) return;
+    if (document.editor.session.revision != expectedRevision) {
+      await _saveRecovery([
+        ...recoverable,
+        ..._activeSnapshots(),
+      ], throwOnError: true);
+      _statusMessage = (l) => l.documentChanged;
+      _notify();
+      return;
+    }
     final revision = document.editor.session.revision;
     final nextRecoverable = [
       ...recoverable,

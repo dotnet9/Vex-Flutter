@@ -640,8 +640,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
 
   Future<void> _closeDocument() async {
     vm.endGuide();
+    final document = vm.current;
+    final revision = document.editor.session.revision;
     var keepDraft = false;
-    if (vm.editor.session.isDirty) {
+    if (document.editor.session.isDirty) {
       final decision = await showDialog<String>(
         context: context,
         builder: (context) => AppDialog(
@@ -668,16 +670,22 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             ),
           ],
           child: Text(
-            vm.current.name,
+            document.name,
             style: const TextStyle(fontSize: 14, height: 1.8),
           ),
         ),
       );
-      if (decision == null) return;
-      if (decision == 'save' && !await vm.save()) return;
+      if (decision == null || !mounted || !vm.documents.contains(document)) {
+        return;
+      }
+      if (decision == 'save' && !await vm.save(document: document)) return;
       keepDraft = decision == 'draft';
     }
-    await vm.closeCurrent(keepDraft: keepDraft);
+    await vm.closeDocument(
+      document,
+      keepDraft: keepDraft,
+      expectedRevision: revision,
+    );
   }
 
   Future<void> _export() async {
