@@ -76,6 +76,10 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
     scroll: _scroll,
   );
   bool _centerScheduled = false;
+  MarkdownDocument? _indexedDocument;
+  int? _indexedStart, _indexedEnd;
+  List<MarkdownBlock> _visibleBlocks = const [];
+  Map<Key, int> _blockIndices = const {};
   MarkdownCodeFence? _codeFence;
   MarkdownSnapshot? _checkpoint;
   MarkdownBlockKind _kind = MarkdownBlockKind.paragraph;
@@ -101,6 +105,37 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
   Offset _touchHandleDelta = Offset.zero;
 
   void _rebuildSelection(VoidCallback update) => setState(update);
+
+  void _indexBlocks() {
+    final document = widget.controller.document;
+    final start = _checkpoint == null ? null : _start;
+    final end = _checkpoint == null ? null : _end;
+    if (identical(_indexedDocument, document) &&
+        _indexedStart == start &&
+        _indexedEnd == end) {
+      return;
+    }
+    _indexedDocument = document;
+    _indexedStart = start;
+    _indexedEnd = end;
+    _visibleBlocks = start == null
+        ? document.blocks
+        : [
+            for (final block in document.blocks)
+              if (block.range.end <= start) block,
+            MarkdownBlock(_kind, SourceRange(start, end!), 1),
+            for (final block in document.blocks)
+              if (block.range.start >= end && block.range.start > start) block,
+          ];
+    _blockIndices = {
+      for (var i = 0; i < _visibleBlocks.length; i++)
+        ValueKey(_visibleBlocks[i].range.start): i,
+    };
+    _selectionGeometries.removeWhere(
+      (start, _) =>
+          start != _start && !_blockIndices.containsKey(ValueKey(start)),
+    );
+  }
 
   void _editAt(int offset) {
     if (!mounted) return;
@@ -968,22 +1003,8 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
       builder: (context, _) {
         final source = widget.controller.session.text;
         final blocks = widget.controller.document.blocks;
-        final starts = blocks.map((b) => b.range.start).toSet()..add(_start);
-        _selectionGeometries.removeWhere((start, _) => !starts.contains(start));
-        final visibleBlocks = [
-          for (final block in blocks)
-            if (_checkpoint == null || block.range.end <= _start) block,
-          if (_checkpoint != null) ...[
-            MarkdownBlock(_kind, SourceRange(_start, _end), 1),
-            for (final block in blocks)
-              if (block.range.start >= _end && block.range.start > _start)
-                block,
-          ],
-        ];
-        final indices = {
-          for (var i = 0; i < visibleBlocks.length; i++)
-            ValueKey(visibleBlocks[i].range.start): i,
-        };
+        _indexBlocks();
+        final visibleBlocks = _visibleBlocks;
         return Stack(
           children: [
             Listener(
@@ -1017,7 +1038,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
                       findChildIndexCallback: (key) =>
                           key == const ValueKey('instant-new-paragraph')
                           ? (_checkpoint == null ? visibleBlocks.length : null)
-                          : indices[key],
+                          : _blockIndices[key],
                       itemBuilder: (context, index) {
                         if (index < visibleBlocks.length) {
                           final block = visibleBlocks[index];

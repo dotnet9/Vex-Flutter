@@ -32,6 +32,8 @@ void main() {
         editor.session.replace('Short document');
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 40));
+        expect(find.text('Short document', findRichText: true), findsOneWidget);
+        expect(find.text('Heading 90', findRichText: true), findsNothing);
         await tester.pumpWidget(const SizedBox());
         await tester.pump(const Duration(milliseconds: 300));
         expect(tester.takeException(), isNull);
