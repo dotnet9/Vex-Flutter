@@ -144,6 +144,8 @@ macOS / Linux 将运行目标改为 `macos` / `linux`；Android 连接设备后�
 
 ### 仓库导航
 
+第一次接触 Flutter？从 [从零认识维刻 Vex](docs/00-从这里开始.md) 开始，按顺序阅读仓库地图、需求、概要设计、详细设计、核心原理、调试测试及打包备份。文档和 Markdown 阅读练习都在 `docs`，与源码一起维护。
+
 | 目录 | 作用 |
 | --- | --- |
 | [`apps/vex`](apps/vex) | 应用，按 View / ViewModel、Repository / Service 分层 |
