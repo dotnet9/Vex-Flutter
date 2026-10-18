@@ -144,4 +144,122 @@ void main() {
     expect(vm.editor.text, 'first draft');
     expect(recovery.value.single['text'], 'first draft');
   });
+
+  test('overlapping closes retain both drafts after a later flush', () async {
+    final vm = fakeWorkspace();
+    addTearDown(vm.dispose);
+    final recovery = vm.recovery as MemoryRecovery;
+    vm.editor.session.replace('first draft');
+    final firstDocument = vm.current;
+    vm.newDocument();
+    vm.editor.session.replace('second draft');
+    final entered = Completer<void>(), release = Completer<void>();
+    recovery.beforeSave = () async {
+      if (!entered.isCompleted) entered.complete();
+      await release.future;
+    };
+
+    final secondClose = vm.closeCurrent(keepDraft: true);
+    await entered.future;
+    vm.switchDocument(firstDocument);
+    final firstClose = vm.closeCurrent(keepDraft: true);
+    await Future<void>.delayed(Duration.zero);
+    release.complete();
+    await Future.wait([firstClose, secondClose]);
+    await vm.flushRecovery();
+
+    expect(vm.documents, isEmpty);
+    expect(
+      recovery.value.map((draft) => draft['text']),
+      unorderedEquals(['first draft', 'second draft']),
+    );
+    expect(vm.recoverable, hasLength(2));
+  });
+
+  test(
+    'a lifecycle flush cannot restore an explicitly discarded draft',
+    () async {
+      final vm = fakeWorkspace();
+      addTearDown(vm.dispose);
+      final recovery = vm.recovery as MemoryRecovery;
+      vm.editor.session.replace('discard this draft');
+      final entered = Completer<void>(), release = Completer<void>();
+      recovery.beforeSave = () async {
+        if (!entered.isCompleted) entered.complete();
+        await release.future;
+      };
+
+      final closing = vm.closeCurrent(keepDraft: false);
+      await entered.future;
+      final flushing = vm.flushRecovery();
+      await Future<void>.delayed(Duration.zero);
+      release.complete();
+      await Future.wait([closing, flushing]);
+
+      expect(vm.documents, isEmpty);
+      expect(recovery.value, isEmpty);
+    },
+  );
+
+  test(
+    'discard requested during close includes the newly closed draft',
+    () async {
+      final vm = fakeWorkspace();
+      addTearDown(vm.dispose);
+      final recovery = vm.recovery as MemoryRecovery;
+      vm.recoverable = [
+        {'name': 'old.md', 'text': 'old draft'},
+      ];
+      vm.editor.session.replace('new draft');
+      final entered = Completer<void>(), release = Completer<void>();
+      recovery.beforeSave = () async {
+        if (!entered.isCompleted) entered.complete();
+        await release.future;
+      };
+
+      final closing = vm.closeCurrent(keepDraft: true);
+      await entered.future;
+      final discarding = vm.discardDrafts();
+      await Future<void>.delayed(Duration.zero);
+      release.complete();
+      await Future.wait([closing, discarding]);
+
+      expect(vm.documents, isEmpty);
+      expect(vm.recoverable, isEmpty);
+      expect(recovery.value, isEmpty);
+    },
+  );
+
+  test(
+    'restore requested during close restores the latest recovery state',
+    () async {
+      final vm = fakeWorkspace();
+      addTearDown(vm.dispose);
+      final recovery = vm.recovery as MemoryRecovery;
+      vm.recoverable = [
+        {'name': 'old.md', 'text': 'old draft'},
+      ];
+      vm.editor.session.replace('new draft');
+      final entered = Completer<void>(), release = Completer<void>();
+      recovery.beforeSave = () async {
+        if (!entered.isCompleted) entered.complete();
+        await release.future;
+      };
+
+      final closing = vm.closeCurrent(keepDraft: true);
+      await entered.future;
+      final restoring = vm.restoreDrafts();
+      await Future<void>.delayed(Duration.zero);
+      release.complete();
+      await Future.wait([closing, restoring]);
+      await vm.flushRecovery();
+
+      expect(vm.recoverable, isEmpty);
+      expect(
+        vm.documents.map((document) => document.editor.session.text),
+        unorderedEquals(['old draft', 'new draft']),
+      );
+      expect(recovery.value, hasLength(2));
+    },
+  );
 }

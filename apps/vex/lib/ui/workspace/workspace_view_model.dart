@@ -106,6 +106,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   final _saveTimers = <WorkspaceDocument, Timer>{};
   final _saveQueues = <WorkspaceDocument, Future<bool>>{};
   final _closingDocuments = <WorkspaceDocument>{};
+  Future<void> _recoveryQueue = Future.value();
   int _openRequest = 0;
   final _headingForNode = <String, String>{};
   List<Map<String, Object?>> recoverable = [];
@@ -846,7 +847,6 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _recoveryTimer?.cancel();
     _notify();
     persist();
-    if (!prefs.recovery) recoverable.clear();
     await flushRecovery();
   }
 
@@ -961,8 +961,12 @@ final class WorkspaceViewModel extends ChangeNotifier {
     endGuide();
     final document = current;
     if (!_closingDocuments.add(document)) return;
+    _saveTimers.remove(document)?.cancel();
     try {
-      await _closeDocument(document, keepDraft: keepDraft);
+      await _saveQueues[document]?.catchError((Object _) => false);
+      await _queueRecovery(
+        () => _closeDocument(document, keepDraft: keepDraft),
+      );
     } finally {
       _closingDocuments.remove(document);
     }
@@ -972,8 +976,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     WorkspaceDocument document, {
     required bool keepDraft,
   }) async {
-    _saveTimers.remove(document)?.cancel();
-    await _saveQueues[document]?.catchError((Object _) => false);
+    if (_disposed) return;
     final revision = document.editor.session.revision;
     final nextRecoverable = [
       ...recoverable,
@@ -992,9 +995,13 @@ final class WorkspaceViewModel extends ChangeNotifier {
       ...nextRecoverable,
       ..._activeSnapshots(excluding: document),
     ], throwOnError: true);
+    if (_disposed) return;
     // Keep the editor open if typing continued while the snapshot was written.
     if (document.editor.session.revision != revision) {
-      await flushRecovery(throwOnError: true);
+      await _saveRecovery([
+        ...recoverable,
+        ..._activeSnapshots(),
+      ], throwOnError: true);
       _statusMessage = (l) => l.documentChanged;
       _notify();
       return;
@@ -1071,13 +1078,27 @@ final class WorkspaceViewModel extends ChangeNotifier {
           )
           .toList();
 
-  Future<void> flushRecovery({bool throwOnError = false}) async {
-    if (_guiding) return;
-    await _saveRecovery([
-      ...recoverable,
-      ..._activeSnapshots(),
-    ], throwOnError: throwOnError);
+  Future<void> _queueRecovery(Future<void> Function() operation) {
+    // Build snapshots and update recovery state in the same ordered operation.
+    final task = _recoveryQueue
+        .catchError((Object _) {})
+        .then((_) => operation());
+    _recoveryQueue = task;
+    return task;
   }
+
+  Future<void> flushRecovery({bool throwOnError = false}) =>
+      _queueRecovery(() async {
+        if (_guiding) return;
+        await _saveRecovery([
+          ...recoverable,
+          ..._activeSnapshots(),
+        ], throwOnError: throwOnError);
+        if (!filePreferences.recovery && recoverable.isNotEmpty) {
+          recoverable = [];
+          _notify();
+        }
+      });
 
   Future<void> _saveRecovery(
     List<Map<String, Object?>> snapshots, {
@@ -1092,7 +1113,9 @@ final class WorkspaceViewModel extends ChangeNotifier {
     }
   }
 
-  void restoreDrafts() {
+  Future<void> restoreDrafts() => _queueRecovery(() async {
+    if (_disposed) return;
+    _openRequest++;
     for (final draft in recoverable) {
       if (draft['text'] is! String) continue;
       final doc = WorkspaceDocument(
@@ -1110,13 +1133,13 @@ final class WorkspaceViewModel extends ChangeNotifier {
     recoverable = [];
     _refreshMap();
     _notify();
-  }
+  });
 
-  Future<void> discardDrafts() async {
+  Future<void> discardDrafts() => _queueRecovery(() async {
     await _saveRecovery(_activeSnapshots(), throwOnError: true);
     recoverable = [];
     _notify();
-  }
+  });
 
   void persist() {
     if (_guiding) return;

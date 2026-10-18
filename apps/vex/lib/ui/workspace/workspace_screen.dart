@@ -838,7 +838,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                   [
                                     AppButton(
                                       label: context.l10n.restore,
-                                      onPressed: state.restoreDrafts,
+                                      onPressed: () =>
+                                          unawaited(_run(state.restoreDrafts)),
                                     ),
                                     AppButton(
                                       label: context.l10n.discard,

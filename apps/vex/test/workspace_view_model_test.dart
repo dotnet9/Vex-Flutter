@@ -132,7 +132,7 @@ void main() {
         {'name': '草稿.md', 'text': '新内容', 'saved': '旧内容', 'path': '/notes/a.md'},
       ];
       await vm.initialize(watchFiles: false);
-      vm.restoreDrafts();
+      await vm.restoreDrafts();
       expect(vm.editor.session.text, '新内容');
       expect(vm.editor.session.isDirty, isTrue);
       await vm.flushRecovery();
