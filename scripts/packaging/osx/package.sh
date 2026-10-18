@@ -21,8 +21,11 @@ cleanup() {
 trap cleanup EXIT
 ditto "$app" "$stage/Vex.app"
 cp "$root/LICENSE" "$stage/Vex.app/Contents/Resources/LICENSE.txt"
-codesign --force --deep --sign - "$stage/Vex.app"
+# Sign the outer bundle explicitly. Re-signing with --deep and no entitlements
+# discards the file-picker sandbox permissions from the release executable.
+codesign --force --sign - --entitlements "$root/apps/vex/macos/Runner/Release.entitlements" "$stage/Vex.app"
 codesign --verify --deep --strict --verbose=2 "$stage/Vex.app"
+"$python" "$root/scripts/packaging/osx/verify_entitlements.py" "$stage/Vex.app"
 mkdir -p "$output"
 dmg="$output/Vex-v$version-macos-universal.dmg"
 "$python" "$root/scripts/packaging/osx/build_dmg.py" build --app "$stage/Vex.app" --output "$dmg" --version "$version"
@@ -32,6 +35,7 @@ mount="$stage/mount"
 mkdir "$mount"
 hdiutil attach "$dmg" -mountpoint "$mount" -nobrowse -readonly
 codesign --verify --deep --strict "$mount/Vex.app"
+"$python" "$root/scripts/packaging/osx/verify_entitlements.py" "$mount/Vex.app"
 "$python" "$root/scripts/packaging/osx/build_dmg.py" verify --mount "$mount"
 hdiutil detach "$mount"
 mount=''
