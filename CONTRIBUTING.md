@@ -66,6 +66,8 @@ flutter test integration_test/touch_selection_test.dart --flavor preview -d <And
 
 修改 `design/documents` 中的内置文档后，运行 `node design/scripts/sync-documents.cjs` 和 `python scripts/sync_builtin_documents.py`，同时更新原型内嵌数据和应用资源；仅复制 Markdown 会遗漏浏览器原型使用的数据。修改应用版本或依赖后运行 `python scripts/sync_project_info.py`，同步 MCP 版本、原型信息和主要依赖许可。
 
+应用更新日志使用 `## V版本号（YYYY-MM-DD）`，同一天合并为一节。每个版本号下只能有无序列表，每项使用 `😄[新增]-描述`、`🔨[优化]-描述` 或 `🐛[修复]-描述`，不添加分类标题、说明段落或开发流水账；已知限制放在对应 Release 说明和验收文档中。
+
 安装包与标签流程见 [安装包与自动发布](docs/安装包与自动发布.md)。iOS IPA、HarmonyOS HAP 在签名与适配条件具备前暂缓发布，不使用未签名文件或便携压缩包代替安装包，不绕过发布校验。
 
 提交和 PR 应说明修改目的、验证命令、实际测试平台及剩余限制。安全问题按照 [安全政策](SECURITY.md) 私下报告，不附在公开 Issue 或 PR 中。

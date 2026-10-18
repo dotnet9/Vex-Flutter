@@ -35,7 +35,16 @@ const releaseDates = [...changelog.matchAll(/^## .*（(\d{4}-\d{2}-\d{2})）$/gm
 assert.equal(new Set(releaseDates).size, releaseDates.length, 'One release section per day');
 assert.ok(releaseDates.includes('2026-10-17'));
 assert.ok(releaseDates.includes('2026-10-18'));
-assert.match(changelog,/^## v\d+\.\d+\.\d+（2026-10-18）$/m);
+assert.match(changelog,/^## V\d+\.\d+\.\d+（2026-10-18）$/m);
+for (const section of changelog.replace(/\r\n/g, '\n').trim().split(/^## /m).slice(1)) {
+  const [heading, ...lines] = section.split('\n');
+  assert.match(heading, /^V\d+\.\d+\.\d+（\d{4}-\d{2}-\d{2}）$/);
+  const entries = lines.filter(line => line.trim());
+  assert.ok(entries.length > 0, 'Each version needs changelog entries');
+  for (const line of entries) {
+    assert.match(line, /^- (?:😄\[新增\]|🔨\[优化\]|🐛\[修复\])-.+$/, 'Only typed unordered entries belong under a version');
+  }
+}
 const app = fs.readFileSync(path.join(root,'assets/app.js'),'utf8');
 const adaptive = fs.readFileSync(path.join(root,'Vex-Adaptive.html'),'utf8');
 const css = fs.readFileSync(path.join(root,'assets/prototype.css'),'utf8');
