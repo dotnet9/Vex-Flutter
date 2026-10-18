@@ -9,6 +9,8 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.provider.Settings
+import android.os.Build
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.Executors
 import java.util.Locale
@@ -20,6 +22,20 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(engine: FlutterEngine) {
         super.configureFlutterEngine(engine)
+        MethodChannel(engine.dartExecutor.binaryMessenger, "vex/updates").setMethodCallHandler { call, result ->
+            try {
+                when (call.method) {
+                    "canInstallPackages" -> result.success(Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls())
+                    "installPermissionSettings" -> {
+                        if (Build.VERSION.SDK_INT >= 26) {
+                            startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
+                        }
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            } catch (e: Exception) { result.error("update_install", e.message, null) }
+        }
         MethodChannel(engine.dartExecutor.binaryMessenger, "vex/clipboard").setMethodCallHandler { call, result ->
             if (call.method != "writeHtml") { result.notImplemented(); return@setMethodCallHandler }
             val html = call.argument<String>("html")

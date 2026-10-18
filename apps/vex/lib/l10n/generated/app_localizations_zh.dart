@@ -10,6 +10,39 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get updateDownload => '下载更新';
+
+  @override
+  String get updateDownloadPrompt => '下载适合当前设备的安装包，核验完成后由你决定何时安装。';
+
+  @override
+  String get updateDownloading => '正在下载…';
+
+  @override
+  String get updateVerified => '安装包已核验，可以开始安装。当前文档不会被更改。';
+
+  @override
+  String get updateInstall => '开始安装';
+
+  @override
+  String get updateOpeningInstaller => '正在打开安装器…';
+
+  @override
+  String get updateRetry => '重新下载';
+
+  @override
+  String get updateDownloadError => '下载未完成，请检查网络后重试。当前文档不会受影响。';
+
+  @override
+  String get updateIntegrityError => '安装包核验未通过，已停止安装。请重新下载。';
+
+  @override
+  String get updateInstallError => '安装器未能就绪，窗口已保留。请重试或从版本号链接手动下载安装。';
+
+  @override
+  String get updateInstallPermission => '请在系统设置中允许维刻安装应用，然后返回点击“开始安装”。';
+
+  @override
   String get preferencesUnavailable => '暂时无法读取设置或恢复草稿，请重启后重试。原文件不会被覆盖。';
 
   @override
@@ -1645,6 +1678,39 @@ class AppLocalizationsZh extends AppLocalizations {
 /// The translations for Chinese, using the Han script (`zh_Hant`).
 class AppLocalizationsZhHant extends AppLocalizationsZh {
   AppLocalizationsZhHant() : super('zh_Hant');
+
+  @override
+  String get updateDownload => '下載更新';
+
+  @override
+  String get updateDownloadPrompt => '下載適合目前裝置的安裝程式，核驗完成後由你決定何時安裝。';
+
+  @override
+  String get updateDownloading => '正在下載…';
+
+  @override
+  String get updateVerified => '安裝程式已核驗，可以開始安裝。目前文件不會被更改。';
+
+  @override
+  String get updateInstall => '開始安裝';
+
+  @override
+  String get updateOpeningInstaller => '正在開啟安裝程式…';
+
+  @override
+  String get updateRetry => '重新下載';
+
+  @override
+  String get updateDownloadError => '下載未完成，請檢查網路後重試。目前文件不會受影響。';
+
+  @override
+  String get updateIntegrityError => '安裝程式核驗未通過，已停止安裝。請重新下載。';
+
+  @override
+  String get updateInstallError => '安裝程式未能就緒，視窗已保留。請重試或從版本號連結手動下載安裝。';
+
+  @override
+  String get updateInstallPermission => '請在系統設定中允許維刻安裝應用程式，然後返回點選「開始安裝」。';
 
   @override
   String get preferencesUnavailable => '暫時無法讀取設定或復原草稿，請重新啟動後重試。原始檔案不會被覆寫。';

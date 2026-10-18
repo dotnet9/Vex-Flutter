@@ -10,6 +10,45 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get updateDownload => 'Download update';
+
+  @override
+  String get updateDownloadPrompt =>
+      'Download the installer for this device. You can install it after verification.';
+
+  @override
+  String get updateDownloading => 'Downloading…';
+
+  @override
+  String get updateVerified =>
+      'The installer has been verified. Your documents will not be changed.';
+
+  @override
+  String get updateInstall => 'Install update';
+
+  @override
+  String get updateOpeningInstaller => 'Opening installer…';
+
+  @override
+  String get updateRetry => 'Download again';
+
+  @override
+  String get updateDownloadError =>
+      'Download did not finish. Check your connection and retry. Your documents are unchanged.';
+
+  @override
+  String get updateIntegrityError =>
+      'The installer failed verification. Installation was stopped. Download it again.';
+
+  @override
+  String get updateInstallError =>
+      'The installer did not become ready. Vex remains open. Retry or download manually from the version link.';
+
+  @override
+  String get updateInstallPermission =>
+      'Allow Vex to install apps in system settings, then return and select Install update.';
+
+  @override
   String get preferencesUnavailable =>
       'Settings or recovery drafts could not be loaded. Restart and try again. Original files will not be overwritten.';
 

@@ -5,6 +5,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:vex/app.dart';
 import 'package:vex/data/repositories/settings_repository.dart';
 import 'package:vex/data/services/social_copy_service.dart';
+import 'package:vex/data/services/update_service.dart';
 import 'package:vex_editor/vex_editor.dart';
 import 'package:vex/ui/workspace/workspace_menu.dart';
 import 'package:vex/ui/workspace/workspace_view_model.dart';
@@ -17,6 +18,12 @@ void main() {
     tester,
   ) async {
     final settings = NativeSettingsRepository();
+    expect(UpdateTarget.current(), isNotNull);
+    expect(
+      await const MethodChannel('vex/updates')
+          .invokeMethod<bool>('canInstallPackages'),
+      isA<bool>(),
+    );
     final original = await settings.load();
     final previousClipboard = await Clipboard.getData(Clipboard.kTextPlain);
     WorkspaceViewModel? vm;

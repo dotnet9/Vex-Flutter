@@ -11,12 +11,15 @@ import 'package:vex_mindmap/vex_mindmap.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/services/export_service.dart';
+import '../../data/services/update_download_service.dart';
+import '../../data/services/update_install_service.dart';
 import '../../data/services/update_service.dart';
 import '../../l10n/l10n.dart';
 import '../core/app_widgets.dart';
 import '../core/app_theme.dart';
 import 'workspace_pickers.dart';
 import 'workspace_view_model.dart';
+import 'update_dialog.dart';
 import 'builtin_documents.dart';
 import 'preferences_dialog.dart';
 
@@ -319,11 +322,21 @@ Future<void> showSummarySettings(BuildContext context, WorkspaceViewModel vm) =>
 Future<void> showSettings(BuildContext context, WorkspaceViewModel vm) =>
     showPreferences(context, vm);
 
-Future<void> showAbout(BuildContext context, {UpdateChecker? updates}) =>
-    showDialog<void>(
-      context: context,
-      builder: (context) => _AboutDialog(updates: updates),
-    );
+Future<void> showAbout(
+  BuildContext context, {
+  UpdateChecker? updates,
+  UpdateDownloader? downloader,
+  UpdateInstaller? installer,
+  UpdateClose? closeWorkspace,
+}) => showDialog<void>(
+  context: context,
+  builder: (context) => _AboutDialog(
+    updates: updates,
+    downloader: downloader,
+    installer: installer,
+    closeWorkspace: closeWorkspace,
+  ),
+);
 
 Future<PackageInfo?> _packageInfo() async {
   try {
@@ -351,8 +364,16 @@ Future<void> _showLicenses(BuildContext context) async {
 }
 
 class _AboutDialog extends StatefulWidget {
-  const _AboutDialog({this.updates});
+  const _AboutDialog({
+    this.updates,
+    this.downloader,
+    this.installer,
+    this.closeWorkspace,
+  });
   final UpdateChecker? updates;
+  final UpdateDownloader? downloader;
+  final UpdateInstaller? installer;
+  final UpdateClose? closeWorkspace;
   @override
   State<_AboutDialog> createState() => _AboutDialogState();
 }
@@ -373,6 +394,7 @@ class _AboutDialogState extends State<_AboutDialog> {
   }
 
   Future<void> _check() async {
+    var presented = false;
     setState(() {
       _checking = true;
       _update = context.l10n.checking;
@@ -395,6 +417,20 @@ class _AboutDialogState extends State<_AboutDialog> {
           ),
         };
       });
+      if (result.status == UpdateStatus.available) {
+        final package = result.packageFor(UpdateTarget.current());
+        if (package != null) {
+          presented = true;
+          await showUpdateDownload(
+            context,
+            tag: result.tag!,
+            package: package,
+            downloader: widget.downloader,
+            installer: widget.installer,
+            closeWorkspace: widget.closeWorkspace,
+          );
+        }
+      }
     } on UpdateHttpException catch (error) {
       if (mounted) {
         setState(
@@ -408,7 +444,7 @@ class _AboutDialogState extends State<_AboutDialog> {
     } finally {
       if (mounted) {
         setState(() => _checking = false);
-        _toast(_update);
+        if (!presented) _toast(_update);
       }
     }
   }

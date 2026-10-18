@@ -49,7 +49,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   final _guideEditing = GlobalKey(),
       _guideMap = GlobalKey(),
       _guideMapToolbar = GlobalKey();
-  final _guideTypography = GlobalKey(), _guideFileMenu = GlobalKey();
+  final _guideFileMenu = GlobalKey();
   final _guideSave = GlobalKey();
   final _guideSidebar = GlobalKey(), _guideMobileViews = GlobalKey();
   final _guideLayoutPopup = GlobalKey(), _guideTypographyPopup = GlobalKey();
@@ -68,6 +68,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   final _layoutsMenu = MenuController(), _typographyMenu = MenuController();
   final _mapAppearanceMenu = MenuController();
   final _topMenus = <String, MenuController>{};
+  final _compactTopMenus = <String, MenuController>{};
   final _overflowMenu = MenuController();
   bool _overflowedMenus = false;
   (TextStyle, TextScaler, String)? _menuSizingKey;
@@ -218,9 +219,17 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   }
 
   Future<void> _close() async {
-    if (_closing) return;
+    await _requestClose();
+  }
+
+  Future<bool> _requestClose({void Function()? beforeNativeClose}) async {
+    if (_closing) return false;
     _closing = true;
     try {
+      if (beforeNativeClose != null && widget.windowIntegration && _desktop) {
+        await windowManager.focus();
+        if (!mounted) return false;
+      }
       vm.endGuide();
       final dirty = vm.documents
           .where((d) => d.editor.session.isDirty)
@@ -233,7 +242,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         );
         if (decision == null) {
           _closing = false;
-          return;
+          return false;
         }
         if (decision == 'save') {
           try {
@@ -241,17 +250,17 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
               vm.switchDocument(doc);
               if (!await vm.save()) {
                 _closing = false;
-                return;
+                return false;
               }
             }
-            if (!mounted) return;
+            if (!mounted) return false;
             if (vm.documents.any((doc) => doc.editor.session.isDirty)) {
               throw StateError(context.l10n.closeChanged);
             }
           } catch (e) {
             _error(e);
             _closing = false;
-            return;
+            return false;
           }
         }
       }
@@ -260,7 +269,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       };
       await vm.finishPendingSaves();
       await vm.flushRecovery(throwOnError: true);
-      if (!mounted) return;
+      if (!mounted) return false;
       // The main editor remains interactive while disk I/O is pending.
       if (vm.documents.any(
         (doc) =>
@@ -275,16 +284,19 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         // Flutter engine and COM plugins are being torn down.
         _nativeCloseApproved = true;
         await windowManager.setPreventClose(false);
+        beforeNativeClose?.call();
         await windowManager.close();
       } else if (Platform.isAndroid) {
         await SystemNavigator.pop();
       }
+      return widget.windowIntegration && _desktop || Platform.isAndroid;
     } catch (error) {
       _nativeCloseApproved = false;
       if (widget.windowIntegration && _desktop) {
         await windowManager.setPreventClose(true);
       }
       _error(error);
+      return false;
     } finally {
       _closing = false;
     }
@@ -647,7 +659,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           showPreferences(context, vm, category: PreferenceCategory.mcp),
         );
       case 'about':
-        unawaited(showAbout(context));
+        unawaited(
+          showAbout(
+            context,
+            closeWorkspace: (approve) =>
+                _requestClose(beforeNativeClose: approve),
+          ),
+        );
       case 'thanks':
         unawaited(
           _run(() => showBuiltinDocument(context, BuiltinDocument.thanks)),
@@ -919,7 +937,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                     ): () =>
                         _action('redo'),
                   const SingleActivator(LogicalKeyboardKey.escape): () {
-                    for (final menu in _topMenus.values) {
+                    for (final menu in [
+                      ..._topMenus.values,
+                      ..._compactTopMenus.values,
+                    ]) {
                       menu.close();
                     }
                     _overflowMenu.close();
@@ -1292,13 +1313,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                   children: [
                     if (_overflowedMenus)
                       MenuAnchor(
-                        key: _guideFileMenu,
+                        key: const ValueKey('titlebar-overflow-anchor'),
                         controller: _overflowMenu,
                         menuChildren: [
                           for (final menu in menus)
                             SubmenuButton(
                               key: ValueKey('compact-menu-${menu.id}'),
-                              controller: _topMenus.putIfAbsent(
+                              controller: _compactTopMenus.putIfAbsent(
                                 menu.id,
                                 MenuController.new,
                               ),
@@ -1496,7 +1517,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     if (_overflowedMenus) {
       _overflowMenu.open();
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _topMenus[id]?.open();
+        if (mounted) _compactTopMenus[id]?.open();
       });
     } else {
       _topMenus[id]?.open();
@@ -1772,8 +1793,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   }
 
   Widget _typographyPicker(WorkspaceViewModel state, {bool iconOnly = false}) =>
+      // Only key the popup: reparenting an anchored menu retains its old parent.
       WorkspacePickerAnchor(
-        key: _guideTypography,
         popupKey: _guideTypographyPopup,
         vm: state,
         picker: WorkspacePicker.typography,
@@ -2053,7 +2074,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   }
 
   void _closeGuidePanels() {
-    for (final menu in _topMenus.values) {
+    for (final menu in [..._topMenus.values, ..._compactTopMenus.values]) {
       menu.close();
     }
     _overflowMenu.close();

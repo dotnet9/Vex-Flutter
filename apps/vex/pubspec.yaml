@@ -36,6 +36,8 @@ dependencies:
   super_sliver_list: ^0.4.1
   html: 0.15.6
   csslib: 1.0.2
+  crypto: ^3.0.7
+  ffi: ^2.1.4
 dev_dependencies:
   flutter_test:
     sdk: flutter

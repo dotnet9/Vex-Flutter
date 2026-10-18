@@ -193,6 +193,9 @@ jobs:
           APP_VERSION: ${{ needs.metadata.outputs.version }}
         run: |
           ./scripts/test_windows_installer.ps1 -Installer "artifacts/release/Vex-v$env:APP_VERSION-windows-x64-setup.exe" -Version $env:APP_VERSION
+          $compiler = ./scripts/packaging/win-x64/install_inno.ps1
+          ./scripts/packaging/win-x64/package.ps1 -Version $env:APP_VERSION -Compiler $compiler -InstallerTest -OutputDirectory artifacts/update-smoke
+          ./scripts/test_windows_update.ps1 -Installer "artifacts/update-smoke/Vex-v$env:APP_VERSION-windows-x64-setup.exe" -InstallerTest
       - name: 统一入口构建 Linux 安装包
         if: runner.os == 'Linux'
         env:

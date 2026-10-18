@@ -29,6 +29,7 @@ japanese.CWMAllUsers=すべてのユーザー
 
 #include "Vex.Win32.iss"
 #include "Vex.Registration.iss"
+#include "Vex.Update.iss"
 
 [Code]
 var
@@ -121,6 +122,7 @@ begin ShellExec('open','https://codewf.com','','',SW_SHOWNORMAL,ewNoWait,Code); 
 procedure TWPrimary(Sender: TObject);
 var Code: Integer;
 begin
+  if VexUpdatePending then exit;
   if TWRemoved then begin TWExitAllowed:=True; WizardForm.Close; exit; end;
   if TWMaintenance and not TWRepair then begin
     if FileExists(AddBackslash(CWMRepairPath)+'vex.exe') then
@@ -135,7 +137,7 @@ procedure TWRepairClick(Sender: TObject);
 begin TWRepair:=True; TWPrimary(Sender); end;
 
 procedure TWRemoveClick(Sender: TObject);
-begin if not TWRemoving then TWShowModal(3); end;
+begin if not TWRemoving and not VexUpdatePending then TWShowModal(3); end;
 
 procedure TWModalBack(Sender: TObject);
 begin
@@ -267,7 +269,7 @@ begin
   WizardForm.CancelButton.Visible:=WizardForm.CurPageID<>wpFinished;
   TWBounds(WizardForm.CancelButton,-200,-100,80,30); WizardForm.CancelButton.TabStop:=False;
   TWButtons[0].Visible:=Main and not Installing and not TWRemoving and not TWRemoved;
-  TWButtons[0].Enabled:=True;
+  TWButtons[0].Enabled:=not VexUpdatePending;
   TWButtons[1].Visible:=Main and Home;
   TWButtons[2].Visible:=Main and Home;
   TWButtons[3].Visible:=Main and not TWRemoving; TWButtons[4].Visible:=False;
@@ -276,7 +278,7 @@ begin
   TWButtons[6].Visible:=Main and Options;
   TWButtons[7].Visible:=Main and TWMaintenance and not ErrorPage and not Installing and not Finished;
   TWButtons[8].Visible:=TWButtons[7].Visible;
-  TWButtons[7].Enabled:=not TWRemoving; TWButtons[8].Enabled:=not TWRemoving;
+  TWButtons[7].Enabled:=not TWRemoving and not VexUpdatePending; TWButtons[8].Enabled:=TWButtons[7].Enabled;
   TWButtons[9].Visible:=TWModal and (TWModalAction<>1);
   TWButtons[10].Visible:=TWModal;
   TWButtons[0].Caption:=TWTextFor('立即安装','Install now','インストール');
@@ -355,6 +357,13 @@ begin
   TWSlogan.Caption:=TWTextFor('写下想法，看见脉络。','Write ideas. See connections.','想いを書き、つながりを見る。');
   TWSlogan.Alignment:=taCenter; TWFont(TWSlogan.Font,12,False); TWSlogan.Font.Color:=TWMuted;
   if ActiveLanguage<>'chinesesimplified' then TWFont(TWSlogan.Font,10,False);
+  if VexUpdatePending and not TWModal then begin
+    TWHeading.Caption:=TWTextFor('等待文档确认','Waiting for your documents','文書の確認待ち');
+    TWDescription.Caption:=TWTextFor('请回到维刻处理未保存的内容，完成后即可继续安装。','Return to Vex to confirm your unsaved work, then continue installation.','Vex で未保存の内容を確認すると、インストールを続行できます。');
+    TWDescription.Visible:=True; TWCaption.Visible:=False; TWCard.Visible:=False;
+    TWButtons[1].Visible:=False; TWButtons[6].Visible:=False;
+    TWDesktop.Visible:=False; TWAssociation.Visible:=False; WizardForm.DirEdit.Visible:=False;
+  end;
   if Installing then TWDrawProgress;
   TWPaint;
   for I:=0 to 10 do if TWButtons[I].Visible then VInvalidate(TWButtons[I].Handle,0,True);
@@ -506,6 +515,15 @@ begin
     end;
   end;
   if (Message=$0113) and (WParam=41) and TWInitialized then begin
+    if VexUpdatePending then begin
+      VexUpdateTicks:=VexUpdateTicks+1;
+      if (VexWaitEvent(VexUpdateCancel,0)=0) or (VexUpdateTicks>6000) then begin
+        TWExitAllowed:=True; WizardForm.Close; Result:=0; exit;
+      end;
+      if VexWaitEvent(VexUpdateProceed,0)=0 then begin
+        VexUpdatePending:=False; TWLayout;
+      end;
+    end;
     Hover:=-1;
     if VCursor(Point) then for I:=0 to 10 do if TWButtons[I].Visible and TWButtons[I].Enabled then begin
       VGetRect(TWButtons[I].Handle,Bounds);
@@ -616,6 +634,10 @@ begin
   TWCheckProcs[0]:=VSetLong(TWDesktop.Handle,-4,CreateCallback(@TWCheckProc));
   TWCheckProcs[1]:=VSetLong(TWAssociation.Handle,-4,CreateCallback(@TWCheckProc));
   TWSurfaceBrush:=VBrush(TWSurface); TWInitialized:=True; TWLayout; VSetTimer(WizardForm.Handle,41,50,0);
+  if VexUpdatePending then begin
+    TWButtons[0].Enabled:=False;
+    if not VexSetEvent(VexUpdateReady) then begin TWExitAllowed:=True; WizardForm.Close; end;
+  end;
 end;
 
 <event('ShouldSkipPage')>
@@ -635,6 +657,7 @@ function TWNext(PageID: Integer): Boolean;
 var Path,WindowsPath,Probe: String;
 begin
   Result:=True;
+  if VexUpdatePending then begin Result:=False; exit; end;
   if WizardSilent or (PageID<>wpWelcome) then exit;
   Path:=CWMNormalizePath(Trim(WizardForm.DirEdit.Text)); WindowsPath:=Lowercase(AddBackslash(ExpandConstant('{win}')));
   if (Path='') or (Pos(WindowsPath,Lowercase(AddBackslash(Path)))=1) then

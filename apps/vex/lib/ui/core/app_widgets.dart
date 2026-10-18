@@ -233,12 +233,14 @@ class AppDialog extends StatelessWidget {
     this.width = 560,
     this.bodyColor,
     this.actions = const [],
+    this.canClose = true,
   });
   final String title;
   final Widget child;
   final double width;
   final Color? bodyColor;
   final List<Widget> actions;
+  final bool canClose;
   @override
   Widget build(BuildContext context) => Dialog(
     clipBehavior: Clip.antiAlias,
@@ -269,7 +271,15 @@ class AppDialog extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                AppCloseButton(onPressed: () => Navigator.pop(context)),
+                IgnorePointer(
+                  ignoring: !canClose,
+                  child: Opacity(
+                    opacity: canClose ? 1 : .4,
+                    child: AppCloseButton(
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

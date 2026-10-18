@@ -6,6 +6,58 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vex/data/services/update_service.dart';
 
 void main() {
+  test('matches every published platform with its checksum, never a portable archive', () {
+    for (final target in UpdateTarget.values) {
+      final name = 'Vex-v0.9.0-${target.suffix}';
+      final assets = [
+        for (final file in [name, '$name.sha256'])
+          UpdateAsset(
+            name: file,
+            size: file.endsWith('.sha256') ? 150 : 2048,
+            url: Uri.https(
+              'github.com',
+              '/dotnet9/Vex-Flutter/releases/download/v0.9.0/$file',
+            ),
+          ),
+      ];
+      final release = UpdateCheckResult(
+        UpdateStatus.available,
+        tag: 'v0.9.0',
+        assets: assets,
+      );
+      expect(release.packageFor(target)?.installer.name, name);
+      expect(release.packageFor(null), isNull);
+      expect(
+        UpdateCheckResult(
+          UpdateStatus.available,
+          tag: 'v0.9.0',
+          assets: [assets.first],
+        ).packageFor(target),
+        isNull,
+      );
+      expect(
+        UpdateCheckResult(
+          UpdateStatus.available,
+          tag: 'v0.9.0',
+          assets: [...assets, assets.first],
+        ).packageFor(target),
+        isNull,
+      );
+      final forged = UpdateAsset(
+        name: name,
+        size: 2048,
+        url: Uri.https('example.com', '/$name'),
+      );
+      expect(
+        UpdateCheckResult(
+          UpdateStatus.available,
+          tag: 'v0.9.0',
+          assets: [forged, assets.last],
+        ).packageFor(target),
+        isNull,
+      );
+    }
+  });
   for (final item in [
     ('0.3.1', 'v0.3.1', UpdateStatus.current),
     ('0.3.1+99', 'v0.3.1+100', UpdateStatus.current),
@@ -60,12 +112,21 @@ void main() {
             'draft': false,
             'prerelease': false,
             'html_url': 'https://untrusted.example.com',
+            'assets': [
+              {
+                'name': 'Vex-v0.3.2-linux-x64.deb',
+                'state': 'uploaded',
+                'size': 4096,
+                'browser_download_url': 'https://github.com/dotnet9/Vex-Flutter/releases/download/v0.3.2/Vex-v0.3.2-linux-x64.deb',
+              },
+            ],
           }),
         );
         unawaited(request.response.close());
       });
       final result = await checker.check('0.3.1');
       expect(result.status, UpdateStatus.available);
+      expect(result.assets.single.size, 4096);
       expect(
         result.releasePage.toString(),
         'https://github.com/dotnet9/Vex-Flutter/releases/tag/v0.3.2',

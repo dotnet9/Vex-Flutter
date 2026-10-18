@@ -10,6 +10,43 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get updateDownload => '更新をダウンロード';
+
+  @override
+  String get updateDownloadPrompt =>
+      'この端末用のインストーラーをダウンロードします。検証後、任意のタイミングでインストールできます。';
+
+  @override
+  String get updateDownloading => 'ダウンロード中…';
+
+  @override
+  String get updateVerified => 'インストーラーを検証しました。文書は変更されません。';
+
+  @override
+  String get updateInstall => 'インストール';
+
+  @override
+  String get updateOpeningInstaller => 'インストーラーを起動中…';
+
+  @override
+  String get updateRetry => '再ダウンロード';
+
+  @override
+  String get updateDownloadError =>
+      'ダウンロードできませんでした。接続を確認して再試行してください。文書は変更されません。';
+
+  @override
+  String get updateIntegrityError => 'インストーラーの検証に失敗したため停止しました。再ダウンロードしてください。';
+
+  @override
+  String get updateInstallError =>
+      'インストーラーを準備できませんでした。Vex は開いたままです。再試行するか、バージョンのリンクから手動でインストールしてください。';
+
+  @override
+  String get updateInstallPermission =>
+      'システム設定で Vex のアプリインストールを許可し、戻ってインストールを選択してください。';
+
+  @override
   String get preferencesUnavailable =>
       '設定または復元用下書きを読み込めませんでした。再起動して再試行してください。元のファイルは上書きされません。';
 

@@ -20,6 +20,36 @@ Iterable<WorkspaceMenuEntry> flatten(List<WorkspaceMenuEntry> entries) sync* {
 }
 
 void main() {
+  testWidgets('resizing swaps menu anchors without sharing their controllers', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    const channel = MethodChannel('window_manager');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      channel,
+      (call) async => call.method == 'isMaximized' ? false : null,
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        channel,
+        null,
+      ),
+    );
+    final vm = fakeWorkspace()..updateAppearance(language: 'en');
+    await tester.pumpWidget(VexApp(viewModel: vm, windowIntegration: true));
+    await tester.pumpAndSettle();
+    for (final width in [900.0, 700.0, 820.0, 699.0, 390.0, 1280.0]) {
+      tester.view.physicalSize = Size(width, 900);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'resize $width');
+    }
+    await tester.pumpWidget(const SizedBox());
+    vm.dispose();
+  }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+
   test(
     'publishing commands are directly available in Tools in reading mode',
     () {

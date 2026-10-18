@@ -101,6 +101,72 @@ abstract class AppLocalizations {
     Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
   ];
 
+  /// No description provided for @updateDownload.
+  ///
+  /// In zh, this message translates to:
+  /// **'下载更新'**
+  String get updateDownload;
+
+  /// No description provided for @updateDownloadPrompt.
+  ///
+  /// In zh, this message translates to:
+  /// **'下载适合当前设备的安装包，核验完成后由你决定何时安装。'**
+  String get updateDownloadPrompt;
+
+  /// No description provided for @updateDownloading.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在下载…'**
+  String get updateDownloading;
+
+  /// No description provided for @updateVerified.
+  ///
+  /// In zh, this message translates to:
+  /// **'安装包已核验，可以开始安装。当前文档不会被更改。'**
+  String get updateVerified;
+
+  /// No description provided for @updateInstall.
+  ///
+  /// In zh, this message translates to:
+  /// **'开始安装'**
+  String get updateInstall;
+
+  /// No description provided for @updateOpeningInstaller.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在打开安装器…'**
+  String get updateOpeningInstaller;
+
+  /// No description provided for @updateRetry.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新下载'**
+  String get updateRetry;
+
+  /// No description provided for @updateDownloadError.
+  ///
+  /// In zh, this message translates to:
+  /// **'下载未完成，请检查网络后重试。当前文档不会受影响。'**
+  String get updateDownloadError;
+
+  /// No description provided for @updateIntegrityError.
+  ///
+  /// In zh, this message translates to:
+  /// **'安装包核验未通过，已停止安装。请重新下载。'**
+  String get updateIntegrityError;
+
+  /// No description provided for @updateInstallError.
+  ///
+  /// In zh, this message translates to:
+  /// **'安装器未能就绪，窗口已保留。请重试或从版本号链接手动下载安装。'**
+  String get updateInstallError;
+
+  /// No description provided for @updateInstallPermission.
+  ///
+  /// In zh, this message translates to:
+  /// **'请在系统设置中允许维刻安装应用，然后返回点击“开始安装”。'**
+  String get updateInstallPermission;
+
   /// No description provided for @preferencesUnavailable.
   ///
   /// In zh, this message translates to:

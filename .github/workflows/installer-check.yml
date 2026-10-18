@@ -7,6 +7,7 @@ on:
       - 'scripts/installer/**'
       - 'scripts/packaging/**'
       - 'scripts/test_windows_installer.ps1'
+      - 'scripts/test_windows_update.ps1'
       - 'scripts/tests/**'
       - 'build-windows.bat'
       - '.github/workflows/installer-check.yml'
@@ -56,6 +57,9 @@ jobs:
           python scripts/packaging/build.py win-x64 --skip-tests --no-open-folder --output artifacts/release
           if ($LASTEXITCODE -ne 0) { throw 'Windows release build failed.' }
           ./scripts/test_windows_installer.ps1 -Installer "artifacts/release/Vex-v$env:APP_VERSION-windows-x64-setup.exe" -Version $env:APP_VERSION
+          $compiler = ./scripts/packaging/win-x64/install_inno.ps1
+          ./scripts/packaging/win-x64/package.ps1 -Version $env:APP_VERSION -Compiler $compiler -InstallerTest -OutputDirectory artifacts/update-smoke
+          ./scripts/test_windows_update.ps1 -Installer "artifacts/update-smoke/Vex-v$env:APP_VERSION-windows-x64-setup.exe" -InstallerTest
       - name: 构建并验证 macOS 通用拖拽安装映像
         if: runner.os == 'macOS'
         run: python scripts/packaging/build.py osx-universal --skip-tests --output artifacts/release
