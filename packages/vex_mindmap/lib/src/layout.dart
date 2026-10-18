@@ -315,4 +315,16 @@ final class MindMapLayout {
   final Size size;
   final MindMapLayoutMode mode;
   final List<Path> paths;
+
+  /// Stable first-level branch identity for both nodes and their connectors.
+  late final Map<String, int> branchIndices = _indexBranches();
+  Map<String, int> _indexBranches() {
+    final result = <String, int>{};
+    final root = edges.firstOrNull?.from;
+    var branch = 0;
+    for (final edge in edges) {
+      result[edge.to] = edge.from == root ? branch++ : result[edge.from]!;
+    }
+    return Map.unmodifiable(result);
+  }
 }

@@ -98,8 +98,11 @@ class _ExportDialogState extends State<_ExportDialog> {
         case 'png':
           bytes = await _service.mindMapPng(
             vm.map.root,
-            colors,
+            Theme.of(context).colorScheme,
             layout: vm.map.layout,
+            style: vm.map.style,
+            textStyle:
+                Theme.of(context).textTheme.bodyMedium ?? const TextStyle(),
           );
         default:
           bytes = await _service.pdf(

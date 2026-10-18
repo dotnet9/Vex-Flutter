@@ -155,4 +155,89 @@ void main() {
       codec.dispose();
     }
   });
+  test(
+    'PNG preserves all six node and connector styles in both themes',
+    () async {
+      const root = MindMapNode(
+        id: 'root',
+        title: 'Root',
+        children: [
+          MindMapNode(id: 'a', title: 'A', subtitle: 'H2'),
+          MindMapNode(id: 'b', title: 'B'),
+        ],
+      );
+      final layout = MindMapLayout.compute(root);
+      for (final scheme in [colors, paletteSchemes['weft-dark']!]) {
+        for (final style in MindMapStyle.values) {
+          final bytes = await service.mindMapPng(
+            root,
+            scheme,
+            layout: layout,
+            style: style,
+          );
+          final codec = await ui.instantiateImageCodec(bytes);
+          final image = (await codec.getNextFrame()).image;
+          try {
+            final rgba = (await image.toByteData(
+              format: ui.ImageByteFormat.rawRgba,
+            ))!;
+            void check(ui.Offset at, ui.Color expected, String reason) {
+              final offset =
+                  ((at.dy * 2).round() * image.width + (at.dx * 2).round()) * 4;
+              final channels = [expected.r, expected.g, expected.b];
+              for (var c = 0; c < 3; c++) {
+                expect(
+                  rgba.getUint8(offset + c),
+                  closeTo(channels[c] * 255, 3),
+                  reason: '$style $reason',
+                );
+              }
+            }
+
+            for (final entry in layout.rects.entries) {
+              final tokens = MindMapNodeStyle.resolve(
+                style,
+                scheme,
+                root: entry.key == root.id,
+                branch: layout.branchIndices[entry.key] ?? 0,
+              );
+              check(
+                entry.value.topLeft + const ui.Offset(14, 14),
+                ui.Color.alphaBlend(tokens.fill, scheme.surface),
+                entry.key,
+              );
+            }
+            for (var i = 0; i < layout.edges.length; i++) {
+              final edge = MindMapEdgeStyle.resolve(
+                style,
+                scheme,
+                branch: layout.branchIndices[layout.edges[i].to] ?? 0,
+              );
+              final metric = layout.paths[i].computeMetrics().first;
+              // The middle of the curve is away from node borders and text.
+              final point = metric
+                  .getTangentForOffset(metric.length / 2)!
+                  .position;
+              if (style == MindMapStyle.colorful) {
+                check(
+                  point,
+                  ui.Color.alphaBlend(edge.color, scheme.surface),
+                  'connector $i',
+                );
+              }
+            }
+            final output = Platform.environment['VEX_CAPTURE_DIR'];
+            if (output != null) {
+              await File(
+                '$output/map-${scheme.brightness.name}-${style.name}.png',
+              ).writeAsBytes(bytes);
+            }
+          } finally {
+            image.dispose();
+            codec.dispose();
+          }
+        }
+      }
+    },
+  );
 }

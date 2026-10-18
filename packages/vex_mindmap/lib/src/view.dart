@@ -59,24 +59,6 @@ class _MindMapViewState extends State<MindMapView> {
   final _title = TextEditingController();
   final _titleFocus = FocusNode(), _canvasFocus = FocusNode();
   MindMapNode? _editing;
-  MindMapLayout? _branchLayout;
-  final _branches = <String, int>{};
-  void _indexBranches(MindMapLayout layout) {
-    if (identical(_branchLayout, layout)) return;
-    _branchLayout = layout;
-    _branches.clear();
-    void visit(MindMapNode node, int branch) {
-      if (!layout.nodes.containsKey(node.id)) return;
-      _branches[node.id] = branch;
-      for (final child in node.children) {
-        visit(child, branch);
-      }
-    }
-
-    for (var i = 0; i < controller.root.children.length; i++) {
-      visit(controller.root.children[i], i);
-    }
-  }
 
   void _activate(MindMapNode node) {
     controller.select(node.id);
@@ -131,7 +113,6 @@ class _MindMapViewState extends State<MindMapView> {
         builder: (context, _) {
           final layout = controller.layout,
               color = Theme.of(context).colorScheme;
-          _indexBranches(layout);
           if (controller.fitRequested) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (context.mounted && controller.fitRequested) {
@@ -319,8 +300,9 @@ class _MindMapViewState extends State<MindMapView> {
                                   child: CustomPaint(
                                     painter: _EdgesPainter(
                                       layout,
-                                      color.primary,
+                                      color,
                                       visible,
+                                      controller.style,
                                     ),
                                   ),
                                 ),
@@ -334,7 +316,7 @@ class _MindMapViewState extends State<MindMapView> {
                                         controller.root.id,
                                         visible,
                                         controller.style,
-                                        _branches,
+                                        layout.branchIndices,
                                       ),
                                     ),
                                   )
@@ -422,7 +404,7 @@ class _MindMapViewState extends State<MindMapView> {
       color,
       root: root,
       selected: selected,
-      branch: _branches[node.id] ?? 0,
+      branch: controller.layout.branchIndices[node.id] ?? 0,
     );
     final content =
         nodeBuilder?.call(context, node, selected) ??
@@ -544,6 +526,14 @@ class _MindMapViewState extends State<MindMapView> {
                     height: 22,
                     child: IconButton.filledTonal(
                       padding: EdgeInsets.zero,
+                      style: IconButton.styleFrom(
+                        backgroundColor: MindMapEdgeStyle.resolve(
+                          controller.style,
+                          color,
+                          branch: controller.layout.branchIndices[node.id] ?? 0,
+                        ).color.withValues(alpha: 1),
+                        foregroundColor: color.surface,
+                      ),
                       tooltip: controller.collapsed.contains(node.id)
                           ? labels.expand
                           : labels.collapse,
@@ -597,7 +587,7 @@ class _OverviewPainter extends CustomPainter {
       );
       fill.color = tokens.fill;
       border.color = tokens.border;
-      border.strokeWidth = selected ? 2 : .7;
+      border.strokeWidth = tokens.strokeWidth;
       final card = RRect.fromRectAndRadius(
         entry.value,
         Radius.circular(tokens.radius),
@@ -643,18 +633,26 @@ class _GridPainter extends CustomPainter {
 }
 
 class _EdgesPainter extends CustomPainter {
-  const _EdgesPainter(this.layout, this.color, this.visible);
+  const _EdgesPainter(this.layout, this.colors, this.visible, this.style);
   final MindMapLayout layout;
-  final Color color;
+  final ColorScheme colors;
   final Rect visible;
+  final MindMapStyle style;
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color.withValues(alpha: .4)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    for (final path in layout.paths) {
+    final paint = Paint()..style = PaintingStyle.stroke;
+    for (var i = 0; i < layout.paths.length; i++) {
+      final path = layout.paths[i];
       if (!path.getBounds().inflate(2).overlaps(visible)) continue;
+      final tokens = MindMapEdgeStyle.resolve(
+        style,
+        colors,
+        branch: i < layout.edges.length
+            ? layout.branchIndices[layout.edges[i].to] ?? 0
+            : 0,
+      );
+      paint.color = tokens.color;
+      paint.strokeWidth = tokens.width;
       canvas.drawPath(path, paint);
     }
   }
@@ -662,6 +660,7 @@ class _EdgesPainter extends CustomPainter {
   @override
   bool shouldRepaint(_EdgesPainter oldDelegate) =>
       oldDelegate.layout != layout ||
-      oldDelegate.color != color ||
+      oldDelegate.colors != colors ||
+      oldDelegate.style != style ||
       oldDelegate.visible != visible;
 }

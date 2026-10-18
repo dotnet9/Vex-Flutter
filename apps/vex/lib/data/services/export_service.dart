@@ -1127,6 +1127,8 @@ img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:
     MindMapNode root,
     ColorScheme colors, {
     MindMapLayout? layout,
+    MindMapStyle style = MindMapStyle.quiet,
+    TextStyle textStyle = const TextStyle(),
   }) async {
     layout ??= MindMapLayout.compute(root);
     final longest = math.max(layout.size.width, layout.size.height);
@@ -1144,48 +1146,80 @@ img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:
       Offset.zero & layout.size,
       Paint()..color = colors.surface,
     );
-    final edgePaint = Paint()
-      ..color = colors.primary.withValues(alpha: .45)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.3;
-    for (final path in layout.paths) {
-      drawing.drawPath(path, edgePaint);
+    final edgePaint = Paint()..style = PaintingStyle.stroke;
+    for (var i = 0; i < layout.paths.length; i++) {
+      final tokens = MindMapEdgeStyle.resolve(
+        style,
+        colors,
+        branch: i < layout.edges.length
+            ? layout.branchIndices[layout.edges[i].to] ?? 0
+            : 0,
+      );
+      edgePaint.color = tokens.color;
+      edgePaint.strokeWidth = tokens.width;
+      drawing.drawPath(layout.paths[i], edgePaint);
     }
     for (final entry in layout.rects.entries) {
       final node = layout.nodes[entry.key]!,
           rect = entry.value,
           isRoot = node.id == root.id;
-      final shape = RRect.fromRectAndRadius(rect, const Radius.circular(7));
-      drawing.drawRRect(
-        shape,
-        Paint()..color = isRoot ? colors.primary : colors.surfaceContainerLow,
+      final tokens = MindMapNodeStyle.resolve(
+        style,
+        colors,
+        root: isRoot,
+        branch: layout.branchIndices[node.id] ?? 0,
       );
-      drawing.drawRRect(
-        shape,
-        Paint()
-          ..color = colors.outlineVariant
-          ..style = PaintingStyle.stroke,
+      final shape = RRect.fromRectAndRadius(
+        rect,
+        Radius.circular(tokens.radius),
       );
+      drawing.drawRRect(shape, Paint()..color = tokens.fill);
+      final border = Paint()
+        ..color = tokens.border
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = tokens.strokeWidth;
+      if (tokens.underline) {
+        drawing.drawLine(rect.bottomLeft, rect.bottomRight, border);
+      } else {
+        drawing.drawRRect(shape, border);
+      }
       final painter = TextPainter(
         textDirection: TextDirection.ltr,
-        maxLines: 2,
+        maxLines: node.summary ? 2 : 1,
         ellipsis: '…',
         text: TextSpan(
           text: node.title,
-          style: TextStyle(
-            color: isRoot ? colors.onPrimary : colors.onSurface,
-            fontSize: 12,
-            height: 1.6,
-            fontFamily: 'Segoe UI',
-            fontFamilyFallback: const ['Microsoft YaHei', 'Noto Sans CJK SC'],
+          style: textStyle.copyWith(
+            color: tokens.foreground,
+            fontSize: node.summary ? 12 : 14,
+            fontWeight: node.summary ? FontWeight.normal : FontWeight.w600,
           ),
         ),
       );
       painter.layout(maxWidth: rect.width - 24);
+      final subtitle =
+          node.subtitle == null
+                ? null
+                : TextPainter(
+                    textDirection: TextDirection.ltr,
+                    maxLines: 1,
+                    text: TextSpan(
+                      text: node.subtitle,
+                      style: textStyle.copyWith(
+                        fontSize: 9,
+                        color: tokens.foreground.withValues(alpha: .75),
+                      ),
+                    ),
+                  )
+            ?..layout(maxWidth: rect.width - 24);
+      final top =
+          rect.center.dy - (painter.height + (subtitle?.height ?? 0)) / 2;
+      subtitle?.paint(drawing, Offset(rect.left + 12, top));
       painter.paint(
         drawing,
-        Offset(rect.left + 12, rect.center.dy - painter.height / 2),
+        Offset(rect.left + 12, top + (subtitle?.height ?? 0)),
       );
+      subtitle?.dispose();
       painter.dispose();
     }
     final picture = recorder.endRecording();
