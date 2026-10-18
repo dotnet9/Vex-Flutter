@@ -1,0 +1,35 @@
+# README 实机媒体
+
+根目录 README 的画面来自 Windows 原生 Flutter 应用，不是浏览器原型或设计稿。采集入口使用实际 `VexApp`、原生窗口和应用内六步引导；文件、偏好和恢复仓库均使用内存替身，不读取个人笔记，不写入用户配置，不启动 MCP。
+
+## 重新生成
+
+在 Windows 仓库根目录执行，工具链与主项目一致，另需 Python 和 Pillow：
+
+```powershell
+flutter pub get --enforce-lockfile
+python -m pip install Pillow
+$env:VEX_CAPTURE_DIR = Join-Path $PWD 'artifacts/readme-capture'
+$env:CMAKE_BUILD_PARALLEL_LEVEL = '1'
+$env:CL = '/MP1'
+Push-Location apps/vex
+try {
+    flutter test --no-pub integration_test/readme_capture_test.dart -d windows
+    if ($LASTEXITCODE -ne 0) { throw '原生采集失败，请勿继续生成媒体。' }
+} finally {
+    Pop-Location
+}
+python scripts/docs/build_media.py artifacts/readme-capture
+python -m unittest discover -s scripts/docs -v
+```
+
+采集时保持桌面解锁，不缩放或操作测试窗口。测试自动校准 Flutter 客户区尺寸，截图不包含桌面其他应用。GIF 按实际切换按钮逐帧记录过渡，并在每个步骤停留以便阅读；编码仅压缩调色板和重复画面，不添加不存在的 UI。末尾检查引导结束后原文和布局恢复。
+
+| 输出 | 内容 |
+| --- | --- |
+| `docs/media/workspace.png` | 即时编辑与导图联动，浅色品牌墨青 |
+| `docs/media/source-preview.png` | Markdown 源码与正文预览 |
+| `docs/media/mindmap-dark.png` | 深色发散导图与章节大纲 |
+| `docs/media/windows-guide.gif` | Windows 六步新手引导及结束后恢复 |
+
+逐帧 PNG、时长清单和编译产物保留在忽略的 `artifacts/` 下，仅上述最终媒体提交到 Git。更新软件交互后应重新采集并目视检查 GIF 全程，不要用旧截图代表新功能；这些素材不替代完整视觉验收或其他平台真机验证。

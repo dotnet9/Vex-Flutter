@@ -13,6 +13,7 @@
 | 字体准备 | `prepare_app_fonts.py`、`prepare_export_fonts.py` | 更新应用 / 离线导出字体 |
 | 原型与应用同步 | `sync_design_tokens.py`、`sync_builtin_documents.py`、`sync_project_info.py` | 更新设计令牌、内置文档、项目版本元信息 |
 | 演示模式维护 | `test_presentation.cjs`、`update_presentation_l10n.py` | 验证原型演示、维护演示文本翻译 |
+| README 实机媒体 | [docs/](docs/README.md) | 采集 Windows 应用截图、六步新手引导 GIF |
 | 验收辅助 | `compare_workspace.py`、`summarize_stress.py` | 比较源码副本、汇总压力测试结果 |
 
 `artifacts/`、各项目的 `build/`、`.dart_tool/` 是生成目录，不是脚本源码；不提交到 Git，也不必随换机迁移。签名材料不属于可丢弃缓存，需单独加密备份。
