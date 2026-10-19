@@ -25,6 +25,9 @@ import 'presentation_controller.dart';
 import 'workspace_mcp.dart';
 
 final class WorkspaceViewModel extends ChangeNotifier {
+  // 导图摘要清洗正则静态化：打字时全文档遍历不再逐块编译。
+  static final RegExp _summaryMarkersRe = RegExp(r'[#*`>\[\]]');
+  static final RegExp _summaryWhitespaceRe = RegExp(r'\s+');
   WorkspaceViewModel({
     required this.files,
     required this.settings,
@@ -371,8 +374,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
         if (!include) continue;
         final plain = block.range
             .slice(doc.source)
-            .replaceAll(RegExp(r'[#*`>\[\]]'), '')
-            .replaceAll(RegExp(r'\s+'), ' ')
+            .replaceAll(_summaryMarkersRe, '')
+            .replaceAll(_summaryWhitespaceRe, ' ')
             .trim();
         final title = plain.characters.take(summaryLength).join();
         final id = 'body-${block.range.start}';

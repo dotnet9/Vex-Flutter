@@ -64,6 +64,24 @@ final class _Line {
 
 /// Markdown source is authoritative. Parsed structures never rewrite it.
 final class MarkdownDocument {
+  // 解析热路径的正则全部静态化：每键全量解析时避免每行重新编译。
+  static final RegExp _lineBreakRe = RegExp(r'[^\r\n]*(?:\r\n|\n|\r|$)');
+  static final RegExp _fenceRe = RegExp(r'^ {0,3}(`{3,}|~{3,})(.*)$');
+  static final RegExp _mathOpenRe = RegExp(r'^ {0,3}(\$\$|\\\[)');
+  static final RegExp _atxRe = RegExp(
+    r'^ {0,3}(#{1,6})(?:[ \t]+(.*?)|[ \t]*)$',
+  );
+  static final RegExp _atxClosingRe = RegExp(r'[ \t]+#+[ \t]*$');
+  static final RegExp _setextRe = RegExp(r'^ {0,3}(=+|-+)[ \t]*$');
+  static final RegExp _setextInterruptRe = RegExp(
+    r'^ {0,3}([>\-*+]|\d+[.)])\s',
+  );
+  static final RegExp _quoteRe = RegExp(r'^ {0,3}>');
+  static final RegExp _ruleRe = RegExp(
+    r'^ {0,3}(?:\*\s*){3,}$|^ {0,3}(?:-\s*){3,}$|^ {0,3}(?:_\s*){3,}$',
+  );
+  static final RegExp _tableDelimRe = RegExp(r'^\s*\|?\s*:?-{3,}');
+
   MarkdownDocument._(this.source, this.headings, this.blocks, this.lineStarts);
 
   /// Keep small files cheap; move large initial parses off the UI isolate.
@@ -75,19 +93,17 @@ final class MarkdownDocument {
   factory MarkdownDocument.parse(String source) {
     final lines = <_Line>[];
     var offset = 0;
-    for (final match in RegExp(
-      r'[^\r\n]*(?:\r\n|\n|\r|$)',
-    ).allMatches(source)) {
+    for (final match in _lineBreakRe.allMatches(source)) {
       if (match.start == source.length) break;
       final raw = match.group(0)!;
-      lines.add(
-        _Line(
-          raw.replaceFirst(RegExp(r'[\r\n]+$'), ''),
-          offset,
-          offset + raw.length,
-          lines.length + 1,
-        ),
-      );
+      // 手工去行尾换行，替代逐行正则替换。
+      var text = raw;
+      if (text.endsWith('\r\n')) {
+        text = text.substring(0, text.length - 2);
+      } else if (text.endsWith('\n') || text.endsWith('\r')) {
+        text = text.substring(0, text.length - 1);
+      }
+      lines.add(_Line(text, offset, offset + raw.length, lines.length + 1));
       offset += raw.length;
     }
     final specs =
@@ -117,7 +133,7 @@ final class MarkdownDocument {
         if (i > 0 && (text == '---' || text == '...')) frontmatter = false;
         continue;
       }
-      final marker = RegExp(r'^ {0,3}(`{3,}|~{3,})(.*)$').firstMatch(text);
+      final marker = _fenceRe.firstMatch(text);
       if (fence != null) {
         if (marker != null &&
             marker[1]![0] == fence &&
@@ -143,7 +159,7 @@ final class MarkdownDocument {
         continue;
       }
       if (text.trim().isEmpty) continue;
-      final mathOpen = RegExp(r'^ {0,3}(\$\$|\\\[)').firstMatch(text);
+      final mathOpen = _mathOpenRe.firstMatch(text);
       if (mathOpen != null) {
         final close = mathOpen[1] == r'$$' ? r'$$' : r'\]';
         var size = 0;
@@ -200,14 +216,11 @@ final class MarkdownDocument {
         i = listEnd - 1;
         continue;
       }
-      final atx = RegExp(r'^ {0,3}(#{1,6})(?:[ \t]+(.*?)|[ \t]*)$')
-          .firstMatch(text);
+      final atx = _atxRe.firstMatch(text);
       var isHeading = false;
       if (atx != null) {
         final original = atx[2] ?? '';
-        final title = original
-            .replaceFirst(RegExp(r'[ \t]+#+[ \t]*$'), '')
-            .trimRight();
+        final title = original.replaceFirst(_atxClosingRe, '').trimRight();
         final titleStart = title.isEmpty ? text.length : text.indexOf(original);
         specs.add((
           title: title,
@@ -222,8 +235,8 @@ final class MarkdownDocument {
         isHeading = true;
       } else if (!text.startsWith('    ') &&
           i + 1 < lines.length &&
-          RegExp(r'^ {0,3}(=+|-+)[ \t]*$').hasMatch(lines[i + 1].text) &&
-          !RegExp(r'^ {0,3}([>\-*+]|\d+[.)])\s').hasMatch(text)) {
+          _setextRe.hasMatch(lines[i + 1].text) &&
+          !_setextInterruptRe.hasMatch(text)) {
         final title = text.trim();
         specs.add((
           title: title,
@@ -240,16 +253,13 @@ final class MarkdownDocument {
       }
       final kind = isHeading
           ? MarkdownBlockKind.heading
-          : RegExp(r'^ {0,3}>').hasMatch(text)
+          : _quoteRe.hasMatch(text)
           ? MarkdownBlockKind.quote
-          : RegExp(
-              r'^ {0,3}(?:\*\s*){3,}$|^ {0,3}(?:-\s*){3,}$|^ {0,3}(?:_\s*){3,}$',
-            ).hasMatch(text)
+          : _ruleRe.hasMatch(text)
           ? MarkdownBlockKind.rule
           : text.contains('|') &&
                 ((i + 1 < lines.length &&
-                        RegExp(r'^\s*\|?\s*:?-{3,}')
-                            .hasMatch(lines[i + 1].text)) ||
+                        _tableDelimRe.hasMatch(lines[i + 1].text)) ||
                     (blocks.isNotEmpty &&
                         blocks.last.kind == MarkdownBlockKind.table &&
                         blocks.last.range.end == line.start))
@@ -287,6 +297,18 @@ final class MarkdownDocument {
     final headings = <MarkdownHeading>[];
     final stack = <MarkdownHeading>[];
     final occurrences = <String, int>{};
+    // 逆序单调栈预计算每个标题的“下一个同级或更高级标题”起点，避免 O(H²) 扫描。
+    final sectionStarts = List<int>.filled(specs.length, source.length);
+    final pending = <int>[];
+    for (var i = specs.length - 1; i >= 0; i--) {
+      while (pending.isNotEmpty && specs[pending.last].level > specs[i].level) {
+        pending.removeLast();
+      }
+      sectionStarts[i] = pending.isEmpty
+          ? source.length
+          : specs[pending.last].line.start;
+      pending.add(i);
+    }
     for (var i = 0; i < specs.length; i++) {
       final spec = specs[i];
       while (stack.isNotEmpty && stack.last.level >= spec.level) {
@@ -298,10 +320,6 @@ final class MarkdownDocument {
         (v) => v + 1,
         ifAbsent: () => 0,
       );
-      final next = specs
-          .skip(i + 1)
-          .where((s) => s.level <= spec.level)
-          .firstOrNull;
       final heading = MarkdownHeading(
         id: '$identity:$occurrence',
         title: spec.title,
@@ -313,10 +331,7 @@ final class MarkdownDocument {
           spec.end,
           i + 1 < specs.length ? specs[i + 1].line.start : source.length,
         ),
-        section: SourceRange(
-          spec.line.start,
-          next?.line.start ?? source.length,
-        ),
+        section: SourceRange(spec.line.start, sectionStarts[i]),
         parentId: stack.lastOrNull?.id,
       );
       headings.add(heading);

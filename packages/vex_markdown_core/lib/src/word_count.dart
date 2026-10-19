@@ -2,12 +2,16 @@ import 'package:markdown/markdown.dart' as md;
 
 import 'document.dart';
 
+// 摘要提取的正则静态化：打字时的词数与摘要路径反复调用。
+final RegExp _summaryLineBreakRe = RegExp(r'\r\n|\n|\r');
+final RegExp _summaryCollapseRe = RegExp(r'\s+');
+
 /// Visible text, without Markdown markers, link destinations or HTML tags.
 String markdownSummaryText(String source) {
   final nodes = md.Document(
     extensionSet: md.ExtensionSet.gitHubFlavored,
     encodeHtml: false,
-  ).parseLines(source.split(RegExp(r'\r\n|\n|\r')));
+  ).parseLines(source.split(_summaryLineBreakRe));
   String text(md.Node node) {
     if (node is! md.Element) return node.textContent;
     if (node.tag == 'img') return node.attributes['alt'] ?? '';
@@ -19,7 +23,7 @@ String markdownSummaryText(String source) {
     return (node.children ?? const <md.Node>[]).map(text).join(separator);
   }
 
-  return nodes.map(text).join(' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+  return nodes.map(text).join(' ').replaceAll(_summaryCollapseRe, ' ').trim();
 }
 
 /// CJK letters count individually; other scripts count space-separated words.

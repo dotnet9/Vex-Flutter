@@ -19,8 +19,11 @@ final class MarkdownPreferences {
       autoLink,
       softBreak;
 
+  // 每次公式匹配都会询问：正则静态化避免反复编译。
+  static final RegExp _chemistryRe = RegExp(r'\\(?:ce|pu)\b');
+
   bool rendersFormula(String source) =>
-      RegExp(r'\\(?:ce|pu)\b').hasMatch(source) ? chemistry : math;
+      _chemistryRe.hasMatch(source) ? chemistry : math;
 
   MarkdownPreferences copyWith({
     bool? math,
