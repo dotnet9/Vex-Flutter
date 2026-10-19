@@ -37,6 +37,7 @@ class WorkspaceGuide extends StatefulWidget {
   final VoidCallback onClose;
   final ValueChanged<int> onStep;
   final VoidCallback? onReplay, onSkip, onContinue;
+
   /// Key moments keep the card visible; ordinary automated actions use only
   /// the cut-out and a short hint next to the highlighted target.
   final bool showCard;
@@ -84,7 +85,11 @@ class _WorkspaceGuideState extends State<WorkspaceGuide> {
         if (mounted) _measure();
       });
       final width = math.min(
-        widget.step < 0 ? 408.0 : widget.completed ? 480.0 : 376.0,
+        widget.step < 0
+            ? 408.0
+            : widget.completed
+            ? 480.0
+            : 376.0,
         constraints.maxWidth - 32,
       );
       final target = _target;
@@ -170,96 +175,97 @@ class _WorkspaceGuideState extends State<WorkspaceGuide> {
             ),
           if (cardVisible)
             AnimatedPositioned(
-            key: const ValueKey('guide-card'),
-            duration: MediaQuery.disableAnimationsOf(context)
-                ? Duration.zero
-                : const Duration(milliseconds: 180),
-            curve: Curves.easeOutCubic,
-            left: x,
-            top: y,
-            width: width,
-            child: Material(
-              key: _card,
-              elevation: 12,
-              color: colors.surfaceContainerLow,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: BorderSide(color: colors.outlineVariant),
-              ),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: constraints.maxHeight - 32,
+              key: const ValueKey('guide-card'),
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              left: x,
+              top: y,
+              width: width,
+              child: Material(
+                key: _card,
+                elevation: 12,
+                color: colors.surfaceContainerLow,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(color: colors.outlineVariant),
                 ),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(22),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              widget.title,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                height: 1.25,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: constraints.maxHeight - 32,
+                  ),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(22),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                widget.title,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.25,
+                                ),
                               ),
                             ),
+                            AppCloseButton(onPressed: widget.onClose),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        if (widget.running &&
+                            widget.showCard &&
+                            widget.liveMessage != null)
+                          Text(
+                            widget.liveMessage!,
+                            style: const TextStyle(fontSize: 14, height: 1.75),
+                          )
+                        else if (widget.completed &&
+                            widget.resultTitle != null) ...[
+                          Text(
+                            widget.resultTitle!,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                          AppCloseButton(onPressed: widget.onClose),
+                          const SizedBox(height: 5),
+                          Text(
+                            widget.result ?? '',
+                            style: TextStyle(
+                              fontSize: 14,
+                              height: 1.75,
+                              color: colors.onSurfaceVariant,
+                            ),
+                          ),
+                        ] else ...[
+                          Text(
+                            widget.description,
+                            style: const TextStyle(fontSize: 14, height: 1.75),
+                          ),
                         ],
-                      ),
-                      const SizedBox(height: 14),
-                      if (widget.running && widget.showCard &&
-                          widget.liveMessage != null)
-                        Text(
-                          widget.liveMessage!,
-                          style: const TextStyle(fontSize: 14, height: 1.75),
-                        )
-                      else if (widget.completed && widget.resultTitle != null) ...[
-                        Text(
-                          widget.resultTitle!,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          widget.result ?? '',
-                          style: TextStyle(
-                            fontSize: 14,
-                            height: 1.75,
-                            color: colors.onSurfaceVariant,
-                          ),
-                        ),
-                      ] else ...[
-                        Text(
-                          widget.description,
-                          style: const TextStyle(fontSize: 14, height: 1.75),
+                        const SizedBox(height: 18),
+                        _GuideActions(
+                          step: widget.step,
+                          totalSteps: widget.totalSteps,
+                          running: widget.running,
+                          paused: widget.paused,
+                          completed: widget.completed,
+                          onClose: widget.onClose,
+                          onStep: widget.onStep,
+                          onSkip: widget.onSkip,
+                          onContinue: widget.onContinue,
                         ),
                       ],
-                      const SizedBox(height: 18),
-                      _GuideActions(
-                        step: widget.step,
-                        totalSteps: widget.totalSteps,
-                        running: widget.running,
-                        paused: widget.paused,
-                        completed: widget.completed,
-                        onClose: widget.onClose,
-                        onStep: widget.onStep,
-                        onSkip: widget.onSkip,
-                        onContinue: widget.onContinue,
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
-            ),
-          ),
         ],
       );
     },
@@ -291,11 +297,7 @@ class _GuideActions extends StatelessWidget {
     if (step < 0) {
       left.add(AppButton(label: '先不看', onPressed: onClose));
       right.add(
-        AppButton(
-          label: '开始吧  →',
-          primary: true,
-          onPressed: () => onStep(0),
-        ),
+        AppButton(label: '开始吧  →', primary: true, onPressed: () => onStep(0)),
       );
     } else {
       if (running && onSkip != null) {
@@ -349,7 +351,7 @@ class _GuideActions extends StatelessWidget {
           Expanded(
             child: Align(
               alignment: Alignment.centerLeft,
-              child: group(left),
+              child: FittedBox(fit: BoxFit.scaleDown, child: group(left)),
             ),
           ),
           // 开场算第 1 步；八个幕依次为 2/9-9/9，与原型一致。
@@ -369,7 +371,7 @@ class _GuideActions extends StatelessWidget {
           Expanded(
             child: Align(
               alignment: Alignment.centerRight,
-              child: group(right),
+              child: FittedBox(fit: BoxFit.scaleDown, child: group(right)),
             ),
           ),
         ],

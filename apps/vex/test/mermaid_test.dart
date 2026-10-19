@@ -131,7 +131,10 @@ void main() {
     await tester.tap(find.byTooltip(vm.strings.mermaidDiagrams));
     await tester.pumpAndSettle();
     expect(find.text('过程与行为'), findsNothing);
-    expect(find.byKey(const ValueKey('mermaid-template-flowchart')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('mermaid-template-flowchart')),
+      findsOneWidget,
+    );
     final item = find.byKey(const ValueKey('mermaid-template-sequence'));
     await tester.tap(item);
     await tester.pumpAndSettle();

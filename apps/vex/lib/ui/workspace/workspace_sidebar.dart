@@ -83,44 +83,48 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
                   (true, context.l10n.outline),
                 ])
                   Expanded(
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        TextButton(
-                          key: entry.$1
-                              ? (widget.outlineTabKey ??
-                                    const ValueKey('sidebar-outline'))
-                              : const ValueKey('sidebar-files'),
-                          onPressed: () => vm.setOutline(entry.$1),
-                          style: TextButton.styleFrom(
-                            foregroundColor: vm.outline == entry.$1
-                                ? c.primary
-                                : c.onSurfaceVariant,
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            shape: const RoundedRectangleBorder(),
-                            textStyle: TextStyle(
-                              fontSize: 14,
-                              fontWeight: vm.outline == entry.$1
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
+                    child: KeyedSubtree(
+                      key: entry.$1 ? widget.outlineTabKey : null,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          TextButton(
+                            key: entry.$1
+                                ? const ValueKey('sidebar-outline')
+                                : const ValueKey('sidebar-files'),
+                            onPressed: () => vm.setOutline(entry.$1),
+                            style: TextButton.styleFrom(
+                              foregroundColor: vm.outline == entry.$1
+                                  ? c.primary
+                                  : c.onSurfaceVariant,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                              shape: const RoundedRectangleBorder(),
+                              textStyle: TextStyle(
+                                fontSize: 14,
+                                fontWeight: vm.outline == entry.$1
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                              ),
+                            ),
+                            child: Text(
+                              entry.$2,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          child: Text(
-                            entry.$2,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (vm.outline == entry.$1)
-                          Align(
-                            alignment: Alignment.bottomCenter,
-                            child: Container(
-                              width: 32,
-                              height: 2,
-                              color: c.primary,
+                          if (vm.outline == entry.$1)
+                            Align(
+                              alignment: Alignment.bottomCenter,
+                              child: Container(
+                                width: 32,
+                                height: 2,
+                                color: c.primary,
+                              ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
               ],
@@ -701,7 +705,9 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
             context,
             event.globalPosition,
             document: document,
-            path: document?.path == null ? (document == null ? path : null) : path,
+            path: document?.path == null
+                ? (document == null ? path : null)
+                : path,
           ),
           borderRadius: BorderRadius.circular(6),
           child: Container(

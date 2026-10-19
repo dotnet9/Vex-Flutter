@@ -445,106 +445,105 @@ class _DocumentReadingState extends State<_DocumentReading>
         child: Align(
           alignment: Alignment.topCenter,
           child: LayoutBuilder(
-              builder: (context, constraints) {
-                _navigation.preservePosition((
-                  constraints.biggest,
-                  vm.typography,
-                  vm.compact,
-                  vm.fontSize,
-                  vm.editingPreferences,
-                  vm.markdownPreferences,
-                  MediaQuery.textScalerOf(context),
-                ), contentKey: vm.editor.document);
-                return SuperListView.builder(
-                  key: PageStorageKey('read:${vm.current.id}'),
-                  controller: _scroll,
-                  listController: _list,
-                  cacheExtent: constraints.maxHeight,
-                  padding: widget.padding,
-                  itemCount: blocks.isEmpty ? 1 : blocks.length,
-                  itemBuilder: (context, index) {
-                    if (blocks.isEmpty) return Text(context.l10n.emptyDocument);
-                    final block = blocks[index];
-                    final reader = MarkdownReader(
-                      documentSource: vm.editor.text,
-                      onMediaContext: (url, image, occurrence, position) {
-                        final token =
-                            markdownMediaTargets(vm.editor.text, block)
-                                .where(
-                                  (token) =>
-                                      token.image == image &&
-                                      token.url == markdownAttributeText(url),
-                                )
-                                .elementAtOrNull(occurrence);
-                        if (token == null) return;
-                        widget.onContextMenu?.call(
-                          MarkdownContextRequest(
-                            offset: token.range.start,
-                            position: position,
-                            selection: TextSelection.collapsed(
-                              offset: token.range.start,
-                            ),
-                            readOnly: true,
-                          ),
-                        );
-                      },
-                      imageBuilder: (uri, title, alt) => DocumentImage(
-                        uri: uri,
-                        documentPath: vm.current.path,
-                        alt: alt,
-                      ),
-                      key: ValueKey(block.range.start),
-                      data: block.range.slice(vm.editor.session.text),
-                      labels: context.l10n.editorLabels,
-                      typography: vm.typography,
-                      compact: vm.compact,
-                      fontSize: vm.fontSize,
-                      editingPreferences: vm.editingPreferences,
-                      preferences: vm.markdownPreferences,
-                      onTapLink: (_, href, _) {
-                        if (href == '../design/Third-Party-Licenses.html') {
-                          showLicensePage(context: context);
-                          return;
-                        }
-                        openWorkspaceLink(vm, href);
-                      },
-                    );
-                    void openContext(Offset position) {
-                      final source = vm.editor.text;
-                      final tokens =
-                          const [
-                            MarkdownBlockKind.code,
-                            MarkdownBlockKind.math,
-                          ].contains(block.kind)
-                          ? <MarkdownMediaTarget>[]
-                          : markdownMediaTargets(source, block);
+            builder: (context, constraints) {
+              _navigation.preservePosition((
+                constraints.biggest,
+                vm.typography,
+                vm.compact,
+                vm.fontSize,
+                vm.editingPreferences,
+                vm.markdownPreferences,
+                MediaQuery.textScalerOf(context),
+              ), contentKey: vm.editor.document);
+              return SuperListView.builder(
+                key: PageStorageKey('read:${vm.current.id}'),
+                controller: _scroll,
+                listController: _list,
+                cacheExtent: constraints.maxHeight,
+                padding: widget.padding,
+                itemCount: blocks.isEmpty ? 1 : blocks.length,
+                itemBuilder: (context, index) {
+                  if (blocks.isEmpty) return Text(context.l10n.emptyDocument);
+                  final block = blocks[index];
+                  final reader = MarkdownReader(
+                    documentSource: vm.editor.text,
+                    onMediaContext: (url, image, occurrence, position) {
+                      final token = markdownMediaTargets(vm.editor.text, block)
+                          .where(
+                            (token) =>
+                                token.image == image &&
+                                token.url == markdownAttributeText(url),
+                          )
+                          .elementAtOrNull(occurrence);
+                      if (token == null) return;
                       widget.onContextMenu?.call(
                         MarkdownContextRequest(
-                          offset: tokens.length == 1
-                              ? tokens.single.range.start
-                              : block.range.start,
+                          offset: token.range.start,
                           position: position,
                           selection: TextSelection.collapsed(
-                            offset: block.range.start,
+                            offset: token.range.start,
                           ),
                           readOnly: true,
                         ),
                       );
-                    }
-
-                    return GestureDetector(
-                      key: ValueKey('read-element-${block.range.start}'),
-                      behavior: HitTestBehavior.translucent,
-                      onSecondaryTapUp: (event) =>
-                          openContext(event.globalPosition),
-                      onLongPressStart: (event) =>
-                          openContext(event.globalPosition),
-                      child: reader,
+                    },
+                    imageBuilder: (uri, title, alt) => DocumentImage(
+                      uri: uri,
+                      documentPath: vm.current.path,
+                      alt: alt,
+                    ),
+                    key: ValueKey(block.range.start),
+                    data: block.range.slice(vm.editor.session.text),
+                    labels: context.l10n.editorLabels,
+                    typography: vm.typography,
+                    compact: vm.compact,
+                    fontSize: vm.fontSize,
+                    editingPreferences: vm.editingPreferences,
+                    preferences: vm.markdownPreferences,
+                    onTapLink: (_, href, _) {
+                      if (href == '../design/Third-Party-Licenses.html') {
+                        showLicensePage(context: context);
+                        return;
+                      }
+                      openWorkspaceLink(vm, href);
+                    },
+                  );
+                  void openContext(Offset position) {
+                    final source = vm.editor.text;
+                    final tokens =
+                        const [
+                          MarkdownBlockKind.code,
+                          MarkdownBlockKind.math,
+                        ].contains(block.kind)
+                        ? <MarkdownMediaTarget>[]
+                        : markdownMediaTargets(source, block);
+                    widget.onContextMenu?.call(
+                      MarkdownContextRequest(
+                        offset: tokens.length == 1
+                            ? tokens.single.range.start
+                            : block.range.start,
+                        position: position,
+                        selection: TextSelection.collapsed(
+                          offset: block.range.start,
+                        ),
+                        readOnly: true,
+                      ),
                     );
-                  },
-                );
-              },
-            ),
+                  }
+
+                  return GestureDetector(
+                    key: ValueKey('read-element-${block.range.start}'),
+                    behavior: HitTestBehavior.translucent,
+                    onSecondaryTapUp: (event) =>
+                        openContext(event.globalPosition),
+                    onLongPressStart: (event) =>
+                        openContext(event.globalPosition),
+                    child: reader,
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
     );

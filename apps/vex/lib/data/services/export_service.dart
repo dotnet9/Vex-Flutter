@@ -227,18 +227,14 @@ final class DocumentExportService {
       }
       if (node is md.Element && node.tag == 'vex-footnote') {
         final label = node.attributes['data-label'] ?? '';
-        return md.Element(
-            'p',
-            [
-              md.Element.text('strong', '[$label] '),
-              md.Text(node.textContent),
-              md.Text(' '),
-              md.Element.text('a', '↩')
-                ..attributes['href'] =
-                    '#vex-footnote-ref-${Uri.encodeComponent(label)}',
-            ],
-          )
-          ..attributes['id'] = 'vex-footnote-${Uri.encodeComponent(label)}';
+        return md.Element('p', [
+          md.Element.text('strong', '[$label] '),
+          md.Text(node.textContent),
+          md.Text(' '),
+          md.Element.text('a', '↩')
+            ..attributes['href'] =
+                '#vex-footnote-ref-${Uri.encodeComponent(label)}',
+        ])..attributes['id'] = 'vex-footnote-${Uri.encodeComponent(label)}';
       }
       if (node is md.Element && node.tag == 'vex-toc') {
         final links = <md.Node>[];
@@ -247,13 +243,10 @@ final class DocumentExportService {
           final id = heading.attributes['id'];
           if (id == null) continue;
           links.add(
-            md.Element(
-              'li',
-              [
-                md.Element.text('a', heading.textContent)
-                  ..attributes['href'] = '#$id',
-              ],
-            ),
+            md.Element('li', [
+              md.Element.text('a', heading.textContent)
+                ..attributes['href'] = '#$id',
+            ]),
           );
         }
         return md.Element('nav', [md.Element('ul', links)])

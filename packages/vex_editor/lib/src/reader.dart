@@ -8,6 +8,7 @@ import 'code_block.dart';
 import 'editing_preferences.dart';
 import 'element_target.dart';
 import 'font_families.dart';
+import 'heading_anchors.dart';
 import 'labels.dart';
 import 'markdown_preferences.dart';
 import 'markdown_syntax.dart';
@@ -92,6 +93,7 @@ class MarkdownReader extends StatelessWidget {
   final Widget Function(Uri uri, String? title, String? alt)? imageBuilder;
   final MarkdownMediaContextCallback? onMediaContext;
   final bool inline;
+
   /// Full document source used when this reader is rendering a block slice.
   /// It is needed by [TOC], whose entries may appear after the current block.
   final String? documentSource;
@@ -218,15 +220,13 @@ class MarkdownReader extends StatelessWidget {
       codeblockDecoration: const BoxDecoration(),
       a: TextStyle(color: colors.primary, decoration: TextDecoration.underline),
       tableBorder: TableBorder.all(color: colors.outlineVariant),
+      tableHeadAlign: TextAlign.left,
       tableCellsPadding: const EdgeInsets.symmetric(
         horizontal: 12,
         vertical: 9,
       ),
-      tableHead: body.copyWith(
-        fontWeight: FontWeight.w600,
-        textAlign: TextAlign.left,
-      ),
-      tableBody: body.copyWith(textAlign: TextAlign.left),
+      tableHead: body.copyWith(fontWeight: FontWeight.w600),
+      tableBody: body,
       horizontalRuleDecoration: BoxDecoration(
         border: Border(top: BorderSide(color: colors.outlineVariant)),
       ),
@@ -366,11 +366,7 @@ final class _TableOfContentsBuilder extends MarkdownElementBuilder {
             child: InkWell(
               onTap: reader.onTapLink == null
                   ? null
-                  : () => reader.onTapLink!(
-                        heading.title,
-                        '#$id',
-                        '',
-                      ),
+                  : () => reader.onTapLink!(heading.title, '#$id', ''),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 3),
                 child: Text(heading.title, style: style),
@@ -429,7 +425,10 @@ final class _CalloutBuilder extends MarkdownElementBuilder {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: body.copyWith(fontWeight: FontWeight.w700, color: accent)),
+          Text(
+            title,
+            style: body.copyWith(fontWeight: FontWeight.w700, color: accent),
+          ),
           const SizedBox(height: 4),
           Text(element.textContent, style: body),
         ],
@@ -461,10 +460,10 @@ final class _FootnoteReferenceBuilder extends MarkdownElementBuilder {
       onTap: reader.onTapLink == null
           ? null
           : () => reader.onTapLink!(
-                '[$label]',
-                _footnoteHref('vex-footnote-', label),
-                '',
-              ),
+              '[$label]',
+              _footnoteHref('vex-footnote-', label),
+              '',
+            ),
       child: Text('[$label]', style: style),
     );
   }
@@ -491,7 +490,9 @@ final class _FootnoteDefinitionBuilder extends MarkdownElementBuilder {
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.only(top: 8),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+        border: Border(
+          top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
       ),
       child: Wrap(
         crossAxisAlignment: WrapCrossAlignment.center,
@@ -503,11 +504,16 @@ final class _FootnoteDefinitionBuilder extends MarkdownElementBuilder {
             onTap: reader.onTapLink == null
                 ? null
                 : () => reader.onTapLink!(
-                      '返回正文',
-                      _footnoteHref('vex-footnote-ref-', label),
-                      '',
-                    ),
-            child: Text('↩', style: style.copyWith(color: Theme.of(context).colorScheme.primary)),
+                    '返回正文',
+                    _footnoteHref('vex-footnote-ref-', label),
+                    '',
+                  ),
+            child: Text(
+              '↩',
+              style: style.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
           ),
         ],
       ),

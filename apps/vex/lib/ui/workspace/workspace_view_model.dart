@@ -468,13 +468,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
     if (footnoteLabel != null && footnoteLabel.isNotEmpty) {
       final escaped = RegExp.escape(footnoteLabel);
       final pattern = definition
-          ? RegExp(
-              '^ {0,3}\\[\\^$escaped\\]:',
-              multiLine: true,
-            )
-          : RegExp(
-              '\\[\\^$escaped\\](?!:)',
-            );
+          ? RegExp('^ {0,3}\\[\\^$escaped\\]:', multiLine: true)
+          : RegExp('\\[\\^$escaped\\](?!:)');
       final match = pattern.firstMatch(editor.text);
       if (match != null) {
         _setStatus(null);
@@ -1572,6 +1567,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   bool _guiding = false;
   bool guideSeen = false;
   bool get guiding => _guiding;
+
   /// `-1` is the introduction card; automated acts start at step 0.
   int guideStep = -1;
   MarkdownSnapshot? _guideSnapshot;

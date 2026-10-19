@@ -42,7 +42,7 @@ abstract final class MarkdownSyntax {
   ];
 
   static List<md.InlineSyntax> inlines(MarkdownPreferences preferences) => [
-    const _FootnoteReferenceSyntax(),
+    _FootnoteReferenceSyntax(),
     if (preferences.math || preferences.chemistry)
       _FormulaInlineSyntax(preferences),
     if (preferences.highlight) _TextMarkSyntax('mark', r'==([^=\n]+)=='),
@@ -202,9 +202,8 @@ final class _FootnoteDefinitionSyntax extends md.BlockSyntax {
     final lines = <String>[match[2]!];
     parser.advance();
     while (!parser.isDone) {
-      final continuation = RegExp(r'^ {2,}(.*)$').firstMatch(
-        parser.current.content,
-      );
+      final continuation = RegExp(r'^ {2,}(.*)$')
+          .firstMatch(parser.current.content);
       if (continuation == null) break;
       lines.add(continuation[1]!);
       parser.advance();
@@ -215,7 +214,7 @@ final class _FootnoteDefinitionSyntax extends md.BlockSyntax {
 }
 
 final class _FootnoteReferenceSyntax extends md.InlineSyntax {
-  const _FootnoteReferenceSyntax() : super(r'\[\^([^\]\r\n]+)\]');
+  _FootnoteReferenceSyntax() : super(r'\[\^([^\]\r\n]+)\]');
   @override
   bool onMatch(md.InlineParser parser, Match match) {
     final label = match[1]!.trim();

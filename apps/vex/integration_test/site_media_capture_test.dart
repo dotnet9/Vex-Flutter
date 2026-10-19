@@ -220,7 +220,8 @@ void main() {
       final image = await render.toImage(pixelRatio: 1);
       try {
         final data = await image.toByteData(format: ui.ImageByteFormat.png);
-        await File('$output/$path.png').writeAsBytes(data!.buffer.asUint8List());
+        await File('$output/$path.png')
+            .writeAsBytes(data!.buffer.asUint8List());
       } finally {
         image.dispose();
       }
@@ -287,7 +288,11 @@ void main() {
     }
 
     /// 把正文平滑滚到指定进度并逐帧记录，用于展示公式与图表。
-    Future<void> scrollTo(double fraction, {int steps = 10, int hold = 900}) async {
+    Future<void> scrollTo(
+      double fraction, {
+      int steps = 10,
+      int hold = 900,
+    }) async {
       final scrollable = contentScrollable();
       if (scrollable == null) return;
       final position = scrollable.position;
@@ -315,7 +320,10 @@ void main() {
     vm.setLayout(WorkspaceLayout.instant);
     await tester.pumpAndSettle();
     await frame(2200);
-    await transition(() => vm.setLayout(WorkspaceLayout.instantMap), hold: 2400);
+    await transition(
+      () => vm.setLayout(WorkspaceLayout.instantMap),
+      hold: 2400,
+    );
 
     await startSet('views-source');
     await transition(() => vm.setLayout(WorkspaceLayout.source), hold: 2200);
@@ -385,14 +393,20 @@ void main() {
     vm.setLayout(WorkspaceLayout.read);
     await tester.pumpAndSettle();
     await frame(1600);
-    await transition(() => vm.updateAppearance(mode: ThemeMode.dark), hold: 2000);
+    await transition(
+      () => vm.updateAppearance(mode: ThemeMode.dark),
+      hold: 2000,
+    );
     await transition(() => vm.setLayout(WorkspaceLayout.three), hold: 2200);
-    await transition(() => vm.updateAppearance(mode: ThemeMode.light), hold: 1600);
+    await transition(
+      () => vm.updateAppearance(mode: ThemeMode.light),
+      hold: 1600,
+    );
 
     for (final entry in recordings.entries) {
-      await File('$output/${entry.key}-frames.json').writeAsString(
-        const JsonEncoder.withIndent('  ').convert(entry.value),
-      );
+      await File(
+        '$output/${entry.key}-frames.json',
+      ).writeAsString(const JsonEncoder.withIndent('  ').convert(entry.value));
       stdout.writeln('${entry.key}: ${entry.value.length} frames');
     }
     await tester.pumpWidget(const SizedBox());

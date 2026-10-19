@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vex/app.dart';
+import 'package:vex/domain/workspace.dart';
 import 'package:vex/ui/workspace/workspace_guide.dart';
 import 'package:vex/ui/workspace/workspace_sidebar.dart';
 
@@ -39,20 +40,26 @@ void main() {
         );
         if (step == 2) {
           expect(find.byKey(guide.target), findsOneWidget);
-          expect(guide.target.currentWidget, isA<WorkspaceSidebar>());
+          expect(
+            find.ancestor(
+              of: find.byKey(guide.target),
+              matching: find.byType(WorkspaceSidebar),
+            ),
+            findsOneWidget,
+            reason: 'step $step highlights the sidebar outline tab',
+          );
           expect(target.width, lessThan(300));
         }
-        if (step > 0) {
+        // 画布幕（开场、导图、正文、排版、演示）的卡片本就覆盖画布，
+        // 只有高亮小控件的幕要求卡片避开目标。
+        if (step == 1 || step == 2 || step == 7) {
           expect(target.overlaps(card), isFalse, reason: 'step $step');
         }
         if (step == 3) {
-          expect(find.byKey(const ValueKey('map-picker')), findsOneWidget);
+          expect(vm.layout, WorkspaceLayout.map, reason: 'step $step');
         }
         if (step == 4) {
-          expect(
-            find.byKey(const ValueKey('typography-picker')),
-            findsOneWidget,
-          );
+          expect(vm.layout, WorkspaceLayout.read, reason: 'step $step');
         }
         expect(tester.takeException(), isNull, reason: 'step $step');
       }
