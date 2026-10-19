@@ -130,6 +130,9 @@ def main():
     if draft_release_notes(tag, meta):
         sys.exit(f'已创建发布说明草稿 .github/release-notes/{tag}.md，请补充完善后重新运行。')
 
+    # 版本号或依赖变化后刷新已提交的项目信息（版本常量、组件与授权清单）。
+    run((sys.executable, str(ROOT / 'scripts' / 'sync_project_info.py')))
+
     contract_checks()
 
     dirty = git('status', '--porcelain')
