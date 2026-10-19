@@ -309,6 +309,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
           child: MarkdownReader(
             data: block.range.slice(source),
             documentSource: source,
+            document: widget.controller.document,
             typography: widget.typography,
             compact: widget.compact,
             fontSize: widget.fontSize,

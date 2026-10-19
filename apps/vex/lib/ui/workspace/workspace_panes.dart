@@ -482,6 +482,7 @@ class _DocumentReadingState extends State<_DocumentReading>
                   final block = blocks[index];
                   final reader = MarkdownReader(
                     documentSource: vm.editor.text,
+                    document: vm.editor.document,
                     onMediaContext: (url, image, occurrence, position) {
                       final token = markdownMediaTargets(vm.editor.text, block)
                           .where(

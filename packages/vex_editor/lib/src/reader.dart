@@ -79,6 +79,7 @@ class MarkdownReader extends StatelessWidget {
     this.onMediaContext,
     this.inline = false,
     this.documentSource,
+    this.document,
     this.bodyStyle,
     this.inlineAlignment = WrapAlignment.start,
   });
@@ -97,6 +98,9 @@ class MarkdownReader extends StatelessWidget {
   /// Full document source used when this reader is rendering a block slice.
   /// It is needed by [TOC], whose entries may appear after the current block.
   final String? documentSource;
+
+  /// 已解析的全文文档：传入后 [TOC] 无需在 build 里再解析一遍全文。
+  final MarkdownDocument? document;
   final TextStyle? bodyStyle;
   final WrapAlignment inlineAlignment;
   MarkdownStyleSheet styleSheet(BuildContext context) {
@@ -343,20 +347,19 @@ final class _TableOfContentsBuilder extends MarkdownElementBuilder {
     TextStyle? parentStyle,
   ) {
     final source = reader.documentSource ?? reader.data;
-    final document = MarkdownDocument.parse(source);
-    final anchors = markdownHeadingAnchors(
-      document,
-      preferences: reader.preferences,
-    );
+    // 传入的已解析文档优先；锚点按“文档实例+偏好”缓存，同一修订只算一次。
+    final document = reader.document ?? MarkdownDocument.parse(source);
+    final anchors = markdownHeadingAnchorsCached(document, reader.preferences);
+    // 反查表一次构建 O(H)，替代逐标题的 identical 线性扫描 O(H²)。
+    final idByHeading = <MarkdownHeading, String>{
+      for (final entry in anchors.entries) entry.value: entry.key,
+    };
     final style = (parentStyle ?? reader.styleSheet(context).p!).copyWith(
       color: Theme.of(context).colorScheme.primary,
     );
     final entries = <Widget>[];
     for (final heading in document.headings) {
-      final id = anchors.entries
-          .where((entry) => identical(entry.value, heading))
-          .map((entry) => entry.key)
-          .firstOrNull;
+      final id = idByHeading[heading];
       if (id == null) continue;
       entries.add(
         Padding(
