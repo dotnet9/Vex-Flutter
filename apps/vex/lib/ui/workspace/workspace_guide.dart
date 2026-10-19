@@ -15,15 +15,17 @@ class WorkspaceGuide extends StatefulWidget {
     required this.description,
     required this.onClose,
     required this.onStep,
-    this.totalSteps = 8,
+    this.totalSteps = 9,
     this.stage,
     this.liveMessage,
     this.resultTitle,
     this.result,
     this.running = false,
+    this.paused = false,
     this.completed = false,
     this.onReplay,
     this.onSkip,
+    this.onContinue,
     this.showCard = true,
   });
   final GlobalKey target;
@@ -31,10 +33,10 @@ class WorkspaceGuide extends StatefulWidget {
   final int totalSteps;
   final String title, description;
   final String? stage, liveMessage, resultTitle, result;
-  final bool running, completed;
+  final bool running, paused, completed;
   final VoidCallback onClose;
   final ValueChanged<int> onStep;
-  final VoidCallback? onReplay, onSkip;
+  final VoidCallback? onReplay, onSkip, onContinue;
   /// Key moments keep the card visible; ordinary automated actions use only
   /// the cut-out and a short hint next to the highlighted target.
   final bool showCard;
@@ -82,7 +84,7 @@ class _WorkspaceGuideState extends State<WorkspaceGuide> {
         if (mounted) _measure();
       });
       final width = math.min(
-        widget.step < 0 || widget.completed ? 408.0 : 376.0,
+        widget.step < 0 ? 408.0 : widget.completed ? 480.0 : 376.0,
         constraints.maxWidth - 32,
       );
       final target = _target;
@@ -240,50 +242,16 @@ class _WorkspaceGuideState extends State<WorkspaceGuide> {
                         ),
                       ],
                       const SizedBox(height: 18),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        alignment: WrapAlignment.end,
-                        children: [
-                          if (widget.step < 0)
-                            AppButton(
-                              label: '先不看',
-                              onPressed: widget.onClose,
-                            ),
-                          if (widget.step < 0)
-                            AppButton(
-                              label: '开始吧  →',
-                              primary: true,
-                              onPressed: () => widget.onStep(0),
-                            ),
-                          if (widget.step >= 0) ...[
-                            if (!widget.running && widget.step > 0)
-                              AppButton(
-                                label: context.l10n.previous,
-                                onPressed: () =>
-                                    widget.onStep(widget.step - 1),
-                              ),
-                            if (widget.running && widget.onSkip != null)
-                              AppButton(
-                                label: '跳过本段',
-                                onPressed: widget.onSkip,
-                              ),
-                            AppButton(
-                              label: widget.running
-                                  ? '演示中…'
-                                  : widget.step == widget.totalSteps - 1
-                                  ? '开始自己的写作'
-                                  : '下一步  →',
-                              primary: !widget.running,
-                              onPressed: !widget.running
-                                  ? () => widget.step ==
-                                            widget.totalSteps - 1
-                                        ? widget.onClose()
-                                        : widget.onStep(widget.step + 1)
-                                  : null,
-                            ),
-                          ],
-                        ],
+                      _GuideActions(
+                        step: widget.step,
+                        totalSteps: widget.totalSteps,
+                        running: widget.running,
+                        paused: widget.paused,
+                        completed: widget.completed,
+                        onClose: widget.onClose,
+                        onStep: widget.onStep,
+                        onSkip: widget.onSkip,
+                        onContinue: widget.onContinue,
                       ),
                     ],
                   ),
@@ -296,6 +264,118 @@ class _WorkspaceGuideState extends State<WorkspaceGuide> {
       );
     },
   );
+}
+
+class _GuideActions extends StatelessWidget {
+  const _GuideActions({
+    required this.step,
+    required this.totalSteps,
+    required this.running,
+    required this.paused,
+    required this.completed,
+    required this.onClose,
+    required this.onStep,
+    this.onSkip,
+    this.onContinue,
+  });
+  final int step, totalSteps;
+  final bool running, paused, completed;
+  final VoidCallback onClose;
+  final ValueChanged<int> onStep;
+  final VoidCallback? onSkip, onContinue;
+
+  @override
+  Widget build(BuildContext context) {
+    final left = <Widget>[];
+    final right = <Widget>[];
+    if (step < 0) {
+      left.add(AppButton(label: '先不看', onPressed: onClose));
+      right.add(
+        AppButton(
+          label: '开始吧  →',
+          primary: true,
+          onPressed: () => onStep(0),
+        ),
+      );
+    } else {
+      if (running && onSkip != null) {
+        left.add(AppButton(label: '跳过本段', onPressed: onSkip));
+      }
+      if ((paused || !running) && step > 0) {
+        right.add(
+          AppButton(
+            label: '← ${context.l10n.previous}',
+            onPressed: () => onStep(step - 1),
+          ),
+        );
+      }
+      final finalStep = totalSteps - 2;
+      final isFinal = completed && step == finalStep;
+      right.add(
+        AppButton(
+          label: running
+              ? paused
+                    ? '继续  →'
+                    : '演示中…'
+              : isFinal
+              ? '开始自己的写作  →'
+              : '下一步  →',
+          primary: !running || paused,
+          onPressed: running
+              ? paused
+                    ? onContinue
+                    : null
+              : isFinal
+              ? onClose
+              : () => onStep(step + 1),
+        ),
+      );
+    }
+
+    Widget group(List<Widget> children) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < children.length; i++) ...[
+          if (i > 0) const SizedBox(width: 6),
+          children[i],
+        ],
+      ],
+    );
+
+    return SizedBox(
+      height: 32,
+      child: Row(
+        children: [
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: group(left),
+            ),
+          ),
+          // 开场算第 1 步；八个幕依次为 2/9-9/9，与原型一致。
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: IgnorePointer(
+              child: Text(
+                '${step < 0 ? 1 : step + 2}/$totalSteps',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: group(right),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _GuidePainter extends CustomPainter {

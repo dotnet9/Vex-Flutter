@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:markdown/markdown.dart' as md;
+import 'package:vex_markdown_core/vex_markdown_core.dart';
 
 import 'code_block.dart';
 import 'editing_preferences.dart';
@@ -76,6 +77,7 @@ class MarkdownReader extends StatelessWidget {
     this.labels = const MarkdownEditorLabels(),
     this.onMediaContext,
     this.inline = false,
+    this.documentSource,
     this.bodyStyle,
     this.inlineAlignment = WrapAlignment.start,
   });
@@ -90,6 +92,9 @@ class MarkdownReader extends StatelessWidget {
   final Widget Function(Uri uri, String? title, String? alt)? imageBuilder;
   final MarkdownMediaContextCallback? onMediaContext;
   final bool inline;
+  /// Full document source used when this reader is rendering a block slice.
+  /// It is needed by [TOC], whose entries may appear after the current block.
+  final String? documentSource;
   final TextStyle? bodyStyle;
   final WrapAlignment inlineAlignment;
   MarkdownStyleSheet styleSheet(BuildContext context) {
@@ -217,8 +222,11 @@ class MarkdownReader extends StatelessWidget {
         horizontal: 12,
         vertical: 9,
       ),
-      tableHead: body.copyWith(fontWeight: FontWeight.w600),
-      tableBody: body,
+      tableHead: body.copyWith(
+        fontWeight: FontWeight.w600,
+        textAlign: TextAlign.left,
+      ),
+      tableBody: body.copyWith(textAlign: TextAlign.left),
       horizontalRuleDecoration: BoxDecoration(
         border: Border(top: BorderSide(color: colors.outlineVariant)),
       ),
@@ -298,6 +306,10 @@ class MarkdownReader extends StatelessWidget {
           'vex-math-block': _MathBuilder(this, true),
           for (final tag in ['mark', 'sub', 'sup'])
             tag: _InlineMarkBuilder(this, tag),
+          'vex-toc': _TableOfContentsBuilder(this),
+          'vex-callout': _CalloutBuilder(this),
+          'vex-footnote': _FootnoteDefinitionBuilder(this),
+          'vex-footnote-ref': _FootnoteReferenceBuilder(this),
           for (var level = 1; level <= 6; level++)
             'h$level': _HeadingBuilder(this, level, switch (level) {
               1 => sheet.h1!,
@@ -313,6 +325,193 @@ class MarkdownReader extends StatelessWidget {
     return selectable && SelectionContainer.maybeOf(context) == null
         ? SelectionArea(child: body)
         : body;
+  }
+}
+
+final class _TableOfContentsBuilder extends MarkdownElementBuilder {
+  _TableOfContentsBuilder(this.reader);
+  final MarkdownReader reader;
+
+  @override
+  bool isBlockElement() => true;
+
+  @override
+  Widget visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    final source = reader.documentSource ?? reader.data;
+    final document = MarkdownDocument.parse(source);
+    final anchors = markdownHeadingAnchors(
+      document,
+      preferences: reader.preferences,
+    );
+    final style = (parentStyle ?? reader.styleSheet(context).p!).copyWith(
+      color: Theme.of(context).colorScheme.primary,
+    );
+    final entries = <Widget>[];
+    for (final heading in document.headings) {
+      final id = anchors.entries
+          .where((entry) => identical(entry.value, heading))
+          .map((entry) => entry.key)
+          .firstOrNull;
+      if (id == null) continue;
+      entries.add(
+        Padding(
+          padding: EdgeInsets.only(left: (heading.level - 1) * 18.0),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: InkWell(
+              onTap: reader.onTapLink == null
+                  ? null
+                  : () => reader.onTapLink!(
+                        heading.title,
+                        '#$id',
+                        '',
+                      ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Text(heading.title, style: style),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+    if (entries.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: entries,
+      ),
+    );
+  }
+}
+
+final class _CalloutBuilder extends MarkdownElementBuilder {
+  _CalloutBuilder(this.reader);
+  final MarkdownReader reader;
+
+  @override
+  bool isBlockElement() => true;
+
+  @override
+  Widget visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    final colors = Theme.of(context).colorScheme;
+    final warning = element.attributes['data-kind'] == 'warning';
+    final accent = warning ? colors.error : colors.primary;
+    final title = warning ? '警告' : '信息';
+    final body = (parentStyle ?? reader.styleSheet(context).p!).copyWith(
+      color: colors.onSurface,
+    );
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.fromLTRB(14, 11, 14, 12),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: .08),
+        border: Border(left: BorderSide(color: accent, width: 3)),
+        borderRadius: const BorderRadius.horizontal(right: Radius.circular(6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: body.copyWith(fontWeight: FontWeight.w700, color: accent)),
+          const SizedBox(height: 4),
+          Text(element.textContent, style: body),
+        ],
+      ),
+    );
+  }
+}
+
+String _footnoteHref(String prefix, String label) =>
+    '#$prefix${Uri.encodeComponent(label)}';
+
+final class _FootnoteReferenceBuilder extends MarkdownElementBuilder {
+  _FootnoteReferenceBuilder(this.reader);
+  final MarkdownReader reader;
+
+  @override
+  Widget visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    final label = element.attributes['data-label'] ?? element.textContent;
+    final style = (parentStyle ?? reader.styleSheet(context).p!).copyWith(
+      color: Theme.of(context).colorScheme.primary,
+      fontSize: (parentStyle?.fontSize ?? reader.fontSize) * .8,
+    );
+    return GestureDetector(
+      onTap: reader.onTapLink == null
+          ? null
+          : () => reader.onTapLink!(
+                '[$label]',
+                _footnoteHref('vex-footnote-', label),
+                '',
+              ),
+      child: Text('[$label]', style: style),
+    );
+  }
+}
+
+final class _FootnoteDefinitionBuilder extends MarkdownElementBuilder {
+  _FootnoteDefinitionBuilder(this.reader);
+  final MarkdownReader reader;
+
+  @override
+  bool isBlockElement() => true;
+
+  @override
+  Widget visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    final label = element.attributes['data-label'] ?? '';
+    final style = parentStyle ?? reader.styleSheet(context).p!;
+    return Container(
+      key: ValueKey('vex-footnote-$label'),
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(top: 8),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+      ),
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 5,
+        children: [
+          Text('[$label] ', style: style.copyWith(fontWeight: FontWeight.w700)),
+          Text(element.textContent, style: style),
+          GestureDetector(
+            onTap: reader.onTapLink == null
+                ? null
+                : () => reader.onTapLink!(
+                      '返回正文',
+                      _footnoteHref('vex-footnote-ref-', label),
+                      '',
+                    ),
+            child: Text('↩', style: style.copyWith(color: Theme.of(context).colorScheme.primary)),
+          ),
+        ],
+      ),
+    );
   }
 }
 

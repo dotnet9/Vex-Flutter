@@ -34,11 +34,15 @@ abstract final class MarkdownSyntax {
       );
 
   static List<md.BlockSyntax> blocks(MarkdownPreferences preferences) => [
+    const _TableOfContentsSyntax(),
+    const _CalloutSyntax(),
+    const _FootnoteDefinitionSyntax(),
     if (preferences.math || preferences.chemistry)
       _FormulaBlockSyntax(preferences),
   ];
 
   static List<md.InlineSyntax> inlines(MarkdownPreferences preferences) => [
+    const _FootnoteReferenceSyntax(),
     if (preferences.math || preferences.chemistry)
       _FormulaInlineSyntax(preferences),
     if (preferences.highlight) _TextMarkSyntax('mark', r'==([^=\n]+)=='),
@@ -143,6 +147,83 @@ final class _FormulaBlockSyntax extends md.BlockSyntax {
       parser.advance();
     }
     return MarkdownSyntax.formula(segment, parser.document.encodeHtml);
+  }
+}
+
+/// A standalone [TOC] marker is rendered by the reader as a clickable
+/// document outline. Keeping the marker as its own node also means it remains
+/// editable in source mode.
+final class _TableOfContentsSyntax extends md.BlockSyntax {
+  const _TableOfContentsSyntax();
+  @override
+  RegExp get pattern => RegExp(r'^ {0,3}\[TOC\][ \t]*$');
+  @override
+  md.Node parse(md.BlockParser parser) {
+    parser.advance();
+    return md.Element.empty('vex-toc');
+  }
+}
+
+/// GitHub-style callouts. The body is intentionally kept as text so a
+/// partially written callout never causes the rest of a document to vanish.
+final class _CalloutSyntax extends md.BlockSyntax {
+  const _CalloutSyntax();
+  @override
+  RegExp get pattern => RegExp(r'^ {0,3}>[ \t]*\[!(INFO|WARNING)\][ \t]*$');
+  @override
+  md.Node parse(md.BlockParser parser) {
+    final first = parser.current.content;
+    final match = pattern.firstMatch(first)!;
+    final kind = match[1]!.toLowerCase();
+    final lines = <String>[];
+    parser.advance();
+    while (!parser.isDone) {
+      final line = parser.current.content;
+      final body = RegExp(r'^ {0,3}>[ \t]?(.*)$').firstMatch(line);
+      if (body == null) break;
+      lines.add(body[1]!);
+      parser.advance();
+    }
+    return md.Element.text('vex-callout', lines.join('\n'))
+      ..attributes['data-kind'] = kind;
+  }
+}
+
+/// A footnote definition is a block of its own, which lets the reader attach
+/// a stable target and a return link without exposing the Markdown marker.
+final class _FootnoteDefinitionSyntax extends md.BlockSyntax {
+  const _FootnoteDefinitionSyntax();
+  @override
+  RegExp get pattern => RegExp(r'^ {0,3}\[\^([^\]\r\n]+)\]:[ \t]*(.*)$');
+  @override
+  md.Node parse(md.BlockParser parser) {
+    final match = pattern.firstMatch(parser.current.content)!;
+    final label = match[1]!.trim();
+    final lines = <String>[match[2]!];
+    parser.advance();
+    while (!parser.isDone) {
+      final continuation = RegExp(r'^ {2,}(.*)$').firstMatch(
+        parser.current.content,
+      );
+      if (continuation == null) break;
+      lines.add(continuation[1]!);
+      parser.advance();
+    }
+    return md.Element.text('vex-footnote', lines.join('\n'))
+      ..attributes['data-label'] = label;
+  }
+}
+
+final class _FootnoteReferenceSyntax extends md.InlineSyntax {
+  const _FootnoteReferenceSyntax() : super(r'\[\^([^\]\r\n]+)\]');
+  @override
+  bool onMatch(md.InlineParser parser, Match match) {
+    final label = match[1]!.trim();
+    parser.addNode(
+      md.Element.text('vex-footnote-ref', label)
+        ..attributes['data-label'] = label,
+    );
+    return true;
   }
 }
 

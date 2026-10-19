@@ -14,11 +14,20 @@ class WorkspaceSidebar extends StatefulWidget {
     required this.onOpenPath,
     required this.onAction,
     this.onNavigate,
+    this.outlineTabKey,
+    this.onOpenInNewWindow,
+    this.onRevealInFolder,
   });
   final WorkspaceViewModel vm;
   final ValueChanged<String> onOpenPath;
   final ValueChanged<String> onAction;
   final VoidCallback? onNavigate;
+  final Key? outlineTabKey;
+
+  /// 右键菜单：在新窗口打开（document 为当前未保存文档时 path 为 null）。
+  final void Function(WorkspaceDocument? document, String? path)?
+  onOpenInNewWindow;
+  final ValueChanged<String>? onRevealInFolder;
 
   @override
   State<WorkspaceSidebar> createState() => _WorkspaceSidebarState();
@@ -78,9 +87,10 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
                       fit: StackFit.expand,
                       children: [
                         TextButton(
-                          key: ValueKey(
-                            entry.$1 ? 'sidebar-outline' : 'sidebar-files',
-                          ),
+                          key: entry.$1
+                              ? (widget.outlineTabKey ??
+                                    const ValueKey('sidebar-outline'))
+                              : const ValueKey('sidebar-files'),
                           onPressed: () => vm.setOutline(entry.$1),
                           style: TextButton.styleFrom(
                             foregroundColor: vm.outline == entry.$1
@@ -369,6 +379,44 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
           .take(120)
           .join();
 
+  /// 文件节点右键菜单：在新窗口打开 / 打开文件位置（与桌面原型一致）。
+  Future<void> _showFileContextMenu(
+    BuildContext context,
+    Offset position, {
+    required WorkspaceDocument? document,
+    required String? path,
+  }) async {
+    if (vm.viewport == WorkspaceViewport.phone) return;
+    final location = document?.path ?? path;
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    final action = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        position & const Size(1, 1),
+        Offset.zero & (overlay?.size ?? Size.zero),
+      ),
+      items: [
+        PopupMenuItem(
+          value: 'window',
+          enabled: location != null || identical(document, vm.current),
+          child: Text(context.l10n.openInNewWindow),
+        ),
+        PopupMenuItem(
+          value: 'reveal',
+          enabled: location != null,
+          child: Text(context.l10n.openFileLocation),
+        ),
+      ],
+    );
+    if (action == null) return;
+    if (action == 'window') {
+      widget.onOpenInNewWindow?.call(document, location);
+    } else if (action == 'reveal' && location != null) {
+      widget.onRevealInFolder?.call(location);
+    }
+  }
+
   Widget _fileList(BuildContext context) {
     final open = {for (final doc in vm.documents) doc.path ?? doc.id: doc};
     _openPreviews.removeWhere((path, _) => !open.containsKey(path));
@@ -418,6 +466,12 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
                 widget.onOpenPath(path);
               }
             },
+            onSecondaryTapUp: (event) => _showFileContextMenu(
+              context,
+              event.globalPosition,
+              document: doc,
+              path: doc?.path ?? (doc == null ? path : null),
+            ),
             child: Container(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
               decoration: BoxDecoration(
@@ -643,6 +697,12 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
           onTap: () => document != null && document.path == null
               ? vm.switchDocument(document)
               : widget.onOpenPath(path),
+          onSecondaryTapUp: (event) => _showFileContextMenu(
+            context,
+            event.globalPosition,
+            document: document,
+            path: document?.path == null ? (document == null ? path : null) : path,
+          ),
           borderRadius: BorderRadius.circular(6),
           child: Container(
             height: 36,

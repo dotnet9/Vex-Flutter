@@ -97,6 +97,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get documentWindow => '在新窗口打开当前文档';
 
   @override
+  String get openInNewWindow => '在新窗口打开';
+
+  @override
+  String get openFileLocation => '打开文件位置';
+
+  @override
   String get copyWechat => '复制到微信公众号';
 
   @override
@@ -1765,6 +1771,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get documentWindow => '在新視窗開啟目前文件';
+
+  @override
+  String get openInNewWindow => '在新視窗開啟';
+
+  @override
+  String get openFileLocation => '開啟檔案位置';
 
   @override
   String get copyWechat => '複製到微信公眾號';

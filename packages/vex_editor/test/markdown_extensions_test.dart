@@ -137,6 +137,25 @@ void main() {
     expect(disabled, contains('del'));
   });
 
+  test('toc, footnotes and callouts remain distinct Markdown nodes', () {
+    const source = '''# 标题
+
+[TOC]
+
+> [!INFO]
+> 一条提示
+
+正文[^1]。
+
+[^1]: 脚注内容''';
+    final nodes = elements(parse(source));
+    expect(nodes.where((node) => node.tag == 'vex-toc'), hasLength(1));
+    expect(nodes.where((node) => node.tag == 'vex-callout'), hasLength(1));
+    expect(nodes.where((node) => node.tag == 'vex-footnote-ref'), hasLength(1));
+    expect(nodes.where((node) => node.tag == 'vex-footnote'), hasLength(1));
+    expect(nodes.where((node) => node.tag == 'h1').single.textContent, '标题');
+  });
+
   testWidgets(
     'phone math, highlights and sub/sup render without overflow in both themes',
     (tester) async {

@@ -444,9 +444,7 @@ class _DocumentReadingState extends State<_DocumentReading>
         onPointerSignal: (_) => _navigation.cancel(),
         child: Align(
           alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: vm.typography.width),
-            child: LayoutBuilder(
+          child: LayoutBuilder(
               builder: (context, constraints) {
                 _navigation.preservePosition((
                   constraints.biggest,
@@ -468,6 +466,7 @@ class _DocumentReadingState extends State<_DocumentReading>
                     if (blocks.isEmpty) return Text(context.l10n.emptyDocument);
                     final block = blocks[index];
                     final reader = MarkdownReader(
+                      documentSource: vm.editor.text,
                       onMediaContext: (url, image, occurrence, position) {
                         final token =
                             markdownMediaTargets(vm.editor.text, block)
@@ -546,7 +545,6 @@ class _DocumentReadingState extends State<_DocumentReading>
                 );
               },
             ),
-          ),
         ),
       ),
     );

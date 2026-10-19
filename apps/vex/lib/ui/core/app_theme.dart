@@ -141,5 +141,10 @@ ThemeData appTheme(
     tooltipTheme: const TooltipThemeData(
       waitDuration: Duration(milliseconds: 550),
     ),
+    // Keep the thumb visible whenever a scrollable actually has overflow.
+    // Scrollbar itself still suppresses the thumb when there is nothing to scroll.
+    scrollbarTheme: ScrollbarThemeData(
+      thumbVisibility: WidgetStatePropertyAll(true),
+    ),
   );
 }

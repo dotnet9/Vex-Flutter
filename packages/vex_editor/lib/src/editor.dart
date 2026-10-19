@@ -308,6 +308,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
           },
           child: MarkdownReader(
             data: block.range.slice(source),
+            documentSource: source,
             typography: widget.typography,
             compact: widget.compact,
             fontSize: widget.fontSize,
@@ -732,6 +733,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
           onTap: editing ? null : () => _begin(block),
           child: MarkdownReader(
             data: source,
+            documentSource: widget.controller.session.text,
             typography: widget.typography,
             fontSize: widget.fontSize,
             compact: widget.compact,

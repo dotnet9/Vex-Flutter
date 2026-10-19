@@ -29,6 +29,8 @@
   "mapMono": "Monochrome",
   "newWindow": "New window",
   "documentWindow": "Open current document in new window",
+  "openInNewWindow": "Open in new window",
+  "openFileLocation": "Open file location",
   "copyWechat": "Copy to WeChat",
   "copyZhihu": "Copy to Zhihu",
   "copyJuejin": "Copy to Juejin",

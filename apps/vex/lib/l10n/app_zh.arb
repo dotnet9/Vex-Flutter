@@ -29,6 +29,8 @@
   "mapMono": "黑白",
   "newWindow": "新建窗口",
   "documentWindow": "在新窗口打开当前文档",
+  "openInNewWindow": "在新窗口打开",
+  "openFileLocation": "打开文件位置",
   "copyWechat": "复制到微信公众号",
   "copyZhihu": "复制到知乎",
   "copyJuejin": "复制到稀土掘金",

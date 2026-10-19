@@ -220,6 +220,45 @@ final class DocumentExportService {
           ..attributes['width'] = image.size.width.round().toString()
           ..attributes['height'] = image.size.height.round().toString();
       }
+      if (node is md.Element && node.tag == 'vex-footnote-ref') {
+        final label = node.attributes['data-label'] ?? node.textContent;
+        return md.Element.text('a', '[$label]')
+          ..attributes['href'] = '#vex-footnote-${Uri.encodeComponent(label)}';
+      }
+      if (node is md.Element && node.tag == 'vex-footnote') {
+        final label = node.attributes['data-label'] ?? '';
+        return md.Element(
+            'p',
+            [
+              md.Element.text('strong', '[$label] '),
+              md.Text(node.textContent),
+              md.Text(' '),
+              md.Element.text('a', '↩')
+                ..attributes['href'] =
+                    '#vex-footnote-ref-${Uri.encodeComponent(label)}',
+            ],
+          )
+          ..attributes['id'] = 'vex-footnote-${Uri.encodeComponent(label)}';
+      }
+      if (node is md.Element && node.tag == 'vex-toc') {
+        final links = <md.Node>[];
+        for (final heading in parsed.whereType<md.Element>()) {
+          if (!RegExp(r'^h[1-6]$').hasMatch(heading.tag)) continue;
+          final id = heading.attributes['id'];
+          if (id == null) continue;
+          links.add(
+            md.Element(
+              'li',
+              [
+                md.Element.text('a', heading.textContent)
+                  ..attributes['href'] = '#$id',
+              ],
+            ),
+          );
+        }
+        return md.Element('nav', [md.Element('ul', links)])
+          ..attributes['class'] = 'vex-toc';
+      }
       if (node is md.Element && node.children != null) {
         return md.Element(node.tag, node.children!.map(resolve).toList())
           ..attributes.addAll(node.attributes)
@@ -243,6 +282,7 @@ article{max-width:${typography.width.toInt()}px;margin:auto;padding:44px 48px 80
 .vex-watermark{position:fixed;inset:0;z-index:10;pointer-events:none;user-select:none;overflow:hidden}.vex-watermark svg{width:100%;height:100%;display:block}
 h1{margin-bottom:.55em}h2{margin:1.4em 0 .45em}h3{margin:1.15em 0 .35em}h4{margin:1em 0 .3em}$headings
 img{height:auto}.vex-missing-image{display:inline-block;padding:8px 12px;border:1px dashed $border;color:$fg}.vex-math{vertical-align:middle;object-fit:contain;max-width:100%;height:auto!important}.vex-math-block{display:block;margin:20px auto;max-width:100%;height:auto!important;font-size:1.15em}mark{color:inherit;background:#ffe49b}
+p[id^="vex-footnote-"]{margin:12px 0;padding-top:8px;border-top:1px solid $border;font-size:.9em;color:$fg}vex-callout{display:block;margin:18px 0;padding:12px 16px;border-left:3px solid $accent;background:$panel;border-radius:0 6px 6px 0;white-space:pre-wrap}vex-toc{display:block;margin:18px 0;padding:12px 16px;background:$panel;border-radius:6px}nav.vex-toc{display:block;margin:18px 0;padding:12px 16px;background:$panel;border-radius:6px}
 </style></head><body><article>$body</article>${watermark.export && watermark.visible ? _htmlWatermark(watermark.copyWith()) : ''}</body></html>''';
   }
 

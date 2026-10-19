@@ -104,6 +104,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get documentWindow => 'Open current document in new window';
 
   @override
+  String get openInNewWindow => 'Open in new window';
+
+  @override
+  String get openFileLocation => 'Open file location';
+
+  @override
   String get copyWechat => 'Copy to WeChat';
 
   @override

@@ -102,6 +102,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get documentWindow => '現在の文書を新しいウィンドウで開く';
 
   @override
+  String get openInNewWindow => '新しいウィンドウで開く';
+
+  @override
+  String get openFileLocation => 'ファイルの場所を開く';
+
+  @override
   String get copyWechat => 'WeChat にコピー';
 
   @override

@@ -455,6 +455,36 @@ final class WorkspaceViewModel extends ChangeNotifier {
       _notify();
       return true;
     }
+    const footnote = 'vex-footnote-';
+    const footnoteRef = 'vex-footnote-ref-';
+    String? footnoteLabel;
+    var definition = false;
+    if (fragment.startsWith(footnoteRef)) {
+      footnoteLabel = fragment.substring(footnoteRef.length);
+    } else if (fragment.startsWith(footnote)) {
+      footnoteLabel = fragment.substring(footnote.length);
+      definition = true;
+    }
+    if (footnoteLabel != null && footnoteLabel.isNotEmpty) {
+      final escaped = RegExp.escape(footnoteLabel);
+      final pattern = definition
+          ? RegExp(
+              '^ {0,3}\\[\\^$escaped\\]:',
+              multiLine: true,
+            )
+          : RegExp(
+              '\\[\\^$escaped\\](?!:)',
+            );
+      final match = pattern.firstMatch(editor.text);
+      if (match != null) {
+        _setStatus(null);
+        selectedHeadingId = null;
+        if (!_mapDirty) _map.select(null);
+        editor.reveal(match.start);
+        _notify();
+        return true;
+      }
+    }
     final heading = markdownHeadingAnchors(
       editor.document,
       preferences: markdownPreferences,
@@ -1605,7 +1635,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
     };
     if (guideStep == 2) {
       sidebar = true;
-      outline = true;
+      // 从“文件”页出发，第三幕的“大纲”点击才是真实切换。
+      outline = false;
     }
     if (guideStep == 3) paragraphs = lists = blocks = false;
     _activePane = layout.panes.first;

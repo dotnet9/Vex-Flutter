@@ -521,6 +521,7 @@ class _PresentationBody extends StatelessWidget {
           itemBuilder: (context, index) => count == 0
               ? Text(context.l10n.emptyDocument)
               : MarkdownReader(
+                  documentSource: vm.editor.text,
                   labels: context.l10n.editorLabels,
                   imageBuilder: (uri, title, alt) => DocumentImage(
                     uri: uri,

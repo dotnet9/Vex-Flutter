@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:vex_editor/vex_editor.dart';
 import 'package:vex_mindmap/vex_mindmap.dart';
@@ -59,6 +60,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   final _guideSidebar = GlobalKey(), _guideMobileViews = GlobalKey();
   final _guideLayoutPopup = GlobalKey(), _guideTypographyPopup = GlobalKey();
   final _guideMapPopup = GlobalKey();
+  final _guideOutlineTab = GlobalKey(), _guideMapTab = GlobalKey();
   final _guideFileCommands = GlobalKey(), _guideShareCommands = GlobalKey();
   final _guideOverlay = OverlayPortalController();
   int? _preparedGuideStep;
@@ -68,6 +70,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   int _guideTouchGeneration = 0;
   int _guideRunToken = 0;
   bool _guideRunning = false, _guideCompleted = false, _guideShowCard = true;
+  bool _guidePaused = false;
+  Completer<void>? _guideContinue;
+  GlobalKey _guideTarget = GlobalKey();
   String _guideCue = '';
   final _find = TextEditingController(), _replace = TextEditingController();
   final _findFocus = FocusNode();
@@ -765,6 +770,49 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     );
   }
 
+  /// 侧栏右键“在新窗口打开”：当前文档走保存流程，其余按路径直接开新进程。
+  Future<void> _openSidebarDocumentInNewWindow(
+    WorkspaceDocument? document,
+    String? path,
+  ) async {
+    if (!_desktop) return;
+    if (document != null && identical(document, vm.current)) {
+      await _openWindow(currentDocument: true);
+      return;
+    }
+    final target = path ?? document?.path;
+    if (target == null) return;
+    await Process.start(
+      Platform.resolvedExecutable,
+      [target],
+      mode: ProcessStartMode.detached,
+    );
+  }
+
+  /// 侧栏右键“打开文件位置”：调用系统文件管理器并选中该文件。
+  Future<void> _revealInFolder(String path) async {
+    final location = p.normalize(path);
+    if (Platform.isMacOS) {
+      await Process.start(
+        'open',
+        ['-R', location],
+        mode: ProcessStartMode.detached,
+      );
+    } else if (Platform.isLinux) {
+      await Process.start(
+        'xdg-open',
+        [p.dirname(location)],
+        mode: ProcessStartMode.detached,
+      );
+    } else {
+      await Process.start(
+        'explorer.exe',
+        ['/select,', location],
+        mode: ProcessStartMode.detached,
+      );
+    }
+  }
+
   Future<void> _closeDocument() async {
     vm.endGuide();
     final document = vm.current;
@@ -973,6 +1021,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                             Navigator.pop(context);
                             unawaited(_run(() => state.openPath(path)));
                           },
+                          outlineTabKey: _guideOutlineTab,
+                          onOpenInNewWindow: _openSidebarDocumentInNewWindow,
+                          onRevealInFolder: _revealInFolder,
                         ),
                       ),
                     )
@@ -1078,6 +1129,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                           onOpenPath: (path) => unawaited(
                                             _run(() => state.openPath(path)),
                                           ),
+                                          outlineTabKey: _guideOutlineTab,
+                                          onOpenInNewWindow:
+                                              _openSidebarDocumentInNewWindow,
+                                          onRevealInFolder: _revealInFolder,
                                         ),
                                       ),
                                     if (showSidebar)
@@ -1759,6 +1814,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             SizedBox(
               width: width < 1100 ? 72 : 86,
               child: AppButton(
+                key: item.$1 == WorkspaceLayout.map ? _guideMapTab : null,
                 label: item.$2,
                 icon: item.$3,
                 selected:
@@ -1832,6 +1888,24 @@ flowchart LR
 ```
 ''';
 
+  static String _guideMapLayoutLabel(MindMapLayoutMode mode) => switch (mode) {
+    MindMapLayoutMode.right => '右向',
+    MindMapLayoutMode.balanced => '平衡',
+    MindMapLayoutMode.radial => '辐射',
+    MindMapLayoutMode.down => '向下',
+    MindMapLayoutMode.outline => '大纲',
+    MindMapLayoutMode.fishbone => '鱼骨',
+  };
+
+  static String _guideMapStyleLabel(MindMapStyle style) => switch (style) {
+    MindMapStyle.quiet => '安静',
+    MindMapStyle.colorful => '多彩',
+    MindMapStyle.outline => '线框',
+    MindMapStyle.capsule => '胶囊',
+    MindMapStyle.underline => '下划线',
+    MindMapStyle.mono => '单色',
+  };
+
   bool _guideCanRun(int step, int token) =>
       mounted && vm.guiding && vm.guideStep == step && _guideRunToken == token;
 
@@ -1840,29 +1914,82 @@ flowchart LR
     return _guideCanRun(step, token);
   }
 
-  void _guideMessage(String message, {bool showCard = false}) {
+  void _guideMessage(
+    String message, {
+    bool showCard = false,
+    GlobalKey? target,
+  }) {
     if (!mounted) return;
     setState(() {
       _guideCue = message;
       _guideShowCard = showCard;
+      if (target != null) _guideTarget = target;
     });
+  }
+
+  Future<bool> _guidePause(
+    int step,
+    int token,
+    String message, {
+    required GlobalKey target,
+  }) async {
+    if (!_guideCanRun(step, token)) return false;
+    final completer = Completer<void>();
+    _guideContinue = completer;
+    setState(() {
+      _guideTarget = target;
+      _guideCue = message;
+      _guideShowCard = true;
+      _guidePaused = true;
+    });
+    await completer.future;
+    if (_guideContinue == completer) _guideContinue = null;
+    if (!_guideCanRun(step, token)) return false;
+    setState(() {
+      _guidePaused = false;
+      _guideShowCard = false;
+    });
+    return true;
+  }
+
+  void _continueGuide() {
+    if (!_guidePaused) return;
+    final completer = _guideContinue;
+    if (completer != null && !completer.isCompleted) completer.complete();
   }
 
   void _completeGuideAct(int step, int token, String message) {
     if (!_guideCanRun(step, token)) return;
     setState(() {
       _guideRunning = false;
+      _guidePaused = false;
       _guideCompleted = true;
       _guideShowCard = true;
       _guideCue = message;
     });
   }
 
+  /// 幕与幕之间不插入说明卡：本幕收尾后直接进入下一幕开场，只有最后一幕停留。
+  void _finishGuideAct(int step, int token) {
+    if (!_guideCanRun(step, token)) return;
+    if (step >= 7) {
+      _completeGuideAct(step, token, '成都的故事写好了，你的故事也可以从下一句话开始。');
+      return;
+    }
+    _closeGuidePanels();
+    if (vm.presentation) vm.togglePresentation(keepGuide: true);
+    vm.advanceGuide(step + 1);
+  }
+
   void _cancelGuideAct() {
     _guideRunToken++;
+    final completer = _guideContinue;
+    _guideContinue = null;
+    if (completer != null && !completer.isCompleted) completer.complete();
     if (mounted) {
       setState(() {
         _guideRunning = false;
+        _guidePaused = false;
         _guideCompleted = false;
         _guideShowCard = false;
       });
@@ -1898,10 +2025,20 @@ flowchart LR
   void _runGuideAct(int step) {
     _cancelGuideAct();
     final token = _guideRunToken;
+    _guideTarget = switch (step) {
+      1 => _guideSourceToggle,
+      2 => _guideOutlineTab,
+      3 => _guideMap,
+      4 => _guideDocumentSurface,
+      6 => _guideDocumentSurface,
+      7 => _guideFileMenu,
+      _ => _guideDocumentSurface,
+    };
     setState(() {
       _guideRunning = true;
       _guideCompleted = false;
       _guideShowCard = false;
+      _guidePaused = false;
       _guideCue = '准备开始这一幕。';
     });
     unawaited(_run(() async {
@@ -1909,11 +2046,15 @@ flowchart LR
         case 0:
           vm.setLayout(WorkspaceLayout.instant);
           vm.editor.session.replace('', label: '成都慢游');
-          _guideMessage('在这里写下游记。', showCard: true);
-          if (!await _guideWait(step, token, const Duration(seconds: 2))) {
+          if (!await _guidePause(
+            step,
+            token,
+            '在这里写下游记。',
+            target: _guideDocumentSurface,
+          )) {
             return;
           }
-          _guideMessage('写下这趟旅行的标题。');
+          _guideMessage('写下这趟旅行的标题。', target: _guideDocumentSurface);
           if (!await _guideTypeText(
             step,
             token,
@@ -1922,24 +2063,32 @@ flowchart LR
           )) {
             return;
           }
-          _guideMessage('内容已经写下，先读一遍刚才的结果。');
-          if (!await _guideWait(step, token, const Duration(milliseconds: 500))) {
+          if (!await _guidePause(
+            step,
+            token,
+            '内容已经写下，先读一遍刚才的结果。',
+            target: _guideDocumentSurface,
+          )) {
             return;
           }
-          _completeGuideAct(step, token, '两种写法：支持源码模式与即时模式。');
+          _finishGuideAct(step, token);
         case 1:
           vm.setLayout(WorkspaceLayout.instant);
           vm.editor.session.replace(_guideStage0, label: '成都慢游');
-          _guideMessage('这里切换源码或即时渲染。', showCard: true);
-          if (!await _guideWait(step, token, const Duration(seconds: 2))) {
+          if (!await _guidePause(
+            step,
+            token,
+            '支持源码或即时渲染编辑，点击下面的切换按钮方便切换',
+            target: _guideSourceToggle,
+          )) {
             return;
           }
           vm.setLayout(WorkspaceLayout.source);
-          _guideMessage('切到源码，刚才的文字都在这里。');
+          _guideMessage('切到源码，刚才的文字都在这里。', target: _guideSourceToggle);
           if (!await _guideWait(step, token, const Duration(milliseconds: 500))) {
             return;
           }
-          _guideMessage('在源码里，也能继续修改。');
+          _guideMessage('在源码里，也能继续修改。', target: _guideDocumentSurface);
           final revised = '''# 成都，慢慢走
 
 这个周末，去成都。先喝一碗盖碗茶，给茶香和街巷多留些时间。
@@ -1952,7 +2101,7 @@ flowchart LR
           )) {
             return;
           }
-          _guideMessage('加一份清单，再把行程写下来。');
+          _guideMessage('加一份清单，再把行程写下来。', target: _guideDocumentSurface);
           if (!await _guideTypeText(
             step,
             token,
@@ -1962,12 +2111,16 @@ flowchart LR
           )) {
             return;
           }
-          _guideMessage('再点一次，切回即时渲染。', showCard: true);
-          if (!await _guideWait(step, token, const Duration(seconds: 2))) {
+          if (!await _guidePause(
+            step,
+            token,
+            '再次点击，切换源码模式哦',
+            target: _guideSourceToggle,
+          )) {
             return;
           }
           vm.setLayout(WorkspaceLayout.instant);
-          _guideMessage('切回即时渲染，继续直接写一段。');
+          _guideMessage('切回即时渲染，继续直接写一段。', target: _guideDocumentSurface);
           if (!await _guideTypeText(
             step,
             token,
@@ -1976,17 +2129,39 @@ flowchart LR
           )) {
             return;
           }
-          _completeGuideAct(step, token, '大纲与导图：定位章节，整理文章结构。');
+          if (!await _guidePause(
+            step,
+            token,
+            '同一篇游记，两种方式都能继续写。',
+            target: _guideDocumentSurface,
+          )) {
+            return;
+          }
+          _finishGuideAct(step, token);
         case 2:
           vm.setLayout(WorkspaceLayout.instant);
           vm.sidebar = true;
-          vm.outline = true;
+          // 从“文件”页出发，让第一次“大纲”点击是真实切换。
+          vm.outline = false;
           vm.editor.session.replace(
             _guideStage1WithEnding,
             label: '成都行程结构',
           );
-          _guideMessage('标题就是文章的路标，大纲可以直接定位章节。', showCard: true);
-          if (!await _guideWait(step, token, const Duration(milliseconds: 680))) {
+          if (!await _guidePause(
+            step,
+            token,
+            '点击“大纲”，查看文章结构。',
+            target: _guideOutlineTab,
+          )) {
+            return;
+          }
+          vm.outline = true;
+          if (!await _guidePause(
+            step,
+            token,
+            '大纲会列出标题，点击“第一天行程”定位内容。',
+            target: _guideSidebar,
+          )) {
             return;
           }
           final headings = vm.editor.document.headings;
@@ -1994,96 +2169,303 @@ flowchart LR
           final target = headings.where((h) => h.title == '第一天行程').firstOrNull;
           if (target != null) {
             vm.selectHeading(target);
-            _guideMessage('从大纲，一下找到想看的段落。');
           }
-          if (!await _guideWait(step, token, const Duration(milliseconds: 900))) {
+          if (!await _guidePause(
+            step,
+            token,
+            '点击“导图”，查看全局结构。',
+            target: _guideMapTab,
+          )) {
+            return;
+          }
+          vm.setLayout(WorkspaceLayout.map);
+          if (!await _guidePause(
+            step,
+            token,
+            '导图把标题关系画在这里。',
+            target: _guideMap,
+          )) {
+            return;
+          }
+          if (!await _guidePause(
+            step,
+            token,
+            '把锦里夜游安排到第一天晚上。',
+            target: _guideMap,
+          )) {
             return;
           }
           if (source != null && target != null) {
             vm.editor.session.reparentHeading(source.id, target.id);
           }
-          vm.setLayout(WorkspaceLayout.map);
-          _guideMessage(
-            '导图把章节关系摊开，移动章节时下面的内容也会一起跟随。',
-            showCard: true,
-          );
-          if (!await _guideWait(step, token, const Duration(milliseconds: 820))) {
+          if (!await _guidePause(
+            step,
+            token,
+            '章节和下面的随手记，一起移动了。',
+            target: _guideMap,
+          )) {
             return;
           }
           vm.editor.session.undo();
-          _completeGuideAct(step, token, '文章的脉络看得见了：定位、整理和撤销都在同一个工作区完成。');
+          if (!await _guidePause(
+            step,
+            token,
+            '想比较一下，也可以撤销回来。',
+            target: _guideMap,
+          )) {
+            return;
+          }
+          _finishGuideAct(step, token);
         case 3:
           vm.setLayout(WorkspaceLayout.map);
           vm.editor.session.replace(
             _guideStage1WithEnding,
             label: '成都行程结构',
           );
-          _guideMessage('先按文章顺序看清每天的安排。');
-          if (!await _guideWait(step, token, const Duration(milliseconds: 580))) {
+          if (!await _guidePause(
+            step,
+            token,
+            '先沿着文章顺序，看清每天的安排。',
+            target: _guideMap,
+          )) {
             return;
           }
-          vm.map.setMode(MindMapLayoutMode.radial);
-          _guideMessage('换一种布局，再用颜色区分不同的行程分支。', showCard: true);
-          if (!await _guideWait(step, token, const Duration(milliseconds: 680))) {
+          _mapAppearanceMenu.open();
+          if (!await _guidePause(
+            step,
+            token,
+            '点击右侧“导图样式”，看看布局。',
+            target: _guideMapToolbar,
+          )) {
             return;
           }
-          vm.setMapStyle(MindMapStyle.colorful);
+          for (final mode in [
+            MindMapLayoutMode.right,
+            MindMapLayoutMode.balanced,
+            MindMapLayoutMode.radial,
+            MindMapLayoutMode.down,
+          ]) {
+            vm.map.setMode(mode);
+            _guideMessage('布局：${_guideMapLayoutLabel(mode)}', target: _guideMapPopup);
+            if (!await _guideWait(
+              step,
+              token,
+              const Duration(milliseconds: 1200),
+            )) {
+              return;
+            }
+          }
+          if (!await _guidePause(
+            step,
+            token,
+            '结构布局可以随时切换。',
+            target: _guideMapPopup,
+          )) {
+            return;
+          }
+          for (final style in [
+            MindMapStyle.quiet,
+            MindMapStyle.colorful,
+            MindMapStyle.mono,
+          ]) {
+            vm.setMapStyle(style);
+            _guideMessage('风格：${_guideMapStyleLabel(style)}', target: _guideMapPopup);
+            if (!await _guideWait(
+              step,
+              token,
+              const Duration(milliseconds: 1200),
+            )) {
+              return;
+            }
+          }
+          if (!await _guidePause(
+            step,
+            token,
+            '风格也可以一键切换。',
+            target: _guideMapPopup,
+          )) {
+            return;
+          }
+          _mapAppearanceMenu.close();
+          if (!await _guidePause(
+            step,
+            token,
+            '需要查看节点摘要时，打开这里。',
+            target: _guideMapToolbar,
+          )) {
+            return;
+          }
           vm.setSummary(paragraphs: true, lists: true, blocks: true);
-          _completeGuideAct(step, token, '同一份行程可以有不同观看方式；细节需要时，再打开正文摘要。');
+          if (!await _guidePause(
+            step,
+            token,
+            '摘要已经显示在节点下方。',
+            target: _guideMap,
+          )) {
+            return;
+          }
+          if (!await _guidePause(
+            step,
+            token,
+            '拉远一点，把全局装进视野。',
+            target: _guideMap,
+          )) {
+            return;
+          }
+          _finishGuideAct(step, token);
         case 4:
           vm.setLayout(WorkspaceLayout.read);
           vm.editor.session.replace(_guideStage1WithEnding, label: '成都慢游');
-          _guideMessage('写好的文字，先安静地读一遍。', showCard: true);
-          if (!await _guideWait(step, token, const Duration(milliseconds: 720))) {
+          if (!await _guidePause(
+            step,
+            token,
+            '写好的文字，先安静地读一遍。',
+            target: _guideDocumentSurface,
+          )) {
             return;
           }
-          vm.updateAppearance(typography: MarkdownTypography.column);
-          _completeGuideAct(step, token, '文字写好了，阅读也可以有自己的气质；标题、段落和清单会一起调整。');
+          _typographyMenu.open();
+          if (!await _guidePause(
+            step,
+            token,
+            '点击“排版”，选择正文样式。',
+            target: _guideTypographyPopup,
+          )) {
+            return;
+          }
+          for (final typography in [
+            MarkdownTypography.simple,
+            MarkdownTypography.book,
+            MarkdownTypography.column,
+            MarkdownTypography.editorial,
+          ]) {
+            vm.updateAppearance(typography: typography);
+            _guideMessage('排版：${typography.label}', target: _guideTypographyPopup);
+            if (!await _guideWait(
+              step,
+              token,
+              const Duration(milliseconds: 1200),
+            )) {
+              return;
+            }
+          }
+          if (!await _guidePause(
+            step,
+            token,
+            '排版会同步应用到阅读和导出。',
+            target: _guideTypographyPopup,
+          )) {
+            return;
+          }
+          _typographyMenu.close();
+          if (!await _guidePause(
+            step,
+            token,
+            '回到正文，继续打磨内容。',
+            target: _guideDocumentSurface,
+          )) {
+            return;
+          }
+          _finishGuideAct(step, token);
         case 5:
           vm.setLayout(WorkspaceLayout.sourceRender);
           vm.editor.session.replace(_guideStage1WithEnding, label: '成都慢游');
-          _guideMessage('把几个想去的地方，连成一条路线。', showCard: true);
-          if (!await _guideWait(step, token, const Duration(milliseconds: 560))) {
+          if (!await _guidePause(
+            step,
+            token,
+            '把几个想去的地方，连成一条路线。',
+            target: _guideDocumentSurface,
+          )) {
             return;
           }
           vm.editor.session.replace(
             '$_guideStage1WithEnding$_guideRoute',
             label: '加入成都路线图',
           );
-          _guideMessage('一段文字变成了清楚的路线，关系用 Markdown 就能表达。');
-          if (!await _guideWait(step, token, const Duration(milliseconds: 820))) {
+          if (!await _guidePause(
+            step,
+            token,
+            '一段文字变成了清楚的路线，关系用 Markdown 就能表达。',
+            target: _guideDocumentSurface,
+          )) {
             return;
           }
           vm.editor.session.replace(
             '$_guideStage1WithEnding$_guideRouteEdited',
             label: '修改成都路线图',
           );
-          _completeGuideAct(step, token, '路线也写进了游记：修改一个节点，图表会跟着内容更新。');
+          if (!await _guidePause(
+            step,
+            token,
+            '图里的这一站，也跟着更新了。',
+            target: _guideDocumentSurface,
+          )) {
+            return;
+          }
+          _finishGuideAct(step, token);
         case 6:
           vm.setLayout(WorkspaceLayout.read);
           vm.editor.session.replace(
             '$_guideStage1WithEnding$_guideRouteEdited',
             label: '成都慢游',
           );
-          _guideMessage('这篇游记，也可以直接拿来讲。', showCard: true);
-          if (!await _guideWait(step, token, const Duration(milliseconds: 620))) {
+          if (!await _guidePause(
+            step,
+            token,
+            '这篇游记，也可以直接拿来讲。',
+            target: _guideDocumentSurface,
+          )) {
             return;
           }
           vm.togglePresentation(keepGuide: true);
-          _guideMessage('沿着章节一段一段展开，也可以从导图开始讲全局。');
-          if (!await _guideWait(step, token, const Duration(milliseconds: 980))) {
+          if (!await _guidePause(
+            step,
+            token,
+            '沿着章节，一段一段展开。',
+            target: _guidePresentation,
+          )) {
+            return;
+          }
+          vm.presenter?.next();
+          if (!await _guidePause(
+            step,
+            token,
+            '想先讲全局，也可以从导图开始。',
+            target: _guidePresentation,
+          )) {
+            return;
+          }
+          vm.presenter?.showMap(true);
+          if (!await _guidePause(
+            step,
+            token,
+            '导图能先把全局讲清楚。',
+            target: _guidePresentation,
+          )) {
             return;
           }
           vm.togglePresentation(keepGuide: true);
-          _completeGuideAct(step, token, '写下的故事，也能直接讲出来；讲完以后回到游记继续完善。');
+          if (!await _guidePause(
+            step,
+            token,
+            '讲完以后，回到游记继续完善。',
+            target: _guideDocumentSurface,
+          )) {
+            return;
+          }
+          _finishGuideAct(step, token);
         case 7:
           vm.setLayout(WorkspaceLayout.read);
           vm.editor.session.replace(
             '$_guideStage1WithEnding$_guideRouteEdited',
             label: '成都慢游',
           );
-          _guideMessage('想继续写，可以保存这份 Markdown。', showCard: true);
-          if (!await _guideWait(step, token, const Duration(milliseconds: 700))) {
+          if (!await _guidePause(
+            step,
+            token,
+            '想继续写，可以保存这份 Markdown。',
+            target: _guideFileMenu,
+          )) {
             return;
           }
           if (_desktop &&
@@ -2094,8 +2476,12 @@ flowchart LR
           } else {
             unawaited(_openGuideTouchMenu('file', step));
           }
-          _guideMessage('保存和导出入口都在文件菜单里。');
-          if (!await _guideWait(step, token, const Duration(milliseconds: 900))) {
+          if (!await _guidePause(
+            step,
+            token,
+            '保存和导出入口都在文件菜单里。',
+            target: _guideFileCommands,
+          )) {
             return;
           }
           _closeGuidePanels();
@@ -2107,11 +2493,23 @@ flowchart LR
           } else {
             unawaited(_openGuideTouchMenu('tools', step));
           }
-          _guideMessage('准备发布时，从工具菜单选择对应的平台。');
-          if (!await _guideWait(step, token, const Duration(milliseconds: 900))) {
+          if (!await _guidePause(
+            step,
+            token,
+            '准备发布时，从工具菜单选择对应的平台。',
+            target: _guideShareCommands,
+          )) {
             return;
           }
           _closeGuidePanels();
+          if (!await _guidePause(
+            step,
+            token,
+            '一篇游记已经成形。',
+            target: _guideDocumentSurface,
+          )) {
+            return;
+          }
           _completeGuideAct(step, token, '成都的故事写好了，你的故事也可以从下一句话开始。');
       }
     }));
@@ -2426,6 +2824,7 @@ flowchart LR
         ])
           Expanded(
             child: AppButton(
+              key: item.$1 == WorkspaceLayout.map ? _guideMapTab : null,
               label: item.$2,
               icon: item.$3,
               height: 42,
@@ -2461,12 +2860,16 @@ flowchart LR
           label: '成都慢游',
         );
     }
+    if (step < 7) {
+      vm.advanceGuide(step + 1);
+      return;
+    }
     if (mounted) {
       setState(() {
         _guideRunning = false;
         _guideCompleted = true;
         _guideShowCard = true;
-        _guideCue = '本幕已跳过，可以继续查看下一幕。';
+        _guideCue = '成都的故事写好了，你的故事也可以从下一句话开始。';
       });
     }
   }
@@ -2606,35 +3009,24 @@ flowchart LR
       );
     }
     final currentAct = acts[state.guideStep];
-    final showingNextAct =
-        _guideCompleted && state.guideStep < acts.length - 1;
-    final act = showingNextAct ? acts[state.guideStep + 1] : currentAct;
-    final target = switch (state.guideStep) {
-      1 => _guideSourceToggle,
-      2 => _guideSidebar,
-      3 => _guideMapPopup,
-      4 => _guideTypographyPopup,
-      6 => state.presentation ? _guidePresentation : _guideDocumentSurface,
-      7 => _guideFileMenu.currentContext != null
-          ? _guideFileMenu
-          : _guideDocumentSurface,
-      _ => _guideDocumentSurface,
-    };
+    final act = currentAct;
+    final target = _guideTarget;
     return WorkspaceGuide(
       target: target,
       step: state.guideStep,
+      totalSteps: acts.length + 1,
       title: act.$2,
       description: act.$3,
       liveMessage: _guideCue,
       running: _guideRunning,
+      paused: _guidePaused,
       completed: _guideCompleted,
       showCard: _guideShowCard,
-      resultTitle: _guideCompleted && !showingNextAct
-          ? currentAct.$4
-          : null,
-      result: _guideCompleted && !showingNextAct ? currentAct.$5 : null,
+      resultTitle: _guideCompleted ? currentAct.$4 : null,
+      result: _guideCompleted ? currentAct.$5 : null,
       onClose: _endGuide,
       onSkip: () => _skipGuideAct(state.guideStep),
+      onContinue: _continueGuide,
       onStep: (step) {
         _closeGuidePanels();
         _cancelGuideAct();
@@ -2709,18 +3101,16 @@ flowchart LR
           _runGuideAct(step);
         case 2:
           state.sidebar = true;
-          state.outline = true;
+          state.outline = false;
           if (state.viewport == WorkspaceViewport.phone) {
             _scaffold.currentState?.openDrawer();
           }
           _runGuideAct(step);
         case 3:
           state.setLayout(WorkspaceLayout.map);
-          _mapAppearanceMenu.open();
           _runGuideAct(step);
         case 4:
           state.setLayout(WorkspaceLayout.read);
-          _typographyMenu.open();
           _runGuideAct(step);
         case 5 || 6:
           _runGuideAct(step);
