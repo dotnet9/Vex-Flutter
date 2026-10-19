@@ -146,9 +146,13 @@ def main():
 
     contract_checks()
 
-    dirty = git('status', '--porcelain')
-    if dirty:
-        sys.exit('工作区存在未提交改动，请先提交:\n' + dirty)
+    def content_diff(*args):
+        """True when git reports a content change (EOL-only churn ignored)."""
+        return subprocess.run(('git',) + args, cwd=ROOT, capture_output=True).returncode != 0
+
+    untracked = git('ls-files', '--others', '--exclude-standard')
+    if content_diff('diff', '--quiet') or content_diff('diff', '--cached', '--quiet') or untracked:
+        sys.exit('工作区存在未提交改动，请先提交:\n' + git('status', '--porcelain'))
 
     branch = git('rev-parse', '--abbrev-ref', 'HEAD')
     if branch == 'HEAD' and not args.branch:
