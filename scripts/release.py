@@ -2,11 +2,14 @@
 """Tag and push a release, deriving the tag from apps/vex/pubspec.yaml.
 
 The pubspec version is the only version edited by hand. This script derives
-v{version} from it, drafts the release-notes file when missing, then pushes
-the current branch and the tag. Existing tags are never moved without
---force-move, so retries cannot silently rewrite a published release.
+v{version} from it, prepares the release paperwork (changelog section,
+release-notes file, bundled documents), reruns the prototype contract checks
+locally, then pushes the current branch and the tag. Existing tags are never
+moved without --force-move, so retries cannot silently rewrite a release.
 """
 import argparse
+import datetime
+import glob
 import json
 import re
 import subprocess
@@ -33,23 +36,24 @@ def release_metadata():
     return json.loads(run((sys.executable, str(script), 'metadata')))
 
 
-def local_tag_commit(target):
-    """Commit the local tag points at, or '' when the tag does not exist."""
-    if not git('tag', '-l', target):
-        return ''
-    return git('rev-parse', f'{target}^{{commit}}')
-
-
-def remote_tag_commit(target):
-    """Commit the tag points at on origin, or '' when it does not exist."""
-    listing = git('ls-remote', 'origin', f'refs/tags/{target}', f'refs/tags/{target}^{{}}')
-    peeled = [line for line in listing.splitlines() if line.endswith(f'refs/tags/{target}^{{}}')]
-    plain = [line for line in listing.splitlines() if line.endswith(f'refs/tags/{target}')]
-    if peeled:
-        return peeled[0].split()[0]
-    if plain:
-        return plain[0].split()[0]
-    return ''
+def rename_changelog_section(version):
+    """Rename the top 未发布 changelog section to V{version}（today）; True when renamed."""
+    path = ROOT / 'docs' / '更新日志.md'
+    text = path.read_text(encoding='utf-8')
+    heading = re.search(r'^## 未发布（\d{4}-\d{2}-\d{2}）$', text, re.M)
+    if not heading:
+        return False
+    section = text[heading.end():]
+    entries = re.split(r'^## ', section, maxsplit=1)[0]
+    if not any(line.strip() for line in entries.splitlines()):
+        sys.exit('更新日志的「未发布」小节没有条目；若本版无变更请先补充或移除该小节。')
+    today = datetime.date.today().isoformat()
+    renamed = re.sub(r'^## 未发布（\d{4}-\d{2}-\d{2}）$', f'## V{version}（{today}）',
+                     text, count=1, flags=re.M)
+    if re.search(rf'^## V{re.escape(version)}（{today}）$', renamed, re.M) is None:
+        sys.exit('更新日志改名失败，请手动检查「未发布」小节。')
+    path.write_text(renamed, encoding='utf-8')
+    return True
 
 
 def draft_release_notes(tag, meta):
@@ -75,6 +79,36 @@ def draft_release_notes(tag, meta):
     return True
 
 
+def contract_checks():
+    """Regenerate bundled documents and run the prototype contract checks."""
+    run((sys.executable, str(ROOT / 'scripts' / 'sync_builtin_documents.py')))
+    try:
+        for script in sorted(glob.glob(str(ROOT / 'design' / 'scripts' / 'verify*.cjs'))):
+            run(('node', script))
+            print(f'契约检查通过 {Path(script).name}')
+    except FileNotFoundError:
+        print('警告：未找到 node，跳过本地原型契约检查（CI 仍会执行）。')
+
+
+def local_tag_commit(target):
+    """Commit the local tag points at, or '' when the tag does not exist."""
+    if not git('tag', '-l', target):
+        return ''
+    return git('rev-parse', f'{target}^{{commit}}')
+
+
+def remote_tag_commit(target):
+    """Commit the tag points at on origin, or '' when it does not exist."""
+    listing = git('ls-remote', 'origin', f'refs/tags/{target}', f'refs/tags/{target}^{{}}')
+    peeled = [line for line in listing.splitlines() if line.endswith(f'refs/tags/{target}^{{}}')]
+    plain = [line for line in listing.splitlines() if line.endswith(f'refs/tags/{target}')]
+    if peeled:
+        return peeled[0].split()[0]
+    if plain:
+        return plain[0].split()[0]
+    return ''
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -86,8 +120,14 @@ def main():
 
     meta = release_metadata()
     tag = meta['tag']
+    if rename_changelog_section(meta['version']):
+        run((sys.executable, str(ROOT / 'scripts' / 'sync_builtin_documents.py')))
+        sys.exit(f'已把更新日志「未发布」小节改为 V{meta["version"]}，'
+                 '请检查内容并提交后重新运行。')
     if draft_release_notes(tag, meta):
         sys.exit(f'已创建发布说明草稿 .github/release-notes/{tag}.md，请补充完善后重新运行。')
+
+    contract_checks()
 
     dirty = git('status', '--porcelain')
     if dirty:
