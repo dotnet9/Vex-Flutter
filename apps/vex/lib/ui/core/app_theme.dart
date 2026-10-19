@@ -131,11 +131,25 @@ ThemeData appTheme(
         ),
       ),
     ),
-    menuButtonTheme: const MenuButtonThemeData(
+    menuButtonTheme: MenuButtonThemeData(
       style: ButtonStyle(
-        textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 14, height: 1.4)),
-        minimumSize: WidgetStatePropertyAll(Size(260, 36)),
-        padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 12)),
+        textStyle: const WidgetStatePropertyAll(
+          TextStyle(fontSize: 14, height: 1.4, fontWeight: FontWeight.w600),
+        ),
+        // Grayscale AA on Windows renders light labels washed out; deepen
+        // dropdown items in light mode to match the menubar treatment.
+        foregroundColor: WidgetStatePropertyAll(
+          brightness == Brightness.dark
+              ? c.onSurface
+              : Color.alphaBlend(
+                  Colors.black.withValues(alpha: .25),
+                  c.onSurface,
+                ),
+        ),
+        minimumSize: const WidgetStatePropertyAll(Size(260, 36)),
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: 12),
+        ),
       ),
     ),
     tooltipTheme: const TooltipThemeData(
