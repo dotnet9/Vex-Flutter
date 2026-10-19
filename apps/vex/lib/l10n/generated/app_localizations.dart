@@ -277,14 +277,14 @@ abstract class AppLocalizations {
 
   /// No description provided for @openInNewWindow.
   ///
-  /// In en, this message translates to:
-  /// **'Open in new window'**
+  /// In zh, this message translates to:
+  /// **'在新窗口打开'**
   String get openInNewWindow;
 
   /// No description provided for @openFileLocation.
   ///
-  /// In en, this message translates to:
-  /// **'Open file location'**
+  /// In zh, this message translates to:
+  /// **'打开文件位置'**
   String get openFileLocation;
 
   /// No description provided for @copyWechat.
