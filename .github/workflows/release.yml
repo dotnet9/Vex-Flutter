@@ -156,7 +156,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y sudo git curl ca-certificates unzip xz-utils file binutils
+          DEBIAN_FRONTEND=noninteractive apt-get install -y sudo git curl ca-certificates unzip xz-utils file binutils jq
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.metadata.outputs.commit }}

@@ -19,11 +19,20 @@ def validate(payload):
         raise ValueError('Signed application is missing entitlements: ' + ', '.join(missing))
 
 
+def codesign_output(app, arch):
+    """新版 codesign 默认输出 DER，须显式 --xml；旧版不识别 --xml 时回退。"""
+    base = ['codesign', '--display', '--arch', arch, '--entitlements', ':-']
+    for extra in (['--xml'], []):
+        try:
+            return subprocess.check_output(base + extra + [str(app)])
+        except subprocess.CalledProcessError:
+            continue
+    raise ValueError(f'codesign could not display entitlements for {app}.')
+
+
 def verify(app):
     for arch in ('x86_64', 'arm64'):
-        output = subprocess.check_output([
-            'codesign', '--display', '--arch', arch, '--entitlements', '-', str(app)])
-        validate(output)
+        validate(codesign_output(app, arch))
         print(f'Validated signed {arch} file access and MCP network entitlements.')
 
 

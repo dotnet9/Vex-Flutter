@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import plistlib
+import subprocess
 import unittest
 from unittest.mock import patch
 
@@ -26,6 +27,15 @@ class MacEntitlementsTests(unittest.TestCase):
                           return_value=plistlib.dumps({key: True for key in entitlements.REQUIRED})) as command:
             entitlements.verify(Path('Vex.app'))
         self.assertEqual([call.args[0][3] for call in command.call_args_list], ['x86_64', 'arm64'])
+
+    def test_falls_back_when_xml_flag_is_unsupported(self):
+        payload = plistlib.dumps({key: True for key in entitlements.REQUIRED})
+        with patch.object(entitlements.subprocess, 'check_output',
+                          side_effect=[subprocess.CalledProcessError(1, 'codesign'), payload,
+                                       subprocess.CalledProcessError(1, 'codesign'), payload]) as command:
+            entitlements.verify(Path('Vex.app'))
+        self.assertIn('--xml', command.call_args_list[0].args[0])
+        self.assertNotIn('--xml', command.call_args_list[1].args[0])
 
     def test_packaging_signs_explicitly_and_checks_finished_dmg(self):
         script = (ROOT / 'scripts/packaging/osx/package.sh').read_text(encoding='utf-8')
