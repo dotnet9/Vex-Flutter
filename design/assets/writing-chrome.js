@@ -25,7 +25,7 @@
     function directory(parent, name, path) {
       const group = document.createElement('details'); group.className = 'file-directory'; group.dataset.path = path;
       group.open = !!query || !collapsed.has(path);
-      const summary = document.createElement('summary'); summary.innerHTML = icon('folder');
+      const summary = document.createElement('summary'); summary.dataset.contextKind = 'folder'; summary.dataset.folderPath = path; summary.innerHTML = icon('folder');
       const label = document.createElement('span'); label.textContent = name; summary.append(label);
       const children = document.createElement('div'); children.className = 'file-children';
       group.append(summary, children); parent.append(group); return children;
@@ -42,7 +42,7 @@
         });
         const button = document.createElement('button');
         button.className = 'file-row file-item' + (doc === current ? ' selected active' : '');
-        button.dataset.fileName = doc.name; button.title = doc.path || doc.name;
+        button.dataset.fileName = doc.name; button.dataset.fileIndex = index; button.dataset.filePath = doc.path || doc.name; button.dataset.contextKind = 'file'; button.title = doc.path || doc.name;
         button.setAttribute('aria-current', doc === current ? 'page' : 'false');
         if (mode === 'tree') button.innerHTML = icon('file');
         const label = document.createElement('span'); label.className = 'file-name'; label.textContent = doc.name; button.append(label);

@@ -14,6 +14,49 @@
     s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/__(.+?)__/g, '<strong>$1</strong>').replace(/\*([^*\n]+)\*/g, '<em>$1</em>').replace(/~~(.+?)~~/g, '<del>$1</del>');
     return s.replace(/\u0001(\d+)\u0002/g, (_, n) => tokens[n]);
   }
+  function listInfo(line) {
+    const match = /^(\s*)([-+*]|\d+[.)])\s+(?:\[([ xX])\]\s+)?(.*)$/.exec(line);
+    if (!match) return null;
+    return { indent: match[1].replace(/\t/g, '    ').length, marker: match[2], checked: match[3], text: match[4] };
+  }
+  function renderList(lines, start) {
+    const first = listInfo(lines[start]), base = first.indent;
+    let index = start, items = [], lastItem = null;
+    const ordered = /^\d/.test(first.marker), tag = ordered ? 'ol' : 'ul';
+    while (index < lines.length) {
+      const info = listInfo(lines[index]);
+      if (!info || info.indent < base) break;
+      if (info.indent > base) {
+        if (!lastItem) break;
+        const nested = renderList(lines, index);
+        lastItem.html += nested.html;
+        index = nested.end;
+        continue;
+      }
+      if ((/^\d/.test(info.marker)) !== ordered) break;
+      lastItem = { html: `<li>${info.checked === undefined
+        ? inline(info.text)
+        : `<input type="checkbox" data-task-line="${index}" aria-label="${esc(info.text)}" ${info.checked.toLowerCase() !== ' ' ? 'checked' : ''} contenteditable="false">${inline(info.text)}`}</li>` };
+      items.push(lastItem);
+      index++;
+    }
+    return { html: `<${tag}>${items.map(item => item.html).join('')}</${tag}>`, end: index, ordered };
+  }
+  function tocEntries(lines) {
+    const entries = [], fences = { marker: null, length: 0 };
+    lines.forEach((line, index) => {
+      const fence = /^ {0,3}(`{3,}|~{3,})/.exec(line);
+      if (fence) {
+        if (!fences.marker) { fences.marker = fence[1][0]; fences.length = fence[1].length; }
+        else if (fence[1][0] === fences.marker && fence[1].length >= fences.length) fences.marker = null;
+        return;
+      }
+      if (fences.marker) return;
+      const heading = /^ {0,3}(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line);
+      if (heading) entries.push({ level: heading[1].length, title: heading[2], id: `heading-${index}` });
+    });
+    return entries;
+  }
   function parse(text) {
     const lines = text.split('\n'), offsets = []; let position = 0;
     lines.forEach(line => { offsets.push(position); position += line.length + 1; });
@@ -22,7 +65,7 @@
       const block = { type, start: offsets[start], end: end < lines.length ? offsets[end] - 1 : text.length, line: start + 1, endLine: end, raw: lines.slice(start, end).join('\n'), html, ...extra };
       blocks.push(block); if (type === 'heading') headings.push(block);
     };
-    const special = l => /^(#{1,6}\s|```|~~~|>\s?|\s*[-*+]\s|\s*\d+[.)]\s|\s*(?:---+|\*\*\*+)\s*$)/.test(l);
+    const special = l => /^(#{1,6}\s|```|~~~|>\s?|\s*[-*+]\s|\s*\d+[.)]\s|\s*(?:---+|\*\*\*+)\s*$)/.test(l) || l.trim() === '[TOC]' || /^\s*\[\^[^\]]+\]:/.test(l);
     for (let i = 0; i < lines.length;) {
       const start = i, line = lines[i]; let match;
       if (i === 0 && line.trim() === '---') {
@@ -30,6 +73,12 @@
         if (end > 0) { i = end + 1; continue; }
       }
       if (!line.trim()) { i++; continue; }
+      if (line.trim() === '[TOC]') {
+        const entries = tocEntries(lines);
+        const html = `<nav class="md-toc" aria-label="目录"><strong>目录</strong>${entries.map(entry => `<a href="#${entry.id}" style="padding-left:${(entry.level - 1) * 14 + 8}px">${inline(entry.title)}</a>`).join('')}</nav>`;
+        add('toc', i, ++i, html);
+        continue;
+      }
       if (line.trim() === '$$') {
         i++; while (i < lines.length && lines[i].trim() !== '$$') i++;
         const formula = lines.slice(start + 1,i).join('\n'); if (i < lines.length) i++;
@@ -54,20 +103,31 @@
       if (i + 1 < lines.length && line.includes('|') && /^\s*\|?\s*:?-{3,}/.test(lines[i + 1])) {
         i += 2; while (i < lines.length && lines[i].trim() && lines[i].includes('|')) i++;
         const value=VexDocumentOps.table(lines.slice(start,i).join('\n'));
-        if(value){const row=(cells,tag)=>'<tr>'+cells.map((cell,index)=>`<${tag} data-align="${value.align[index]}" style="text-align:${value.align[index]||'start'}">${inline(cell.replace(/\\\|/g,'|'))}</${tag}>`).join('')+'</tr>';add('table',start,i,`<table><thead>${row(value.rows[0],'th')}</thead><tbody>${value.rows.slice(1).map(cells=>row(cells,'td')).join('')}</tbody></table>`);continue;}
+        if(value){const row=(cells,tag)=>'<tr>'+cells.map((cell,index)=>`<${tag} data-align="${value.align[index]||'left'}" style="text-align:${value.align[index]||'left'}">${inline(cell.replace(/\\\|/g,'|'))}</${tag}>`).join('')+'</tr>';add('table',start,i,`<table><thead>${row(value.rows[0],'th')}</thead><tbody>${value.rows.slice(1).map(cells=>row(cells,'td')).join('')}</tbody></table>`);continue;}
         i=start;
+      }
+      const callout = /^ {0,3}>\s*\[!(INFO|WARNING)\]\s*$/i.exec(line);
+      if (callout) {
+        i++;
+        const body = [];
+        while (i < lines.length && /^ {0,3}>/.test(lines[i])) { body.push(lines[i].replace(/^ {0,3}>\s?/, '')); i++; }
+        add('callout', start, i, `<aside class="md-callout ${callout[1].toLowerCase()}"><strong>${callout[1].toUpperCase() === 'WARNING' ? '警告' : '信息'}</strong><div>${inline(body.join('\n'))}</div></aside>`);
+        continue;
+      }
+      if (/^ {0,3}\[\^([^\]\r\n]+)\]:/.test(line)) {
+        const footnote = /^ {0,3}\[\^([^\]\r\n]+)\]:\s*(.*)$/.exec(line), label = footnote[1], body = footnote[2];
+        add('footnote', i, ++i, `<div class="md-footnote" id="vex-footnote-${encodeURIComponent(label)}"><sup>[${esc(label)}]</sup> ${inline(body)} <a href="#vex-footnote-ref-${encodeURIComponent(label)}" aria-label="返回正文">↩</a></div>`, { label });
+        continue;
       }
       if (/^>/.test(line)) {
         while (i < lines.length && /^>/.test(lines[i])) i++;
         add('quote', start, i, `<blockquote><p>${lines.slice(start,i).map(x => inline(x.replace(/^>\s?/,''))).join('<br>')}</p></blockquote>`); continue;
       }
-      if (/^\s*(?:[-*+]\s|\d+[.)]\s)/.test(line)) {
-        const ordered = /^\s*\d/.test(line), task = /^\s*[-*+]\s\[[ xX]\]/.test(line); let html = '';
-        while (i < lines.length && /^\s*(?:[-*+]\s|\d+[.)]\s)/.test(lines[i])) {
-          const content = lines[i].replace(/^\s*(?:[-*+]|\d+[.)])\s/,''), check = /^\[([ xX])\]\s?(.*)/.exec(content);
-          html += check ? `<li><input type="checkbox" data-task-line="${i}" ${check[1] !== ' ' ? 'checked' : ''} aria-label="${esc(check[2])}" contenteditable="false">${inline(check[2])}</li>` : `<li>${inline(content)}</li>`; i++;
-        }
-        const tag = ordered ? 'ol' : 'ul'; add('list', start, i, `<${tag}${task ? ' class="task-list"' : ''}>${html}</${tag}>`); continue;
+      if (listInfo(line)) {
+        const list = renderList(lines, i);
+        add('list', start, list.end, list.html, { ordered: list.ordered });
+        i = list.end;
+        continue;
       }
       i++;
       while (i < lines.length && lines[i].trim() && !special(lines[i]) && !(i + 1 < lines.length && lines[i].includes('|') && /^\s*\|?\s*:?-{3,}/.test(lines[i + 1]))) i++;
@@ -78,6 +138,16 @@
   function render(text, editable = false) {
     const data = parse(text);
     return data.blocks.map((b, n) => `<div class="md-block" data-block="${n}" data-line="${b.line}" ${b.id ? `id="${editable ? 'edit-' : 'read-'}${b.id}"` : ''} ${editable && !['hr', 'code','math'].includes(b.type) ? 'contenteditable="true" spellcheck="false"' : ''}>${editable && b.type === 'code' && b.language.toLowerCase() !== 'mermaid' ? b.html.replace('<pre ', '<pre contenteditable="plaintext-only" spellcheck="false" role="textbox" aria-label="代码正文" ') : editable ? b.html : b.html.replace(/<input /g,'<input disabled ')}</div>`).join('') || (editable ? '<div class="md-block" data-block="0" contenteditable="true"><p><br></p></div>' : '<p class="muted">空白的一页，等待你的想法。</p>');
+  }
+  function listMarkdown(node, depth) {
+    const ordered = node.tagName === 'OL', indent = '  '.repeat(depth);
+    return [...node.children].map((item, index) => {
+      const box = [...item.children].find(child => child.tagName === 'INPUT');
+      const nested = [...item.children].filter(child => child.tagName === 'UL' || child.tagName === 'OL');
+      const content = [...item.childNodes].filter(child => child.nodeType !== Node.ELEMENT_NODE || !/^(UL|OL|INPUT)$/.test(child.tagName)).map(toMarkdown).join('').trim();
+      const prefix = ordered ? `${index + 1}. ` : '- ';
+      return indent + prefix + (box ? `[${box.checked ? 'x' : ' '}] ` : '') + content + '\n' + nested.map(child => listMarkdown(child, depth + 1)).join('');
+    }).join('');
   }
   function toMarkdown(node) {
     if (node.nodeType === Node.TEXT_NODE) return node.nodeValue.replace(/\u00a0/g,' ');
@@ -95,8 +165,8 @@
     if (tag === 'pre') return '```' + (node.dataset.language || '') + '\n' + node.textContent.replace(/\n$/,'') + '\n```\n\n';
     if (tag === 'code') return '`' + node.textContent + '`';
     if (tag === 'blockquote') return inner().trim().split('\n').map(x => '> ' + x).join('\n') + '\n\n';
-    if (tag === 'li') { const box = node.querySelector('input'); const ordered = node.parentElement?.tagName === 'OL'; return (ordered ? [...node.parentElement.children].indexOf(node) + 1 + '. ' : '- ') + (box ? `[${box.checked ? 'x' : ' '}] ` : '') + inner().trim() + '\n'; }
-    if (tag === 'ul' || tag === 'ol') return inner() + '\n';
+    if (tag === 'ul' || tag === 'ol') return listMarkdown(node, 0) + '\n';
+    if (tag === 'li') return listMarkdown(node.parentElement, 0);
     if (tag === 'input') return '';
     if (tag === 'table') {
       return VexDocumentOps.fromDOM(node,toMarkdown) + '\n\n';

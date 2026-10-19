@@ -19,7 +19,10 @@
   }
   function inline(value) {
     var tokens = [];
-    var source = String(value).replace(/`([^`]+)`|\$([^$\n]+)\$|(!?)\[([^\]]*)\]\(([^\s)]+)\)/g, function (raw, code, formula, image, label, url) {
+    var source = String(value).replace(/\[\^([^\]\n]+)\]/g, function (raw, label) {
+      tokens.push('<a class="md-footnote-ref" id="vex-footnote-ref-' + encodeURIComponent(label) + '" href="#vex-footnote-' + encodeURIComponent(label) + '"><sup>[' + escape(label) + ']</sup></a>');
+      return '\u0001' + (tokens.length - 1) + '\u0002';
+    }).replace(/`([^`]+)`|\$([^$\n]+)\$|(!?)\[([^\]]*)\]\(([^\s)]+)\)/g, function (raw, code, formula, image, label, url) {
       var html;
       if (code !== undefined) html = '<code>' + escape(code) + '</code>';
       else if (formula !== undefined) html = math(formula, false);

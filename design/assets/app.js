@@ -269,6 +269,7 @@
  map=TexMindmap.create({getText,getTitle:()=>current.name,onSelect:inspect,onMove:moveChapter,onAdd:addChapter});
  document.querySelector('.map-toolbar [data-action=chapter-child]').setAttribute('aria-label','新增章节');
  document.addEventListener('click',event=>{const choice=event.target.closest('[data-typography-choice]');if(!choice)return;prefs.typography=choice.dataset.typographyChoice;applyPrefs();document.querySelectorAll('[data-typography-choice]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.typographyChoice===prefs.typography)));});
+ document.addEventListener('click',event=>{const link=event.target.closest('.md-body a[href^="#"]');if(!link)return;const target=document.getElementById((link.getAttribute('href')||'').slice(1));if(!target)return;event.preventDefault();target.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});target.classList.remove('located');void target.offsetWidth;target.classList.add('located');});
  const typeButton=document.querySelector('[data-action=typography]');document.querySelector('#editor-panel .pane-heading').append(typeButton);typeButton.setAttribute('aria-haspopup','dialog');typeButton.title='正文排版';
  const readingTypeButton=typeButton.cloneNode(true);readingTypeButton.querySelectorAll('[data-i18n]').forEach(el=>el.removeAttribute('data-i18n'));document.querySelector('#reading-panel .pane-heading').append(readingTypeButton);
  $('editor-panel').insertBefore($('formatbar'),$('instant-scroll'));

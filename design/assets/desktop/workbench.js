@@ -23,13 +23,15 @@
   if (['instant', 'source'].includes(requestedEdit)) editMode = requestedEdit;
   var state = { view: 'edit', editMode: editMode, autoPair: true, focus: false, typewriter: false, motion: true, topmost: false, language: 'zh-CN', undo: [], redo: [], sidebar: true, source: false, doc: 0, selected: null, collapsed: new Set(), scale: 1, presentation: false, presentationScale: 1.5, x: 0, y: 0, dirty: false, parsed: null, nodes: [], pending: null };
   // 原型只持久化隔离的演示宽度，不接触宿主应用设置。
-  var sidebar = document.querySelector('.sidebar'), splitter = $('sidebar-splitter'), sidebarWidth = 226;
+  var sidebar = document.querySelector('.sidebar'), splitter = $('sidebar-splitter'), workspace = document.querySelector('.workspace'), sidebarWidth = 226;
   try { var storedWidth = Number(VexStorage.getItem('vex-design-sidebar-width')); if (storedWidth >= 200 && storedWidth <= 560) sidebarWidth = storedWidth; } catch (_) {}
   function resizeSidebar(width, persist) {
     var available = document.querySelector('.workspace').clientWidth;
     var maximum = Math.min(560, Math.max(200, available - 365));
     sidebarWidth = Math.max(200, Math.min(maximum, width));
     sidebar.style.setProperty('--sidebar-width', sidebarWidth + 'px');
+    // Keep the visible edge tied to the pointer even while the layout is busy reflowing.
+    sidebar.style.width = sidebarWidth + 'px';
     splitter.setAttribute('aria-valuenow', Math.round(sidebarWidth));
     if (persist) try { VexStorage.setItem('vex-design-sidebar-width', String(sidebarWidth)); } catch (_) {}
   }
@@ -37,10 +39,15 @@
   var sidebarDrag;
   splitter.addEventListener('pointerdown', function (event) {
     if (event.button !== 0) return; event.preventDefault();
-    sidebarDrag = { x: event.clientX, width: sidebar.getBoundingClientRect().width };
+    var current = sidebar.getBoundingClientRect(), host = workspace.getBoundingClientRect();
+    sidebarDrag = { offset: event.clientX - current.right, hostLeft: host.left };
     splitter.setPointerCapture(event.pointerId); document.body.classList.add('sidebar-resizing');
   });
-  splitter.addEventListener('pointermove', function (event) { if (sidebarDrag) resizeSidebar(sidebarDrag.width + (event.clientX - sidebarDrag.x), false); });
+  splitter.addEventListener('pointermove', function (event) {
+    if (!sidebarDrag) return;
+    var samples = event.getCoalescedEvents ? event.getCoalescedEvents() : [event], latest = samples[samples.length - 1];
+    resizeSidebar(latest.clientX - sidebarDrag.hostLeft - sidebarDrag.offset, false);
+  });
   ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (name) {
     splitter.addEventListener(name, function () { if (!sidebarDrag) return; sidebarDrag = null; document.body.classList.remove('sidebar-resizing'); resizeSidebar(sidebarWidth, true); });
   });
@@ -113,36 +120,106 @@
   document.querySelectorAll('.side-tab').forEach(function (tab) { tab.addEventListener('click', function () { $('file-navigation-footer').hidden = tab.dataset.pane !== 'files'; }); });
   document.addEventListener('pointerdown', function (event) { if (!event.target.closest('.file-navigation-footer')) $('file-navigation-menu').hidden = true; });
   document.addEventListener('keydown', function (event) { if (event.key === 'Escape') $('file-navigation-menu').hidden = true; });
+  var fileContextMenu = document.createElement('div'), fileContextTarget = null;
+  fileContextMenu.className = 'file-context-menu'; fileContextMenu.hidden = true; fileContextMenu.setAttribute('role', 'menu');
+  document.body.appendChild(fileContextMenu);
+  function closeFileContextMenu() { fileContextMenu.hidden = true; fileContextTarget = null; }
+  function showFileContextMenu(target, event) {
+    fileContextTarget = target;
+    fileContextMenu.innerHTML = '<button type="button" role="menuitem" data-file-context="open-window">在新窗口打开</button><button type="button" role="menuitem" data-file-context="reveal">打开文件位置</button>';
+    fileContextMenu.hidden = false;
+    var width = fileContextMenu.offsetWidth || 168, height = fileContextMenu.offsetHeight || 72;
+    fileContextMenu.style.left = Math.max(8, Math.min(event.clientX, innerWidth - width - 8)) + 'px';
+    fileContextMenu.style.top = Math.max(8, Math.min(event.clientY, innerHeight - height - 8)) + 'px';
+    fileContextMenu.querySelector('button').focus({ preventScroll: true });
+  }
+  fileContextMenu.addEventListener('click', function (event) {
+    var action = event.target.closest('[data-file-context]'); if (!action || !fileContextTarget) return;
+    var target = fileContextTarget, act = action.dataset.fileContext; closeFileContextMenu();
+    if (act === 'reveal') {
+      if (target.kind === 'folder') VexProto.toast('文件夹位置：' + (target.path || '演示文档'));
+      else {
+        var reveal = docs[target.index];
+        VexProto.toast('文件位置：' + ((reveal && (reveal.path || reveal.name)) || '演示文档'));
+      }
+      return;
+    }
+    if (target.kind === 'folder') {
+      if (!VexDocumentWindow.open({ intent: 'open-folder' })) VexProto.toast('请允许弹出窗口后重试');
+      return;
+    }
+    var doc = docs[target.index];
+    if (!doc || !VexDocumentWindow.open({ document: { name: doc.name, text: target.index === state.doc ? input.value : doc.text, readOnly: !!doc.readOnly, path: doc.path } })) VexProto.toast('请允许弹出窗口后重试');
+  });
+  document.addEventListener('contextmenu', function (event) {
+    var row = event.target.closest('#file-list .file-row'), folder = event.target.closest('#file-list .file-directory > summary');
+    if (!row && !folder) return;
+    event.preventDefault(); event.stopPropagation();
+    if (row) showFileContextMenu({ kind: 'file', index: Number(row.dataset.fileIndex) }, event);
+    else showFileContextMenu({ kind: 'folder', path: folder.dataset.folderPath || '' }, event);
+  });
+  document.addEventListener('pointerdown', function (event) { if (!fileContextMenu.contains(event.target)) closeFileContextMenu(); });
+  document.addEventListener('keydown', function (event) { if (event.key === 'Escape') closeFileContextMenu(); });
   function inline(text) {
     return VexRendering.inline(text);
   }
   function renderPreview() {
-    var html = '', listOpen = '';
-    function closeList() { if (listOpen) { html += '</' + listOpen + '>'; listOpen = ''; } }
-    state.parsed.blocks.forEach(function (block) {
+    var html = '', blocks = state.parsed.blocks;
+    function listMeta(block) {
+      var match = /^(\s*)([-+*]|\d+[.)])\s+(?:\[([ xX])\]\s+)?(.*)$/.exec(block.raw.split('\n')[0]);
+      return match ? { indent: block.indent || match[1].replace(/\t/g, '    ').length, ordered: /^\d/.test(match[2]), checked: match[3], text: match[4] } : null;
+    }
+    function renderListAt(index, indent) {
+      var first = listMeta(blocks[index]), ordered = first.ordered, tag = ordered ? 'ol' : 'ul', items = [], current = null;
+      while (index < blocks.length && blocks[index].kind === 'list') {
+        var meta = listMeta(blocks[index]);
+        if (!meta || meta.indent < indent || meta.indent === indent && meta.ordered !== ordered) break;
+        if (meta.indent > indent) {
+          if (!current) break;
+          var nested = renderListAt(index, meta.indent); current.html += nested.html; index = nested.end; continue;
+        }
+        current = { html: '<li data-line="' + blocks[index].line + '">' + (meta.checked === undefined ? '' : meta.checked.toLowerCase() === 'x' ? '☑ ' : '☐ ') + inline(meta.text) + '</li>' };
+        items.push(current); index++;
+      }
+      return { html: '<' + tag + '>' + items.map(function (item) { return item.html; }).join('') + '</' + tag + '>', end: index };
+    }
+    for (var blockIndex = 0; blockIndex < blocks.length;) {
+      var block = blocks[blockIndex];
       var attr = ' data-line="' + block.line + '"';
       if (block.kind === 'list') {
-        var listTag = /^\s*\d+[.)]\s/.test(block.raw) ? 'ol' : 'ul';
-        if (listOpen !== listTag) { closeList(); html += '<' + listTag + '>'; listOpen = listTag; }
-        html += '<li' + attr + '>' + (block.checked === null ? '' : block.checked ? '☑ ' : '☐ ') + inline(block.raw.replace(/^\s*(?:[-+*]|\d+[.)])\s+(?:\[[ xX]\]\s*)?/, '')) + '</li>'; return;
+        var list = renderListAt(blockIndex, block.indent || 0); html += list.html; blockIndex = list.end; continue;
       }
-      closeList();
       if (VexRendering.special(block)) html += VexRendering.renderSpecial(block);
       else if (block.kind === 'rule') html += '<hr' + attr + '>';
-      else if (block.kind === 'heading') html += '<h' + block.level + attr + '>' + inline(block.raw.split('\n')[0].replace(/^ {0,3}#{1,6}\s+/, '').replace(/\s+#+\s*$/, '')) + '</h' + block.level + '>';
+      else if (block.kind === 'toc') html += block.html;
+      else if (block.kind === 'paragraph' && block.raw.trim() === '[TOC]') {
+        html += '<nav class="md-toc" data-line="' + block.line + '" aria-label="目录"><strong>目录</strong>' + state.nodes.filter(function (node) { return node.kind === 'heading' && node.level > 0; }).map(function (node) { return '<a href="#heading-' + (node.line - 1) + '" style="padding-left:' + (node.level - 1) * 14 + 'px">' + inline(node.text) + '</a>'; }).join('') + '</nav>';
+      }
+      else if (block.kind === 'heading') html += '<h' + block.level + ' id="heading-' + (block.line - 1) + '"' + attr + '>' + inline(block.raw.split('\n')[0].replace(/^ {0,3}#{1,6}\s+/, '').replace(/\s+#+\s*$/, '')) + '</h' + block.level + '>';
       else if (block.kind === 'code') {
         html += '<section class="md-code-block"' + attr + '><pre><code>' + escape(block.text) + '</code></pre></section>';
+      }
+      else if (block.kind === 'callout') html += block.html;
+      else if (block.kind === 'footnote') html += block.html;
+      else if (block.kind === 'quote' && /^\s*>\s*\[!(INFO|WARNING)\]/i.test(block.raw)) {
+        var callout = /^\s*>\s*\[!(INFO|WARNING)\]/i.exec(block.raw);
+        html += '<aside class="md-callout ' + callout[1].toLowerCase() + '"' + attr + '><strong>' + (callout[1].toUpperCase() === 'WARNING' ? '警告' : '信息') + '</strong><div>' + inline(block.raw.replace(/^\s*>\s*\[!(?:INFO|WARNING)\]\s*/i, '').replace(/^\s*>\s?/gm, '').replace(/\n/g, ' ')) + '</div></aside>';
+      }
+      else if (block.kind === 'paragraph' && /^ {0,3}\[\^([^\]\r\n]+)\]:/.test(block.raw)) {
+        var footnote = /^ {0,3}\[\^([^\]\r\n]+)\]:\s*(.*)$/.exec(block.raw);
+        html += '<div class="md-footnote" id="vex-footnote-' + encodeURIComponent(footnote[1]) + '"' + attr + '><sup>[' + escape(footnote[1]) + ']</sup> ' + inline(footnote[2]) + ' <a href="#vex-footnote-ref-' + encodeURIComponent(footnote[1]) + '" aria-label="返回正文">↩</a></div>';
       }
       else if (block.kind === 'quote') html += '<blockquote' + attr + '>' + inline(block.raw.replace(/^\s*>\s?/gm, '').replace(/\n/g, ' ')) + '</blockquote>';
       else if (block.kind === 'table') {
         var table = VexDocumentOps.table(block.raw), rows = table?.rows || [];
         html += '<table' + attr + '>' + rows.map(function (row, index) {
           var tag = index === 0 ? 'th' : 'td';
-          return '<tr>' + row.map(function (cell,col) { return '<' + tag + ' data-align="' + table.align[col] + '" style="text-align:' + (table.align[col] || 'start') + '">' + inline(cell.replace(/\\\|/g,'|')) + '</' + tag + '>'; }).join('') + '</tr>';
+          return '<tr>' + row.map(function (cell,col) { return '<' + tag + ' data-align="' + (table.align[col] || 'left') + '" style="text-align:' + (table.align[col] || 'left') + '">' + inline(cell.replace(/\\\|/g,'|')) + '</' + tag + '>'; }).join('') + '</tr>';
         }).join('') + '</table>';
       } else html += '<p' + attr + '>' + inline(block.raw.replace(/\n/g, ' ')) + '</p>';
-    });
-    closeList(); $('markdown-preview').innerHTML = html || '<p class="empty-state">输入 Markdown，开始写作。</p>';
+      blockIndex++;
+    }
+    $('markdown-preview').innerHTML = html || '<p class="empty-state">输入 Markdown，开始写作。</p>';
   }
   function renderOutline() {
     $('outline-body').innerHTML = '';
@@ -540,7 +617,7 @@
       case 'export-html': instant.finish(); refreshNow(); download('<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>' + escape(docs[state.doc].name) + '</title><style>body{max-width:780px;margin:50px auto;font:16px/1.9 system-ui;padding:0 24px;color:#242933;background:#fff}pre{padding:16px;background:#f4f5f7;overflow:auto}table{border-collapse:collapse}td,th{border:1px solid #ddd;padding:6px 12px}blockquote{border-left:3px solid #888;padding-left:16px;color:#666}' + VexTypography.exportStyles() + VexWatermark.exportStyles + '</style><body>' + $('markdown-preview').innerHTML + VexWatermark.exportMark() + '</body></html>', docs[state.doc].name.replace(/\.[^.]+$/, '') + '.html', 'text/html;charset=utf-8'); break;
       case 'export-pdf': instant.finish(); refreshNow(); VexWatermark.preview('PDF · ' + docs[state.doc].name,$('markdown-preview').innerHTML); break;
       case 'toggle-watermark': VexPreferences.set('watermarkPreview',!VexPreferences.values.watermarkPreview); break;
-      case 'toggle-sidebar': state.sidebar = !state.sidebar; document.querySelector('.sidebar').classList.toggle('closed', !state.sidebar); $('sidebar-toggle').classList.toggle('on', state.sidebar); $('sidebar-toggle').setAttribute('aria-pressed', String(state.sidebar)); break;
+      case 'toggle-sidebar': state.sidebar = !state.sidebar; document.querySelector('.sidebar').classList.toggle('closed', !state.sidebar); if (!state.sidebar) sidebar.style.removeProperty('width'); $('sidebar-toggle').classList.toggle('on', state.sidebar); $('sidebar-toggle').setAttribute('aria-pressed', String(state.sidebar)); break;
       case 'pane-outline': case 'pane-files': if (!state.sidebar) VexProto.handleAction('toggle-sidebar'); document.querySelector('.side-tab[data-pane="' + action.slice(5) + '"]').click(); break;
       case 'map-source': state.source = !state.source; applySource(); break;
       case 'map-settings': var opened = !$('map-settings').hidden; if (state.view !== 'mindmap') setView('mindmap'); $('map-settings').hidden = opened; $('map-settings-button').setAttribute('aria-expanded', String(!opened)); $('node-inspector').hidden = true; break;
@@ -734,6 +811,15 @@
   document.addEventListener('click', function (event) {
     var button = event.target.closest('[data-action]'); if (button) { event.stopPropagation(); VexProto.handleAction(button.dataset.action); }
     else if (!$('map-settings').contains(event.target)) { $('map-settings').hidden = true; $('map-settings-button').setAttribute('aria-expanded', 'false'); }
+  });
+  document.addEventListener('click', function (event) {
+    var link = event.target.closest('#markdown-preview a[href^="#"]');
+    if (!link) return;
+    var href = link.getAttribute('href') || '', target = document.getElementById(href.slice(1));
+    if (!target) return;
+    event.preventDefault();
+    target.scrollIntoView({ block: 'start', behavior: reducedMotion() ? 'auto' : 'smooth' });
+    target.classList.remove('located'); void target.offsetWidth; target.classList.add('located');
   });
   document.querySelectorAll('.win-layer').forEach(function (layer) {
     layer.onclick = function (event) { if (event.target === layer) { closeLayers(); pendingSwitch = null; } };

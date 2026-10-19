@@ -23,7 +23,7 @@
     function fence(line) { return /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line); }
     function structural(index) {
       var line = lines[index] || '';
-      return heading(line) || list(line) || fence(line) || /^\s*\$\$\s*$/.test(line) || /^\s*>/.test(line) || /^\s*(?:---+|\*\*\*+|___+)\s*$/.test(line)
+      return heading(line) || list(line) || fence(line) || line.trim() === '[TOC]' || /^\s*\[\^[^\]]+\]:/.test(line) || /^\s*\$\$\s*$/.test(line) || /^\s*>/.test(line) || /^\s*(?:---+|\*\*\*+|___+)\s*$/.test(line)
         || (index + 1 < lines.length && /^ {0,3}(?:=+|-+)\s*$/.test(lines[index + 1]));
     }
     for (var i = 0; i < lines.length;) {

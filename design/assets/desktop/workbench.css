@@ -53,6 +53,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .file-row.selected { color: var(--accent); background: var(--accent-soft); border-left-color: var(--accent); }
 .file-row.selected .ico { color: var(--accent); }
 .file-row span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.file-context-menu { position: fixed; z-index: 180; min-width: 168px; padding: 5px; background: var(--panel); color: var(--fg); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 12px 28px #0003; }
+.file-context-menu button { display: block; width: 100%; padding: 8px 12px; border: 0; border-radius: 5px; background: transparent; color: inherit; text-align: left; font-size: 12px; }
+.file-context-menu button:hover, .file-context-menu button:focus-visible { background: var(--accent-soft); color: var(--accent); outline: none; }
 .side-pane { flex: 1; min-height: 0; overflow: auto; }
 .outline-list { padding: 6px 10px; }
 .outline-item { display: block; text-align: left; width: 100%; padding: 7px 8px; border: 0; border-radius: 5px; background: transparent; color: var(--muted); font-size: 11.5px; }
@@ -70,11 +73,20 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .source-scroll.no-lines .line-numbers { display: none; }
 .reading-pane { min-width: 0; display: flex; flex-direction: column; flex: 1; background: var(--bg); }
 .reading-scroll { flex: 1; min-height: 0; overflow: auto; }
-.reading-scroll .md-body { max-width: 780px; margin: 0 auto; padding: 36px 44px 70px; font-size: 13px; line-height: 1.95; }
+.reading-scroll .md-body { max-width: none; margin: 0; padding: 36px 48px 70px; font-size: 13px; line-height: 1.95; }
 .reading-scroll .md-body h1 { font-size: 25px; padding-bottom: 16px; margin-bottom: 18px; letter-spacing: -.5px; }
 .reading-scroll .md-body h2 { margin-top: 30px; }
 .reading-scroll .md-body > * { scroll-margin-top: 24px; }
 .reading-scroll .md-body > .located { animation: locate 1.3s ease; }
+.reading-scroll .md-body .md-toc { display:flex; flex-direction:column; gap:2px; margin:16px 0 22px; padding:12px 14px; border:1px solid var(--border); border-radius:7px; background:var(--code-bg); }
+.reading-scroll .md-body .md-toc strong { margin-bottom:4px; font-size:12px; }
+.reading-scroll .md-body .md-toc a { padding:3px 7px; color:var(--accent); text-decoration:none; border-radius:4px; }
+.reading-scroll .md-body .md-toc a:hover { background:var(--accent-soft); }
+.reading-scroll .md-body .md-callout { margin:16px 0; padding:11px 14px; border-left:3px solid var(--accent); border-radius:0 6px 6px 0; background:color-mix(in srgb,var(--accent) 7%,transparent); }
+.reading-scroll .md-body .md-callout.warning { border-left-color:var(--warning); background:color-mix(in srgb,var(--warning) 8%,transparent); }
+.reading-scroll .md-body .md-callout strong { display:block; margin-bottom:3px; font-size:12px; color:var(--accent); }
+.reading-scroll .md-body .md-callout.warning strong { color:var(--warning); }
+.reading-scroll .md-body .md-footnote { margin:12px 0; padding-top:8px; border-top:1px solid var(--border); font-size:.9em; }
 .map-pane { position: relative; display: flex; flex: 1; min-width: 0; flex-direction: column; overflow: hidden; }
 .map-toolbar { min-height: 44px; padding: 0 18px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); flex-wrap: wrap; flex: none; background: var(--panel); z-index: 2; }
 .map-toolbar-title { font-size: 11px; color: var(--muted); margin-right: auto; display: flex; align-items: center; gap: 7px; }
