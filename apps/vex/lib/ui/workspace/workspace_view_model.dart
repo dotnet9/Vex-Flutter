@@ -775,12 +775,12 @@ final class WorkspaceViewModel extends ChangeNotifier {
     persist();
   }
 
-  void togglePresentation({bool outline = true}) {
+  void togglePresentation({bool outline = true, bool keepGuide = false}) {
     if (presenter != null) {
       presenter!.dispose();
       presenter = null;
     } else {
-      if (_guiding) endGuide();
+      if (_guiding && !keepGuide) endGuide();
       presenter = PresentationController(
         PresentationDeck.fromDocument(editor.document, title: current.name),
         headingId: selectedHeadingId,
@@ -1542,7 +1542,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
   bool _guiding = false;
   bool guideSeen = false;
   bool get guiding => _guiding;
-  int guideStep = 0;
+  /// `-1` is the introduction card; automated acts start at step 0.
+  int guideStep = -1;
   MarkdownSnapshot? _guideSnapshot;
   WorkspaceLayout? _guideLayout;
   TextSelection? _guideSelection;
@@ -1564,6 +1565,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
   _guideView;
   void startGuide() {
     if (_guiding) return;
+    presenter?.dispose();
+    presenter = null;
     _guideSnapshot = editor.session.snapshot();
     _guideSelection = editor.selection;
     _guideTypography = typography;
@@ -1583,31 +1586,28 @@ final class WorkspaceViewModel extends ChangeNotifier {
       blocks: blocks,
     );
     _guiding = true;
-    guideStep = 0;
-    editor.session.replace(strings.guideDocument, label: '引导演练');
-    layout = WorkspaceLayout.instant;
-    focusMode = false;
-    filter = outlineFilter = '';
+    guideStep = -1;
     _notify();
   }
 
   void advanceGuide(int step) {
     if (!_guiding) return;
-    guideStep = step.clamp(0, 6);
+    guideStep = step.clamp(0, 7);
     layout = switch (guideStep) {
-      2 => WorkspaceLayout.map,
-      3 =>
-        viewport == WorkspaceViewport.phone
-            ? WorkspaceLayout.instant
-            : WorkspaceLayout.instantMap,
-      4 || 5 || 6 => WorkspaceLayout.read,
+      // The second act starts in instant mode so the real source toggle is
+      // highlighted before the demonstration clicks it.
+      1 => WorkspaceLayout.instant,
+      3 => WorkspaceLayout.map,
+      4 => WorkspaceLayout.read,
+      5 => WorkspaceLayout.sourceRender,
+      6 || 7 => WorkspaceLayout.read,
       _ => WorkspaceLayout.instant,
     };
-    if (guideStep == 1) {
+    if (guideStep == 2) {
       sidebar = true;
       outline = true;
     }
-    if (guideStep == 2) paragraphs = lists = blocks = false;
+    if (guideStep == 3) paragraphs = lists = blocks = false;
     _activePane = layout.panes.first;
     _refreshMap();
     _notify();
@@ -1615,6 +1615,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
 
   void endGuide() {
     if (!_guiding) return;
+    presenter?.dispose();
+    presenter = null;
     editor.session.restore(_guideSnapshot!);
     final selection = _guideSelection;
     if (selection != null && selection.isValid) {

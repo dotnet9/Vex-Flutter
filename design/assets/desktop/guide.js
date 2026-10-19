@@ -1,256 +1,483 @@
-/* 引导演练使用真实控件；退出时恢复当前文档、布局与偏好。 */
 (function () {
   'use strict';
+
   var $ = function (selector) { return document.querySelector(selector); };
-  var open = false, preparing = false, completed = false, session = null, stepIndex = 0, previousFocus;
-  var frame, settledTimer, feedback = [], stepText = '', chapterFitKey = '';
-  var storageKey = 'vex-design-guide';
-  var layer = document.createElement('div'); layer.id = 'vex-guide'; layer.className = 'tour-layer'; layer.hidden = true;
-  layer.innerHTML = '<svg class="tour-mask" aria-hidden="true"><defs><mask id="tour-cutouts" maskUnits="userSpaceOnUse"><rect width="100%" height="100%" fill="white"></rect><g class="tour-cutouts" fill="black"></g></mask></defs><rect class="tour-scrim" width="100%" height="100%" mask="url(#tour-cutouts)"></rect></svg><div class="tour-rings"></div><section class="tour-card" role="dialog" aria-modal="false" aria-labelledby="tour-title" aria-describedby="tour-description"></section>';
+  var open = false, running = false, automating = false, session = null;
+  var stepIndex = -1, pendingStepIndex = null, previousFocus = null, runToken = 0, timers = [];
+  var focusTargets = [], focusKind = 'control', focusPreferred = 'bottom';
+  var resultTargets = [], resultKind = 'control', resultPreferred = 'bottom';
+  var layer = document.createElement('div');
+  layer.id = 'vex-guide'; layer.className = 'tour-layer story-tour'; layer.hidden = true;
+  layer.innerHTML = '<svg class="tour-mask" aria-hidden="true"><defs><mask id="tour-cutouts" maskUnits="userSpaceOnUse"><rect width="100%" height="100%" fill="white"></rect><g class="tour-cutouts" fill="black"></g></mask></defs><rect class="tour-scrim" width="100%" height="100%" mask="url(#tour-cutouts)"></rect></svg><div class="tour-rings"></div><div class="tour-cursor" aria-hidden="true">↗</div><div class="tour-light-tip" role="status" aria-live="polite" aria-hidden="true" hidden></div><section class="tour-card story-card" role="dialog" aria-modal="false" aria-labelledby="tour-title" aria-describedby="tour-description"></section>';
   document.body.appendChild(layer);
-  var pointer = document.createElement('div'); pointer.className = 'vex-tour-pointer'; pointer.setAttribute('aria-hidden','true'); layer.appendChild(pointer);
-  var card = $('.tour-card'), cutouts = $('.tour-cutouts'), rings = $('.tour-rings');
-  function visible(selector) { var node = $(selector); return !!node && !node.closest('[hidden]') && node.getBoundingClientRect().width > 0; }
-  var steps = [
+  var card = $('.story-card'), cutouts = $('.tour-cutouts'), rings = $('.tour-rings'), cursor = $('.tour-cursor'), lightTip = $('.tour-light-tip');
+  var app = function () { return $('.app-window'); };
+  var guideSeenKey = 'vex-design-guide-seen';
+
+  var stage0 = '# 成都，慢慢走\n\n这个周末，去成都。把脚步放慢一点，给茶香和街巷多留些时间。\n';
+  var stage1 = '# 成都，慢慢走\n\n这个周末，去成都。先喝一碗盖碗茶，给茶香和街巷多留些时间。\n\n## 出发清单\n\n- [ ] 带上相机\n- [ ] 预订车票\n\n## 第一天行程\n\n### 人民公园\n\n坐在茶社里，喝一碗盖碗茶。\n\n### 宽窄巷子\n\n沿着青砖小巷，看看老院子。\n\n## 第二天行程\n\n### 熊猫基地\n\n早一点出发，去看大熊猫。\n\n## 锦里夜游\n\n等灯笼亮起来，再去锦里走走。\n\n### 旅途随手记\n\n记下今天最喜欢的一碗茶和一条巷子。\n';
+  var stage1WithEnding = stage1 + '\n沿着这条路线，慢慢走。';
+  var route = '\n## 成都慢游路线\n\n\`\`\`mermaid\nflowchart LR\n  A[人民公园] --> B[宽窄巷子]\n  B --> C[锦里夜游]\n\`\`\`\n';
+  var stage2 = stage1WithEnding + route;
+  var routeEdited = stage1WithEnding + route.replace('B[宽窄巷子]', 'B[宽窄巷子 · 喝茶漫步]');
+  var acts = [
     {
-      name: '写作', title: '直接写作', description: '点击正文直接写，也可切换源码编辑 Markdown。', tip: '这里是演练文档，结束后会回到原文。',
-      targets: function () { return ['.edit-methods', visible('#instant-pane') ? '#instant-content > .instant-block:nth-child(2)' : '#markdown-input']; },
-      allow: '.edit-methods button, #instant-content .instant-block, #markdown-input',
-      prepare: function () { VexWorkspace.setLayout('instant'); $('.instant-scroll').scrollTop = 0; }
-    },
-    {
-      name: '导航', title: '文件与大纲', description: '文件列表切换当前文档，大纲帮你快速定位章节。', tip: '点一个大纲章节，看看正文定位到哪里。',
-      targets: function () { return ['.side-tabs'].concat($('.side-tab.on').dataset.pane === 'outline' ? ['#outline-body'] : ['.sidebar-search', '.file-row.selected']); },
-      allow: '.side-tabs button, #outline-body button, #file-filter, .file-row.selected',
-      prepare: function () { VexWorkspace.setLayout('instant'); VexProto.handleAction('pane-outline'); }
-    },
-    {
-      name: '章节', title: '先梳理，再展开', description: '用导图整理章节，也可以试选不同的结构和风格。', tip: '双击修改标题；拖动章节时，正文和子章节一起移动。',
-      targets: function () { return ['@chapters', '[data-action="map-appearance"]'].concat(visible('#map-appearance-panel') ? ['#map-appearance-panel'] : []).concat(visible('#node-inspector') ? ['#node-inspector'] : []).concat(visible('#chapter-delete-dialog') ? ['#chapter-delete-dialog > section'] : []); },
-      allow: '#map-viewport, .chapter-toolbar, #node-inspector, #chapter-delete-dialog, [data-action="map-appearance"], #map-appearance-panel',
-      anchor: '#map-appearance-panel',
+      name: '第一幕', title: '即时模式', short: '直接输入，实时看到排版。',
+      resultTitle: '即时模式', result: '直接输入，实时看到排版。',
       prepare: function () {
-        VexWorkspace.setLayout('map');
-        if ($('#chapter-headings-only').getAttribute('aria-pressed') !== 'true') $('#chapter-headings-only').click();
-        VexProto.handleAction('map-appearance');
+        setLayout('instant');
+        withAutomation(function () { VexWorkbench.applyText('', { history: false }); });
+        focusTargets = ['#instant-pane']; focusKind = 'area'; focusPreferred = 'top';
+      },
+      run: function (done) {
+        cue('在这里写下游记。', ['#instant-pane'], 'area', { showCard: true });
+        later(2000, function () {
+          cue('写下这趟旅行的标题。', ['#instant-pane']);
+          typeText(stage0, 28, function () { cue('内容已经写下，先读一遍刚才的结果。', ['#instant-pane']); later(500, done); });
+        });
       }
     },
     {
-      name: '布局', title: '边写边看全局', description: '试选视图组合，源码、正文和导图始终同步。', tip: '试选八种组合；三视图在上方编辑与预览，下方整理文章脉络。',
-      targets: function () { return ['#workspace-layout', '.view-switch'].concat(visible('#workspace-layout-menu') ? ['#workspace-layout-menu'] : []); },
-      allow: '#workspace-layout, .view-switch button, #workspace-layout-menu .layout-preset, #reset-workspace, #workspace-layout-menu .workspace-menu-heading button',
-      anchor: '#workspace-layout-menu',
-      prepare: function () { VexWorkspace.setLayout('instant-map'); $('#workspace-layout').click(); fitComparison(); }
+      name: '第二幕', title: '两种写法', short: '支持源码模式与即时模式',
+      resultTitle: '两种写法', result: '支持源码模式与即时模式',
+      prepare: function () { ensureText(stage0); setLayout('instant'); focusTargets = ['#edit-source']; focusPreferred = 'top'; },
+      run: function (done) {
+        ensureText(stage0); setLayout('instant');
+        cue('这里切换源码或即时渲染。', ['#edit-source'], 'control', { showCard: true });
+        later(2000, function () {
+          click('#edit-source');
+          cue('切到源码，刚才的文字都在这里。', ['#edit-source', '#markdown-input']);
+        });
+        later(3100, function () {
+          cue('在源码里，也能继续修改。', ['#markdown-input']);
+          transitionText(stage0, '# 成都，慢慢走\n\n这个周末，去成都。先喝一碗盖碗茶，给茶香和街巷多留些时间。\n', 26, function () {
+            cue('加一份清单，再把行程写下来。', ['#markdown-input']);
+            typeText(stage1, 8, function () {
+              cue('再点一次，切回即时渲染。', ['#edit-source'], 'control', { showCard: true });
+              later(2000, function () {
+                click('#edit-source');
+                cue('切回即时渲染，继续直接写一段。', ['#instant-pane'], 'area');
+                later(450, function () {
+                  typeText(stage1WithEnding, 34, function () {
+                    cue('同一篇游记，两种方式都能继续写。', ['#instant-pane'], 'area');
+                    later(800, done);
+                  });
+                });
+              });
+            });
+          });
+        });
+      }
     },
     {
-      name: '排版', title: '让文章有自己的样子', description: '试选正文排版，也可以切换紧凑布局。', tip: '选择后面板保持展开，方便比较；正文排版与界面配色分别设置。',
-      targets: function () { return ['.view-panel[data-document=editor] .view-heading [data-action="typography"]'].concat(visible('#typography-panel') ? ['#typography-panel'] : []); },
-      allow: '.view-panel[data-document=editor] .view-heading [data-action="typography"], #typography-panel',
+      name: '第三幕', title: '大纲与导图', short: '定位章节，整理文章结构。',
+      resultTitle: '大纲与导图', result: '定位章节，整理文章结构。',
+      prepare: function () { ensureText(stage1WithEnding); setLayout('instant'); closeLayers(); focusTargets = ['#outline-body']; focusPreferred = 'right'; },
+      run: function (done) {
+        ensureText(stage1WithEnding); setLayout('instant'); VexProto.handleAction('pane-outline');
+        cue('标题就是文章的路标。', ['#outline-body'], 'control', { showCard: true });
+        later(1100, function () {
+          clickOutline('第一天行程');
+          cue('从大纲，一下找到想看的段落。', ['#outline-body', '#instant-pane']);
+        });
+        later(2500, function () {
+          setLayout('map');
+          cue('同样的标题，也能组成一张导图。', ['#map-viewport'], 'area', { showCard: true });
+        });
+        later(4000, function () {
+          setLayout('map');
+          var source = chapterSelector('锦里夜游'), target = chapterSelector('第一天行程');
+          cue('把锦里夜游安排到第一天晚上。', [source, target], 'control', { showCard: true });
+          later(650, function () {
+            var sourceNode = chapterNode('锦里夜游'), targetNode = chapterNode('第一天行程');
+            if (sourceNode && targetNode && window.VexChapters) {
+              withAutomation(function () { VexChapters.move(sourceNode, targetNode, 'child'); });
+            }
+            if ($('#node-inspector')) $('#node-inspector').hidden = true;
+            cue('章节和下面的随手记，一起移动了。', [chapterSelector('锦里夜游'), chapterSelector('第一天行程')]);
+          });
+          later(6500, function () {
+            cue('想比较一下，也可以撤销回来。', ['#map-viewport']);
+            withAutomation(function () { VexWorkbench.history('undo'); });
+            later(900, done);
+          });
+        });
+      }
+    },
+    {
+      name: '第四幕', title: '导图布局', short: '切换布局和样式，查看全局。',
+      resultTitle: '导图布局', result: '切换布局和样式，查看全局。',
+      anchor: '#map-appearance-panel',
+      prepare: function () { ensureText(stage1WithEnding); setLayout('map'); focusTargets = ['#map-viewport']; focusPreferred = 'left'; },
+      run: function (done) {
+        ensureText(stage1WithEnding); setLayout('map');
+        cue('先沿着文章顺序，看清每天的安排。', ['#map-viewport']);
+        later(1200, function () {
+          VexWorkspace.handleAction('map-appearance');
+          cue('换个布局，看看整趟旅行。', ['#map-appearance-panel']);
+          later(900, function () {
+            click('#map-appearance-panel [data-map-layout="radial"]');
+            cue('布局已经换好。', ['#map-viewport']);
+          });
+        });
+        later(2900, function () {
+          VexWorkspace.handleAction('map-appearance');
+          later(180, function () {
+            click('#map-appearance-panel [data-map-tab="style"]');
+            click('#map-appearance-panel [data-map-style-choice="colorful"]');
+            cue('用颜色区分不同的行程分支。', ['#map-viewport']);
+          });
+        });
+        later(4400, function () {
+          VexProto.handleAction('map-settings');
+          cue('需要细节时，把正文摘要也带上。', ['#map-settings']);
+        });
+        later(6500, function () {
+          VexWorkbench.fit();
+          cue('拉远一点，把全局装进视野。', ['#map-viewport']);
+          later(900, done);
+        });
+      }
+    },
+    {
+      name: '第五幕', title: '正文排版', short: '调整标题、段落和列表。',
+      resultTitle: '正文排版', result: '调整标题、段落和列表。',
       anchor: '#typography-panel',
-      prepare: function () { VexWorkspace.setLayout('instant'); $('.instant-scroll').scrollTop = 0; VexTypography.toggle($('.view-panel[data-document=editor] .view-heading [data-action="typography"]')); }
+      prepare: function () { ensureText(stage1WithEnding); setLayout('read'); focusTargets = ['#markdown-preview']; focusPreferred = 'left'; },
+      run: function (done) {
+        ensureText(stage1WithEnding); setLayout('read'); $('.reading-scroll').scrollTop = 0;
+        cue('写好的文字，先安静地读一遍。', ['#markdown-preview']);
+        later(1200, function () {
+          var anchor = $('.view-panel[data-document="render"] [data-action="typography"]');
+          VexTypography.toggle(anchor);
+          cue('换一种排版，让游记更适合阅读。', ['#typography-panel']);
+        });
+        later(2200, function () {
+          click('#typography-panel [data-typography-key="Column"]');
+          cue('标题、段落和列表，一起调整。', ['#markdown-preview']);
+          later(1200, done);
+        });
+      }
     },
     {
-      name: '保存', title: '保存，也方便带走', description: '保存 Markdown，或把排好版的文章导出。', tip: '当前是演练文档，保存与导出会下载副本，不会覆盖原文。',
-      targets: function () {
-        return ['.tb-menuitem[data-menu="文件(F)"]', '.menu-flyout [data-menu-action="save"]', '@exports'];
-      },
-      allow: '.save-button, .tb-menuitem[data-menu="文件(F)"], .menu-item[data-menu-action="save"], .menu-item[data-menu-action="export-html"]',
-      anchor: '@exports',
-      prepare: function () { VexWorkspace.setLayout('read'); $('.reading-scroll').scrollTop = 0; openMenu('文件(F)'); }
+      name: '第六幕', title: 'Mermaid 图表', short: '用文字生成路线图，修改内容同步更新。',
+      resultTitle: 'Mermaid 图表', result: '用文字生成路线图，修改内容同步更新。',
+      prepare: function () { ensureText(stage1WithEnding); setLayout('source'); focusTargets = ['#markdown-input']; focusPreferred = 'right'; },
+      run: function (done) {
+        ensureText(stage1WithEnding); setLayout('source');
+        cue('把几个想去的地方，连成一条路线。', ['#markdown-input']);
+        var head = stage1WithEnding + '\n## 成都慢游路线\n\n';
+        typeText(head, 8, function () {
+          // Keep the incomplete fence out of the demo: the chart appears only
+          // once the Markdown block is complete, as it does in the app.
+          withAutomation(function () { VexWorkbench.applyText(stage2, { history: false }); });
+          setLayout('source-render');
+          $('.source-scroll').scrollTop = $('.source-scroll').scrollHeight;
+          $('.reading-scroll').scrollTop = $('.reading-scroll').scrollHeight;
+          cue('一段文字，变成了清楚的路线。', ['#markdown-preview']);
+          later(1800, function () {
+            cue('给这一站，补上想做的事情。', ['#markdown-input']);
+            transitionText(stage2, routeEdited, 20, function () {
+              cue('图里的这一站，也跟着更新了。', ['#markdown-preview']);
+              later(1300, done);
+            });
+          });
+        });
+      }
     },
     {
-      name: '分享', title: '把文章分享出去', description: '将排好版的文章复制到微信公众号、知乎，或把 Markdown 复制到稀土掘金。', tip: '从“工具”菜单直接选择发布平台。',
-      targets: function () { return ['.tb-menuitem[data-menu="工具(T)"]', '@share']; },
-      allow: '.tb-menuitem[data-menu="工具(T)"], .menu-item[data-menu-action^="copy-"]',
-      anchor: '@share',
-      prepare: function () { VexWorkspace.setLayout('read'); openMenu('工具(T)'); }
+      name: '第七幕', title: '演示模式', short: '从正文切到导图，按章节讲解。',
+      resultTitle: '演示模式', result: '从正文切到导图，按章节讲解。',
+      prepare: function () { ensureText(routeEdited); setLayout('read'); focusTargets = ['#markdown-preview']; focusPreferred = 'left'; },
+      run: function (done) {
+        ensureText(routeEdited); setLayout('read');
+        cue('这篇游记，也可以直接拿来讲。', ['#markdown-preview']);
+        later(1100, function () {
+          withAutomation(function () { VexProto.handleAction('presentation'); });
+          cue('沿着章节，一段一段展开。', ['.vex-deck']);
+        });
+        later(2500, function () {
+          click('.vex-deck [data-deck="next"]');
+          cue('想先讲全局，也可以从导图开始。', ['.vex-deck [data-deck="map"]']);
+        });
+        later(3900, function () {
+          click('.vex-deck [data-deck="map"]');
+          later(1500, function () {
+            click('.vex-deck [data-deck="exit"]');
+            cue('讲完以后，回到游记继续完善。', ['#markdown-preview']);
+            later(800, done);
+          });
+        });
+      }
+    },
+    {
+      name: '第八幕', title: '保存与分享', short: '保存、导出或分享作品。',
+      resultTitle: '保存与分享', result: '保存、导出或分享作品。', final: true,
+      prepare: function () { ensureText(routeEdited); setLayout('read'); focusTargets = ['.tb-menuitem[data-menu^="文件"]']; focusPreferred = 'bottom'; },
+      run: function (done) {
+        ensureText(routeEdited); setLayout('read');
+        cue('想继续写，可以保存这份 Markdown。', ['.tb-menuitem[data-menu^="文件"]']);
+        later(900, function () {
+          openMenu('文件(F)');
+          cue('保存和导出入口都在这里。', ['.menu-flyout [data-menu-action="save"]', '.menu-flyout [data-menu-action="export-html"]']);
+        });
+        later(3000, function () {
+          closeMenu(); openMenu('工具(T)');
+          cue('准备发布时，从这里选择对应的平台。', ['.menu-flyout [data-menu-action^="copy-"]']);
+        });
+        later(5200, function () { closeMenu(); cue('一篇游记已经成形。', ['#markdown-preview']); later(800, done); });
+      }
     }
   ];
-  try { $('#guide-launch').hidden = !!VexStorage.getItem(storageKey); } catch (_) {}
-  function openMenu(menu) {
-    $('.tb-menuitem[data-menu="' + menu + '"]').click();
+
+  function visible(node) { return !!node && !node.closest('[hidden]') && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0; }
+  function setLayout(id) { if (window.VexWorkspace) VexWorkspace.setLayout(id); }
+  function closeMenu() { if (window.VexProto) VexProto.closeMenu(); }
+  function openMenu(menu) { var key = menu.replace(/\(.*/, ''); click('.tb-menuitem[data-menu^="' + key + '"]'); }
+  function closeLayers() { closeMenu(); if (window.VexTypography) VexTypography.close(); if (window.VexWorkspace) VexWorkspace.closeAppearance(); document.querySelectorAll('.win-layer').forEach(function (node) { node.hidden = true; }); $('#map-settings').hidden = true; $('#map-settings-button').setAttribute('aria-expanded', 'false'); $('#node-inspector').hidden = true; }
+  function withAutomation(fn) { automating = true; try { fn(); } finally { automating = false; } }
+  function click(selector) { withAutomation(function () { var node = $(selector); if (node) node.click(); }); }
+  function clickOutline(title) { withAutomation(function () { var node = Array.from(document.querySelectorAll('.outline-item')).find(function (item) { return item.textContent.trim() === title; }); if (node) node.click(); }); }
+  function chapterNode(title) { return window.VexWorkbench && VexWorkbench.state && VexWorkbench.state.nodes ? VexWorkbench.state.nodes.find(function (node) { return node.kind === 'heading' && node.text === title; }) : null; }
+  function chapterSelector(title) { var node = chapterNode(title); return node ? '.map-node[data-line="' + node.line + '"]' : '#map-viewport'; }
+  function ensureText(text) { withAutomation(function () { if (VexWorkbench.text !== text) VexWorkbench.applyText(text, { history: false }); }); }
+  function commonPrefix(a, b) { var i = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++; return i; }
+  function later(delay, fn) {
+    var token = runToken, timer = setTimeout(function () { timers = timers.filter(function (item) { return item !== timer; }); if (open && token === runToken) fn(); }, delay);
+    timers.push(timer); return timer;
   }
-  function hideExtras() {
-    if (visible('#chapter-delete-dialog')) $('#chapter-delete-cancel').click();
-    VexTypography.close(); VexWorkspace.closeAppearance();
-    ['#map-settings', '#node-inspector', '#workspace-layout-menu'].forEach(function (selector) { var node = $(selector); if (node) node.hidden = true; });
-    var languageMenu = $('#vex-language-menu'); if (languageMenu) languageMenu.open = false;
-    $('#workspace-layout').setAttribute('aria-expanded', 'false'); VexProto.closeMenu();
+  function cancelTimers() { runToken++; timers.splice(0).forEach(clearTimeout); }
+  function typeText(target, speed, done) {
+    var current = VexWorkbench.text, token = runToken, prefix = commonPrefix(current, target), i = prefix;
+    if (current.length > prefix) { withAutomation(function () { VexWorkbench.applyText(current.slice(0, prefix), { history: false }); }); }
+    function next() {
+      if (!open || token !== runToken) return;
+      if (i >= target.length) { if (done) done(); return; }
+      i += 1; withAutomation(function () { VexWorkbench.applyText(target.slice(0, i), { history: false }); });
+      later(speed, next);
+    }
+    next();
   }
-  function mark(index, message) {
-    if (!open || preparing || index !== stepIndex) return;
-    feedback[index] = message;
-    var text = $('.tour-feedback'); if (text) { text.textContent = message; text.classList.add('done'); }
-    schedule();
+  function transitionText(from, to, speed, done) {
+    ensureText(from);
+    var prefix = commonPrefix(from, to), fromSuffix = from.length, toSuffix = to.length;
+    while (fromSuffix > prefix && toSuffix > prefix && from[fromSuffix - 1] === to[toSuffix - 1]) { fromSuffix--; toSuffix--; }
+    var token = runToken, middle = to.slice(prefix, toSuffix), i = 0;
+    function next() {
+      if (!open || token !== runToken) return;
+      if (i > middle.length) { if (done) done(); return; }
+      withAutomation(function () { VexWorkbench.applyText(to.slice(0, prefix) + middle.slice(0, i) + to.slice(toSuffix), { history: false }); });
+      i += 1; later(speed, next);
+    }
+    next();
   }
-  function renderCard() {
-    var step = steps[stepIndex];
-    card.innerHTML = '<div class="tour-meta"><span>快速上手</span><span class="tour-count">' + (stepIndex + 1) + ' / ' + steps.length + '</span><button class="tour-close" data-tour="close" aria-label="退出引导">×</button></div>' +
-      '<h2 id="tour-title">' + step.title + '</h2><p class="tour-description" id="tour-description">' + step.description + '</p>' +
-      '<p class="tour-feedback' + (feedback[stepIndex] ? ' done' : '') + '" aria-live="polite">' + (feedback[stepIndex] || step.tip) + '</p>' +
-      (stepIndex === steps.length - 1 ? '<details class="tour-more"><summary>还有 AI 协作</summary><p>从“工具 → MCP 设置”连接 AI 客户端，协助整理当前文档。</p></details>' : '') +
-      '<nav class="tour-progress" aria-label="引导步骤">' + steps.map(function (item, index) { return '<button data-tour-step="' + index + '" aria-label="第 ' + (index + 1) + ' 步：' + item.name + '"' + (index === stepIndex ? ' aria-current="step"' : '') + (index < stepIndex ? ' class="passed"' : '') + '></button>'; }).join('') + '</nav>' +
-      '<div class="tour-actions"><button class="tour-skip" data-tour="close">跳过</button><button class="tour-previous" data-tour="previous"' + (stepIndex === 0 ? ' hidden' : '') + '>上一步</button><button class="tour-next" data-tour="next">' + (stepIndex === steps.length - 1 ? '完成' : '下一步') + '<span aria-hidden="true">→</span></button></div>';
+  function hideLightTip() {
+    lightTip.hidden = true;
+    lightTip.setAttribute('aria-hidden', 'true');
+    lightTip.textContent = '';
   }
-  function go(index) {
+  function cue(message, targets, kind, options) {
+    focusTargets = Array.isArray(targets) ? targets : [targets]; focusKind = kind || 'control';
+    var showCard = !!(options && options.showCard);
+    layer.dataset.mode = 'live';
+    layer.classList.toggle('demo-running', !showCard);
+    card.classList.toggle('demo-hidden', !showCard);
+    if (showCard) card.removeAttribute('aria-hidden'); else card.setAttribute('aria-hidden', 'true');
+    if (showCard) {
+      hideLightTip();
+    } else {
+      lightTip.textContent = message;
+      lightTip.hidden = false;
+      lightTip.setAttribute('aria-hidden', 'false');
+    }
+    cursor.hidden = true;
+    pointer.hidden = true;
+    card.dataset.mode = 'live';
+    card.innerHTML = '<div class="story-meta"><h2 id="tour-title" class="story-titlebar">' + acts[stepIndex].title + '</h2><button class="tour-close" data-tour="close" aria-label="退出引导">×</button></div><p class="tour-feedback story-live" aria-live="polite">' + message + '</p><div class="story-actions"><button class="tour-skip" data-tour="skip">跳过本段</button><button class="tour-next" data-tour="next">演示中… <span aria-hidden="true">→</span></button></div>';
+    compactCard('live');
+    $('.tour-next').disabled = true; layout();
+  }
+  function renderIntro() {
+    hideLightTip();
+    layer.classList.remove('demo-running'); card.classList.remove('demo-hidden'); card.removeAttribute('aria-hidden');
+    layer.dataset.mode = 'intro'; card.dataset.mode = 'intro'; focusTargets = []; cursor.hidden = true; layer.hidden = false;
+    card.innerHTML = '<div class=\"story-meta\"><h2 id=\"tour-title\" class=\"story-titlebar\">快速上手</h2><button class=\"tour-close\" data-tour=\"close\" aria-label=\"退出引导\">×</button></div><p class=\"tour-description\" id=\"tour-description\">运行软件即可立即创作哟，跟着演示看一遍核心功能。</p><div class=\"story-actions intro-actions\"><button class=\"tour-skip\" data-tour=\"close\">先不看</button><button class=\"tour-next\" data-tour=\"start\">开始吧 <span aria-hidden=\"true\">→</span></button></div>';
+    compactCard('intro');
+    centerCard();
+  }
+  function renderResult(skipped) {
+    var act = acts[stepIndex], final = !!act.final;
+    resultTargets = focusTargets.slice(); resultKind = focusKind; resultPreferred = focusPreferred;
+    hideLightTip();
+    layer.classList.remove('demo-running'); card.classList.remove('demo-hidden'); card.removeAttribute('aria-hidden');
+    card.dataset.mode = 'result'; focusTargets = resultTargets.slice(); focusKind = resultKind; focusPreferred = resultPreferred; cursor.hidden = true; pointer.hidden = true; layer.dataset.mode = final ? 'final' : 'result';
+    card.innerHTML = '<div class=\"story-meta\"><h2 id=\"tour-title\" class=\"story-titlebar\">' + act.resultTitle + '</h2><button class=\"tour-close\" data-tour=\"close\" aria-label=\"退出引导\">×</button></div><p class=\"tour-description\" id=\"tour-description\">' + act.result + '</p><div class=\"story-actions\">' + (stepIndex ? '<button class=\"tour-previous\" data-tour=\"previous\">← 上一步</button>' : '') + '<button class=\"tour-next\" data-tour=\"next\">' + (final ? '开始自己的写作' : '下一步') + ' <span aria-hidden=\"true\">→</span></button></div>';
+    compactCard('result');
+    layout();
+  }
+  function renderNextStep(skipped) {
+    var nextIndex = Math.min(acts.length - 1, stepIndex + 1), act = acts[nextIndex];
+    pendingStepIndex = nextIndex;
+    hideLightTip();
+    layer.classList.remove('demo-running'); card.classList.remove('demo-hidden'); card.removeAttribute('aria-hidden');
+    card.dataset.mode = 'result'; layer.dataset.mode = 'result'; cursor.hidden = true; pointer.hidden = true;
+    card.innerHTML = '<div class=\"story-meta\"><h2 id=\"tour-title\" class=\"story-titlebar\">' + act.title + '</h2><button class=\"tour-close\" data-tour=\"close\" aria-label=\"退出引导\">×</button></div><p class=\"tour-description\" id=\"tour-description\">' + act.short + '</p><div class=\"story-actions\">' + (stepIndex ? '<button class=\"tour-previous\" data-tour=\"previous\">← 上一步</button>' : '') + '<button class=\"tour-next\" data-tour=\"next\">下一步 <span aria-hidden=\"true\">→</span></button></div>';
+    compactCard('result');
+    layout();
+  }
+  function compactCard(mode) {
+    var meta = card.querySelector('.story-meta');
+    var lead = meta && Array.from(meta.children).find(function (child) {
+      return child.tagName === 'SPAN' && !child.classList.contains('story-count');
+    });
+    if (lead) lead.remove();
+    var status = card.querySelector('.story-count');
+    if (status) status.remove();
+    var resultMark = card.querySelector('.story-result-mark');
+    if (resultMark) resultMark.remove();
+    if (mode === 'live') {
+      var liveDescription = card.querySelector('.tour-description');
+      if (liveDescription) liveDescription.remove();
+      return;
+    }
+    if (mode === 'intro') {
+      var introTitle = card.querySelector('#tour-title');
+      var introDescription = card.querySelector('.tour-description');
+      var introCopy = card.querySelector('.story-intro-copy');
+      if (introDescription) introDescription.textContent = '运行软件即可立即创作哟，跟着演示看一遍核心功能。';
+      if (introCopy) introCopy.remove();
+      return;
+    }
+    var nextNote = card.querySelector('.story-next-note');
+    var replay = card.querySelector('[data-tour="replay"]');
+    var previous = card.querySelector('[data-tour="previous"]');
+    if (nextNote) nextNote.remove();
+    if (replay) replay.remove();
+    if (previous) previous.textContent = '← 上一步';
+  }
+  function centerCard() {
+    var bounds = app().getBoundingClientRect(), width = Math.min(card.offsetWidth || 420, bounds.width - 32), height = card.offsetHeight || 230;
+    card.style.left = Math.max(bounds.left + 16, bounds.left + (bounds.width - width) / 2) + 'px';
+    card.style.top = Math.max(bounds.top + 16, bounds.top + (bounds.height - height) / 2) + 'px';
+    pointer.hidden = true;
+  }
+  function placeLightTip(found, bounds) {
+    if (lightTip.hidden || !found.length) return;
+    var target = found[0], size = lightTip.getBoundingClientRect(), width = size.width || 240, height = size.height || 32;
+    var x = target.x + (target.width - width) / 2;
+    x = Math.max(bounds.left + 12, Math.min(x, bounds.right - width - 12));
+    var y = target.y - height - 12;
+    if (y < bounds.top + 12) y = target.y + target.height + 12;
+    y = Math.max(bounds.top + 12, Math.min(y, bounds.bottom - height - 12));
+    lightTip.style.left = Math.round(x) + 'px'; lightTip.style.top = Math.round(y) + 'px';
+  }
+  function finishAct(skipped) { if (!open) return; cancelTimers(); running = false; closeLayers(); if (acts[stepIndex].final) renderResult(skipped); else renderNextStep(skipped); }
+  function baselineFor(index) { return [stage0, stage0, stage1WithEnding, stage1WithEnding, stage1WithEnding, stage1WithEnding, routeEdited, routeEdited][index] || stage0; }
+  function startAct(index) {
     if (!open) return;
-    preparing = true; hideExtras(); stepIndex = Math.max(0, Math.min(steps.length - 1, index)); chapterFitKey = '';
-    layer.dataset.step = stepIndex + 1; $('.app-window').dataset.guideStep = stepIndex + 1;
-    steps[stepIndex].prepare(); stepText = VexWorkbench.text; renderCard(); preparing = false; schedule();
-    if (!matchMedia('(prefers-reduced-motion:reduce)').matches && document.documentElement.dataset.motion !== 'false') card.animate([{opacity:0,translate:'0 5px'},{opacity:1,translate:'0 0'}],{duration:180,easing:'cubic-bezier(.2,.8,.2,1)'});
-    $('.tour-next').focus({ preventScroll: true });
-    clearTimeout(settledTimer); settledTimer = setTimeout(schedule, 260);
+    cancelTimers(); running = true; pendingStepIndex = null; stepIndex = Math.max(0, Math.min(acts.length - 1, index)); layer.dataset.step = String(stepIndex + 1);
+    closeLayers(); acts[stepIndex].prepare(); cue('准备开始这一幕。', focusTargets);
+    later(260, function () { acts[stepIndex].run(function () { finishAct(false); }); });
   }
-  function start() {
-    if (open) return;
-    previousFocus = document.activeElement; feedback = []; completed = false;
-    session = VexProto.beginGuideSession(); open = true; layer.hidden = false; go(0);
+  function skipAct() {
+    if (!running) return;
+    if (acts[stepIndex].final) { finishAct(true); return; }
+    cancelTimers(); running = false; withAutomation(function () { VexWorkbench.applyText(baselineFor(stepIndex), { history: false }); }); closeLayers(); if (acts[stepIndex].final) renderResult(true); else renderNextStep(true);
+  }
+  function startStory() {
+    if (!open || session) return;
+    previousFocus = document.activeElement; session = VexProto.beginGuideSession(); running = true; startAct(0);
   }
   function close() {
     if (!open) return;
-    preparing = true; hideExtras(); open = false; preparing = false;
-    clearTimeout(settledTimer); cancelAnimationFrame(frame); layer.hidden = true; delete $('.app-window').dataset.guideStep;
+    cancelTimers(); running = false; open = false; hideLightTip(); layer.classList.remove('demo-running'); card.classList.remove('demo-hidden'); card.removeAttribute('aria-hidden'); layer.hidden = true; cursor.hidden = true; pointer.hidden = true; closeLayers();
     var snapshot = session; session = null; if (snapshot) VexProto.endGuideSession(snapshot);
-    try { VexStorage.setItem(storageKey, completed ? 'completed' : 'skipped'); } catch (_) {}
-    $('#guide-launch').hidden = true;
-    var target = previousFocus && previousFocus.isConnected && previousFocus.getBoundingClientRect().width && !previousFocus.closest('[hidden]') ? previousFocus : $('.tb-menuitem[data-menu="帮助(H)"]');
+    var target = previousFocus && previousFocus.isConnected && visible(previousFocus) ? previousFocus : $('#guide-launch');
     if (target) target.focus({ preventScroll: true });
   }
-  card.addEventListener('click', function (event) {
-    event.stopPropagation(); var jump = event.target.closest('[data-tour-step]');
-    if (jump) { go(Number(jump.dataset.tourStep)); return; }
-    var button = event.target.closest('[data-tour]'); if (!button) return;
-    if (button.dataset.tour === 'close') close();
-    if (button.dataset.tour === 'previous') go(stepIndex - 1);
-    if (button.dataset.tour === 'next') { if (stepIndex === steps.length - 1) { completed = true; close(); } else go(stepIndex + 1); }
-  });
-  function allowed(target) { return card.contains(target) || !!target.closest(steps[stepIndex].allow); }
-  ['pointerdown', 'click', 'dblclick', 'contextmenu'].forEach(function (eventName) {
-    document.addEventListener(eventName, function (event) {
-      if (!open || preparing || allowed(event.target)) return;
-      event.preventDefault(); event.stopImmediatePropagation();
-    }, true);
-  });
-  document.addEventListener('click', function (event) {
-    if (!open || preparing || card.contains(event.target)) return;
-    var target = event.target;
-    if (stepIndex === 1 && target.closest('.outline-item')) mark(1, '已定位到该章节，可以继续浏览大纲。');
-    if (stepIndex === 3 && target.closest('.layout-preset, #reset-workspace, .view-switch button')) { fitComparison(); requestAnimationFrame(function () { mark(3, '视图已同步，可继续试选其他组合。'); }); }
-    if (stepIndex === 2 && target.closest('[data-map-layout], [data-map-style-choice]')) requestAnimationFrame(function () { fitChapters(); mark(2, '导图样式已应用，可继续比较。'); });
-    if (stepIndex === 4 && target.closest('[data-typography-key]')) requestAnimationFrame(function () { mark(4, '正文排版已应用，可继续比较。'); });
-    if (stepIndex === 5 && target.closest('.save-button, [data-menu-action="save"], [data-menu-action="export-html"]')) mark(5, '演练内容已下载为副本。');
-    schedule();
-  }, true);
-  document.addEventListener('input', function () { schedule(); }, true);
-  document.addEventListener('change', function (event) { if (stepIndex === 4 && event.target.id === 'typography-compact') mark(4, '正文间距已更新。'); }, true);
-  window.addEventListener('vex-content-changed', function () {
-    if (!open || preparing || VexWorkbench.text === stepText) return;
-    if (stepIndex === 0) mark(0, '文字已更新，可以继续写作。');
-    if (stepIndex === 2) mark(2, '章节已更新，正文同步修改。');
-  });
-  function focusables() {
-    return Array.from(document.querySelectorAll('button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [contenteditable="true"], [tabindex="0"], .tour-more summary')).filter(function (node) {
-      return allowed(node) && !node.closest('[hidden]') && node.getBoundingClientRect().width > 0 && getComputedStyle(node).visibility !== 'hidden';
+  function start(options) {
+    options = options || {};
+    if (open) return;
+    if (options.automatic && window.VexStorage && VexStorage.getItem(guideSeenKey) === '1') return;
+    if (window.VexStorage) VexStorage.setItem(guideSeenKey, '1');
+    open = true; previousFocus = document.activeElement; layer.hidden = false; renderIntro(); schedule();
+  }
+
+  // Overlay geometry intentionally follows the real controls. The same mask
+  // is used for menus, editors, the map and result cards, so the pointer never
+  // drifts when the workbench reflows.
+  var pointer = document.createElement('div'); pointer.className = 'vex-tour-pointer'; pointer.setAttribute('aria-hidden', 'true'); layer.appendChild(pointer);
+  function rects() {
+    var bounds = app().getBoundingClientRect(), found = [];
+    focusTargets.forEach(function (selector) {
+      var nodes = selector === '@chapters' ? Array.from(document.querySelectorAll('.map-node')) : selector === '@shares' ? Array.from(document.querySelectorAll('.menu-flyout [data-menu-action^=\"copy-\"]')) : Array.from(document.querySelectorAll(selector));
+      nodes.forEach(function (node) {
+        if (!visible(node)) return; var r = node.getBoundingClientRect();
+        var x = Math.max(bounds.left + 4, r.left - 5), y = Math.max(bounds.top + 4, r.top - 5), right = Math.min(bounds.right - 4, r.right + 5), bottom = Math.min(bounds.bottom - 4, r.bottom + 5);
+        if (right > x && bottom > y) found.push({ x: x, y: y, width: right - x, height: bottom - y, kind: focusKind });
+      });
     });
+    return found;
   }
-  document.addEventListener('keydown', function (event) {
-    if (!open || event.isComposing) return;
-    var editing = event.target.closest('input, textarea, [contenteditable="true"]');
-    if (event.key === 'Escape') {
-      if (stepIndex === 3 && visible('#workspace-layout-menu')) { $('#workspace-layout-menu').hidden = true; $('#workspace-layout').setAttribute('aria-expanded', 'false'); schedule(); }
-      else if (stepIndex === 2 && visible('#map-appearance-panel')) { VexWorkspace.closeAppearance(); schedule(); }
-      else if (stepIndex === 4 && visible('#typography-panel')) { VexTypography.close(); schedule(); }
-      else if (stepIndex >= 5 && visible('.menu-flyout')) { VexProto.closeMenu(); schedule(); }
-      else { close(); }
-      event.preventDefault(); event.stopImmediatePropagation(); return;
-    }
-    if (event.key === 'Tab') {
-      event.preventDefault(); event.stopImmediatePropagation(); var items = focusables(), index = items.indexOf(document.activeElement);
-      if (items.length) items[(index + (event.shiftKey ? items.length - 1 : 1)) % items.length].focus({ preventScroll: true }); return;
-    }
-    if (!editing && !event.target.closest('.menu-flyout, .submenu, .view-switch, .tour-more, #map-appearance-panel, #typography-panel') && !event.ctrlKey && !event.metaKey && ['ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); event.stopImmediatePropagation(); go(stepIndex + (event.key === 'ArrowRight' ? 1 : -1)); return; }
-    if ((event.ctrlKey || event.metaKey) && ['s','o','n','w','p','f','h'].includes(event.key.toLowerCase())) {
-      if (stepIndex === 5 && event.key.toLowerCase() === 's') { mark(5, '演练内容已下载为副本。'); return; }
-      event.preventDefault(); event.stopImmediatePropagation();
-    }
-    if (['F5','F8','F11'].includes(event.key) || (event.altKey && event.key === 'Enter')) { event.preventDefault(); event.stopImmediatePropagation(); }
-  }, true);
-  document.addEventListener('focusin', function (event) { if (open && !preparing && !allowed(event.target)) $('.tour-next')?.focus({ preventScroll: true }); });
-  function appBounds() { return $('.app-window').getBoundingClientRect(); }
-  function targetRect(selector) {
-    var group = {'@chapters':'.map-node', '@exports':'.menu-flyout [data-menu-label^="导出 "]', '@share':'.menu-flyout [data-menu-action^="copy-"]'}[selector];
-    if (group) {
-      var items = Array.from(document.querySelectorAll(group)).map(function (node) { return node.getBoundingClientRect(); }).filter(function (rect) {return rect.width > 0;});
-      if (!items.length) return null;
-      var rect = clipRect({ left: Math.min.apply(null, items.map(function (r) { return r.left; })), top: Math.min.apply(null, items.map(function (r) { return r.top; })), right: Math.max.apply(null, items.map(function (r) { return r.right; })), bottom: Math.max.apply(null, items.map(function (r) { return r.bottom; })) }, $(selector === '@chapters' ? '#map-viewport' : '.menu-flyout > .flyout').getBoundingClientRect(), selector === '@chapters' ? 'area' : 'control');
-      if(rect)rect.selector=selector;
-      return rect;
-    }
-    if (!visible(selector)) return null;
-    var node = $(selector), viewport = node.closest('.instant-scroll, .reading-scroll, #map-viewport, .menu-flyout > .flyout');
-    var kind = node.matches('.instant-block, #markdown-input') ? 'text' : node.id === 'view-surface' ? 'preview' : 'control';
-    var rect = clipRect(node.getBoundingClientRect(), viewport ? viewport.getBoundingClientRect() : appBounds(), kind);
-    if (rect) rect.selector = selector;
-    return rect;
-  }
-  function clipRect(rect, bounds, kind) {
-    var app = appBounds(), pad = kind === 'text' ? 4 : 6;
-    var x = Math.max(app.left + 4, bounds.left, rect.left - pad), y = Math.max(app.top + 4, bounds.top, rect.top - pad);
-    var right = Math.min(app.right - 4, bounds.right, rect.right + pad), bottom = Math.min(app.bottom - 4, bounds.bottom, rect.bottom + pad);
-    return right > x && bottom > y ? { x:x, y:y, width:right-x, height:bottom-y, kind:kind } : null;
-  }
-  function draw(rects) {
+  function draw(found) {
     cutouts.replaceChildren(); rings.replaceChildren();
-    rects.forEach(function (rect) {
+    found.forEach(function (rect) {
       var hole = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      Object.entries({x:rect.x,y:rect.y,width:rect.width,height:rect.height,rx:rect.kind === 'text' ? 2 : 7}).forEach(function (pair) { hole.setAttribute(pair[0],pair[1]); }); cutouts.appendChild(hole);
-      if (rect.kind === 'preview') return;
-      var ring = document.createElement('div'); ring.className = 'tour-focus'; ring.dataset.kind = rect.kind;
-      Object.assign(ring.style, {left:rect.x+'px',top:rect.y+'px',width:rect.width+'px',height:rect.height+'px'}); rings.appendChild(ring);
+      [['x', rect.x], ['y', rect.y], ['width', rect.width], ['height', rect.height], ['rx', focusKind === 'text' ? 2 : 7]].forEach(function (pair) { hole.setAttribute(pair[0], pair[1]); });
+      cutouts.appendChild(hole);
+      var ring = document.createElement('div'); ring.className = 'tour-focus'; ring.dataset.kind = focusKind;
+      Object.assign(ring.style, { left: rect.x + 'px', top: rect.y + 'px', width: rect.width + 'px', height: rect.height + 'px' }); rings.appendChild(ring);
     });
-  }
-  function position(rects) {
-    var bounds = appBounds(), candidates = rects.filter(function (r) { return r.kind !== 'preview'; });
-    var target = rects.find(function (r) { return r.kind === 'text'; }) || candidates[0];
-    if (stepIndex >= 2 && candidates.length > 1) target = candidates[candidates.length-1];
-    target = candidates.find(function (r) { return r.selector === steps[stepIndex].anchor; }) || target;
-    pointer.hidden = !target;
-    if (target) VexTourPlacement.attach(card,pointer,target,bounds,['bottom','right','left','left','left','right','right'][stepIndex],candidates.filter(function (r) { return r !== target; }));
-  }
-  function fitChapters() {
-    if (!open || stepIndex !== 2 || !VexWorkbench.state.bounds) return;
-    var viewport = $('#map-viewport').getBoundingClientRect(), bounds = VexWorkbench.state.bounds;
-    var panel = visible('#map-appearance-panel') ? $('#map-appearance-panel').getBoundingClientRect() : null;
-    var left = panel ? viewport.left + 18 : Math.max(viewport.left,appBounds().left+18+card.offsetWidth+18);
-    var right = panel ? panel.left - 24 : viewport.right - 18;
-    var top = panel ? Math.min(viewport.bottom - 100, panel.top + card.offsetHeight + 30) : viewport.top + 18;
-    var width = Math.max(100,right-left), height = Math.max(80,viewport.bottom-top-18);
-    var state = VexWorkbench.state; state.scale = Math.min(1,width/bounds.width,height/bounds.height);
-    state.x = left-viewport.left; state.y = top-viewport.top+(height-bounds.height*state.scale)/2;
-    VexWorkbench.renderMap(); schedule();
-  }
-  function fitComparison() {
-    requestAnimationFrame(function () { requestAnimationFrame(function () {
-      if (open && stepIndex === 3 && visible('#map-pane')) { VexWorkbench.fit(false); schedule(); }
-    }); });
+    var target = found[0];
+    if (!target || card.dataset.mode !== 'live' || layer.classList.contains('demo-running')) { cursor.hidden = true; return; }
+    cursor.hidden = false; cursor.style.left = (target.x + target.width / 2 - 9) + 'px'; cursor.style.top = (target.y + target.height / 2 - 9) + 'px';
   }
   function layout() {
     if (!open) return;
-    if (stepIndex === 2) {
-      var panel = visible('#map-appearance-panel') ? $('#map-appearance-panel').getBoundingClientRect() : null;
-      var viewport = $('#map-viewport').getBoundingClientRect(), bounds = VexWorkbench.state.bounds;
-      var key = [viewport.width, viewport.height, card.offsetHeight, panel?.left, panel?.top, bounds?.width, bounds?.height].join(':');
-      if (key !== chapterFitKey) { chapterFitKey = key; fitChapters(); }
+    var mode = layer.dataset.mode;
+    if (mode === 'intro') { hideLightTip(); centerCard(); return; }
+    var bounds = app().getBoundingClientRect(), found = rects();
+    draw(found);
+    if (mode === 'final') { hideLightTip(); centerCard(); return; }
+    if (mode === 'result') {
+      hideLightTip();
+      if (!found.length) { centerCard(); return; }
+      var result = found[0]; VexTourPlacement.attach(card, pointer, result, bounds, resultPreferred, found.slice(1)); pointer.hidden = true; return;
     }
-    var rects = steps[stepIndex].targets().map(targetRect).filter(Boolean); position(rects); draw(rects);
+    if (!found.length) { if (!card.classList.contains('demo-hidden')) centerCard(); return; }
+    if (card.classList.contains('demo-hidden')) {
+      pointer.hidden = true;
+      placeLightTip(found, bounds);
+      return;
+    }
+    hideLightTip();
+    var target = found[0]; VexTourPlacement.attach(card, pointer, target, bounds, focusPreferred, found.slice(1)); pointer.hidden = false;
   }
-  function schedule() { if (!open) return; cancelAnimationFrame(frame); frame = requestAnimationFrame(layout); }
-  new MutationObserver(schedule).observe($('.app-window'), {subtree:true,childList:true,attributes:true,attributeFilter:['hidden','style','data-active']});
-  new ResizeObserver(schedule).observe($('.app-window'));
-  card.addEventListener('toggle', schedule, true);
-  window.addEventListener('resize', function () { schedule(); if (stepIndex === 2) requestAnimationFrame(fitChapters); });
-  window.addEventListener('vex-menu-positioned',schedule);
-  document.addEventListener('scroll', schedule, true);
-  window.VexGuide = {start:start,close:close,allows:allowed,get active() {return open;}};
-  if (new URLSearchParams(location.search).get('tour') === '1') requestAnimationFrame(start);
+  function schedule() { if (!open) return; requestAnimationFrame(function () { layout(); if (open) schedule(); }); }
+
+  card.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-tour]'); if (!button) return;
+    event.stopPropagation(); var action = button.dataset.tour;
+    if (action === 'close') close();
+    else if (action === 'start') startStory();
+    else if (action === 'skip') skipAct();
+    else if (action === 'replay') startAct(stepIndex);
+    else if (action === 'previous') startAct(stepIndex - 1);
+    else if (action === 'next' && !running) { if (acts[stepIndex].final) close(); else startAct(pendingStepIndex === null ? stepIndex + 1 : pendingStepIndex); }
+  });
+  ['pointerdown', 'click', 'dblclick', 'contextmenu'].forEach(function (eventName) {
+    document.addEventListener(eventName, function (event) {
+      if (!open || automating || card.contains(event.target)) return;
+      event.preventDefault(); event.stopImmediatePropagation();
+    }, true);
+  });
+  document.addEventListener('keydown', function (event) {
+    if (!open || event.isComposing) return;
+    if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); close(); return; }
+    if (event.key === 'Tab') { event.preventDefault(); event.stopImmediatePropagation(); $('.tour-next')?.focus({ preventScroll: true }); }
+  }, true);
+  window.addEventListener('resize', layout);
+  new MutationObserver(layout).observe(app(), { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'style', 'class', 'data-active'] });
+  window.VexGuide = { start: start, close: close, allows: function (target) { return !open || automating || card.contains(target); }, get active() { return open; } };
+  if (new URLSearchParams(location.search).get('scenario') === 'guide') setTimeout(function () { start({ automatic: true }); }, 300);
 })();

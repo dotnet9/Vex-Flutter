@@ -81,7 +81,7 @@
   function confirmSwitch(callback) {
     if (!state.dirty) { callback(); return; }
     pendingSwitch = callback;
-    document.querySelector('#layer-unsaved .dlg-msg').textContent = '「' + docs[state.doc].name + '」有尚未下载保存的修改。切换前要保存副本吗？';
+    document.querySelector('#layer-unsaved .dlg-msg').innerHTML = '是否保存更改？<br>如果不保存，您的更改将会丢失。';
     openLayer('unsaved');
   }
   function loadDoc(index) {
@@ -524,12 +524,12 @@
       case 'file-actions': $('file-navigation-menu').hidden = !$('file-navigation-menu').hidden; document.querySelector('[data-action=file-actions]').setAttribute('aria-expanded', String(!$('file-navigation-menu').hidden)); break;
       case 'refresh-files': renderFiles(); $('file-navigation-menu').hidden = true; break;
       case 'sort-files': fileDescending = !fileDescending; renderFiles(); $('file-navigation-menu').hidden = true; break;
-      case 'new': confirmSwitch(function () { docs.push({ name: '未命名文档.md', text: '# 未命名文档\n\n' }); loadDoc(docs.length - 1); setView('edit'); if (state.editMode === 'instant') instant.focusAt(1); else input.focus(); }); break;
+      case 'new': if (!VexDocumentWindow.open({document:{name:'未命名文档.md',text:''}})) VexProto.toast('请允许弹出窗口后重试'); break;
       case 'new-window': if (!VexDocumentWindow.open({document:{name:'未命名文档.md',text:''}})) VexProto.toast('请允许弹出窗口后重试'); break;
       case 'document-window': instant.finish(); if (!VexDocumentWindow.open({document:{name:docs[state.doc].name,text:input.value,readOnly:!!docs[state.doc].readOnly}})) VexProto.toast('请允许弹出窗口后重试'); break;
       case 'exit-app': exitGuard.open(); break;
-      case 'open': $('open-file-input').click(); break;
-      case 'open-folder': $('open-folder-input').click(); break;
+      case 'open': if (!VexDocumentWindow.open({intent:'open-file'})) VexProto.toast('请允许弹出窗口后重试'); break;
+      case 'open-folder': if (!VexDocumentWindow.open({intent:'open-folder'})) VexProto.toast('请允许弹出窗口后重试'); break;
       case 'open-sample': confirmSwitch(function () { loadDoc(Math.min(item.arg, docs.length - 1)); }); break;
       case 'quick-open': if (!state.sidebar) VexProto.handleAction('toggle-sidebar'); VexProto.handleAction('pane-files'); $('file-filter').focus(); break;
       case 'save': save(); break;
@@ -653,6 +653,10 @@
   VexProto.beginGuideSession = function () {
     instant.finish(); refreshNow(); closeLayers(); VexProto.closeMenu();
     var snapshot = {
+      // Keep the complete in-memory workspace so the guide's temporary
+      // document and any in-memory changes are fully restored on exit.
+      documents: docs.map(function (doc) { return Object.assign({}, doc); }),
+      workspaceFolder: workspaceFolder,
       doc: state.doc, text: input.value, dirty: state.dirty, view: state.view, editMode: state.editMode,
       sidebar: state.sidebar, focus: state.focus, source: state.source,
       sideTab: document.querySelector('.side-tab.on').dataset.pane,
@@ -677,8 +681,9 @@
   VexProto.endGuideSession = function (snapshot) {
     state.guideRestoring = true; document.querySelector('.app-window').classList.add('guide-restoring');
     instant.finish(); VexProto.closeMenu(); closeLayers();
-    var index = docs.indexOf(snapshot.demo); if (index >= 0) docs.splice(index, 1);
-    loadDoc(snapshot.doc); input.value = snapshot.text; state.dirty = snapshot.dirty;
+    docs = snapshot.documents.map(function (doc) { return Object.assign({}, doc); });
+    workspaceFolder = snapshot.workspaceFolder;
+    loadDoc(Math.max(0, Math.min(snapshot.doc, docs.length - 1))); input.value = snapshot.text; state.dirty = snapshot.dirty;
     $('file-filter').value = snapshot.fileFilter; filterFiles();
     state.editMode = snapshot.editMode; state.source = snapshot.source;
     state.focus = snapshot.focus; document.querySelector('.app-window').classList.toggle('focus-mode', snapshot.focus);
@@ -831,5 +836,12 @@
     focus:function (line,sourceActive) { if(sourceActive)input.focus({preventScroll:true}); else document.querySelector('#instant-content [data-line="' + line + '"]')?.closest('.instant-block')?.focus({preventScroll:true}); },
     editSource:function (line) { VexWorkspace.locateEditor(line); }
   });
+  var launchIntent = new URLSearchParams(location.search).get('intent');
+  if (launchIntent === 'open-file' || launchIntent === 'open-folder') {
+    setTimeout(function () {
+      var picker = $(launchIntent === 'open-file' ? 'open-file-input' : 'open-folder-input');
+      if (picker) picker.click();
+    }, 320);
+  }
   platformShortcutLabels(); window.addEventListener('vex-language-changed',platformShortcutLabels);
 })();

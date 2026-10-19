@@ -5,6 +5,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vex_editor/vex_editor.dart';
 
 void main() {
+  testWidgets('a single click enters paragraph editing', (tester) async {
+    final controller = MarkdownEditorController(text: 'Click once to edit.');
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: MarkdownInstantEditor(controller: controller)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Click once to edit.'));
+    await tester.pumpAndSettle();
+    final input = find.byKey(const ValueKey('instant-active-input'));
+    expect(input, findsOneWidget);
+    expect(tester.widget<TextField>(input).focusNode!.hasFocus, isTrue);
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
+  });
+
   testWidgets('first mouse drag selects text used by the format command', (
     tester,
   ) async {

@@ -130,7 +130,7 @@ void main() {
     final transform = Matrix4.copy(vm.map.transformation.value);
     final selected = vm.map.selectedId;
     vm.startGuide();
-    vm.advanceGuide(1);
+    vm.advanceGuide(2);
     expect(vm.sidebar, isTrue);
     vm.setMapStyle(MindMapStyle.mono);
     vm.setSummary(mode: MindMapLayoutMode.radial);

@@ -165,10 +165,14 @@ extension _InstantDocumentSelection on _MarkdownInstantEditorState {
     if (_checkpoint == null || geometry.start != _start) return;
     final editable = _editable();
     if (editable == null) return;
-    _dragBase ??= editable.getPositionForPoint(_dragOrigin!).offset;
+    _dragBase ??= editable
+        .getPositionForPoint(editable.globalToLocal(_dragOrigin!))
+        .offset;
     _input.selection = TextSelection(
       baseOffset: _dragBase!,
-      extentOffset: editable.getPositionForPoint(position).offset,
+      extentOffset: editable
+          .getPositionForPoint(editable.globalToLocal(position))
+          .offset,
     );
   }
 

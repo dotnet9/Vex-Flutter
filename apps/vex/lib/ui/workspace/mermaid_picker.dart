@@ -10,7 +10,7 @@ Future<MermaidTemplate?> showMermaidPicker(BuildContext context) =>
     showDialog<MermaidTemplate>(
       context: context,
       builder: (context) {
-        final l = context.l10n, c = Theme.of(context).colorScheme;
+        final l = context.l10n;
         final chinese = l.localeName.startsWith('zh');
         return Dialog(
           insetPadding: const EdgeInsets.all(20),
@@ -43,32 +43,21 @@ Future<MermaidTemplate?> showMermaidPicker(BuildContext context) =>
                   child: ListView(
                     padding: const EdgeInsets.all(12),
                     children: [
-                      for (var group = 0; group < 4; group++) ...[
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 14, 12, 6),
-                          child: Text(
-                            MermaidTemplate.groupLabel(group, chinese),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: c.onSurfaceVariant,
-                            ),
+                      // Keep the picker in the same flat order as the desktop
+                      // prototype. Group metadata remains available to the
+                      // catalog, but it should not add extra UI sections here.
+                      for (final template in MermaidTemplate.values)
+                        ListTile(
+                          key: ValueKey('mermaid-template-${template.name}'),
+                          dense: true,
+                          minTileHeight: 44,
+                          leading: const AppGlyph('map'),
+                          title: Text(
+                            template.label(chinese),
+                            style: const TextStyle(fontSize: 14),
                           ),
+                          onTap: () => Navigator.pop(context, template),
                         ),
-                        for (final template in MermaidTemplate.values.where(
-                          (t) => t.group == group,
-                        ))
-                          ListTile(
-                            key: ValueKey('mermaid-template-${template.name}'),
-                            dense: true,
-                            minTileHeight: 44,
-                            leading: const AppGlyph('map'),
-                            title: Text(
-                              template.label(chinese),
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                            onTap: () => Navigator.pop(context, template),
-                          ),
-                      ],
                     ],
                   ),
                 ),

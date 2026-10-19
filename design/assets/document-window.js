@@ -12,6 +12,7 @@
     options=options||{};var target=new URL('Vex.html',location.href);
     ['platform','theme','palette','lang','preview'].forEach(function (key) {var value=new URLSearchParams(location.search).get(key);if(value)target.searchParams.set(key,value);});
     target.searchParams.set('device','desktop');
+    if(options.intent)target.searchParams.set('intent',options.intent);
     if(options.builtin){target.searchParams.set('file',VexDocuments[options.builtin].file);target.searchParams.set('layout','read');}
     var token;
     if(options.document){token=crypto.randomUUID();try{sessionStorage.setItem('vex-document-launch:'+token,JSON.stringify(options.document));}catch(_){return false;}target.searchParams.set('launch',token);}

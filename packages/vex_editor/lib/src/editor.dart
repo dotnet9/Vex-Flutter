@@ -292,7 +292,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
       child: Listener(
         onPointerDown: (event) {
           if (event.kind != PointerDeviceKind.mouse ||
-              event.buttons != kPrimaryMouseButton) {
+              (event.buttons & kPrimaryMouseButton) == 0) {
             return;
           }
           if (!HardwareKeyboard.instance.isShiftPressed) {
@@ -302,7 +302,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTapUp: (details) {
-            if (details.kind != PointerDeviceKind.mouse) {
+            if (!HardwareKeyboard.instance.isShiftPressed) {
               _begin(block, tapPosition: details.globalPosition);
             }
           },
@@ -493,8 +493,9 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
         if (!mounted || _checkpoint != checkpoint) return;
         final editable = _editable();
         if (editable == null) return;
+        final localPosition = editable.globalToLocal(tapPosition);
         _input.selection = TextSelection.fromPosition(
-          editable.getPositionForPoint(tapPosition),
+          editable.getPositionForPoint(localPosition),
         );
       });
     }

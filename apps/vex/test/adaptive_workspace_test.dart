@@ -71,7 +71,7 @@ void main() {
       expect(vm.layout.panes, contains('source'));
       final before = vm.editor.text;
       vm.startGuide();
-      for (var step = 0; step < 7; step++) {
+      for (var step = 0; step < 8; step++) {
         vm.advanceGuide(step);
         await tester.pumpAndSettle();
         expect(vm.layout.panes.length, lessThanOrEqualTo(limit));

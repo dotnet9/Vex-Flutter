@@ -196,7 +196,7 @@ void main() {
           await future;
         }
         vm.startGuide();
-        for (var step = 0; step < 7; step++) {
+        for (var step = 0; step < 8; step++) {
           vm.advanceGuide(step);
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull, reason: 'guide $step');

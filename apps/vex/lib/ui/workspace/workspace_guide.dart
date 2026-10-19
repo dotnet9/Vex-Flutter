@@ -15,14 +15,29 @@ class WorkspaceGuide extends StatefulWidget {
     required this.description,
     required this.onClose,
     required this.onStep,
-    this.totalSteps = 7,
+    this.totalSteps = 8,
+    this.stage,
+    this.liveMessage,
+    this.resultTitle,
+    this.result,
+    this.running = false,
+    this.completed = false,
+    this.onReplay,
+    this.onSkip,
+    this.showCard = true,
   });
   final GlobalKey target;
   final int step;
   final int totalSteps;
   final String title, description;
+  final String? stage, liveMessage, resultTitle, result;
+  final bool running, completed;
   final VoidCallback onClose;
   final ValueChanged<int> onStep;
+  final VoidCallback? onReplay, onSkip;
+  /// Key moments keep the card visible; ordinary automated actions use only
+  /// the cut-out and a short hint next to the highlighted target.
+  final bool showCard;
   @override
   State<WorkspaceGuide> createState() => _WorkspaceGuideState();
 }
@@ -66,10 +81,16 @@ class _WorkspaceGuideState extends State<WorkspaceGuide> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _measure();
       });
-      final width = math.min(344.0, constraints.maxWidth - 32);
+      final width = math.min(
+        widget.step < 0 || widget.completed ? 408.0 : 376.0,
+        constraints.maxWidth - 32,
+      );
       final target = _target;
       var x = constraints.maxWidth - width - 24, y = 150.0;
-      if (target != null) {
+      if (widget.step < 0) {
+        x = (constraints.maxWidth - width) / 2;
+        y = (constraints.maxHeight - _cardHeight) / 2;
+      } else if (target != null) {
         if (constraints.maxWidth - target.right >= width + 26) {
           x = target.right + 10;
           y = target.top;
@@ -91,6 +112,12 @@ class _WorkspaceGuideState extends State<WorkspaceGuide> {
       y = y.clamp(16, math.max(16, constraints.maxHeight - _cardHeight - 16));
       final cardRect = Rect.fromLTWH(x, y, width, _cardHeight);
       final colors = Theme.of(context).colorScheme;
+      final cardVisible = !(widget.running && !widget.showCard);
+      var hintX = target == null ? 16.0 : target.center.dx - 150;
+      var hintY = target == null ? 16.0 : target.top - 44;
+      if (target != null && hintY < 16) hintY = target.bottom + 12;
+      hintX = hintX.clamp(16, math.max(16, constraints.maxWidth - 300));
+      hintY = hintY.clamp(16, math.max(16, constraints.maxHeight - 44));
       return Stack(
         key: _root,
         children: [
@@ -108,7 +135,39 @@ class _WorkspaceGuideState extends State<WorkspaceGuide> {
               ),
             ),
           ),
-          AnimatedPositioned(
+          if (!cardVisible && widget.liveMessage != null)
+            Positioned(
+              left: hintX,
+              top: hintY,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: colors.surfaceContainerLow.withValues(alpha: .96),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: colors.primary.withValues(alpha: .28),
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x22000000),
+                      blurRadius: 14,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 7,
+                  ),
+                  child: Text(
+                    widget.liveMessage!,
+                    style: const TextStyle(fontSize: 12, height: 1.45),
+                  ),
+                ),
+              ),
+            ),
+          if (cardVisible)
+            AnimatedPositioned(
             key: const ValueKey('guide-card'),
             duration: MediaQuery.disableAnimationsOf(context)
                 ? Duration.zero
@@ -137,83 +196,100 @@ class _WorkspaceGuideState extends State<WorkspaceGuide> {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            context.l10n.quickStart,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: colors.primary,
+                          Expanded(
+                            child: Text(
+                              widget.title,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                height: 1.25,
+                              ),
                             ),
                           ),
-                          const Spacer(),
-                          Text(
-                            '${widget.step + 1} / ${widget.totalSteps}',
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                          const SizedBox(width: 8),
                           AppCloseButton(onPressed: widget.onClose),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        widget.title,
-                        style: const TextStyle(
-                          fontSize: 21,
-                          fontWeight: FontWeight.w600,
+                      const SizedBox(height: 14),
+                      if (widget.running && widget.showCard &&
+                          widget.liveMessage != null)
+                        Text(
+                          widget.liveMessage!,
+                          style: const TextStyle(fontSize: 14, height: 1.75),
+                        )
+                      else if (widget.completed && widget.resultTitle != null) ...[
+                        Text(
+                          widget.resultTitle!,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        widget.description,
-                        style: const TextStyle(fontSize: 14, height: 1.8),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          for (var i = 0; i < widget.totalSteps; i++)
-                            Expanded(
-                              child: Container(
-                                height: 3,
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 2,
-                                ),
-                                color: i == widget.step
-                                    ? colors.primary
-                                    : colors.outlineVariant,
-                              ),
-                            ),
-                        ],
-                      ),
+                        const SizedBox(height: 5),
+                        Text(
+                          widget.result ?? '',
+                          style: TextStyle(
+                            fontSize: 14,
+                            height: 1.75,
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
+                      ] else ...[
+                        Text(
+                          widget.description,
+                          style: const TextStyle(fontSize: 14, height: 1.75),
+                        ),
+                      ],
                       const SizedBox(height: 18),
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,
                         alignment: WrapAlignment.end,
                         children: [
-                          AppButton(
-                            label: context.l10n.endGuide,
-                            onPressed: widget.onClose,
-                          ),
-                          if (widget.step > 0)
+                          if (widget.step < 0)
                             AppButton(
-                              label: context.l10n.previous,
-                              onPressed: () => widget.onStep(widget.step - 1),
+                              label: '先不看',
+                              onPressed: widget.onClose,
                             ),
-                          AppButton(
-                            label: widget.step == widget.totalSteps - 1
-                                ? context.l10n.done
-                                : context.l10n.next,
-                            primary: true,
-                            onPressed: () =>
-                                widget.step == widget.totalSteps - 1
-                                ? widget.onClose()
-                                : widget.onStep(widget.step + 1),
-                          ),
+                          if (widget.step < 0)
+                            AppButton(
+                              label: '开始吧  →',
+                              primary: true,
+                              onPressed: () => widget.onStep(0),
+                            ),
+                          if (widget.step >= 0) ...[
+                            if (!widget.running && widget.step > 0)
+                              AppButton(
+                                label: context.l10n.previous,
+                                onPressed: () =>
+                                    widget.onStep(widget.step - 1),
+                              ),
+                            if (widget.running && widget.onSkip != null)
+                              AppButton(
+                                label: '跳过本段',
+                                onPressed: widget.onSkip,
+                              ),
+                            AppButton(
+                              label: widget.running
+                                  ? '演示中…'
+                                  : widget.step == widget.totalSteps - 1
+                                  ? '开始自己的写作'
+                                  : '下一步  →',
+                              primary: !widget.running,
+                              onPressed: !widget.running
+                                  ? () => widget.step ==
+                                            widget.totalSteps - 1
+                                        ? widget.onClose()
+                                        : widget.onStep(widget.step + 1)
+                                  : null,
+                            ),
+                          ],
                         ],
                       ),
                     ],
                   ),
                 ),
               ),
+            ),
             ),
           ),
         ],

@@ -6,7 +6,7 @@ button, input, textarea { font: inherit; }
 button { cursor: pointer; }
 button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .app-window { width: min(1480px, 100%); height: min(930px, 100%); min-height: 540px; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-window); }
-.titlebar { height: 40px; min-height: 40px; padding: 0 0 0 16px; background: var(--panel); border-bottom: 1px solid var(--border); gap: 24px; }
+.titlebar { height: 40px; min-height: 40px; padding: 0 0 0 16px; background: var(--panel); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); gap: 24px; }
 .brand { display: flex; align-items: center; gap: 7px; font-size: 15px; font-weight: 750; letter-spacing: -.5px; }
 .brand img { width: 22px; height: 22px; }
 .tb-menu { gap: 2px; }

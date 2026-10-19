@@ -8,7 +8,7 @@ import 'support/fakes.dart';
 
 void main() {
   testWidgets(
-    'desktop guide highlights real sidebar and open panels outside its card',
+    'desktop guide highlights each guided scene without covering its target',
     (tester) async {
       tester.view.physicalSize = const Size(1280, 900);
       tester.view.devicePixelRatio = 1;
@@ -17,7 +17,7 @@ void main() {
       final vm = fakeWorkspace();
       await tester.pumpWidget(VexApp(viewModel: vm));
       vm.startGuide();
-      for (var step = 0; step < 7; step++) {
+      for (var step = 0; step < 8; step++) {
         vm.advanceGuide(step);
         await tester.pumpAndSettle();
         final guide = tester.widget<WorkspaceGuide>(
@@ -37,7 +37,7 @@ void main() {
               )
               .first,
         );
-        if (step == 1) {
+        if (step == 2) {
           expect(find.byKey(guide.target), findsOneWidget);
           expect(guide.target.currentWidget, isA<WorkspaceSidebar>());
           expect(target.width, lessThan(300));
@@ -45,27 +45,12 @@ void main() {
         if (step > 0) {
           expect(target.overlaps(card), isFalse, reason: 'step $step');
         }
-        if (step == 2) {
-          expect(find.byKey(const ValueKey('map-picker')), findsOneWidget);
-        }
         if (step == 3) {
-          expect(find.byKey(const ValueKey('layout-picker')), findsOneWidget);
+          expect(find.byKey(const ValueKey('map-picker')), findsOneWidget);
         }
         if (step == 4) {
           expect(
             find.byKey(const ValueKey('typography-picker')),
-            findsOneWidget,
-          );
-        }
-        if (step == 5) {
-          expect(
-            find.byKey(const ValueKey('menu-export:html')),
-            findsOneWidget,
-          );
-        }
-        if (step == 6) {
-          expect(
-            find.byKey(const ValueKey('menu-publish:wechat')),
             findsOneWidget,
           );
         }
@@ -74,7 +59,6 @@ void main() {
       vm.endGuide();
       await tester.pumpAndSettle();
       expect(find.byType(WorkspaceGuide), findsNothing);
-      expect(find.byKey(const ValueKey('menu-publish:wechat')), findsNothing);
       await tester.pumpWidget(const SizedBox());
       vm.dispose();
     },
@@ -126,9 +110,10 @@ void main() {
       final original = vm.editor.text;
       await tester.pumpWidget(VexApp(viewModel: vm));
       vm.startGuide();
-      vm.advanceGuide(5);
+      vm.advanceGuide(7);
+      await tester.pump(const Duration(milliseconds: 800));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('menu-save')));
+      await tester.tap(find.byTooltip(vm.strings.saveTooltip));
       await tester.pumpAndSettle();
       expect(files.content['/notes/original.md'], '# Original');
       expect(files.lastSaveName, '${vm.strings.quickStart}.md');

@@ -34,6 +34,31 @@
 .tour-more { color:var(--muted); font-size:11px; line-height:1.75; margin-top:6px; }
 .tour-more summary { cursor:pointer; color:var(--accent); }
 .tour-more p { margin:6px 0 0; }
+/* 成都慢游演示：动作期间保持短提示，成果阶段再展开说明。 */
+.story-tour .story-card { box-sizing:border-box; width:376px; padding:22px 24px 20px; border-radius:14px; border-color:color-mix(in srgb,var(--accent) 16%,var(--border)); background:linear-gradient(145deg,color-mix(in srgb,var(--panel) 96%,var(--accent) 4%),var(--panel)); box-shadow:0 20px 54px #0005; }
+.story-tour .story-card[data-mode="intro"],
+.story-tour .story-card[data-mode="result"] { width:408px; max-width:calc(100vw - 32px); }
+.story-tour .story-card h2 { margin:7px 0 8px; font-size:21px; letter-spacing:-.02em; line-height:1.35; }
+.story-tour .story-meta .story-titlebar { margin:0; font-size:18px; font-weight:750; line-height:1.25; }
+.story-tour .story-card .tour-description { color:var(--muted); font-size:14px; line-height:1.75; }
+.story-meta { display:flex; align-items:center; justify-content:space-between; min-height:28px; margin:0; color:var(--muted); font-size:11px; }
+.story-titlebar { color:var(--fg); font-size:18px; font-weight:750; line-height:1.25; letter-spacing:-.02em; }
+.story-meta .story-count { display:none; }
+.story-meta .tour-close { position:static; flex:0 0 28px; width:28px; height:28px; margin-left:auto; padding:0; display:grid; place-items:center; border-radius:50%; font-size:17px; }
+.story-meta .tour-close:hover { background:var(--accent-soft); color:var(--accent); }
+.story-intro-copy { margin:13px 0 0; color:var(--muted); font-size:12px; line-height:1.85; }
+.story-live { min-height:0; margin-top:7px; color:var(--fg); font-size:14px; line-height:1.75; }
+.story-tour .story-card.demo-hidden { visibility:hidden; pointer-events:none; }
+.story-tour .tour-light-tip { position:fixed; z-index:4; box-sizing:border-box; max-width:min(360px,calc(100vw - 24px)); padding:7px 11px; border:1px solid color-mix(in srgb,var(--accent) 28%,var(--border)); border-radius:999px; color:var(--fg); background:color-mix(in srgb,var(--panel) 94%,var(--accent) 6%); box-shadow:0 8px 24px #0004; font-size:12px; line-height:1.45; white-space:nowrap; pointer-events:none; }
+.story-actions { display:flex; align-items:center; gap:8px; margin-top:20px; padding-top:15px; border-top:1px solid color-mix(in srgb,var(--border) 78%,transparent); }
+.story-actions .tour-skip { margin-right:auto; }
+.story-next-note { margin:14px 0 0; padding:10px 12px; border-radius:7px; background:var(--accent-soft); color:var(--muted); font-size:11px; line-height:1.7; }
+.tour-cursor { position:fixed; z-index:3; width:18px; height:18px; display:grid; place-items:center; border-radius:50%; color:var(--accent-fg); background:var(--accent); box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent),0 5px 16px #0004; font-size:12px; line-height:1; pointer-events:none; transition:left .25s ease,top .25s ease; }
+.story-tour[data-mode="intro"] .tour-scrim { fill:#10182b66; }
+.story-tour[data-mode="result"] .tour-scrim,
+.story-tour[data-mode="final"] .tour-scrim { fill:#10182b3d; }
+.story-tour[data-mode="intro"] .tour-card { box-shadow:0 18px 58px #0005; }
+.story-tour[data-mode="result"] .tour-card { box-shadow:0 18px 58px #0005; }
 /* 演练期间把布局选择压缩为小面板，正文仍可用于比较；面板开关不移动引导卡片。 */
 .app-window[data-guide-step="4"] .workspace-layout-menu { right:16px; width:420px; padding:14px; }
 .app-window[data-guide-step="4"] .workspace-layout-menu>p { margin-bottom:10px; }
@@ -43,4 +68,5 @@
 .app-window[data-guide-step="4"] .layout-miniature { height:34px; margin-bottom:0; padding:3px; }
 .app-window[data-guide-step="4"] .workspace-layout-footer { margin-top:10px; padding-top:8px; }
 @media (max-width:760px) { .guide-launch span { display:none; } .tour-card { width:292px; padding:16px; } }
+@media (max-width:760px) { .story-tour .story-card, .story-tour .story-card[data-mode="intro"], .story-tour .story-card[data-mode="result"] { width:calc(100vw - 32px); } .story-actions { flex-wrap:wrap; } }
 @media (prefers-reduced-motion:reduce) { .tour-layer * { animation:none!important; transition:none!important; } }

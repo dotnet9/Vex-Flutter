@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:vex_editor/vex_editor.dart';
+import 'package:vex_mindmap/vex_mindmap.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -47,22 +48,27 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   final _scaffold = GlobalKey<ScaffoldState>();
   WorkspaceViewModel? _boundVm;
   final _guideEditing = GlobalKey(),
+      _guideIntro = GlobalKey(),
+      _guideDocumentSurface = GlobalKey(),
       _guideMap = GlobalKey(),
       _guideMapToolbar = GlobalKey();
   final _guideFileMenu = GlobalKey();
+  final _guideSourceToggle = GlobalKey();
   final _guideSave = GlobalKey();
+  final _guidePresentation = GlobalKey();
   final _guideSidebar = GlobalKey(), _guideMobileViews = GlobalKey();
   final _guideLayoutPopup = GlobalKey(), _guideTypographyPopup = GlobalKey();
   final _guideMapPopup = GlobalKey();
   final _guideFileCommands = GlobalKey(), _guideShareCommands = GlobalKey();
-  GlobalKey get _guideCommands =>
-      vm.guideStep == 6 ? _guideShareCommands : _guideFileCommands;
   final _guideOverlay = OverlayPortalController();
   int? _preparedGuideStep;
   WorkspaceViewport? _preparedGuideViewport;
   bool _guideTouchMenu = false;
   ModalRoute<String>? _guideTouchRoute;
   int _guideTouchGeneration = 0;
+  int _guideRunToken = 0;
+  bool _guideRunning = false, _guideCompleted = false, _guideShowCard = true;
+  String _guideCue = '';
   final _find = TextEditingController(), _replace = TextEditingController();
   final _findFocus = FocusNode();
   final _layoutsMenu = MenuController(), _typographyMenu = MenuController();
@@ -1135,6 +1141,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                       if (state.presentation)
                         Positioned.fill(
                           child: WorkspacePresentation(
+                            key: _guidePresentation,
                             documentPath: state.current.path,
                             controller: state.presenter!,
                             typography: state.typography,
@@ -1285,7 +1292,12 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       height: 33,
       decoration: BoxDecoration(
         color: c.surfaceContainerLow,
-        border: Border(bottom: BorderSide(color: c.outlineVariant)),
+        // Keep a visible top edge when Windows hides the native caption frame
+        // on older Server/desktop versions.
+        border: Border(
+          top: BorderSide(color: c.outlineVariant),
+          bottom: BorderSide(color: c.outlineVariant),
+        ),
       ),
       padding: const EdgeInsets.only(left: 16),
       child: Row(
@@ -1535,9 +1547,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     builder: (context, controller, _) => MouseRegion(
       onEnter: (_) {
         if (!controller.isOpen && _topMenus.values.any((menu) => menu.isOpen)) {
-          for (final menu in _topMenus.values) {
-            menu.close();
-          }
+          _closeGuidePanels();
           controller.open();
         }
       },
@@ -1571,14 +1581,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
 
   List<Widget> _guideMenuChildren(WorkspaceMenuEntry menu) {
     final items = _menuChildren(menu.children);
-    final selected =
-        vm.guiding &&
-        ((vm.guideStep == 5 && menu.id == 'file') ||
-            (vm.guideStep == 6 && menu.id == 'tools'));
+    final selected = vm.guiding &&
+        vm.guideStep == 7 &&
+        (menu.id == 'file' || menu.id == 'tools');
     return selected
         ? [
             Column(
-              key: _guideCommands,
+              key: menu.id == 'tools' ? _guideShareCommands : _guideFileCommands,
               mainAxisSize: MainAxisSize.min,
               children: items,
             ),
@@ -1593,6 +1602,46 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     );
     if (!mounted || action == null) return;
     _action(action);
+  }
+
+  Future<void> _openGuideTouchMenu(String id, int step) async {
+    final menu = _menus(vm.windowSize.width).firstWhere((item) => item.id == id);
+    final commands = menu.children
+        .where(
+          (item) => id == 'file'
+              ? const ['save', 'save-as'].contains(item.id) ||
+                    item.id.startsWith('export:')
+              : item.id.startsWith('publish:'),
+        )
+        .toList();
+    _guideTouchMenu = true;
+    final generation = ++_guideTouchGeneration;
+    final action = await showWorkspaceTouchMenu(
+      context,
+      commands,
+      title: workspaceMenuLabel(menu.label),
+      contentKey: id == 'tools' ? _guideShareCommands : _guideFileCommands,
+      onRoute: (route) {
+        if (generation == _guideTouchGeneration) {
+          _guideTouchRoute = route;
+        } else {
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _dismissGuideRoute(route),
+          );
+        }
+      },
+    );
+    if (generation == _guideTouchGeneration) {
+      _guideTouchMenu = false;
+      _guideTouchRoute = null;
+    }
+    if (mounted &&
+        generation == _guideTouchGeneration &&
+        vm.guiding &&
+        vm.guideStep == step &&
+        action != null) {
+      _action(action);
+    }
   }
 
   Widget _workbar(WorkspaceViewModel state, bool phone, double width) {
@@ -1723,6 +1772,349 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         ],
       ),
     );
+  }
+
+  static const _guideStage0 = '''# 成都，慢慢走
+
+这个周末，去成都。把脚步放慢一点，给茶香和街巷多留些时间。
+''';
+  static const _guideStage1 = '''# 成都，慢慢走
+
+这个周末，去成都。先喝一碗盖碗茶，给茶香和街巷多留些时间。
+
+## 出发清单
+
+- [ ] 带上相机
+- [ ] 预订车票
+
+## 第一天行程
+
+### 人民公园
+
+坐在茶社里，喝一碗盖碗茶。
+
+### 宽窄巷子
+
+沿着青砖小巷，看看老院子。
+
+## 第二天行程
+
+### 熊猫基地
+
+早一点出发，去看大熊猫。
+
+## 锦里夜游
+
+等灯笼亮起来，再去锦里走走。
+
+### 旅途随手记
+
+记下今天最喜欢的一碗茶和一条巷子。
+''';
+  static const _guideStage1WithEnding =
+      '$_guideStage1\n沿着这条路线，慢慢走。';
+  static const _guideRoute = '''
+## 成都慢游路线
+
+```mermaid
+flowchart LR
+  A[人民公园] --> B[宽窄巷子]
+  B --> C[锦里夜游]
+```
+''';
+  static const _guideRouteEdited = '''
+## 成都慢游路线
+
+```mermaid
+flowchart LR
+  A[人民公园] --> B[宽窄巷子 · 喝茶漫步]
+  B --> C[锦里夜游]
+```
+''';
+
+  bool _guideCanRun(int step, int token) =>
+      mounted && vm.guiding && vm.guideStep == step && _guideRunToken == token;
+
+  Future<bool> _guideWait(int step, int token, Duration duration) async {
+    await Future<void>.delayed(duration);
+    return _guideCanRun(step, token);
+  }
+
+  void _guideMessage(String message, {bool showCard = false}) {
+    if (!mounted) return;
+    setState(() {
+      _guideCue = message;
+      _guideShowCard = showCard;
+    });
+  }
+
+  void _completeGuideAct(int step, int token, String message) {
+    if (!_guideCanRun(step, token)) return;
+    setState(() {
+      _guideRunning = false;
+      _guideCompleted = true;
+      _guideShowCard = true;
+      _guideCue = message;
+    });
+  }
+
+  void _cancelGuideAct() {
+    _guideRunToken++;
+    if (mounted) {
+      setState(() {
+        _guideRunning = false;
+        _guideCompleted = false;
+        _guideShowCard = false;
+      });
+    }
+  }
+
+  Future<bool> _guideTypeText(
+    int step,
+    int token,
+    String text, {
+    int millisecondsPerCharacter = 24,
+    String label = '成都慢游',
+  }) async {
+    for (var end = 0; end <= text.length; end++) {
+      if (!_guideCanRun(step, token)) return false;
+      vm.editor.session.replace(
+        text.substring(0, end),
+        label: label,
+        mergeKey: 'guide-typing',
+      );
+      if (end < text.length &&
+          !await _guideWait(
+            step,
+            token,
+            Duration(milliseconds: millisecondsPerCharacter),
+          )) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void _runGuideAct(int step) {
+    _cancelGuideAct();
+    final token = _guideRunToken;
+    setState(() {
+      _guideRunning = true;
+      _guideCompleted = false;
+      _guideShowCard = false;
+      _guideCue = '准备开始这一幕。';
+    });
+    unawaited(_run(() async {
+      switch (step) {
+        case 0:
+          vm.setLayout(WorkspaceLayout.instant);
+          vm.editor.session.replace('', label: '成都慢游');
+          _guideMessage('在这里写下游记。', showCard: true);
+          if (!await _guideWait(step, token, const Duration(seconds: 2))) {
+            return;
+          }
+          _guideMessage('写下这趟旅行的标题。');
+          if (!await _guideTypeText(
+            step,
+            token,
+            _guideStage0,
+            millisecondsPerCharacter: 28,
+          )) {
+            return;
+          }
+          _guideMessage('内容已经写下，先读一遍刚才的结果。');
+          if (!await _guideWait(step, token, const Duration(milliseconds: 500))) {
+            return;
+          }
+          _completeGuideAct(step, token, '两种写法：支持源码模式与即时模式。');
+        case 1:
+          vm.setLayout(WorkspaceLayout.instant);
+          vm.editor.session.replace(_guideStage0, label: '成都慢游');
+          _guideMessage('这里切换源码或即时渲染。', showCard: true);
+          if (!await _guideWait(step, token, const Duration(seconds: 2))) {
+            return;
+          }
+          vm.setLayout(WorkspaceLayout.source);
+          _guideMessage('切到源码，刚才的文字都在这里。');
+          if (!await _guideWait(step, token, const Duration(milliseconds: 500))) {
+            return;
+          }
+          _guideMessage('在源码里，也能继续修改。');
+          final revised = '''# 成都，慢慢走
+
+这个周末，去成都。先喝一碗盖碗茶，给茶香和街巷多留些时间。
+''';
+          if (!await _guideTypeText(
+            step,
+            token,
+            revised,
+            millisecondsPerCharacter: 26,
+          )) {
+            return;
+          }
+          _guideMessage('加一份清单，再把行程写下来。');
+          if (!await _guideTypeText(
+            step,
+            token,
+            _guideStage1,
+            millisecondsPerCharacter: 8,
+            label: '补充成都行程',
+          )) {
+            return;
+          }
+          _guideMessage('再点一次，切回即时渲染。', showCard: true);
+          if (!await _guideWait(step, token, const Duration(seconds: 2))) {
+            return;
+          }
+          vm.setLayout(WorkspaceLayout.instant);
+          _guideMessage('切回即时渲染，继续直接写一段。');
+          if (!await _guideTypeText(
+            step,
+            token,
+            _guideStage1WithEnding,
+            millisecondsPerCharacter: 34,
+          )) {
+            return;
+          }
+          _completeGuideAct(step, token, '大纲与导图：定位章节，整理文章结构。');
+        case 2:
+          vm.setLayout(WorkspaceLayout.instant);
+          vm.sidebar = true;
+          vm.outline = true;
+          vm.editor.session.replace(
+            _guideStage1WithEnding,
+            label: '成都行程结构',
+          );
+          _guideMessage('标题就是文章的路标，大纲可以直接定位章节。', showCard: true);
+          if (!await _guideWait(step, token, const Duration(milliseconds: 680))) {
+            return;
+          }
+          final headings = vm.editor.document.headings;
+          final source = headings.where((h) => h.title == '锦里夜游').firstOrNull;
+          final target = headings.where((h) => h.title == '第一天行程').firstOrNull;
+          if (target != null) {
+            vm.selectHeading(target);
+            _guideMessage('从大纲，一下找到想看的段落。');
+          }
+          if (!await _guideWait(step, token, const Duration(milliseconds: 900))) {
+            return;
+          }
+          if (source != null && target != null) {
+            vm.editor.session.reparentHeading(source.id, target.id);
+          }
+          vm.setLayout(WorkspaceLayout.map);
+          _guideMessage(
+            '导图把章节关系摊开，移动章节时下面的内容也会一起跟随。',
+            showCard: true,
+          );
+          if (!await _guideWait(step, token, const Duration(milliseconds: 820))) {
+            return;
+          }
+          vm.editor.session.undo();
+          _completeGuideAct(step, token, '文章的脉络看得见了：定位、整理和撤销都在同一个工作区完成。');
+        case 3:
+          vm.setLayout(WorkspaceLayout.map);
+          vm.editor.session.replace(
+            _guideStage1WithEnding,
+            label: '成都行程结构',
+          );
+          _guideMessage('先按文章顺序看清每天的安排。');
+          if (!await _guideWait(step, token, const Duration(milliseconds: 580))) {
+            return;
+          }
+          vm.map.setMode(MindMapLayoutMode.radial);
+          _guideMessage('换一种布局，再用颜色区分不同的行程分支。', showCard: true);
+          if (!await _guideWait(step, token, const Duration(milliseconds: 680))) {
+            return;
+          }
+          vm.setMapStyle(MindMapStyle.colorful);
+          vm.setSummary(paragraphs: true, lists: true, blocks: true);
+          _completeGuideAct(step, token, '同一份行程可以有不同观看方式；细节需要时，再打开正文摘要。');
+        case 4:
+          vm.setLayout(WorkspaceLayout.read);
+          vm.editor.session.replace(_guideStage1WithEnding, label: '成都慢游');
+          _guideMessage('写好的文字，先安静地读一遍。', showCard: true);
+          if (!await _guideWait(step, token, const Duration(milliseconds: 720))) {
+            return;
+          }
+          vm.updateAppearance(typography: MarkdownTypography.column);
+          _completeGuideAct(step, token, '文字写好了，阅读也可以有自己的气质；标题、段落和清单会一起调整。');
+        case 5:
+          vm.setLayout(WorkspaceLayout.sourceRender);
+          vm.editor.session.replace(_guideStage1WithEnding, label: '成都慢游');
+          _guideMessage('把几个想去的地方，连成一条路线。', showCard: true);
+          if (!await _guideWait(step, token, const Duration(milliseconds: 560))) {
+            return;
+          }
+          vm.editor.session.replace(
+            '$_guideStage1WithEnding$_guideRoute',
+            label: '加入成都路线图',
+          );
+          _guideMessage('一段文字变成了清楚的路线，关系用 Markdown 就能表达。');
+          if (!await _guideWait(step, token, const Duration(milliseconds: 820))) {
+            return;
+          }
+          vm.editor.session.replace(
+            '$_guideStage1WithEnding$_guideRouteEdited',
+            label: '修改成都路线图',
+          );
+          _completeGuideAct(step, token, '路线也写进了游记：修改一个节点，图表会跟着内容更新。');
+        case 6:
+          vm.setLayout(WorkspaceLayout.read);
+          vm.editor.session.replace(
+            '$_guideStage1WithEnding$_guideRouteEdited',
+            label: '成都慢游',
+          );
+          _guideMessage('这篇游记，也可以直接拿来讲。', showCard: true);
+          if (!await _guideWait(step, token, const Duration(milliseconds: 620))) {
+            return;
+          }
+          vm.togglePresentation(keepGuide: true);
+          _guideMessage('沿着章节一段一段展开，也可以从导图开始讲全局。');
+          if (!await _guideWait(step, token, const Duration(milliseconds: 980))) {
+            return;
+          }
+          vm.togglePresentation(keepGuide: true);
+          _completeGuideAct(step, token, '写下的故事，也能直接讲出来；讲完以后回到游记继续完善。');
+        case 7:
+          vm.setLayout(WorkspaceLayout.read);
+          vm.editor.session.replace(
+            '$_guideStage1WithEnding$_guideRouteEdited',
+            label: '成都慢游',
+          );
+          _guideMessage('想继续写，可以保存这份 Markdown。', showCard: true);
+          if (!await _guideWait(step, token, const Duration(milliseconds: 700))) {
+            return;
+          }
+          if (_desktop &&
+              !_macOS &&
+              vm.viewport != WorkspaceViewport.phone &&
+              vm.windowSize.width >= 700) {
+            _openTopMenu('file');
+          } else {
+            unawaited(_openGuideTouchMenu('file', step));
+          }
+          _guideMessage('保存和导出入口都在文件菜单里。');
+          if (!await _guideWait(step, token, const Duration(milliseconds: 900))) {
+            return;
+          }
+          _closeGuidePanels();
+          if (_desktop &&
+              !_macOS &&
+              vm.viewport != WorkspaceViewport.phone &&
+              vm.windowSize.width >= 700) {
+            _openTopMenu('tools');
+          } else {
+            unawaited(_openGuideTouchMenu('tools', step));
+          }
+          _guideMessage('准备发布时，从工具菜单选择对应的平台。');
+          if (!await _guideWait(step, token, const Duration(milliseconds: 900))) {
+            return;
+          }
+          _closeGuidePanels();
+          _completeGuideAct(step, token, '成都的故事写好了，你的故事也可以从下一句话开始。');
+      }
+    }));
   }
 
   Widget _formatbar(WorkspaceViewModel state, bool phone) {
@@ -1924,88 +2316,94 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     final document = documentTheme(Theme.of(context));
     final c = document.colorScheme;
     final source = state.layout.panes.contains('source');
-    return Stack(
+    return KeyedSubtree(
       key: const ValueKey('document-surface'),
-      fit: StackFit.expand,
-      children: [
-        WorkspacePanes(
-          mapAppearanceController: _mapAppearanceMenu,
-          mapAppearancePopupKey: _guideMapPopup,
-          typographyControl: _typographyPicker(state),
-          editingKey: _guideEditing,
-          mapKey: _guideMap,
-          mapToolbarKey: _guideMapToolbar,
-          vm: state,
-          onAction: _action,
-          onError: _error,
-        ),
-        Positioned(
-          left: 8,
-          bottom: 8,
-          child: Theme(
-            data: document,
-            child: Material(
-              color: c.surface.withValues(alpha: .94),
-              borderRadius: BorderRadius.circular(5),
-              child: Row(
-                children: [
-                  AppButton(
-                    key: const ValueKey('document-sidebar-toggle'),
-                    icon: 'sidebar',
-                    tooltip: context.l10n.toggleSidebar,
-                    height: phone ? 44 : 32,
-                    onPressed: () {
-                      if (phone) {
-                        _scaffold.currentState?.openDrawer();
-                      } else if (state.focusMode) {
-                        state.toggleFocus();
-                      } else {
-                        state.toggleSidebar();
-                      }
-                    },
-                  ),
-                  AppButton(
-                    key: const ValueKey('document-source-toggle'),
-                    icon: 'code',
-                    tooltip: source
-                        ? context.l10n.instantEditing
-                        : context.l10n.markdownSource,
-                    selected: source,
-                    height: phone ? 44 : 32,
-                    onPressed: () => state.setLayout(
-                      state.layout.panes.contains('map') &&
-                              state.layout.panes.length > 1
-                          ? source
-                                ? WorkspaceLayout.instantMap
-                                : WorkspaceLayout.sourceMap
-                          : source
-                          ? WorkspaceLayout.instant
-                          : WorkspaceLayout.source,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      child: Stack(
+        key: _guideDocumentSurface,
+        fit: StackFit.expand,
+        children: [
+          WorkspacePanes(
+            mapAppearanceController: _mapAppearanceMenu,
+            mapAppearancePopupKey: _guideMapPopup,
+            typographyControl: _typographyPicker(state),
+            editingKey: _guideEditing,
+            mapKey: _guideMap,
+            mapToolbarKey: _guideMapToolbar,
+            vm: state,
+            onAction: _action,
+            onError: _error,
           ),
-        ),
-        if (state.wordCountVisible && !state.focusMode)
           Positioned(
-            right: 16,
-            bottom: state.layout.panes.last == 'map' ? 70 : 13,
-            child: Container(
-              key: const ValueKey('document-word-count'),
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-              decoration: BoxDecoration(
+            left: 8,
+            bottom: 8,
+            child: Theme(
+              data: document,
+              child: Material(
                 color: c.surface.withValues(alpha: .94),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                context.l10n.wordCount(state.editor.wordCount),
-                style: TextStyle(fontSize: 12, color: c.onSurfaceVariant),
+                borderRadius: BorderRadius.circular(5),
+                child: Row(
+                  children: [
+                    AppButton(
+                      key: const ValueKey('document-sidebar-toggle'),
+                      icon: 'sidebar',
+                      tooltip: context.l10n.toggleSidebar,
+                      height: phone ? 44 : 32,
+                      onPressed: () {
+                        if (phone) {
+                          _scaffold.currentState?.openDrawer();
+                        } else if (state.focusMode) {
+                          state.toggleFocus();
+                        } else {
+                          state.toggleSidebar();
+                        }
+                      },
+                    ),
+                    KeyedSubtree(
+                      key: _guideSourceToggle,
+                      child: AppButton(
+                        key: const ValueKey('document-source-toggle'),
+                        icon: 'code',
+                        tooltip: source
+                            ? context.l10n.instantEditing
+                            : context.l10n.markdownSource,
+                        selected: source,
+                        height: phone ? 44 : 32,
+                        onPressed: () => state.setLayout(
+                          state.layout.panes.contains('map') &&
+                                  state.layout.panes.length > 1
+                              ? source
+                                    ? WorkspaceLayout.instantMap
+                                    : WorkspaceLayout.sourceMap
+                              : source
+                              ? WorkspaceLayout.instant
+                              : WorkspaceLayout.source,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-      ],
+          if (state.wordCountVisible && !state.focusMode)
+            Positioned(
+              right: 16,
+              bottom: state.layout.panes.last == 'map' ? 70 : 13,
+              child: Container(
+                key: const ValueKey('document-word-count'),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                decoration: BoxDecoration(
+                  color: c.surface.withValues(alpha: .94),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  context.l10n.wordCount(state.editor.wordCount),
+                  style: TextStyle(fontSize: 12, color: c.onSurfaceVariant),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -2039,35 +2437,208 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       ],
     ),
   );
+  void _skipGuideAct(int step) {
+    _cancelGuideAct();
+    _closeGuidePanels();
+    switch (step) {
+      case 0:
+        vm.setLayout(WorkspaceLayout.instant);
+        vm.editor.session.replace(_guideStage0, label: '成都慢游');
+      case 1 || 2:
+        vm.setLayout(step == 2 ? WorkspaceLayout.map : WorkspaceLayout.read);
+        vm.editor.session.replace(_guideStage1WithEnding, label: '成都慢游');
+      case 3:
+        vm.setLayout(WorkspaceLayout.map);
+        vm.editor.session.replace(_guideStage1WithEnding, label: '成都慢游');
+      case 4:
+        vm.setLayout(WorkspaceLayout.read);
+        vm.editor.session.replace(_guideStage1WithEnding, label: '成都慢游');
+      case 5 || 6 || 7:
+        if (vm.presentation) vm.togglePresentation(keepGuide: true);
+        vm.setLayout(WorkspaceLayout.read);
+        vm.editor.session.replace(
+          '$_guideStage1WithEnding$_guideRouteEdited',
+          label: '成都慢游',
+        );
+    }
+    if (mounted) {
+      setState(() {
+        _guideRunning = false;
+        _guideCompleted = true;
+        _guideShowCard = true;
+        _guideCue = '本幕已跳过，可以继续查看下一幕。';
+      });
+    }
+  }
+
   Widget _guide(WorkspaceViewModel state) {
-    final steps = [
-      (context.l10n.guideWriteTitle, context.l10n.guideWriteBody),
-      (context.l10n.guideViewsTitle, context.l10n.guideViewsBody),
-      (context.l10n.guideMapTitle, context.l10n.guideMapBody),
-      (context.l10n.guideArrangeTitle, context.l10n.guideArrangeBody),
-      (context.l10n.guideTypographyTitle, context.l10n.guideTypographyBody),
-      (context.l10n.guideFinishTitle, context.l10n.guideFinishBody),
-      (context.l10n.guideShareTitle, context.l10n.guideShareBody),
-    ];
+    final chinese = state.language.startsWith('zh');
+    final acts = chinese
+        ? const [
+            (
+              '第一幕',
+              '即时模式',
+              '直接输入，实时看到排版。',
+              '即时模式',
+              '直接输入，实时看到排版。',
+            ),
+            (
+              '第二幕',
+              '两种写法',
+              '支持源码模式与即时模式',
+              '两种写法',
+              '支持源码模式与即时模式',
+            ),
+            (
+              '第三幕',
+              '大纲与导图',
+              '定位章节，整理文章结构。',
+              '大纲与导图',
+              '定位章节，整理文章结构。',
+            ),
+            (
+              '第四幕',
+              '导图布局',
+              '切换布局和样式，查看全局。',
+              '导图布局',
+              '切换布局和样式，查看全局。',
+            ),
+            (
+              '第五幕',
+              '正文排版',
+              '调整标题、段落和列表。',
+              '正文排版',
+              '调整标题、段落和列表。',
+            ),
+            (
+              '第六幕',
+              'Mermaid 图表',
+              '用文字生成路线图，修改内容同步更新。',
+              'Mermaid 图表',
+              '用文字生成路线图，修改内容同步更新。',
+            ),
+            (
+              '第七幕',
+              '演示模式',
+              '从正文切到导图，按章节讲解。',
+              '演示模式',
+              '从正文切到导图，按章节讲解。',
+            ),
+            (
+              '第八幕',
+              '保存与分享',
+              '保存、导出或分享作品。',
+              '保存与分享',
+              '保存、导出或分享作品。',
+            ),
+          ]
+        : const [
+            (
+              'Act 1',
+              'Start with a blank page',
+              'Write a title and a first paragraph directly in the document.',
+              'The document is ready',
+              'Start with an idea, then add detail at your own pace.',
+            ),
+            (
+              'Act 2',
+              'One story, two ways to write',
+              'Switch to source, edit a sentence, and add a checklist and itinerary.',
+              'Both views stay in sync',
+              'Write in the preview or refine the same Markdown source.',
+            ),
+            (
+              'Act 3',
+              'Turn the itinerary into structure',
+              'Use the outline to locate a section, the map to arrange it, then undo once.',
+              'The shape of the story is visible',
+              'Outline, map, move, and undo in one workspace.',
+            ),
+            (
+              'Act 4',
+              'See the whole trip differently',
+              'Try a map layout, branch colors, and a summary of the text.',
+              'One itinerary, several ways to see it',
+              'Change the view without losing the document.',
+            ),
+            (
+              'Act 5',
+              'Give the trip a reading style',
+              'Compare typography so headings, paragraphs, and lists read naturally.',
+              'Writing can feel better to read',
+              'Choose a typography that fits the words.',
+            ),
+            (
+              'Act 6',
+              'Draw the route in the story',
+              'Add a Mermaid route and edit one node to update the chart.',
+              'The route lives in Markdown',
+              'Describe relationships in text and the diagram follows.',
+            ),
+            (
+              'Act 7',
+              'Tell the trip from the story',
+              'Open presentation mode, move from text to map, then return to the document.',
+              'A written story can be presented',
+              'Use the document and map as speaking cues.',
+            ),
+            (
+              'Act 8',
+              'Take the story with you',
+              'Find save, export, and sharing entries; this demo does not download or copy.',
+              'Your next story can start here',
+              'Save the Markdown or share it when you are ready.',
+            ),
+          ];
+    if (state.guideStep < 0) {
+      return WorkspaceGuide(
+        target: _guideIntro,
+        step: -1,
+        title: chinese ? '快速上手' : 'Quick start',
+        description: chinese
+            ? '运行软件即可立即创作哟，跟着演示看一遍核心功能。'
+            : 'Follow a small Chengdu travel story from writing to mapping and sharing.',
+        onClose: _endGuide,
+        onStep: (step) {
+          state.advanceGuide(step);
+          _scheduleGuideStep(state);
+        },
+      );
+    }
+    final currentAct = acts[state.guideStep];
+    final showingNextAct =
+        _guideCompleted && state.guideStep < acts.length - 1;
+    final act = showingNextAct ? acts[state.guideStep + 1] : currentAct;
     final target = switch (state.guideStep) {
-      1 => _guideSidebar,
-      2 => _guideMapPopup,
-      3 =>
-        state.viewport == WorkspaceViewport.phone
-            ? _guideMobileViews
-            : _guideLayoutPopup,
+      1 => _guideSourceToggle,
+      2 => _guideSidebar,
+      3 => _guideMapPopup,
       4 => _guideTypographyPopup,
-      5 || 6 => _guideCommands,
-      _ => _guideEditing,
+      6 => state.presentation ? _guidePresentation : _guideDocumentSurface,
+      7 => _guideFileMenu.currentContext != null
+          ? _guideFileMenu
+          : _guideDocumentSurface,
+      _ => _guideDocumentSurface,
     };
     return WorkspaceGuide(
       target: target,
       step: state.guideStep,
-      title: steps[state.guideStep].$1,
-      description: steps[state.guideStep].$2,
+      title: act.$2,
+      description: act.$3,
+      liveMessage: _guideCue,
+      running: _guideRunning,
+      completed: _guideCompleted,
+      showCard: _guideShowCard,
+      resultTitle: _guideCompleted && !showingNextAct
+          ? currentAct.$4
+          : null,
+      result: _guideCompleted && !showingNextAct ? currentAct.$5 : null,
       onClose: _endGuide,
+      onSkip: () => _skipGuideAct(state.guideStep),
       onStep: (step) {
         _closeGuidePanels();
+        _cancelGuideAct();
+        if (state.presentation) state.togglePresentation(keepGuide: true);
         state.advanceGuide(step);
       },
     );
@@ -2102,6 +2673,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   }
 
   void _endGuide() {
+    _cancelGuideAct();
     _closeGuidePanels();
     _guideOverlay.hide();
     vm.endGuide();
@@ -2127,65 +2699,34 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         return;
       }
       switch (step) {
+        case -1:
+          break;
+        case 0:
+          state.setLayout(WorkspaceLayout.instant);
+          _runGuideAct(step);
         case 1:
+          state.setLayout(WorkspaceLayout.instant);
+          _runGuideAct(step);
+        case 2:
+          state.sidebar = true;
+          state.outline = true;
           if (state.viewport == WorkspaceViewport.phone) {
             _scaffold.currentState?.openDrawer();
           }
-        case 2:
-          _mapAppearanceMenu.open();
+          _runGuideAct(step);
         case 3:
-          if (state.viewport != WorkspaceViewport.phone) _layoutsMenu.open();
+          state.setLayout(WorkspaceLayout.map);
+          _mapAppearanceMenu.open();
+          _runGuideAct(step);
         case 4:
+          state.setLayout(WorkspaceLayout.read);
           _typographyMenu.open();
+          _runGuideAct(step);
         case 5 || 6:
-          final id = step == 5 ? 'file' : 'tools';
-          if (_desktop &&
-              !_macOS &&
-              state.viewport != WorkspaceViewport.phone) {
-            _openTopMenu(id);
-          } else {
-            final menu = _menus(state.windowSize.width)
-                .firstWhere((item) => item.id == id);
-            final commands = menu.children
-                .where(
-                  (item) => step == 5
-                      ? const ['save', 'save-as'].contains(item.id) ||
-                            item.id.startsWith('export:')
-                      : item.id.startsWith('publish:'),
-                )
-                .toList();
-            _guideTouchMenu = true;
-            final generation = ++_guideTouchGeneration;
-            unawaited(
-              showWorkspaceTouchMenu(
-                context,
-                commands,
-                title: workspaceMenuLabel(menu.label),
-                contentKey: _guideCommands,
-                onRoute: (route) {
-                  if (generation == _guideTouchGeneration) {
-                    _guideTouchRoute = route;
-                  } else {
-                    WidgetsBinding.instance.addPostFrameCallback(
-                      (_) => _dismissGuideRoute(route),
-                    );
-                  }
-                },
-              ).then((action) {
-                if (generation == _guideTouchGeneration) {
-                  _guideTouchMenu = false;
-                  _guideTouchRoute = null;
-                }
-                if (mounted &&
-                    generation == _guideTouchGeneration &&
-                    action != null &&
-                    state.guiding &&
-                    state.guideStep == step) {
-                  _action(action);
-                }
-              }),
-            );
-          }
+          _runGuideAct(step);
+        case 7:
+          state.setLayout(WorkspaceLayout.read);
+          _runGuideAct(step);
       }
       // Put the card above the actual menu/picker, then measure its final bounds.
       WidgetsBinding.instance.addPostFrameCallback((_) {

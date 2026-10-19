@@ -41,12 +41,11 @@
 
   var MENUS = [
     { key: 'file', label: '文件(F)', items: [
-      { label: '新建文档', gesture: 'Ctrl+N', action: 'new' },
+      { label: '新建', gesture: 'Ctrl+N', action: 'new' },
       { label: '新建窗口', gesture: 'Ctrl+Shift+N', action: 'new-window' },
-      { label: '在新窗口打开当前文档', action: 'document-window' },
       { sep: true },
-      { label: '打开文档…', gesture: 'Ctrl+O', action: 'open' },
-      { label: '打开文件夹…', toast: '选择文件夹并载入文档列表（桌面版操作演示）' },
+      { label: '打开…', gesture: 'Ctrl+O', action: 'open' },
+      { label: '打开文件夹…', action: 'open-folder' },
       { label: '快速打开…', gesture: 'Ctrl+P', action: 'quick-open' },
       { label: '最近打开', sub: [
         { label: '主题设计笔记.md', action: 'open-sample', arg: 0 },
