@@ -83,11 +83,12 @@ def contract_checks():
     """Regenerate bundled documents and run the prototype contract checks."""
     run((sys.executable, str(ROOT / 'scripts' / 'sync_builtin_documents.py')))
     try:
+        run(('flutter', 'pub', 'get', '--enforce-lockfile'))
         for script in sorted(glob.glob(str(ROOT / 'design' / 'scripts' / 'verify*.cjs'))):
             run(('node', script))
             print(f'契约检查通过 {Path(script).name}')
     except FileNotFoundError:
-        print('警告：未找到 node，跳过本地原型契约检查（CI 仍会执行）。')
+        print('警告：未找到 flutter/node，跳过本地预检（CI 仍会执行）。')
 
 
 def local_tag_commit(target):
