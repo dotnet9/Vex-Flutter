@@ -146,12 +146,11 @@ def main():
 
     contract_checks()
 
-    def content_diff(*args):
-        """True when git reports a content change (EOL-only churn ignored)."""
-        return subprocess.run(('git',) + args, cwd=ROOT, capture_output=True).returncode != 0
-
+    # git status 会把纯换行符差异当作改动；numstat 只报内容差异。
     untracked = git('ls-files', '--others', '--exclude-standard')
-    if content_diff('diff', '--quiet') or content_diff('diff', '--cached', '--quiet') or untracked:
+    staged = git('diff', '--cached', '--numstat')
+    unstaged = git('diff', '--numstat')
+    if untracked or staged or unstaged:
         sys.exit('工作区存在未提交改动，请先提交:\n' + git('status', '--porcelain'))
 
     branch = git('rev-parse', '--abbrev-ref', 'HEAD')
