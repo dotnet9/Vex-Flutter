@@ -1,8 +1,6 @@
-gradle-wrapper.jar
+# CI 在全新检出上直接调用 ./gradlew，wrapper 必须随仓库分发。
 /.gradle
 /captures/
-/gradlew
-/gradlew.bat
 /local.properties
 GeneratedPluginRegistrant.java
 .cxx/
