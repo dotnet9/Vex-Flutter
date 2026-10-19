@@ -27,7 +27,7 @@ class BuiltinDocumentsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='vex 文档 ') as temporary:
             root = Path(temporary)
             self.source(root)
-            self.assertEqual(len(documents.prepare(root)), 3)
+            self.assertEqual(len(documents.prepare(root)), len(documents.DOCUMENTS) + 1)
             for _, name, _ in documents.DOCUMENTS:
                 self.assertEqual((root / 'docs' / name).read_bytes(),
                                  (root / 'apps/vex/assets/generated/documents' / name).read_bytes())
@@ -41,7 +41,7 @@ class BuiltinDocumentsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             self.source(root)
-            self.assertEqual(len(documents.prepare(root, check=True)), 3)
+            self.assertEqual(len(documents.prepare(root, check=True)), len(documents.DOCUMENTS) + 1)
             self.assertFalse((root / 'apps').exists())
             self.assertFalse((root / 'design').exists())
 
@@ -64,9 +64,9 @@ class BuiltinDocumentsTest(unittest.TestCase):
             (root / 'docs' / name).write_text('# 新内容\n', encoding='utf-8')
             other = root / 'apps/vex/assets/generated/documents' / documents.DOCUMENTS[1][1]
             other.write_bytes(b'damaged')
-            self.assertEqual(len(documents.prepare(root, check=True)), 3)
+            self.assertEqual(len(documents.prepare(root, check=True)), len(documents.DOCUMENTS) + 1)
             self.assertEqual(other.read_bytes(), b'damaged')
-            self.assertEqual(len(documents.prepare(root)), 3)
+            self.assertEqual(len(documents.prepare(root)), len(documents.DOCUMENTS) + 1)
             self.assertEqual(documents.prepare(root, check=True), [])
 
     def test_windows_source_newlines_generate_the_same_lf_bytes(self):
