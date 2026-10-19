@@ -89,6 +89,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     fontSize: 14,
     height: 1.4,
     letterSpacing: 0,
+    fontWeight: FontWeight.w600,
   );
   bool _dragging = false, _closing = false, _nativeCloseApproved = false;
   bool _changingPresentation = false;
@@ -1603,7 +1604,16 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       },
       child: TextButton(
         style: TextButton.styleFrom(
-          foregroundColor: Theme.of(context).colorScheme.onSurface,
+          // Grayscale AA on Windows renders light text thin and washed out;
+          // deepen the label in light mode so the bar reads like a native
+          // near-black menubar (Typora reference ≈ #1f1f1f on white).
+          foregroundColor:
+              Theme.of(context).colorScheme.brightness == Brightness.dark
+              ? Theme.of(context).colorScheme.onSurface
+              : Color.alphaBlend(
+                  Colors.black.withValues(alpha: .25),
+                  Theme.of(context).colorScheme.onSurface,
+                ),
           textStyle: _menuTextStyle,
           minimumSize: const Size(0, 28),
           fixedSize: const Size.fromHeight(28),

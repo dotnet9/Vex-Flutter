@@ -23,7 +23,9 @@ abstract final class AppFonts {
   }
 
   static String get interface => switch (defaultTargetPlatform) {
-    TargetPlatform.windows => 'Microsoft YaHei UI',
+    // Typora-style Windows stack: Segoe UI takes Latin, Microsoft YaHei UI
+    // covers CJK via the fallback list — both hinted for small UI sizes.
+    TargetPlatform.windows => 'Segoe UI',
     TargetPlatform.iOS || TargetPlatform.macOS => '.SF UI Text',
     TargetPlatform.android => 'Roboto',
     _ => 'sans-serif',
