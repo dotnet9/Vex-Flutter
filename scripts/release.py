@@ -114,6 +114,9 @@ def main():
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--force-move', action='store_true',
                         help='允许移动已存在的标签（本地与 origin）')
+    parser.add_argument('--branch', default='',
+                        help='从干净检出（如临时 worktree）发布时指定目标分支，'
+                             '推送使用 HEAD:<branch>')
     parser.add_argument('--dry-run', action='store_true',
                         help='只检查并打印将要执行的操作，不改动任何状态')
     args = parser.parse_args()
@@ -134,8 +137,10 @@ def main():
         sys.exit('工作区存在未提交改动，请先提交:\n' + dirty)
 
     branch = git('rev-parse', '--abbrev-ref', 'HEAD')
-    if branch == 'HEAD':
-        sys.exit('当前处于 detached HEAD，请切到要发布的分支。')
+    if branch == 'HEAD' and not args.branch:
+        sys.exit('当前处于 detached HEAD，请切到要发布的分支或用 --branch 指定目标分支。')
+    push_ref = f'HEAD:{args.branch}' if args.branch else branch
+    branch = args.branch or branch
     head = git('rev-parse', 'HEAD')
     local = local_tag_commit(tag)
     remote = remote_tag_commit(tag)
@@ -148,7 +153,7 @@ def main():
                  f'确认要移动请加 --force-move，若只是重试发布可用 workflow_dispatch 复用现有标签。')
 
     print(f'版本 {meta["version"]}+{meta["build"]}，标签 {tag}，flutter {meta["flutter"]}')
-    steps = [f'git push origin {branch}']
+    steps = [f'git push origin {push_ref}']
     if local != head:
         steps.append(f'git tag {"-f " if force else ""}{tag}')
     if remote != head:
@@ -160,7 +165,7 @@ def main():
     if args.dry_run:
         return
 
-    git('push', 'origin', branch)
+    git('push', 'origin', push_ref)
     if local != head:
         git(*( ('tag', '-f', tag) if force else ('tag', tag) ))
     if remote != head:
