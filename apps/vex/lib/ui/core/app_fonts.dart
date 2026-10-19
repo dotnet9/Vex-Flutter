@@ -3,6 +3,17 @@ import 'package:vex_editor/vex_editor.dart';
 
 /// Match the prototype's system font strategy without bundling CJK libraries.
 abstract final class AppFonts {
+  /// Font-preview builds select the bundled monospace and a window-title
+  /// suffix at compile time, e.g.
+  /// `--dart-define=VEX_MONO_FONT=MapleMonoCN --dart-define="VEX_MONO_LABEL= - Maple Mono CN"`.
+  /// Missing defines fall back to the shipped defaults.
+  static const String monospaceFamily = String.fromEnvironment(
+    'VEX_MONO_FONT',
+    defaultValue: 'CascadiaCode',
+  );
+
+  static const String buildLabel = String.fromEnvironment('VEX_MONO_LABEL');
+
   static String interfaceFor(String language) {
     if (defaultTargetPlatform == TargetPlatform.windows) {
       if (language == 'ja') return 'Yu Gothic UI';
@@ -55,7 +66,7 @@ abstract final class AppFonts {
       _ => 'Noto Serif CJK SC',
     },
     serifFallback: const ['Noto Serif SC', 'serif', ...fallback],
-    monospace: 'CascadiaCode',
+    monospace: monospaceFamily,
     monospaceFallback: fallback,
     sansItalic: switch (defaultTargetPlatform) {
       TargetPlatform.windows => 'Segoe UI',
