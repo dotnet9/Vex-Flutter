@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
 import 'package:vex_editor/vex_editor.dart';
@@ -403,9 +405,21 @@ class _DocumentReadingState extends State<_DocumentReading>
   );
   String? _lastSelection;
   MarkdownRevealRequest? _lastNavigation;
+  // 定位后的短暂高亮（与原型 locate 1.3s 渐隐一致）：TOC、脚注、大纲共用。
+  int? _flashIndex;
+  Timer? _flashTimer;
+
+  void _flashBlock(int index) {
+    _flashTimer?.cancel();
+    setState(() => _flashIndex = index);
+    _flashTimer = Timer(const Duration(milliseconds: 1300), () {
+      if (mounted) setState(() => _flashIndex = null);
+    });
+  }
 
   @override
   void dispose() {
+    _flashTimer?.cancel();
     _navigation.dispose();
     _list.dispose();
     _scroll.dispose();
@@ -435,6 +449,7 @@ class _DocumentReadingState extends State<_DocumentReading>
             return;
           }
           _navigation.reveal(index);
+          _flashBlock(index);
         });
       }
     }
@@ -531,14 +546,25 @@ class _DocumentReadingState extends State<_DocumentReading>
                     );
                   }
 
-                  return GestureDetector(
-                    key: ValueKey('read-element-${block.range.start}'),
-                    behavior: HitTestBehavior.translucent,
-                    onSecondaryTapUp: (event) =>
-                        openContext(event.globalPosition),
-                    onLongPressStart: (event) =>
-                        openContext(event.globalPosition),
-                    child: reader,
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      color: index == _flashIndex
+                          ? Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: .16)
+                          : Colors.transparent,
+                    ),
+                    child: GestureDetector(
+                      key: ValueKey('read-element-${block.range.start}'),
+                      behavior: HitTestBehavior.translucent,
+                      onSecondaryTapUp: (event) =>
+                          openContext(event.globalPosition),
+                      onLongPressStart: (event) =>
+                          openContext(event.globalPosition),
+                      child: reader,
+                    ),
                   );
                 },
               );

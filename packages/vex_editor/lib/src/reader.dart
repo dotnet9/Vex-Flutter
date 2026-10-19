@@ -377,16 +377,31 @@ final class _TableOfContentsBuilder extends MarkdownElementBuilder {
       );
     }
     if (entries.isEmpty) return const SizedBox.shrink();
+    // 与原型一致：目录带“目录”标题与 1px 描边的提示框样式。
+    final colors = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        color: colors.surfaceContainerLow,
         borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: colors.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: entries,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(
+              reader.labels.tocTitle,
+              style: style.copyWith(
+                color: colors.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ...entries,
+        ],
       ),
     );
   }
@@ -408,8 +423,13 @@ final class _CalloutBuilder extends MarkdownElementBuilder {
   ) {
     final colors = Theme.of(context).colorScheme;
     final warning = element.attributes['data-kind'] == 'warning';
-    final accent = warning ? colors.error : colors.primary;
-    final title = warning ? '警告' : '信息';
+    // 警告色与原型 --warning 一致（浅色琥珀深色亮黄），不用错误红。
+    final accent = warning
+        ? (Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFFFBBF24)
+              : const Color(0xFFB54708))
+        : colors.primary;
+    final title = warning ? reader.labels.calloutWarning : reader.labels.calloutInfo;
     final body = (parentStyle ?? reader.styleSheet(context).p!).copyWith(
       color: colors.onSurface,
     );

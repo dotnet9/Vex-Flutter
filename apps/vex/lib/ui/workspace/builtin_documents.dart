@@ -12,12 +12,16 @@ import '../core/app_widgets.dart';
 
 enum BuiltinDocument {
   thanks('鸣谢.md'),
-  changelog('更新日志.md');
+  changelog('更新日志.md'),
+  markdownSample('Markdown功能示例.md');
 
   const BuiltinDocument(this.filename);
   final String filename;
-  String title(AppLocalizations strings) =>
-      this == thanks ? strings.builtinThanks : strings.changelog;
+  String title(AppLocalizations strings) => switch (this) {
+    thanks => strings.builtinThanks,
+    changelog => strings.changelog,
+    markdownSample => strings.builtinMarkdownSample,
+  };
   String get argument => '--builtin-document=$name';
   Future<String> load() =>
       rootBundle.loadString('assets/generated/documents/$filename');

@@ -1117,11 +1117,9 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
                   return Align(
                     key: _viewportRegion,
                     alignment: Alignment.topCenter,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: widget.typography.width,
-                      ),
-                      child: SuperListView.builder(
+                    // 正文随内容区铺满（Typora 参照）：即时编辑不再按排版
+                    // 主题限制居中栏宽，导出仍保留每主题栏宽。
+                    child: SuperListView.builder(
                         key: PageStorageKey(widget.controller),
                         controller: _scroll,
                         listController: _list,
@@ -1188,7 +1186,6 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
                           );
                         },
                       ),
-                    ),
                   );
                 },
               ),

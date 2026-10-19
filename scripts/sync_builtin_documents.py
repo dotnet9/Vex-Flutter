@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DOCUMENTS = (
     ('thanks', '鸣谢.md', '鸣谢.md'),
     ('changelog', '更新日志.md', '更新日志.md'),
+    ('markdown-sample', 'Markdown功能示例.md', 'Markdown 功能示例.md'),
 )
 
 

@@ -169,12 +169,13 @@ final class _TableOfContentsSyntax extends md.BlockSyntax {
 final class _CalloutSyntax extends md.BlockSyntax {
   const _CalloutSyntax();
   @override
-  RegExp get pattern => RegExp(r'^ {0,3}>[ \t]*\[!(INFO|WARNING)\][ \t]*$');
+  RegExp get pattern => RegExp(r'^ {0,3}>[ \t]*\[!(INFO|WARNING)\][ \t]*(.*)$');
   @override
   md.Node parse(md.BlockParser parser) {
     final first = parser.current.content;
     final match = pattern.firstMatch(first)!;
     final kind = match[1]!.toLowerCase();
+    // 与原型一致：标签行的同行文字从正文中剥离。
     final lines = <String>[];
     parser.advance();
     while (!parser.isDone) {
