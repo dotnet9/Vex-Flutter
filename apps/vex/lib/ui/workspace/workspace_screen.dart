@@ -3024,7 +3024,7 @@ flowchart LR
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  context.l10n.wordCount(state.editor.wordCount),
+                  context.l10n.wordCount(state.wordCount),
                   style: TextStyle(fontSize: 12, color: c.onSurfaceVariant),
                 ),
               ),

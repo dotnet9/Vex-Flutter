@@ -91,6 +91,26 @@ void main() {
   );
 
   test(
+    'closing find clears the query so typing no longer refreshes matches',
+    () {
+      final vm = fakeWorkspace();
+      addTearDown(vm.dispose);
+      vm.search('match');
+      vm.editor.session.replace('# Title' + "\\n\\n" + 'match match');
+      expect(vm.matches, hasLength(2));
+      vm.closeFind();
+      expect(vm.findQuery, isEmpty);
+      expect(vm.matches, isEmpty);
+      vm.editor.session.replace('# Title' + "\\n\\n" + 'match match match');
+      expect(vm.matches, isEmpty);
+      // 重新打开查找栏时按当前内容重新刷新。
+      vm.search('match');
+      vm.showFind();
+      expect(vm.matches, hasLength(3));
+    },
+  );
+
+  test(
     'switching hidden documents rebuilds the map for the current document only',
     () {
       final vm = fakeWorkspace();

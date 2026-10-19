@@ -83,6 +83,9 @@ final class WorkspaceDocument {
   bool saveCopy = false;
   final bool demo;
   TextFileFormat format;
+
+  /// 上次外部检查时的文件指纹（mtime+size）：未变化时跳过整文件重读。
+  ({DateTime modified, int size})? externalFingerprint;
   final MarkdownEditorController editor;
   void dispose() => editor.dispose();
 }

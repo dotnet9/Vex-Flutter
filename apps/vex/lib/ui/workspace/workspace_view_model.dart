@@ -303,7 +303,9 @@ final class WorkspaceViewModel extends ChangeNotifier {
     }
     if (_mapDocument != current.id || _mapRevision != editor.session.revision) {
       _refreshMap();
-      _refreshMatches();
+      // 有关键字时保持匹配实时跟踪；关闭查找栏会清空查询，不再每键扫描。
+      if (findQuery.isNotEmpty) _refreshMatches();
+      _scheduleWordCount();
       _recoveryTimer?.cancel();
       if (!_guiding) {
         if (filePreferences.recovery) {
@@ -822,6 +824,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   void showFind({bool replace = false}) {
     findVisible = true;
     replaceVisible = replace;
+    if (findQuery.isNotEmpty) _refreshMatches();
     _notify();
   }
 
@@ -843,8 +846,36 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _notify();
   }
 
+  // 状态栏词数：打字期间 300ms 防抖重算，避免每键全文切片+哈希。
+  Timer? _wordCountTimer;
+  String? _wordCountDocument;
+  int _wordCount = 0;
+  int get wordCount {
+    if (_wordCountDocument != current.id) {
+      _wordCountDocument = current.id;
+      _wordCount = editor.wordCount;
+    }
+    return _wordCount;
+  }
+
+  void _scheduleWordCount() {
+    _wordCountTimer?.cancel();
+    _wordCountTimer = Timer(const Duration(milliseconds: 300), () {
+      if (_disposed) return;
+      final next = editor.wordCount;
+      if (next != _wordCount) {
+        _wordCount = next;
+        _notify();
+      }
+    });
+  }
+
   void closeFind() {
     findVisible = false;
+    // 清空查询与匹配：关闭查找栏后，输入不再触发任何全文扫描。
+    findQuery = '';
+    matches = const [];
+    matchIndex = -1;
     _notify();
   }
 
@@ -858,6 +889,12 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }
 
   void _refreshMatches() {
+    if (findQuery.isEmpty) {
+      matches = const [];
+      matchIndex = -1;
+      _invalidRegex = false;
+      return;
+    }
     try {
       matches = editor.find(
         findQuery,
@@ -1431,7 +1468,17 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _checking = true;
     final doc = current;
     try {
+      // 先比对 mtime+size：文件未变化时跳过整文件重读（每 3 秒轮询一次）。
+      final stat = await File(doc.path!).stat();
+      final fingerprint = (modified: stat.modified, size: stat.size);
+      final checked = doc.externalFingerprint;
+      if (checked != null &&
+          checked.modified == fingerprint.modified &&
+          checked.size == fingerprint.size) {
+        return;
+      }
       final latest = await files.read(doc.path!);
+      doc.externalFingerprint = fingerprint;
       if (!_disposed && identical(doc, current)) {
         final next = latest.text != normalizeNewlines(doc.persistedText ?? '')
             ? latest
@@ -1752,6 +1799,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     }
     presenter?.dispose();
     _recoveryTimer?.cancel();
+    _wordCountTimer?.cancel();
     for (final timer in _saveTimers.values) {
       timer.cancel();
     }

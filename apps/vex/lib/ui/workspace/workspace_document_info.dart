@@ -48,7 +48,7 @@ Future<void> showWorkspaceStatistics(
   final l = context.l10n;
   final text = vm.editor.session.text;
   final blocks = vm.editor.document.blocks;
-  final minutes = (vm.editor.wordCount / 350).ceil().clamp(1, 1 << 30);
+  final minutes = (vm.wordCount / 350).ceil().clamp(1, 1 << 30);
   return showDialog<void>(
     context: context,
     builder: (context) => AppDialog(
