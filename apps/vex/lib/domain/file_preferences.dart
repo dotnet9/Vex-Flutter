@@ -1,4 +1,4 @@
-enum DocumentEncoding { utf8, utf8Bom, gb18030 }
+enum DocumentEncoding { utf8, utf8Bom, gb18030, big5 }
 
 enum DocumentNewline { system, lf, crlf }
 

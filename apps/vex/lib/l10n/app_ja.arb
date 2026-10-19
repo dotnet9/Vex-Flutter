@@ -527,4 +527,34 @@
   "@anchorNotFound": {"placeholders":{"anchor":{"type":"String"}}},
   "excludeGeneratedFolders": "生成されたフォルダーを除外",
   "saveCopy": "コピーを保存"
+,
+  "quickOpen": "クイックオープン…",
+  "copyAsPlainText": "プレーンテキストとしてコピー",
+  "keepWindowOnTop": "常に手前に表示",
+  "reopenWithEncoding": "文字コードを指定して開き直す",
+  "deleteDocument": "文書を削除…",
+  "deleteDocumentConfirm": "「{name}」をディスクから削除しますか？",
+  "@deleteDocumentConfirm": {"placeholders":{"name":{"type":"String"}}},
+  "deleteDocumentHint": "ファイルはディスクから完全に削除され、元に戻せません。",
+  "statisticsTitle": "文字数統計",
+  "statSourceCharacters": "ソース文字数",
+  "statParagraphs": "段落",
+  "statReadingTime": "約 {minutes} 分",
+  "@statReadingTime": {"placeholders":{"minutes":{"type":"int"}}},
+  "statStatus": "状態",
+  "statModified": "変更あり",
+  "propertyName": "名前",
+  "propertyFormat": "形式",
+  "propertySize": "サイズ",
+  "propertyBytes": "{count} バイト",
+  "@propertyBytes": {"placeholders":{"count":{"type":"int"}}},
+  "propertyLocation": "場所"
+,
+  "statReadingTimeLabel": "読了時間"
+,
+  "tocTitle": "目次",
+  "calloutInfo": "情報",
+  "calloutWarning": "警告"
+,
+  "builtinMarkdownSample": "Markdown機能サンプル"
 }

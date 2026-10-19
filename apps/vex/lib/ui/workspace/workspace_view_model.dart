@@ -822,6 +822,24 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _notify();
   }
 
+  // “快速打开”（Ctrl+P）：展开侧栏文件页并请求聚焦过滤框。
+  // 侧栏在收到递增的 revision 后于帧末聚焦输入框。
+  int sidebarSearchFocus = 0;
+  void requestSidebarSearch() {
+    sidebar = true;
+    outline = false;
+    sidebarSearchFocus++;
+    _notify();
+  }
+
+  // 视图菜单“保持窗口在最前”的勾选状态；窗口调用在界面层执行。
+  bool alwaysOnTop = false;
+  void setAlwaysOnTop(bool value) {
+    if (alwaysOnTop == value) return;
+    alwaysOnTop = value;
+    _notify();
+  }
+
   void closeFind() {
     findVisible = false;
     _notify();
@@ -1071,6 +1089,24 @@ final class WorkspaceViewModel extends ChangeNotifier {
       cancelled: () => _disposed || request != _folderRequest,
     );
     if (selected == null || _disposed || request != _folderRequest) return;
+    folder = selected;
+    folderRevision++;
+    sidebar = true;
+    outline = false;
+    _notify();
+    persist();
+  }
+
+  /// 直接按路径打开工作区文件夹（文件树右键“在新窗口打开”的新进程流程）。
+  Future<void> openFolderPath(String path) async {
+    final request = ++_folderRequest;
+    final selected = await files.readFolder(
+      path,
+      excludedDirectories: _excludedDirectories,
+      onProgress: (next) => _folderProgress(next, request),
+      cancelled: () => _disposed || request != _folderRequest,
+    );
+    if (_disposed || request != _folderRequest) return;
     folder = selected;
     folderRevision++;
     sidebar = true;
@@ -1421,6 +1457,33 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _notify();
   }
 
+  /// 按指定编码重新读取磁盘文件并替换当前内容（选择编码重新打开）。
+  /// 成功后按该编码保存；失败时保留原文并提示。
+  Future<bool> reopenWithEncoding(DocumentEncoding encoding) async {
+    final path = current.path;
+    if (path == null || _disposed || _guiding) return false;
+    final doc = current;
+    try {
+      final bytes = await File(path).readAsBytes();
+      final text = await decodeWithEncoding(bytes, encoding);
+      if (_disposed || !identical(doc, current)) return false;
+      editor.session.replace(text, label: '按编码重新打开');
+      editor.session.markSaved();
+      current.persistedText = text;
+      current.format = TextFileFormat(
+        encoding: encoding,
+        newline: current.format.newline,
+      );
+      externalChange = null;
+      _notify();
+      return true;
+    } catch (error) {
+      _setStatus((l) => l.fileReadFailed(error.toString()));
+      _notify();
+      return false;
+    }
+  }
+
   List<Map<String, Object?>> _activeSnapshots({WorkspaceDocument? excluding}) =>
       documents
           .where((d) => !identical(d, excluding) && d.editor.session.isDirty)
@@ -1625,7 +1688,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
       1 => WorkspaceLayout.instant,
       3 => WorkspaceLayout.map,
       4 => WorkspaceLayout.read,
-      5 => WorkspaceLayout.sourceRender,
+      // 第六幕先在源码布局逐字输入小节标题，随后在幕内切到对照布局。
+      5 => WorkspaceLayout.source,
       6 || 7 => WorkspaceLayout.read,
       _ => WorkspaceLayout.instant,
     };

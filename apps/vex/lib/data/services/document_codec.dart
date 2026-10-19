@@ -53,11 +53,13 @@ Future<Uint8List> encodeDocument(String text, TextFileFormat format) async {
       (format.newline == DocumentNewline.system && Platform.isWindows);
   final normalized = normalizeNewlines(text);
   final output = crlf ? normalized.replaceAll('\n', '\r\n') : normalized;
-  if (format.encoding == DocumentEncoding.gb18030) {
-    final bytes = await CharsetConverter.encode('GB18030', output);
-    if (await CharsetConverter.decode('GB18030', bytes) != output) {
+  if (format.encoding == DocumentEncoding.gb18030 ||
+      format.encoding == DocumentEncoding.big5) {
+    final name = format.encoding == DocumentEncoding.big5 ? 'Big5' : 'GB18030';
+    final bytes = await CharsetConverter.encode(name, output);
+    if (await CharsetConverter.decode(name, bytes) != output) {
       throw const FormatException(
-        'Some characters cannot be encoded as GB18030.',
+        'Some characters cannot be encoded in the selected encoding.',
       );
     }
     return bytes;
@@ -66,6 +68,30 @@ Future<Uint8List> encodeDocument(String text, TextFileFormat format) async {
     if (format.encoding == DocumentEncoding.utf8Bom) ...[0xef, 0xbb, 0xbf],
     ...utf8.encode(output),
   ]);
+}
+
+/// 按指定编码解码文件字节（文件菜单“选择编码重新打开”）。
+/// UTF-8 忽略可能存在的 BOM；多字节编码交由平台转换器处理。
+Future<String> decodeWithEncoding(
+  Uint8List bytes,
+  DocumentEncoding encoding,
+) async {
+  switch (encoding) {
+    case DocumentEncoding.gb18030:
+      return normalizeNewlines(await CharsetConverter.decode('GB18030', bytes));
+    case DocumentEncoding.big5:
+      return normalizeNewlines(await CharsetConverter.decode('Big5', bytes));
+    case DocumentEncoding.utf8:
+    case DocumentEncoding.utf8Bom:
+      final body =
+          bytes.length >= 3 &&
+              bytes[0] == 0xef &&
+              bytes[1] == 0xbb &&
+              bytes[2] == 0xbf
+          ? bytes.sublist(3)
+          : bytes;
+      return normalizeNewlines(utf8.decode(body));
+  }
 }
 
 bool _sameBytes(List<int> a, List<int> b) {

@@ -47,6 +47,7 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
   Object? _treeKey;
   List<_SidebarRow> _rows = [];
   int _collapseRevision = 0;
+  int _handledSearchFocus = 0;
   WorkspaceViewModel get vm => widget.vm;
 
   @override
@@ -66,6 +67,12 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
       _folderPath = vm.folder?.path;
       _folderRevision = vm.folderRevision;
       _previews.clear();
+    }
+    if (_handledSearchFocus != vm.sidebarSearchFocus) {
+      _handledSearchFocus = vm.sidebarSearchFocus;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !vm.outline) _searchFocus.requestFocus();
+      });
     }
     return ColoredBox(
       color: c.surfaceContainerLow,
@@ -649,12 +656,20 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
       );
     }
     final c = Theme.of(context).colorScheme, depth = row.depth;
-    return TextButton(
-      key: ValueKey('sidebar-directory-${row.path}'),
-      onPressed: () => setState(() {
-        if (!_collapsed.remove(row.path)) _collapsed.add(row.path);
-        _collapseRevision++;
-      }),
+    // 文件夹节点与文件节点共用右键菜单：新窗口进入打开文件夹流程、定位目录。
+    return GestureDetector(
+      onSecondaryTapUp: (event) => _showFileContextMenu(
+        context,
+        event.globalPosition,
+        document: null,
+        path: row.path,
+      ),
+      child: TextButton(
+        key: ValueKey('sidebar-directory-${row.path}'),
+        onPressed: () => setState(() {
+          if (!_collapsed.remove(row.path)) _collapsed.add(row.path);
+          _collapseRevision++;
+        }),
       style: TextButton.styleFrom(
         alignment: Alignment.centerLeft,
         minimumSize: const Size(0, 34),
@@ -678,6 +693,7 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
             child: Text(row.name, maxLines: 1, overflow: TextOverflow.ellipsis),
           ),
         ],
+      ),
       ),
     );
   }

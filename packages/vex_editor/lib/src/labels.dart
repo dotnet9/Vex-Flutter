@@ -8,8 +8,12 @@ class MarkdownEditorLabels {
     this.diagramPreview = 'Diagram preview',
     this.diagramUnavailable = 'Preview unavailable',
     this.diagramError = 'Invalid diagram syntax. Source preserved.',
+    this.tocTitle = '目录',
+    this.calloutInfo = '信息',
+    this.calloutWarning = '警告',
   });
 
   final String codeLanguage, placeholder, newParagraph;
   final String diagramSource, diagramPreview, diagramUnavailable, diagramError;
+  final String tocTitle, calloutInfo, calloutWarning;
 }

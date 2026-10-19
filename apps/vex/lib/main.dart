@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -64,10 +66,22 @@ Future<void> main(List<String> arguments) async {
   }
   for (final path in arguments.where((a) => !a.startsWith('-'))) {
     try {
-      await vm.openPath(path);
+      // 文件树右键“在新窗口打开”可能传入文件夹：新进程直接进入该文件夹。
+      if (FileSystemEntity.isDirectorySync(path)) {
+        await vm.openFolderPath(path);
+      } else {
+        await vm.openPath(path);
+      }
     } catch (_) {
       /* A stale association must not prevent startup. */
     }
+  }
+  // 剧本：首次进入工作区自动弹出快速上手；看过一次（guideSeen 持久化）
+  // 或带文档路径启动时不打扰。
+  if (!vm.guideSeen &&
+      builtin == null &&
+      !arguments.any((argument) => !argument.startsWith('-'))) {
+    vm.startGuide();
   }
   runApp(VexApp(viewModel: vm, windowIntegration: true));
 }

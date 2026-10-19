@@ -697,4 +697,34 @@
   "@anchorNotFound": {"placeholders":{"anchor":{"type":"String"}}},
   "excludeGeneratedFolders": "跳过工具生成的文件夹",
   "saveCopy": "保存副本"
+,
+  "quickOpen": "快速打开…",
+  "copyAsPlainText": "复制为纯文本",
+  "keepWindowOnTop": "保持窗口在最前",
+  "reopenWithEncoding": "选择编码重新打开",
+  "deleteDocument": "删除文档…",
+  "deleteDocumentConfirm": "从磁盘删除「{name}」？",
+  "@deleteDocumentConfirm": {"placeholders":{"name":{"type":"String"}}},
+  "deleteDocumentHint": "文件将从磁盘永久删除，此操作不可撤销。",
+  "statisticsTitle": "字数统计",
+  "statSourceCharacters": "源码字符",
+  "statParagraphs": "段落",
+  "statReadingTime": "约 {minutes} 分钟",
+  "@statReadingTime": {"placeholders":{"minutes":{"type":"int"}}},
+  "statStatus": "状态",
+  "statModified": "已修改",
+  "propertyName": "名称",
+  "propertyFormat": "格式",
+  "propertySize": "大小",
+  "propertyBytes": "{count} 字节",
+  "@propertyBytes": {"placeholders":{"count":{"type":"int"}}},
+  "propertyLocation": "位置"
+,
+  "statReadingTimeLabel": "阅读时间"
+,
+  "tocTitle": "目录",
+  "calloutInfo": "信息",
+  "calloutWarning": "警告"
+,
+  "builtinMarkdownSample": "Markdown 功能示例"
 }

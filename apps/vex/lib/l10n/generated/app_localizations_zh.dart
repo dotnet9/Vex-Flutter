@@ -1679,6 +1679,81 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get saveCopy => '保存副本';
+
+  @override
+  String get quickOpen => '快速打开…';
+
+  @override
+  String get copyAsPlainText => '复制为纯文本';
+
+  @override
+  String get keepWindowOnTop => '保持窗口在最前';
+
+  @override
+  String get reopenWithEncoding => '选择编码重新打开';
+
+  @override
+  String get deleteDocument => '删除文档…';
+
+  @override
+  String deleteDocumentConfirm(String name) {
+    return '从磁盘删除「$name」？';
+  }
+
+  @override
+  String get deleteDocumentHint => '文件将从磁盘永久删除，此操作不可撤销。';
+
+  @override
+  String get statisticsTitle => '字数统计';
+
+  @override
+  String get statSourceCharacters => '源码字符';
+
+  @override
+  String get statParagraphs => '段落';
+
+  @override
+  String statReadingTime(int minutes) {
+    return '约 $minutes 分钟';
+  }
+
+  @override
+  String get statStatus => '状态';
+
+  @override
+  String get statModified => '已修改';
+
+  @override
+  String get propertyName => '名称';
+
+  @override
+  String get propertyFormat => '格式';
+
+  @override
+  String get propertySize => '大小';
+
+  @override
+  String propertyBytes(int count) {
+    return '$count 字节';
+  }
+
+  @override
+  String get propertyLocation => '位置';
+
+  @override
+  String get statReadingTimeLabel => '阅读时间';
+
+  @override
+  String get tocTitle => '目录';
+
+  @override
+  String get calloutInfo => '信息';
+
+  @override
+  String get calloutWarning => '警告';
+
+  @override
+  String get builtinMarkdownSample => 'Markdown 功能示例';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -3355,4 +3430,79 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get saveCopy => '儲存副本';
+
+  @override
+  String get quickOpen => '快速開啟…';
+
+  @override
+  String get copyAsPlainText => '複製為純文字';
+
+  @override
+  String get keepWindowOnTop => '保持視窗在最前';
+
+  @override
+  String get reopenWithEncoding => '選擇編碼重新開啟';
+
+  @override
+  String get deleteDocument => '刪除文件…';
+
+  @override
+  String deleteDocumentConfirm(String name) {
+    return '從磁碟刪除「$name」？';
+  }
+
+  @override
+  String get deleteDocumentHint => '檔案將從磁碟永久刪除，無法復原。';
+
+  @override
+  String get statisticsTitle => '字數統計';
+
+  @override
+  String get statSourceCharacters => '原始檔字元';
+
+  @override
+  String get statParagraphs => '段落';
+
+  @override
+  String statReadingTime(int minutes) {
+    return '約 $minutes 分鐘';
+  }
+
+  @override
+  String get statStatus => '狀態';
+
+  @override
+  String get statModified => '已修改';
+
+  @override
+  String get propertyName => '名稱';
+
+  @override
+  String get propertyFormat => '格式';
+
+  @override
+  String get propertySize => '大小';
+
+  @override
+  String propertyBytes(int count) {
+    return '$count 位元組';
+  }
+
+  @override
+  String get propertyLocation => '位置';
+
+  @override
+  String get statReadingTimeLabel => '閱讀時間';
+
+  @override
+  String get tocTitle => '目錄';
+
+  @override
+  String get calloutInfo => '資訊';
+
+  @override
+  String get calloutWarning => '警告';
+
+  @override
+  String get builtinMarkdownSample => 'Markdown 功能示例';
 }

@@ -1691,4 +1691,79 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get saveCopy => 'コピーを保存';
+
+  @override
+  String get quickOpen => 'クイックオープン…';
+
+  @override
+  String get copyAsPlainText => 'プレーンテキストとしてコピー';
+
+  @override
+  String get keepWindowOnTop => '常に手前に表示';
+
+  @override
+  String get reopenWithEncoding => '文字コードを指定して開き直す';
+
+  @override
+  String get deleteDocument => '文書を削除…';
+
+  @override
+  String deleteDocumentConfirm(String name) {
+    return '「$name」をディスクから削除しますか？';
+  }
+
+  @override
+  String get deleteDocumentHint => 'ファイルはディスクから完全に削除され、元に戻せません。';
+
+  @override
+  String get statisticsTitle => '文字数統計';
+
+  @override
+  String get statSourceCharacters => 'ソース文字数';
+
+  @override
+  String get statParagraphs => '段落';
+
+  @override
+  String statReadingTime(int minutes) {
+    return '約 $minutes 分';
+  }
+
+  @override
+  String get statStatus => '状態';
+
+  @override
+  String get statModified => '変更あり';
+
+  @override
+  String get propertyName => '名前';
+
+  @override
+  String get propertyFormat => '形式';
+
+  @override
+  String get propertySize => 'サイズ';
+
+  @override
+  String propertyBytes(int count) {
+    return '$count バイト';
+  }
+
+  @override
+  String get propertyLocation => '場所';
+
+  @override
+  String get statReadingTimeLabel => '読了時間';
+
+  @override
+  String get tocTitle => '目次';
+
+  @override
+  String get calloutInfo => '情報';
+
+  @override
+  String get calloutWarning => '警告';
+
+  @override
+  String get builtinMarkdownSample => 'Markdown機能サンプル';
 }

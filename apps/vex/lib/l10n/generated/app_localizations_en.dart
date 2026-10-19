@@ -1744,4 +1744,80 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get saveCopy => 'Save a copy';
+
+  @override
+  String get quickOpen => 'Quick Open…';
+
+  @override
+  String get copyAsPlainText => 'Copy as Plain Text';
+
+  @override
+  String get keepWindowOnTop => 'Keep Window on Top';
+
+  @override
+  String get reopenWithEncoding => 'Reopen with Encoding';
+
+  @override
+  String get deleteDocument => 'Delete Document…';
+
+  @override
+  String deleteDocumentConfirm(String name) {
+    return 'Delete “$name” from disk?';
+  }
+
+  @override
+  String get deleteDocumentHint =>
+      'The file will be permanently deleted from disk. This cannot be undone.';
+
+  @override
+  String get statisticsTitle => 'Statistics';
+
+  @override
+  String get statSourceCharacters => 'Source characters';
+
+  @override
+  String get statParagraphs => 'Paragraphs';
+
+  @override
+  String statReadingTime(int minutes) {
+    return '~$minutes min';
+  }
+
+  @override
+  String get statStatus => 'Status';
+
+  @override
+  String get statModified => 'Modified';
+
+  @override
+  String get propertyName => 'Name';
+
+  @override
+  String get propertyFormat => 'Format';
+
+  @override
+  String get propertySize => 'Size';
+
+  @override
+  String propertyBytes(int count) {
+    return '$count bytes';
+  }
+
+  @override
+  String get propertyLocation => 'Location';
+
+  @override
+  String get statReadingTimeLabel => 'Reading time';
+
+  @override
+  String get tocTitle => 'Contents';
+
+  @override
+  String get calloutInfo => 'Info';
+
+  @override
+  String get calloutWarning => 'Warning';
+
+  @override
+  String get builtinMarkdownSample => 'Markdown Features';
 }

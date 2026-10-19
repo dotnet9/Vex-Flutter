@@ -3244,6 +3244,144 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'保存副本'**
   String get saveCopy;
+
+  /// No description provided for @quickOpen.
+  ///
+  /// In zh, this message translates to:
+  /// **'快速打开…'**
+  String get quickOpen;
+
+  /// No description provided for @copyAsPlainText.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制为纯文本'**
+  String get copyAsPlainText;
+
+  /// No description provided for @keepWindowOnTop.
+  ///
+  /// In zh, this message translates to:
+  /// **'保持窗口在最前'**
+  String get keepWindowOnTop;
+
+  /// No description provided for @reopenWithEncoding.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择编码重新打开'**
+  String get reopenWithEncoding;
+
+  /// No description provided for @deleteDocument.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除文档…'**
+  String get deleteDocument;
+
+  /// No description provided for @deleteDocumentConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'从磁盘删除「{name}」？'**
+  String deleteDocumentConfirm(String name);
+
+  /// No description provided for @deleteDocumentHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件将从磁盘永久删除，此操作不可撤销。'**
+  String get deleteDocumentHint;
+
+  /// No description provided for @statisticsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'字数统计'**
+  String get statisticsTitle;
+
+  /// No description provided for @statSourceCharacters.
+  ///
+  /// In zh, this message translates to:
+  /// **'源码字符'**
+  String get statSourceCharacters;
+
+  /// No description provided for @statParagraphs.
+  ///
+  /// In zh, this message translates to:
+  /// **'段落'**
+  String get statParagraphs;
+
+  /// No description provided for @statReadingTime.
+  ///
+  /// In zh, this message translates to:
+  /// **'约 {minutes} 分钟'**
+  String statReadingTime(int minutes);
+
+  /// No description provided for @statStatus.
+  ///
+  /// In zh, this message translates to:
+  /// **'状态'**
+  String get statStatus;
+
+  /// No description provided for @statModified.
+  ///
+  /// In zh, this message translates to:
+  /// **'已修改'**
+  String get statModified;
+
+  /// No description provided for @propertyName.
+  ///
+  /// In zh, this message translates to:
+  /// **'名称'**
+  String get propertyName;
+
+  /// No description provided for @propertyFormat.
+  ///
+  /// In zh, this message translates to:
+  /// **'格式'**
+  String get propertyFormat;
+
+  /// No description provided for @propertySize.
+  ///
+  /// In zh, this message translates to:
+  /// **'大小'**
+  String get propertySize;
+
+  /// No description provided for @propertyBytes.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 字节'**
+  String propertyBytes(int count);
+
+  /// No description provided for @propertyLocation.
+  ///
+  /// In zh, this message translates to:
+  /// **'位置'**
+  String get propertyLocation;
+
+  /// No description provided for @statReadingTimeLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'阅读时间'**
+  String get statReadingTimeLabel;
+
+  /// No description provided for @tocTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'目录'**
+  String get tocTitle;
+
+  /// No description provided for @calloutInfo.
+  ///
+  /// In zh, this message translates to:
+  /// **'信息'**
+  String get calloutInfo;
+
+  /// No description provided for @calloutWarning.
+  ///
+  /// In zh, this message translates to:
+  /// **'警告'**
+  String get calloutWarning;
+
+  /// No description provided for @builtinMarkdownSample.
+  ///
+  /// In zh, this message translates to:
+  /// **'Markdown 功能示例'**
+  String get builtinMarkdownSample;
 }
 
 class _AppLocalizationsDelegate

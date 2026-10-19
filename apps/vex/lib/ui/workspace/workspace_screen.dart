@@ -16,6 +16,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../../data/services/file_service.dart';
 import '../../data/services/social_copy_service.dart';
+import '../../domain/file_preferences.dart';
 import '../../domain/workspace.dart';
 import '../../l10n/l10n.dart';
 import '../core/app_fonts.dart';
@@ -27,6 +28,7 @@ import 'insert_table_dialog.dart';
 import 'mermaid_picker.dart';
 import 'preferences_dialog.dart';
 import 'workspace_dialogs.dart';
+import 'workspace_document_info.dart';
 import 'workspace_guide.dart';
 import 'workspace_menu.dart';
 import 'workspace_menu_widgets.dart';
@@ -60,9 +62,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   final _guidePresentation = GlobalKey();
   final _guideSidebar = GlobalKey(), _guideMobileViews = GlobalKey();
   final _guideLayoutPopup = GlobalKey(), _guideTypographyPopup = GlobalKey();
+  final _guideTypographyButton = GlobalKey();
   final _guideMapPopup = GlobalKey();
   final _guideOutlineTab = GlobalKey(), _guideMapTab = GlobalKey();
   final _guideFileCommands = GlobalKey(), _guideShareCommands = GlobalKey();
+  final _guideFileSave = GlobalKey(), _guideFileExport = GlobalKey();
   final _guideOverlay = OverlayPortalController();
   int? _preparedGuideStep;
   WorkspaceViewport? _preparedGuideViewport;
@@ -72,6 +76,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   int _guideRunToken = 0;
   bool _guideRunning = false, _guideCompleted = false, _guideShowCard = true;
   bool _guidePaused = false;
+  bool _dividerActive = false;
   Completer<void>? _guideContinue;
   GlobalKey _guideTarget = GlobalKey();
   String _guideCue = '';
@@ -589,6 +594,43 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             await vm.save(saveAs: true);
           }),
         );
+      case 'quick-open':
+        vm.requestSidebarSearch();
+      case 'copy-plain':
+        if (_focusedClipboardAction(action)) return;
+        unawaited(
+          Clipboard.setData(
+            ClipboardData(text: markdownPlainText(vm.editor.session.text)),
+          ),
+        );
+      case 'topmost':
+        if (!widget.windowIntegration) return;
+        unawaited(
+          _run(() async {
+            final next = !vm.alwaysOnTop;
+            await windowManager.setAlwaysOnTop(next);
+            vm.setAlwaysOnTop(next);
+          }),
+        );
+      case 'statistics':
+        unawaited(showWorkspaceStatistics(context, vm));
+      case 'document-properties':
+        unawaited(showWorkspaceProperties(context, vm));
+      case 'reveal-file':
+        {
+          final path = vm.current.path;
+          if (path != null) unawaited(_revealInFolder(path));
+        }
+      case 'delete-document':
+        unawaited(_deleteCurrentDocument());
+      case 'encoding-reload:utf8':
+        unawaited(_run(() => vm.reopenWithEncoding(DocumentEncoding.utf8)));
+      case 'encoding-reload:utf8Bom':
+        unawaited(_run(() => vm.reopenWithEncoding(DocumentEncoding.utf8Bom)));
+      case 'encoding-reload:gb18030':
+        unawaited(_run(() => vm.reopenWithEncoding(DocumentEncoding.gb18030)));
+      case 'encoding-reload:big5':
+        unawaited(_run(() => vm.reopenWithEncoding(DocumentEncoding.big5)));
       case 'undo':
         vm.editor.session.undo();
       case 'redo':
@@ -682,6 +724,12 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       case 'thanks':
         unawaited(
           _run(() => showBuiltinDocument(context, BuiltinDocument.thanks)),
+        );
+      case 'markdown-sample':
+        unawaited(
+          _run(
+            () => showBuiltinDocument(context, BuiltinDocument.markdownSample),
+          ),
         );
       case 'changelog':
         unawaited(
@@ -807,6 +855,30 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         location,
       ], mode: ProcessStartMode.detached);
     }
+  }
+
+  /// 文件菜单“删除文档…”：确认后从磁盘删除并关闭文档（不走保存流程）。
+  Future<void> _deleteCurrentDocument() async {
+    final path = vm.current.path;
+    if (path == null || !mounted) return;
+    final name = vm.current.name;
+    if (!await confirmDeleteDocument(context, name)) return;
+    try {
+      final file = File(path);
+      if (await file.exists()) await file.delete();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.toString()),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    await vm.closeDocument(vm.current, keepDraft: false);
   }
 
   Future<void> _closeDocument() async {
@@ -1135,20 +1207,60 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                       MouseRegion(
                                         cursor:
                                             SystemMouseCursors.resizeLeftRight,
+                                        onEnter: (_) =>
+                                            setState(() => _dividerActive = true),
+                                        onExit: (_) => setState(
+                                          () => _dividerActive = false,
+                                        ),
                                         child: GestureDetector(
                                           behavior: HitTestBehavior.opaque,
+                                          onHorizontalDragStart: (_) =>
+                                              setState(() => _dividerActive = true),
                                           onHorizontalDragUpdate: (d) =>
                                               state.resizeSidebar(
                                                 width + d.delta.dx,
                                               ),
-                                          onHorizontalDragEnd: (_) =>
-                                              state.persist(),
-                                          child: Container(
-                                            width: 3,
-                                            decoration: BoxDecoration(
-                                              border: Border(
-                                                left: BorderSide(
-                                                  color: c.outlineVariant,
+                                          onHorizontalDragEnd: (_) {
+                                            setState(() => _dividerActive = false);
+                                            state.persist();
+                                          },
+                                          // 与原型一致：聚焦分隔条后可用左右方向键微调。
+                                            child: Focus(
+                                              onKeyEvent: (node, event) {
+                                                final key = event.logicalKey;
+                                                if (key !=
+                                                            LogicalKeyboardKey
+                                                                .arrowLeft &&
+                                                        key !=
+                                                            LogicalKeyboardKey
+                                                                .arrowRight ||
+                                                    event is! KeyDownEvent) {
+                                                  return KeyEventResult.ignored;
+                                                }
+                                                state.resizeSidebar(
+                                                  state.sidebarWidth +
+                                                      (key ==
+                                                              LogicalKeyboardKey
+                                                                  .arrowRight
+                                                          ? 10
+                                                          : -10),
+                                                );
+                                                state.persist();
+                                                return KeyEventResult.handled;
+                                              },
+                                            child: Container(
+                                              width: 5,
+                                              decoration: BoxDecoration(
+                                                color: _dividerActive
+                                                    ? Theme.of(context)
+                                                          .colorScheme
+                                                          .primary
+                                                          .withValues(alpha: .35)
+                                                    : Colors.transparent,
+                                                border: Border(
+                                                  left: BorderSide(
+                                                    color: c.outlineVariant,
+                                                  ),
                                                 ),
                                               ),
                                             ),
@@ -1640,22 +1752,40 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       );
 
   List<Widget> _guideMenuChildren(WorkspaceMenuEntry menu) {
-    final items = _menuChildren(menu.children);
+    final entries = menu.children;
+    final items = _menuChildren(entries);
     final selected =
         vm.guiding &&
         vm.guideStep == 7 &&
         (menu.id == 'file' || menu.id == 'tools');
-    return selected
-        ? [
-            Column(
-              key: menu.id == 'tools'
-                  ? _guideShareCommands
-                  : _guideFileCommands,
-              mainAxisSize: MainAxisSize.min,
-              children: items,
-            ),
-          ]
-        : items;
+    if (!selected) return items;
+    if (menu.id == 'file' && items.length == entries.length) {
+      // 桌面菜单一列一项，按条目挂引导键：保存与首个导出入口分别高亮。
+      var exportKeyed = false;
+      Widget keyed(WorkspaceMenuEntry entry, Widget item) {
+        if (entry.id == 'save') {
+          return KeyedSubtree(key: _guideFileSave, child: item);
+        }
+        if (!exportKeyed && entry.id.startsWith('export:')) {
+          exportKeyed = true;
+          return KeyedSubtree(key: _guideFileExport, child: item);
+        }
+        return item;
+      }
+
+      return [
+        for (var i = 0; i < items.length; i++) keyed(entries[i], items[i]),
+      ];
+    }
+    return [
+      Column(
+        key: menu.id == 'tools'
+            ? _guideShareCommands
+            : _guideFileCommands,
+        mainAxisSize: MainAxisSize.min,
+        children: items,
+      ),
+    ];
   }
 
   Future<void> _touchMenu(double width) async {
@@ -1766,7 +1896,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          if (!phone && width >= 1100 && !state.guideSeen)
+          // 工具栏“快速上手”是常驻重入口：看过引导也能随时再次进入。
+          if (!phone && width >= 1100)
             Flexible(
               child: AppButton(
                 label: context.l10n.quickStartBadge,
@@ -2004,14 +2135,25 @@ flowchart LR
     }
   }
 
+  /// 逐字输入 [text]；传入 [base] 时跳过与上文的公共前缀，只追加新增内容，
+  /// 与原型一致：结尾句等“在文末再输入”的镜头不清空重打全文。
   Future<bool> _guideTypeText(
     int step,
     int token,
     String text, {
     int millisecondsPerCharacter = 24,
     String label = '成都慢游',
+    String? base,
   }) async {
-    for (var end = 0; end <= text.length; end++) {
+    var start = 0;
+    if (base != null) {
+      while (start < base.length &&
+          start < text.length &&
+          base[start] == text[start]) {
+        start++;
+      }
+    }
+    for (var end = start; end <= text.length; end++) {
       if (!_guideCanRun(step, token)) return false;
       vm.editor.session.replace(
         text.substring(0, end),
@@ -2067,6 +2209,15 @@ flowchart LR
             if (!await _guideTypeText(
               step,
               token,
+              '# 成都，慢慢走\n\n',
+              millisecondsPerCharacter: 28,
+            )) {
+              return;
+            }
+            _guideMessage('内容会即时呈现。', target: _guideDocumentSurface);
+            if (!await _guideTypeText(
+              step,
+              token,
               _guideStage0,
               millisecondsPerCharacter: 28,
             )) {
@@ -2111,6 +2262,7 @@ flowchart LR
               token,
               revised,
               millisecondsPerCharacter: 26,
+              base: _guideStage0,
             )) {
               return;
             }
@@ -2121,6 +2273,7 @@ flowchart LR
               _guideStage1,
               millisecondsPerCharacter: 8,
               label: '补充成都行程',
+              base: revised,
             )) {
               return;
             }
@@ -2139,6 +2292,7 @@ flowchart LR
               token,
               _guideStage1WithEnding,
               millisecondsPerCharacter: 34,
+              base: _guideStage1,
             )) {
               return;
             }
@@ -2239,12 +2393,19 @@ flowchart LR
             )) {
               return;
             }
-            _mapAppearanceMenu.open();
             if (!await _guidePause(
               step,
               token,
               '点击右侧“导图样式”，看看布局。',
               target: _guideMapToolbar,
+            )) {
+              return;
+            }
+            _mapAppearanceMenu.open();
+            if (!await _guideWait(
+              step,
+              token,
+              const Duration(milliseconds: 260),
             )) {
               return;
             }
@@ -2319,6 +2480,11 @@ flowchart LR
             )) {
               return;
             }
+            // 与原型一致：拉远前先适应窗口，把完整导图装进视野。
+            final mapSize = _guideMap.currentContext?.size;
+            if (mapSize != null && !mapSize.isEmpty) {
+              vm.map.fit(mapSize);
+            }
             if (!await _guidePause(
               step,
               token,
@@ -2339,12 +2505,19 @@ flowchart LR
             )) {
               return;
             }
-            _typographyMenu.open();
             if (!await _guidePause(
               step,
               token,
               '点击“排版”，选择正文样式。',
-              target: _guideTypographyPopup,
+              target: _guideTypographyButton,
+            )) {
+              return;
+            }
+            _typographyMenu.open();
+            if (!await _guideWait(
+              step,
+              token,
+              const Duration(milliseconds: 260),
             )) {
               return;
             }
@@ -2386,7 +2559,9 @@ flowchart LR
             }
             _finishGuideAct(step, token);
           case 5:
-            vm.setLayout(WorkspaceLayout.sourceRender);
+            // 剧本第六幕：先在源码布局逐字输入小节标题，代码块一次性补全，
+            // 再切到“源码 + 渲染”对照布局展示成图，避免半成品围栏报错。
+            vm.setLayout(WorkspaceLayout.source);
             vm.editor.session.replace(_guideStage1WithEnding, label: '成都慢游');
             if (!await _guidePause(
               step,
@@ -2396,22 +2571,40 @@ flowchart LR
             )) {
               return;
             }
-            vm.editor.session.replace(
-              '$_guideStage1WithEnding$_guideRoute',
-              label: '加入成都路线图',
-            );
-            if (!await _guidePause(
+            if (!await _guideTypeText(
               step,
               token,
-              '一段文字变成了清楚的路线，关系用 Markdown 就能表达。',
-              target: _guideDocumentSurface,
+              '$_guideStage1WithEnding\n## 成都慢游路线\n\n',
+              millisecondsPerCharacter: 8,
+              label: '加入成都路线',
+              base: _guideStage1WithEnding,
             )) {
               return;
             }
             vm.editor.session.replace(
-              '$_guideStage1WithEnding$_guideRouteEdited',
-              label: '修改成都路线图',
+              '$_guideStage1WithEnding$_guideRoute',
+              label: '加入成都路线图',
             );
+            vm.setLayout(WorkspaceLayout.sourceRender);
+            if (!await _guidePause(
+              step,
+              token,
+              '一段文字，变成了清楚的路线。',
+              target: _guideDocumentSurface,
+            )) {
+              return;
+            }
+            _guideMessage('给这一站，补上想做的事情。', target: _guideDocumentSurface);
+            if (!await _guideTypeText(
+              step,
+              token,
+              '$_guideStage1WithEnding$_guideRouteEdited',
+              millisecondsPerCharacter: 20,
+              label: '修改成都路线图',
+              base: '$_guideStage1WithEnding$_guideRoute',
+            )) {
+              return;
+            }
             if (!await _guidePause(
               step,
               token,
@@ -2486,19 +2679,30 @@ flowchart LR
             )) {
               return;
             }
-            if (_desktop &&
+            final desktopMenus =
+                _desktop &&
                 !_macOS &&
                 vm.viewport != WorkspaceViewport.phone &&
-                vm.windowSize.width >= 700) {
+                vm.windowSize.width >= 700;
+            if (desktopMenus) {
               _openTopMenu('file');
             } else {
               unawaited(_openGuideTouchMenu('file', step));
             }
+            // 剧本镜头 1/2 拆分：先保存入口，再文章与导图的导出格式。
             if (!await _guidePause(
               step,
               token,
-              '保存和导出入口都在文件菜单里。',
-              target: _guideFileCommands,
+              '这里是保存入口。',
+              target: desktopMenus ? _guideFileSave : _guideFileCommands,
+            )) {
+              return;
+            }
+            if (!await _guidePause(
+              step,
+              token,
+              '想交给别人阅读，也能选择合适的格式。',
+              target: desktopMenus ? _guideFileExport : _guideFileCommands,
             )) {
               return;
             }
@@ -2609,6 +2813,7 @@ flowchart LR
         picker: WorkspacePicker.typography,
         controller: _typographyMenu,
         child: AppButton(
+          key: _guideTypographyButton,
           label: iconOnly
               ? null
               : context.l10n.typographyDropdown(

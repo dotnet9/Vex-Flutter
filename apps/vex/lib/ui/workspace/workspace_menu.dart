@@ -108,11 +108,18 @@ List<WorkspaceMenuEntry> workspaceMenus(
   final menus = <WorkspaceMenuEntry>[
     group('file', title(l.menuFile), [
       item('new', l.newDocument, shortcut: key(LogicalKeyboardKey.keyN)),
-      if (desktop) item('new-window', l.newWindow),
+      if (desktop)
+        item(
+          'new-window',
+          l.newWindow,
+          shortcut: key(LogicalKeyboardKey.keyN, shift: true),
+        ),
       if (desktop) item('document-window', l.documentWindow),
       divider,
       item('open', l.open, shortcut: key(LogicalKeyboardKey.keyO)),
       if (desktop) item('folder', l.openFolder),
+      if (desktop)
+        item('quick-open', l.quickOpen, shortcut: key(LogicalKeyboardKey.keyP)),
       group('recent', l.openRecent, [
         if (vm.recent.isEmpty) item('no-recent', l.noRecent, enabled: false),
         for (final path in vm.recent) item('open-path:$path', path),
@@ -121,6 +128,14 @@ List<WorkspaceMenuEntry> workspaceMenus(
           item('clear-recent', l.clearRecent),
         ],
       ]),
+      // 与原型一致：按指定编码重新读取当前文件，保存时沿用所选编码。
+      if (desktop && vm.current.path != null)
+        group('encoding-reload', l.reopenWithEncoding, [
+          item('encoding-reload:utf8', 'UTF-8'),
+          item('encoding-reload:utf8Bom', 'UTF-8 BOM'),
+          item('encoding-reload:gb18030', 'GB18030'),
+          item('encoding-reload:big5', 'Big5'),
+        ]),
       divider,
       item(
         'save',
@@ -144,6 +159,25 @@ List<WorkspaceMenuEntry> workspaceMenus(
           l.printPreview,
           shortcut: key(LogicalKeyboardKey.keyP, shift: true),
         ),
+      if (desktop && !macOS) ...[
+        divider,
+        item(
+          'document-properties',
+          l.documentProperties,
+          shortcut: SingleActivator(LogicalKeyboardKey.enter, alt: true),
+          enabled: vm.current.path != null,
+        ),
+        item(
+          'reveal-file',
+          l.openFileLocation,
+          enabled: vm.current.path != null,
+        ),
+        item(
+          'delete-document',
+          l.deleteDocument,
+          enabled: vm.current.path != null,
+        ),
+      ],
       divider,
       item(
         'close-document',
@@ -177,6 +211,11 @@ List<WorkspaceMenuEntry> workspaceMenus(
             vm.editor.selection.isValid && !vm.editor.selection.isCollapsed,
       ),
       item('copy', l.copy, shortcut: key(LogicalKeyboardKey.keyC)),
+      item(
+        'copy-plain',
+        l.copyAsPlainText,
+        shortcut: key(LogicalKeyboardKey.keyC, shift: true),
+      ),
       item('paste', l.paste, shortcut: key(LogicalKeyboardKey.keyV)),
       item('select-all', l.selectAll, shortcut: key(LogicalKeyboardKey.keyA)),
       divider,
@@ -310,6 +349,7 @@ List<WorkspaceMenuEntry> workspaceMenus(
           l.fullscreen,
           shortcut: key(LogicalKeyboardKey.f11, primary: false),
         ),
+        item('topmost', l.keepWindowOnTop, checked: vm.alwaysOnTop),
         item('maximize', l.maximizeRestore),
       ],
       divider,
@@ -323,6 +363,7 @@ List<WorkspaceMenuEntry> workspaceMenus(
         divider,
       ],
       item('summary', l.summarySettings),
+      item('statistics', l.statisticsTitle),
       divider,
       item('publish:wechat', l.copyWechat),
       item('publish:zhihu', l.copyZhihu),
@@ -334,6 +375,7 @@ List<WorkspaceMenuEntry> workspaceMenus(
     group('help', title(l.menuHelp), [
       item('guide', l.quickStart),
       item('mermaid-examples', l.mermaidExamples),
+      item('markdown-sample', l.builtinMarkdownSample),
       divider,
       item('changelog', l.changelog),
       item('thanks', l.builtinThanks),

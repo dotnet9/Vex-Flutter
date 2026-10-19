@@ -527,4 +527,34 @@
   "@anchorNotFound": {"placeholders":{"anchor":{"type":"String"}}},
   "excludeGeneratedFolders": "Skip generated folders",
   "saveCopy": "Save a copy"
+,
+  "quickOpen": "Quick Open…",
+  "copyAsPlainText": "Copy as Plain Text",
+  "keepWindowOnTop": "Keep Window on Top",
+  "reopenWithEncoding": "Reopen with Encoding",
+  "deleteDocument": "Delete Document…",
+  "deleteDocumentConfirm": "Delete “{name}” from disk?",
+  "@deleteDocumentConfirm": {"placeholders":{"name":{"type":"String"}}},
+  "deleteDocumentHint": "The file will be permanently deleted from disk. This cannot be undone.",
+  "statisticsTitle": "Statistics",
+  "statSourceCharacters": "Source characters",
+  "statParagraphs": "Paragraphs",
+  "statReadingTime": "~{minutes} min",
+  "@statReadingTime": {"placeholders":{"minutes":{"type":"int"}}},
+  "statStatus": "Status",
+  "statModified": "Modified",
+  "propertyName": "Name",
+  "propertyFormat": "Format",
+  "propertySize": "Size",
+  "propertyBytes": "{count} bytes",
+  "@propertyBytes": {"placeholders":{"count":{"type":"int"}}},
+  "propertyLocation": "Location"
+,
+  "statReadingTimeLabel": "Reading time"
+,
+  "tocTitle": "Contents",
+  "calloutInfo": "Info",
+  "calloutWarning": "Warning"
+,
+  "builtinMarkdownSample": "Markdown Features"
 }

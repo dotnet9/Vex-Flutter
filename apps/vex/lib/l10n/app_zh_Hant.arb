@@ -527,4 +527,34 @@
   "@anchorNotFound": {"placeholders":{"anchor":{"type":"String"}}},
   "excludeGeneratedFolders": "略過工具產生的資料夾",
   "saveCopy": "儲存副本"
+,
+  "quickOpen": "快速開啟…",
+  "copyAsPlainText": "複製為純文字",
+  "keepWindowOnTop": "保持視窗在最前",
+  "reopenWithEncoding": "選擇編碼重新開啟",
+  "deleteDocument": "刪除文件…",
+  "deleteDocumentConfirm": "從磁碟刪除「{name}」？",
+  "@deleteDocumentConfirm": {"placeholders":{"name":{"type":"String"}}},
+  "deleteDocumentHint": "檔案將從磁碟永久刪除，無法復原。",
+  "statisticsTitle": "字數統計",
+  "statSourceCharacters": "原始檔字元",
+  "statParagraphs": "段落",
+  "statReadingTime": "約 {minutes} 分鐘",
+  "@statReadingTime": {"placeholders":{"minutes":{"type":"int"}}},
+  "statStatus": "狀態",
+  "statModified": "已修改",
+  "propertyName": "名稱",
+  "propertyFormat": "格式",
+  "propertySize": "大小",
+  "propertyBytes": "{count} 位元組",
+  "@propertyBytes": {"placeholders":{"count":{"type":"int"}}},
+  "propertyLocation": "位置"
+,
+  "statReadingTimeLabel": "閱讀時間"
+,
+  "tocTitle": "目錄",
+  "calloutInfo": "資訊",
+  "calloutWarning": "警告"
+,
+  "builtinMarkdownSample": "Markdown 功能示例"
 }

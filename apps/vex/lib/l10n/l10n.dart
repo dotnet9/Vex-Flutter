@@ -133,6 +133,9 @@ extension LocalizedChoices on AppLocalizations {
     diagramPreview: mermaidPreview,
     diagramUnavailable: mermaidUnavailable,
     diagramError: mermaidError,
+    tocTitle: tocTitle,
+    calloutInfo: calloutInfo,
+    calloutWarning: calloutWarning,
   );
 
   MindMapLabels get mapLabels => MindMapLabels(
