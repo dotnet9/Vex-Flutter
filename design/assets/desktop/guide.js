@@ -34,8 +34,11 @@
       run: function (done) {
         pauseForContinue('在这里写下游记。', ['#instant-pane'], 'area', function () {
           cue('写下这趟旅行的标题。', ['#instant-pane']);
-          typeText(stage0, 28, function () {
-            pauseForContinue('内容已经写下，先读一遍刚才的结果。', ['#instant-pane'], 'area', done);
+          typeText('# 成都，慢慢走\n\n', 28, function () {
+            cue('内容会即时呈现。', ['#instant-pane']);
+            typeText(stage0, 28, function () {
+              pauseForContinue('内容已经写下，先读一遍刚才的结果。', ['#instant-pane'], 'area', done);
+            });
           });
         });
       }
@@ -220,11 +223,13 @@
         ensureText(routeEdited); setLayout('read');
         pauseForContinue('想继续写，可以保存这份 Markdown。', ['.tb-menuitem[data-menu^="文件"]'], 'control', function () {
           openMenu('文件(F)');
-          pauseForContinue('保存和导出入口都在这里。', ['.menu-flyout [data-menu-action="save"]', '.menu-flyout [data-menu-action="export-html"]'], 'control', function () {
-            closeMenu(); openMenu('工具(T)');
-            pauseForContinue('准备发布时，从这里选择对应的平台。', ['.menu-flyout [data-menu-action^="copy-"]'], 'control', function () {
-              closeMenu();
-              pauseForContinue('一篇游记已经成形。', ['#markdown-preview'], 'area', done);
+          pauseForContinue('这里是保存入口。', ['.menu-flyout [data-menu-action="save"]'], 'control', function () {
+            pauseForContinue('想交给别人阅读，也能选择合适的格式。', ['.menu-flyout [data-menu-action="export-html"]', '.menu-flyout [data-menu-action="export-pdf"]', '.menu-flyout [data-menu-label="导出 PNG 长图"]', '.menu-flyout [data-menu-label="导出 Word（.docx）"]'], 'control', function () {
+              closeMenu(); openMenu('工具(T)');
+              pauseForContinue('准备发布时，从这里选择对应的平台。', ['.menu-flyout [data-menu-action^="copy-"]'], 'control', function () {
+                closeMenu();
+                pauseForContinue('一篇游记已经成形。', ['#markdown-preview'], 'area', done);
+              });
             });
           });
         });
@@ -524,5 +529,8 @@
   window.addEventListener('resize', layout);
   new MutationObserver(layout).observe(app(), { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'style', 'class', 'data-active'] });
   window.VexGuide = { start: start, close: close, allows: function (target) { return !open || automating || card.contains(target); }, get active() { return open; } };
-  if (new URLSearchParams(location.search).get('scenario') === 'guide') setTimeout(function () { start({ automatic: true }); }, 300);
+  // 首次进入工作区自动弹出说明（看过一次后由 guideSeenKey 抑制）；
+  // ?scenario=guide 演示通道沿用更短的等待。
+  var autoDelay = new URLSearchParams(location.search).get('scenario') === 'guide' ? 300 : 650;
+  setTimeout(function () { start({ automatic: true }); }, autoDelay);
 })();

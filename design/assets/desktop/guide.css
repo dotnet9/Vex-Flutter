@@ -54,7 +54,7 @@
 .story-tour .tour-light-tip { position:fixed; z-index:4; box-sizing:border-box; max-width:min(360px,calc(100vw - 24px)); padding:7px 11px; border:1px solid color-mix(in srgb,var(--accent) 28%,var(--border)); border-radius:999px; color:var(--fg); background:color-mix(in srgb,var(--panel) 94%,var(--accent) 6%); box-shadow:0 8px 24px #0004; font-size:12px; line-height:1.45; white-space:nowrap; pointer-events:none; }
 .story-actions { position:relative; display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:20px; padding-top:15px; border-top:1px solid color-mix(in srgb,var(--border) 78%,transparent); }
 .story-actions .tour-skip { margin-right:auto; }
-.story-actions .action-count { flex:0 0 auto; margin-left:auto; color:var(--muted); font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; }
+.story-actions .action-count { position:absolute; left:50%; transform:translateX(-50%); color:var(--muted); font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; }
 .story-actions .tour-previous { flex:0 0 auto; }
 .story-next-note { margin:14px 0 0; padding:10px 12px; border-radius:7px; background:var(--accent-soft); color:var(--muted); font-size:11px; line-height:1.7; }
 .tour-cursor { position:fixed; z-index:3; width:18px; height:18px; display:grid; place-items:center; border-radius:50%; color:var(--accent-fg); background:var(--accent); box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent),0 5px 16px #0004; font-size:12px; line-height:1; pointer-events:none; transition:left .25s ease,top .25s ease; }
@@ -72,5 +72,5 @@
 .app-window[data-guide-step="4"] .layout-miniature { height:34px; margin-bottom:0; padding:3px; }
 .app-window[data-guide-step="4"] .workspace-layout-footer { margin-top:10px; padding-top:8px; }
 @media (max-width:760px) { .guide-launch span { display:none; } .tour-card { width:292px; padding:16px; } }
-@media (max-width:760px) { .story-tour .story-card, .story-tour .story-card[data-mode="intro"], .story-tour .story-card[data-mode="result"] { width:calc(100vw - 32px); } .story-actions { flex-wrap:wrap; } }
+@media (max-width:760px) { .story-tour .story-card, .story-tour .story-card[data-mode="intro"], .story-tour .story-card[data-mode="result"] { width:calc(100vw - 32px); } .story-actions { flex-wrap:wrap; } .story-actions .action-count { position:static; transform:none; margin-left:auto; flex:0 0 auto; } }
 @media (prefers-reduced-motion:reduce) { .tour-layer * { animation:none!important; transition:none!important; } }
