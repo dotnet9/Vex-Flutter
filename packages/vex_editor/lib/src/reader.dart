@@ -429,7 +429,9 @@ final class _CalloutBuilder extends MarkdownElementBuilder {
               ? const Color(0xFFFBBF24)
               : const Color(0xFFB54708))
         : colors.primary;
-    final title = warning ? reader.labels.calloutWarning : reader.labels.calloutInfo;
+    final title = warning
+        ? reader.labels.calloutWarning
+        : reader.labels.calloutInfo;
     final body = (parentStyle ?? reader.styleSheet(context).p!).copyWith(
       color: colors.onSurface,
     );

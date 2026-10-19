@@ -551,9 +551,8 @@ class _DocumentReadingState extends State<_DocumentReading>
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(6),
                       color: index == _flashIndex
-                          ? Theme.of(
-                              context,
-                            ).colorScheme.primary.withValues(alpha: .16)
+                          ? Theme.of(context).colorScheme.primary
+                                .withValues(alpha: .16)
                           : Colors.transparent,
                     ),
                     child: GestureDetector(

@@ -61,7 +61,11 @@ Future<void> showWorkspaceStatistics(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _infoRow(context, l.statSourceCharacters, text.characters.length.toString()),
+          _infoRow(
+            context,
+            l.statSourceCharacters,
+            text.characters.length.toString(),
+          ),
           _infoRow(context, l.rows, text.split('\n').length.toString()),
           _infoRow(
             context,
@@ -80,8 +84,16 @@ Future<void> showWorkspaceStatistics(
                 .toString(),
           ),
           _infoRow(context, l.statReadingTimeLabel, l.statReadingTime(minutes)),
-          _infoRow(context, l.prefEncoding, _encodingName(vm.current.format.encoding)),
-          _infoRow(context, l.statStatus, vm.editor.session.isDirty ? l.statModified : l.unmodified),
+          _infoRow(
+            context,
+            l.prefEncoding,
+            _encodingName(vm.current.format.encoding),
+          ),
+          _infoRow(
+            context,
+            l.statStatus,
+            vm.editor.session.isDirty ? l.statModified : l.unmodified,
+          ),
         ],
       ),
     ),
@@ -122,8 +134,13 @@ Future<void> showWorkspaceProperties(
             vm.editor.session.isDirty ? l.statModified : l.unmodified,
           ),
           _infoRow(context, l.propertyFormat, 'Markdown'),
-          _infoRow(context, l.prefEncoding, _encodingName(vm.current.format.encoding)),
-          if (size != null) _infoRow(context, l.propertySize, l.propertyBytes(size)),
+          _infoRow(
+            context,
+            l.prefEncoding,
+            _encodingName(vm.current.format.encoding),
+          ),
+          if (size != null)
+            _infoRow(context, l.propertySize, l.propertyBytes(size)),
           _infoRow(context, l.propertyLocation, path),
         ],
       ),
@@ -132,28 +149,26 @@ Future<void> showWorkspaceProperties(
 }
 
 /// 文件 → 删除文档…：确认后由调用方执行磁盘删除并关闭文档。
-Future<bool> confirmDeleteDocument(
-  BuildContext context,
-  String name,
-) => showDialog<bool>(
-  context: context,
-  builder: (context) => AppDialog(
-    title: context.l10n.deleteDocumentConfirm(name),
-    width: 460,
-    actions: [
-      AppButton(
-        label: context.l10n.cancel,
-        onPressed: () => Navigator.pop(context, false),
+Future<bool> confirmDeleteDocument(BuildContext context, String name) =>
+    showDialog<bool>(
+      context: context,
+      builder: (context) => AppDialog(
+        title: context.l10n.deleteDocumentConfirm(name),
+        width: 460,
+        actions: [
+          AppButton(
+            label: context.l10n.cancel,
+            onPressed: () => Navigator.pop(context, false),
+          ),
+          AppButton(
+            label: context.l10n.discard,
+            primary: true,
+            onPressed: () => Navigator.pop(context, true),
+          ),
+        ],
+        child: Text(
+          context.l10n.deleteDocumentHint,
+          style: const TextStyle(fontSize: 14, height: 1.65),
+        ),
       ),
-      AppButton(
-        label: context.l10n.discard,
-        primary: true,
-        onPressed: () => Navigator.pop(context, true),
-      ),
-    ],
-    child: Text(
-      context.l10n.deleteDocumentHint,
-      style: const TextStyle(fontSize: 14, height: 1.65),
-    ),
-  ),
-).then((value) => value == true);
+    ).then((value) => value == true);

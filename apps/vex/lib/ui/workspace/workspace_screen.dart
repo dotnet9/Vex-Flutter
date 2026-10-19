@@ -1207,47 +1207,52 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                       MouseRegion(
                                         cursor:
                                             SystemMouseCursors.resizeLeftRight,
-                                        onEnter: (_) =>
-                                            setState(() => _dividerActive = true),
+                                        onEnter: (_) => setState(
+                                          () => _dividerActive = true,
+                                        ),
                                         onExit: (_) => setState(
                                           () => _dividerActive = false,
                                         ),
                                         child: GestureDetector(
                                           behavior: HitTestBehavior.opaque,
                                           onHorizontalDragStart: (_) =>
-                                              setState(() => _dividerActive = true),
+                                              setState(
+                                                () => _dividerActive = true,
+                                              ),
                                           onHorizontalDragUpdate: (d) =>
                                               state.resizeSidebar(
                                                 width + d.delta.dx,
                                               ),
                                           onHorizontalDragEnd: (_) {
-                                            setState(() => _dividerActive = false);
+                                            setState(
+                                              () => _dividerActive = false,
+                                            );
                                             state.persist();
                                           },
                                           // 与原型一致：聚焦分隔条后可用左右方向键微调。
-                                            child: Focus(
-                                              onKeyEvent: (node, event) {
-                                                final key = event.logicalKey;
-                                                if (key !=
+                                          child: Focus(
+                                            onKeyEvent: (node, event) {
+                                              final key = event.logicalKey;
+                                              if (key !=
+                                                          LogicalKeyboardKey
+                                                              .arrowLeft &&
+                                                      key !=
+                                                          LogicalKeyboardKey
+                                                              .arrowRight ||
+                                                  event is! KeyDownEvent) {
+                                                return KeyEventResult.ignored;
+                                              }
+                                              state.resizeSidebar(
+                                                state.sidebarWidth +
+                                                    (key ==
                                                             LogicalKeyboardKey
-                                                                .arrowLeft &&
-                                                        key !=
-                                                            LogicalKeyboardKey
-                                                                .arrowRight ||
-                                                    event is! KeyDownEvent) {
-                                                  return KeyEventResult.ignored;
-                                                }
-                                                state.resizeSidebar(
-                                                  state.sidebarWidth +
-                                                      (key ==
-                                                              LogicalKeyboardKey
-                                                                  .arrowRight
-                                                          ? 10
-                                                          : -10),
-                                                );
-                                                state.persist();
-                                                return KeyEventResult.handled;
-                                              },
+                                                                .arrowRight
+                                                        ? 10
+                                                        : -10),
+                                              );
+                                              state.persist();
+                                              return KeyEventResult.handled;
+                                            },
                                             child: Container(
                                               width: 5,
                                               decoration: BoxDecoration(
@@ -1255,7 +1260,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                                     ? Theme.of(context)
                                                           .colorScheme
                                                           .primary
-                                                          .withValues(alpha: .35)
+                                                          .withValues(
+                                                            alpha: .35,
+                                                          )
                                                     : Colors.transparent,
                                                 border: Border(
                                                   left: BorderSide(
@@ -1779,9 +1786,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     }
     return [
       Column(
-        key: menu.id == 'tools'
-            ? _guideShareCommands
-            : _guideFileCommands,
+        key: menu.id == 'tools' ? _guideShareCommands : _guideFileCommands,
         mainAxisSize: MainAxisSize.min,
         children: items,
       ),

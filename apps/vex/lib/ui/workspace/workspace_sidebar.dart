@@ -670,30 +670,34 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
           if (!_collapsed.remove(row.path)) _collapsed.add(row.path);
           _collapseRevision++;
         }),
-      style: TextButton.styleFrom(
-        alignment: Alignment.centerLeft,
-        minimumSize: const Size(0, 34),
-        fixedSize: const Size.fromHeight(34),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        padding: EdgeInsets.only(left: 8 + depth * 14, right: 8),
-        foregroundColor: c.onSurface,
-        textStyle: const TextStyle(fontSize: 13),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-      ),
-      child: Row(
-        children: [
-          RotatedBox(
-            quarterTurns: row.expanded ? 0 : -1,
-            child: const AppGlyph('chevron-down', size: 12),
-          ),
-          const SizedBox(width: 7),
-          const AppGlyph('folder', size: 14),
-          const SizedBox(width: 7),
-          Expanded(
-            child: Text(row.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-          ),
-        ],
-      ),
+        style: TextButton.styleFrom(
+          alignment: Alignment.centerLeft,
+          minimumSize: const Size(0, 34),
+          fixedSize: const Size.fromHeight(34),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          padding: EdgeInsets.only(left: 8 + depth * 14, right: 8),
+          foregroundColor: c.onSurface,
+          textStyle: const TextStyle(fontSize: 13),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+        ),
+        child: Row(
+          children: [
+            RotatedBox(
+              quarterTurns: row.expanded ? 0 : -1,
+              child: const AppGlyph('chevron-down', size: 12),
+            ),
+            const SizedBox(width: 7),
+            const AppGlyph('folder', size: 14),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Text(
+                row.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
