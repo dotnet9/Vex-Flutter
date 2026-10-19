@@ -79,16 +79,23 @@ def draft_release_notes(tag, meta):
     return True
 
 
+def ensure_pub_get():
+    """干净检出（临时 worktree）需要 .dart_tool 才能同步项目信息与跑契约检查。"""
+    try:
+        run(('flutter', 'pub', 'get', '--enforce-lockfile'))
+    except FileNotFoundError:
+        print('警告：未找到 flutter，跳过依赖解析（CI 仍会执行）。')
+
+
 def contract_checks():
     """Regenerate bundled documents and run the prototype contract checks."""
     run((sys.executable, str(ROOT / 'scripts' / 'sync_builtin_documents.py')))
     try:
-        run(('flutter', 'pub', 'get', '--enforce-lockfile'))
         for script in sorted(glob.glob(str(ROOT / 'design' / 'scripts' / 'verify*.cjs'))):
             run(('node', script))
             print(f'契约检查通过 {Path(script).name}')
     except FileNotFoundError:
-        print('警告：未找到 flutter/node，跳过本地预检（CI 仍会执行）。')
+        print('警告：未找到 node，跳过本地原型契约检查（CI 仍会执行）。')
 
 
 def local_tag_commit(target):
@@ -132,6 +139,7 @@ def main():
         sys.exit(f'已创建发布说明草稿 .github/release-notes/{tag}.md，请补充完善后重新运行。')
 
     # 版本号或依赖变化后刷新已提交的项目信息（版本常量、组件与授权清单）。
+    ensure_pub_get()
     run((sys.executable, str(ROOT / 'scripts' / 'sync_project_info.py')))
 
     contract_checks()
