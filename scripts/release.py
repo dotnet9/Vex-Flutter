@@ -12,6 +12,7 @@ import datetime
 import glob
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -81,10 +82,11 @@ def draft_release_notes(tag, meta):
 
 def ensure_pub_get():
     """干净检出（临时 worktree）需要 .dart_tool 才能同步项目信息与跑契约检查。"""
-    try:
-        run(('flutter', 'pub', 'get', '--enforce-lockfile'))
-    except FileNotFoundError:
+    flutter = shutil.which('flutter') or shutil.which('flutter.bat')
+    if flutter is None:
         print('警告：未找到 flutter，跳过依赖解析（CI 仍会执行）。')
+        return
+    run((flutter, 'pub', 'get', '--enforce-lockfile'))
 
 
 def contract_checks():
