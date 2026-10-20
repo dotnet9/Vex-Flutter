@@ -57,17 +57,35 @@ body { font-family:var(--font); font-size:14px; }
 .about-identity h2 { font-size:24px; letter-spacing:0; }
 .about-identity .slogan,.about-row { font-size:14px; line-height:1.8; }
 .about-rows { padding:22px 32px 0; gap:10px 24px; }
-/* 检查更新对话框：当前版本行、检查按钮与版本日志列表。 */
-.update-body { padding:22px 32px 24px; display:flex; flex-direction:column; gap:14px; }
-.update-actions { display:flex; align-items:center; gap:12px; }
-.update-date { color:var(--muted); font-size:12px; }
+/* 检查更新对话框：英雄区（图标+标题+摘要）、进度条、类型化更新日志。 */
+.update-body { padding:26px 32px 24px; display:flex; flex-direction:column; gap:16px; }
+.update-hero { display:flex; align-items:center; gap:16px; }
+.update-icon { width:52px; height:52px; flex:0 0 52px; display:grid; place-items:center; border-radius:50%; color:#fff; background:var(--accent); box-shadow:0 6px 18px color-mix(in srgb, var(--accent) 35%, transparent); }
+.update-icon .ico { width:24px; height:24px; }
+.update-icon.spinning { background:transparent; color:var(--accent); border:3px solid color-mix(in srgb, var(--accent) 25%, transparent); border-top-color:var(--accent); animation:update-spin .9s linear infinite; }
+@keyframes update-spin { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion:reduce) { .update-icon.spinning { animation:none; } }
+.update-copy { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.update-copy strong { font-size:18px; font-weight:700; letter-spacing:-.01em; }
+.update-sub { color:var(--muted); font-size:12.5px; }
+.update-progress { display:flex; align-items:center; gap:12px; }
+.update-progress-track { flex:1; height:6px; border-radius:6px; background:color-mix(in srgb, var(--accent) 14%, var(--border)); overflow:hidden; }
+.update-progress-bar { height:100%; width:0; border-radius:6px; background:var(--accent); transition:width .12s linear; }
+.update-progress-num { flex:0 0 auto; font-variant-numeric:tabular-nums; color:var(--muted); font-size:12px; }
+.update-actions { display:flex; justify-content:flex-end; gap:10px; }
+.update-actions .btn.primary { color:var(--accent-fg); background:var(--accent); border-color:var(--accent); }
+.update-changes summary { cursor:pointer; color:var(--muted); font-size:12.5px; user-select:none; }
+.update-changes[open] summary { margin-bottom:8px; }
 .update-list { display:flex; flex-direction:column; gap:14px; }
-.update-item { border:1px solid var(--border); border-radius:9px; padding:12px 14px; background:color-mix(in srgb, var(--panel) 92%, var(--accent) 8%); }
-.update-item header { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:6px; }
-.update-item header strong { font-size:14px; }
-.update-item .update-log { font-size:12.5px; line-height:1.7; color:var(--fg); }
-.update-item .update-log ul { margin:4px 0 4px 18px; padding:0; list-style:disc; }
-.about-footer { grid-template-columns:minmax(0,1fr); gap:4px; margin-top:22px; padding-top:14px; padding-bottom:20px; }
+.update-version { display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding-bottom:4px; }
+.update-version strong { font-size:13.5px; }
+.update-date { color:var(--muted); font-size:12px; }
+.update-entries { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:6px; }
+.update-entries li { display:flex; align-items:baseline; gap:8px; font-size:12.5px; line-height:1.65; color:var(--fg); }
+.update-tag { flex:0 0 auto; padding:1px 7px; border-radius:999px; font-size:11px; font-weight:600; color:#fff; }
+.update-tag.tag-new { background:#1f9d63; }
+.update-tag.tag-opt { background:#3b82d6; }
+.update-tag.tag-fix { background:#d68a3b; }.about-footer { grid-template-columns:minmax(0,1fr); gap:4px; margin-top:22px; padding-top:14px; padding-bottom:20px; }
 .about-framework { color:var(--muted); font-size:12px; }
 .about-foot,.ver-badge { font-size:12px; }
 .md-body img { display:block; max-width:100%; height:auto; margin:18px auto; border-radius:10px; }
