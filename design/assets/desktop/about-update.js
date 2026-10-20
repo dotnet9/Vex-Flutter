@@ -159,9 +159,10 @@
     overlay.setAttribute('aria-live', 'polite');
     overlay.innerHTML = '<img src="assets/vex-logo.svg" alt=""><span class="handoff-kicker">VEX UPDATE</span><h2>正在启动安装程序…</h2><p>更新包已准备就绪。Vex 即将退出，后续步骤将在安装程序中完成。</p><div class="handoff-progress" aria-hidden="true"><span></span></div>';
     app.appendChild(overlay);
-    const id = ++generation;
-    timer = setTimeout(() => {
-      if (id !== generation || !overlay.isConnected) return;
+    // Use a separate hand-off timer: hiding the update dialog triggers its observer,
+    // which intentionally invalidates update-operation timers.
+    setTimeout(() => {
+      if (!overlay.isConnected) return;
       overlay.innerHTML = '<img src="assets/vex-logo.svg" alt=""><span class="handoff-kicker">VEX UPDATE</span><h2>安装程序已启动</h2><p>在真实桌面应用中，Vex 会在此时关闭。请在独立安装程序中完成更新。</p><p class="handoff-note">原型预览无法启动本机安装包或关闭浏览器标签页，此处仅演示交接与退出状态。</p><button type="button" class="handoff-return">返回原型预览</button>';
       overlay.querySelector('.handoff-return').addEventListener('click', () => overlay.remove());
     }, 850);
