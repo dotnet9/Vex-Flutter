@@ -60,21 +60,18 @@ for(const menu of menus('windows').concat([{items:Array.from({length:28},()=>({l
   const expected=rows.filter(row=>row.className==='menu-item');
   for(const height of [360,520,700,950,520]) {
     fitting.fitMenu(box,height);
-    const actual=box.children.flatMap(column=>column.children.filter(row=>row.className==='menu-item'));
-    assert.equal(actual.length,expected.length,'Reflow must preserve every command');
-    assert.ok(actual.every((row,index)=>row===expected[index]),'Reflow must preserve command order');
-    for(const column of box.children) {
-      assert.notEqual(column.children[0].className,'menu-sep');
-      assert.notEqual(column.children.at(-1).className,'menu-sep');
-      const used=column.children.reduce((sum,row)=>sum+(row.className==='menu-sep'?11:36),12);
-      assert.ok(used<=height,`Column height ${used} exceeds ${height}`);
-    }
+    const actual=box.children.filter(row=>row.className==='menu-item');
+    assert.equal(actual.length,expected.length,'Single-column menu must preserve every command');
+    assert.ok(actual.every((row,index)=>row===expected[index]),'Menu must preserve command order');
+    assert.equal(box.style.display,'block','Menus must remain a single vertical list');
+    assert.equal(box.style.overflowY,'auto','Long menus must scroll vertically');
+    assert.ok(!box.children.some(row=>row.className==='menu-column'),'Menu must not create adjacent columns');
   }
 }
 const css=fs.readFileSync(path.join(assets,'prototype.css'),'utf8');
-assert.match(css,/\.menu-flyout>\.flyout,body>\.submenu\.flyout\s*\{[^}]*max-height:none;[^}]*overflow:visible;/);
+assert.match(css,/\.menu-flyout>\.flyout,body>\.submenu\.flyout\s*\{[^}]*display:block;[^}]*max-width:min\(340px,calc\(100vw - 16px\)\);[^}]*overflow-y:auto;/);
 assert.ok(!interact.includes("box.addEventListener('scroll'"));
 const workbench = fs.readFileSync(path.join(assets,'desktop/workbench.js'),'utf8');
 assert.match(workbench,/fileListMode = bundledDocument \? 'list'/);
 assert.match(workbench,/if \(!bundledDocument\) VexStorage.setItem\('vex-design-file-list-mode'/);
-console.log('PASS: flat commands, non-scrolling grouped columns and repeated reflow without omissions; isolated built-in document lists.');
+console.log('PASS: flat commands, single-column scrollable menus without omissions; isolated built-in document lists.');
