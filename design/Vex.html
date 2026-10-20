@@ -107,12 +107,12 @@
     </div>
     <main class="workspace" data-view="edit">
       <aside class="sidebar" aria-label="文档导航"><div class="sidebar-inner">
-        <div class="side-tabs" role="tablist" aria-label="文档导航"><button class="side-tab on" role="tab" aria-selected="true" aria-controls="files-pane" data-pane="files" data-l10n="SidebarFiles">文件</button><button class="side-tab" role="tab" aria-selected="false" aria-controls="outline-pane" data-pane="outline" data-l10n="SidebarOutline">大纲</button></div>
-        <div class="side-pane" id="files-pane" role="tabpanel" data-pane-body="files">
+        
+        <div class="side-pane" id="files-pane">
           <label class="sidebar-search"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg><input id="file-filter" placeholder="搜索文档…" aria-label="搜索文档"><button class="clear-search" data-action="clear-file-search" title="清除搜索" aria-label="清除搜索"><svg class="ico"><use href="#i-x"/></svg></button></label>
           <div class="file-list" id="file-list"></div><div class="empty-state" id="file-empty" hidden>没有匹配的文档</div>
         </div>
-        <div class="side-pane" id="outline-pane" role="tabpanel" data-pane-body="outline" hidden><label class="sidebar-search"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg><input id="outline-filter" placeholder="查找标题…" aria-label="查找大纲标题"><button class="clear-search" data-action="clear-outline-search" title="清除搜索" aria-label="清除搜索"><svg class="ico"><use href="#i-x"/></svg></button></label><div class="outline-list" id="outline-body"></div></div>
+        
         <footer class="file-navigation-footer" id="file-navigation-footer"><button data-action="new" title="新建" aria-label="新建"><svg class="ico"><use href="#i-plus"/></svg></button><button class="folder-trigger" data-action="open-folder" title="打开文件夹"><svg class="ico"><use href="#i-folder"/></svg><span id="folder-name">演示文档</span></button><button data-action="file-actions" title="文件操作" aria-label="文件操作" aria-expanded="false"><svg class="ico"><use href="#i-more"/></svg></button><button data-action="collapse-files" id="collapse-files" title="全部折叠" aria-label="全部折叠" disabled><svg class="ico"><use href="#i-fold"/></svg></button><button data-action="file-list-toggle" id="file-list-toggle" title="切换为列表视图" aria-label="切换为列表视图"><svg class="ico"><use href="#i-list"/></svg></button><div class="file-navigation-menu" id="file-navigation-menu" hidden><button data-action="new">新建</button><button data-action="quick-open">搜索文档</button><button data-action="open-folder">打开文件夹…</button><button data-action="refresh-files">刷新文件</button><button data-action="sort-files">切换名称排序</button></div></footer>
       </div></aside>
       <div class="sidebar-splitter" id="sidebar-splitter" role="separator" aria-label="调整文档导航宽度" aria-orientation="vertical" aria-valuemin="200" aria-valuemax="560" aria-valuenow="226" tabindex="0"></div>
@@ -183,7 +183,12 @@
       </div>
       <div class="document-corner-actions"><button class="on" data-action="toggle-sidebar" id="sidebar-toggle" title="显示 / 隐藏侧栏" aria-label="显示 / 隐藏侧栏" aria-pressed="true"><svg class="ico"><use href="#i-sidebar"/></svg></button><button data-action="toggle-source" id="edit-source" title="切换源码模式" aria-label="切换源码模式" aria-pressed="false"><svg class="ico"><use href="#i-code"/></svg></button></div><span class="document-word-count" id="sb-wordcount">0 词</span>
       </div>
-    </main>
+    <aside class="structure-sidebar" id="structure-sidebar" aria-label="文档结构"><div class="structure-inner">
+        <div class="structure-head"><span class="structure-title">文档结构</span><button class="structure-toggle" data-action="toggle-structure" title="收起文档结构" aria-label="收起文档结构" aria-expanded="true"><svg class="ico" aria-hidden="true"><use href="#i-chevron-down"/></svg></button></div>
+        <label class="sidebar-search structure-search"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg><input id="outline-filter" placeholder="查找标题…" aria-label="查找大纲标题"><button class="clear-search" data-action="clear-outline-search" title="清除搜索" aria-label="清除搜索"><svg class="ico"><use href="#i-x"/></svg></button></label>
+        <div class="outline-list structure-list" id="outline-body"></div>
+      </div></aside>
+      </main>
     <!-- ========== 窗体内浮层 ========== -->
 
     <!-- 未保存更改 -->

@@ -77,13 +77,11 @@
       resultTitle: '大纲与导图', result: '定位章节，整理文章结构。',
       prepare: function () {
         ensureText(stage1WithEnding); setLayout('instant'); closeLayers();
-        withAutomation(function () { document.querySelector('.side-tab[data-pane="files"]')?.click(); });
-        focusTargets = ['.side-tab[data-pane="outline"]']; focusKind = 'control'; focusPreferred = 'right';
+        focusTargets = ['.structure-sidebar']; focusKind = 'control'; focusPreferred = 'right';
       },
       run: function (done) {
         ensureText(stage1WithEnding); setLayout('instant');
-        pauseForContinue('点击“大纲”，查看文章结构。', ['.side-tab[data-pane="outline"]'], 'control', function () {
-          click('.side-tab[data-pane="outline"]');
+        pauseForContinue('点击右侧“文档结构”，查看文章结构。', ['.structure-sidebar'], 'control', function () {
           later(280, function () {
             pauseForContinue('大纲会列出标题，点击“第一天行程”定位内容。', ['#outline-body'], 'control', function () {
               clickOutline('第一天行程');
