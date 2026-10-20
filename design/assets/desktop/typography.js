@@ -39,7 +39,12 @@
   });
   document.addEventListener('keydown', function (event) { if (event.key === 'Escape') close(); });
   document.addEventListener('vex-layout-rendered', function () { if (!document.querySelector('[data-action="typography"]:not([hidden])')) close(); });
-  new MutationObserver(apply).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  function syncThemeAccent() {
+    var item = items.find(function (entry) { return entry.key === state.key; });
+    if (item) document.documentElement.style.setProperty('--typography-accent', document.documentElement.dataset.theme === 'dark' ? item.dark : item.light);
+  }
+  // Theme swaps only need one token update; do not rebuild labels, selection states or storage.
+  new MutationObserver(syncThemeAccent).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   window.VexTypography = {
     items: items, state: state, apply: apply, choose: choose,
     toggleCompact: function () { state.compact = !state.compact; apply(); },
