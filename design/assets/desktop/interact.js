@@ -164,54 +164,17 @@
   VexProto.closeMenu = closeOpenMenu;
 
   function fitMenu(menu, availableHeight) {
+    // Desktop menus stay a single vertical list. Earlier column partitioning
+    // split long menus into adjacent panels, which looked like two unrelated menus.
     var rows = menu._rows || (menu._rows = Array.from(menu.querySelectorAll('.menu-item, .menu-sep')));
     menu.replaceChildren.apply(menu, rows);
     menu.style.display = 'block';
-    var style = getComputedStyle(menu);
-    var chrome = ['paddingTop','paddingBottom','borderTopWidth','borderBottomWidth'].reduce(function (sum, key) { return sum + (parseFloat(style[key]) || 0); }, 0);
-    var limit = Math.max(36, availableHeight - chrome);
-    var groups = [], group = { rows: [], height: 0, separator: null };
-    rows.forEach(function (row) {
-      if (row.classList.contains('menu-sep')) {
-        if (group.rows.length) groups.push(group);
-        var margins = getComputedStyle(row);
-        group = { rows: [], height: 0, separator: row, gap: row.offsetHeight + parseFloat(margins.marginTop) + parseFloat(margins.marginBottom) };
-      } else { group.rows.push(row); group.height += row.offsetHeight; }
-    });
-    if (group.rows.length) groups.push(group);
-    // Keep related commands together; only split groups taller than the window.
-    var units = groups.flatMap(function (group) {
-      return group.height <= limit ? [group] : group.rows.map(function (row, index) {
-        return { rows: [row], height: row.offsetHeight, separator: index ? null : group.separator, gap: group.gap };
-      });
-    });
-    function partition(height) {
-      var columns = [], column = [], used = 0;
-      units.forEach(function (unit) {
-        var gap = column.length && unit.separator ? unit.gap : 0;
-        if (column.length && used + gap + unit.height > height) { columns.push(column); column = []; used = 0; gap = 0; }
-        column.push(unit); used += gap + unit.height;
-      });
-      if (column.length) columns.push(column);
-      return columns;
-    }
-    var count = partition(limit).length;
-    var low = Math.max.apply(null, units.map(function (unit) { return unit.height; })), high = Math.floor(limit);
-    while (low < high) {
-      var middle = Math.floor((low + high) / 2);
-      if (partition(middle).length <= count) high = middle; else low = middle + 1;
-    }
-    var columns = partition(low);
-    menu.replaceChildren();
-    columns.forEach(function (units) {
-      var column = document.createElement('div'); column.className = 'menu-column'; column.setAttribute('role','presentation');
-      units.forEach(function (unit, index) {
-        if (index && unit.separator) column.appendChild(unit.separator);
-        unit.rows.forEach(function (row) { column.appendChild(row); });
-      });
-      menu.appendChild(column);
-    });
-    menu.style.display = 'grid';
+    menu.style.gridTemplateColumns = 'none';
+    menu.style.width = 'max-content';
+    menu.style.maxWidth = 'min(340px, calc(100vw - 16px))';
+    menu.style.maxHeight = Math.max(180, availableHeight - 12) + 'px';
+    menu.style.overflowY = 'auto';
+    menu.style.overflowX = 'hidden';
   }
 
   function buildItem(it, toastAll, depth) {
