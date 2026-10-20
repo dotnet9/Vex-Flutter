@@ -55,7 +55,65 @@
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
     event.preventDefault(); resizeSidebar(sidebarWidth + (event.key === 'ArrowRight' ? 10 : -10), true);
   });
-  window.addEventListener('resize', function () { resizeSidebar(sidebarWidth, false); });
+
+
+  // Right-side outline splitter: independent width, keyboard accessible, persisted in prototype storage.
+  var structureSidebar = $('structure-sidebar'), structureSplitter = $('structure-splitter');
+  var structureWidth = 240, structureInner = structureSidebar.querySelector('.structure-inner');
+  try {
+    var savedStructureWidth = Number(VexStorage.getItem('vex-design-structure-width'));
+    if (savedStructureWidth >= 180 && savedStructureWidth <= 480) structureWidth = savedStructureWidth;
+  } catch (_) {}
+  function resizeStructure(width, persist) {
+    var available = workspace.clientWidth;
+    var leftWidth = sidebar.classList.contains('closed') ? 0 : sidebarWidth;
+    var maximum = Math.min(480, Math.max(180, available - leftWidth - 480));
+    structureWidth = Math.max(180, Math.min(maximum, width));
+    structureSidebar.style.width = structureWidth + 'px';
+    structureSidebar.style.minWidth = '0';
+    structureInner.style.width = structureWidth + 'px';
+    structureSplitter.setAttribute('aria-valuenow', String(Math.round(structureWidth)));
+    if (persist) {
+      try { VexStorage.setItem('vex-design-structure-width', String(structureWidth)); VexStorage.setItem('vex-design-structure', '1'); } catch (_) {}
+      structureSidebar.classList.remove('collapsed');
+      structureSidebar.querySelector('.structure-toggle').setAttribute('aria-expanded', 'true');
+    }
+  }
+  resizeStructure(structureWidth, false);
+  var structureDrag = null;
+  structureSplitter.addEventListener('pointerdown', function (event) {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    structureSidebar.classList.remove('collapsed');
+    var current = structureSplitter.getBoundingClientRect(), host = workspace.getBoundingClientRect();
+    structureDrag = { offset: current.right - event.clientX, hostRight: host.right };
+    structureSplitter.setPointerCapture(event.pointerId);
+    document.body.classList.add('structure-resizing');
+  });
+  structureSplitter.addEventListener('pointermove', function (event) {
+    if (!structureDrag) return;
+    var samples = event.getCoalescedEvents ? event.getCoalescedEvents() : [event], latest = samples[samples.length - 1];
+    resizeStructure(structureDrag.hostRight - (latest.clientX + structureDrag.offset), false);
+  });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (name) {
+    structureSplitter.addEventListener(name, function () {
+      if (!structureDrag) return;
+      structureDrag = null;
+      document.body.classList.remove('structure-resizing');
+      resizeStructure(structureWidth, true);
+    });
+  });
+  structureSplitter.addEventListener('keydown', function (event) {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    structureSidebar.classList.remove('collapsed');
+    resizeStructure(structureWidth + (event.key === 'ArrowLeft' ? 12 : -12), true);
+  });
+  window.addEventListener('resize', function () {
+    resizeSidebar(sidebarWidth, false);
+    resizeStructure(structureWidth, false);
+  });
+
   var canvas = $('map-viewport'), scene = $('map-scene'), input = $('markdown-input'), mapElements = new Map();
   var labels = { heading: '标题', paragraph: '段落', quote: '引用', list: '列表项', code: '代码块', table: '表格' };
   var branchColors = ['var(--accent)', 'var(--success)', 'var(--warning)', 'var(--accent)', 'var(--muted)'];
@@ -232,6 +290,68 @@
     }
     $('markdown-preview').innerHTML = html || '<p class="empty-state">输入 Markdown，开始写作。</p>';
   }
+  var activeOutlineLine = 1, outlineSyncFrame = 0;
+  function activateOutlineAtLine(line, ensureVisible) {
+    if (!Number.isFinite(Number(line))) return;
+    activeOutlineLine = Math.max(1, Number(line));
+    var headings = state.nodes.filter(function (node) { return node.kind === 'heading' && node.level > 0; });
+    var active = headings[0] || null;
+    headings.forEach(function (node) { if (node.line <= activeOutlineLine) active = node; });
+    var activeButton = null;
+    $('outline-body').querySelectorAll('.structure-item').forEach(function (item) {
+      var selected = !!active && Number(item.dataset.sourceLine) === active.line;
+      item.classList.toggle('on', selected);
+      item.setAttribute('aria-current', selected ? 'location' : 'false');
+      if (selected) activeButton = item;
+    });
+    if (ensureVisible && activeButton) {
+      var list = $('outline-body'), top = activeButton.offsetTop, bottom = top + activeButton.offsetHeight;
+      if (top < list.scrollTop) list.scrollTop = top;
+      else if (bottom > list.scrollTop + list.clientHeight) list.scrollTop = bottom - list.clientHeight;
+    }
+  }
+  function syncOutlineFromDocumentScroll(scroller, article) {
+    if (!scroller || !article || scroller.hidden || !article.isConnected) return;
+    if (outlineSyncFrame) cancelAnimationFrame(outlineSyncFrame);
+    outlineSyncFrame = requestAnimationFrame(function () {
+      outlineSyncFrame = 0;
+      var headings = state.nodes.filter(function (node) { return node.kind === 'heading' && node.level > 0; });
+      if (!headings.length) return;
+      var threshold = scroller.getBoundingClientRect().top + 76, chosen = headings[0];
+      headings.forEach(function (node) {
+        var element = article.querySelector('[data-line="' + node.line + '"]');
+        if (element && element.getBoundingClientRect().top <= threshold) chosen = node;
+      });
+      activateOutlineAtLine(chosen.line, true);
+    });
+  }
+  function syncOutlineFromSource() {
+    var line = input.value.slice(0, input.selectionStart || 0).split('\\n').length;
+    activateOutlineAtLine(line, true);
+  }
+  function syncOutlineFromInstantSelection() {
+    var selection = window.getSelection && window.getSelection();
+    var node = selection && selection.anchorNode;
+    var element = node && (node.nodeType === 1 ? node : node.parentElement);
+    var block = element && element.closest ? element.closest('[data-line]') : null;
+    if (block) activateOutlineAtLine(Number(block.dataset.line), true);
+  }
+  function bindOutlineViewSync() {
+    var instantScroll = document.querySelector('.instant-scroll');
+    var readingScroll = document.querySelector('.reading-scroll');
+    var sourceScroll = document.querySelector('.source-scroll');
+    instantScroll.addEventListener('scroll', function () { syncOutlineFromDocumentScroll(instantScroll, $('instant-content')); }, { passive: true });
+    readingScroll.addEventListener('scroll', function () { syncOutlineFromDocumentScroll(readingScroll, $('markdown-preview')); }, { passive: true });
+    sourceScroll.addEventListener('scroll', function () {
+      activateOutlineAtLine(Math.floor(sourceScroll.scrollTop / 23) + 1, true);
+    }, { passive: true });
+    ['click', 'keyup', 'select', 'input'].forEach(function (eventName) {
+      input.addEventListener(eventName, syncOutlineFromSource);
+    });
+    ['click', 'keyup', 'input'].forEach(function (eventName) {
+      $('instant-content').addEventListener(eventName, syncOutlineFromInstantSelection);
+    });
+  }
   function renderOutline() {
     $('outline-body').innerHTML = '';
     var query = $('outline-filter').value.trim().toLowerCase();
@@ -255,12 +375,14 @@
           var target = $('markdown-preview').querySelector('[data-line="' + node.line + '"]');
           if (target) { target.scrollIntoView({ block: 'start', behavior: reducedMotion() ? 'auto' : 'smooth' }); target.classList.remove('located'); void target.offsetWidth; target.classList.add('located'); }
         } else locate(node);
-        $('outline-body').querySelectorAll('.structure-item').forEach(function (item) { item.classList.toggle('on', item === button); });
+        activateOutlineAtLine(node.line, true);
       };
       $('outline-body').appendChild(button);
     });
     if (!headings.length) $('outline-body').innerHTML = '<div class="empty-state">' + (query ? '没有匹配的标题' : '添加标题后，会在这里显示大纲。') + '</div>';
+    activateOutlineAtLine(activeOutlineLine, false);
   }
+  bindOutlineViewSync();
   function refresh() {
     if (state.parsed && state.lastText === input.value && state.lastDoc === state.doc) { updateMeta(); updateCursor(); return; }
     var collapsedKeys = new Set(state.nodes.filter(function (node) { return state.collapsed.has(node.id); }).map(function (node) { return node.key; }));
@@ -465,6 +587,7 @@
   }).observe(canvas);
   function selectNode(node) {
     state.selected = node.id;
+    activateOutlineAtLine(node.line, true);
     mapElements.forEach(function (element, id) { element.classList.toggle('selected', id === node.id); });
     $('inspector-kind').textContent = node.isRoot ? '文档' : labels[node.kind];
     $('inspector-title').textContent = node.kind === 'heading' ? node.text : '完整' + labels[node.kind];
