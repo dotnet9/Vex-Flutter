@@ -157,7 +157,9 @@ macOS / Linux 将运行目标改为 `macos` / `linux`；Android 连接设备后�
 
 应用使用 provider；独立控件通过 controller 与 callback 暴露能力，不依赖应用状态。Markdown 原文是唯一数据来源，当前没有 WebView、SQLite、账户或云服务。
 
-打包脚本按 [`win-x64`、`linux-x64`、`linux-arm64`、`osx`、`android` 分类](scripts/packaging/README.md)，本机和 CI 共用流程；配置好开发环境后，Windows 可双击根目录 [`build-windows.bat`](build-windows.bat) 制作安装包，日常清理双击 [`clear.bat`](clear.bat)。脚本不会自动安装 Vex 或发布 Release。
+配置好开发环境后，Windows 双击根目录 [`publish_win-x64.bat`](publish_win-x64.bat) 制作 x64 EXE 安装包，输出到 `artifacts/local/win-x64/v版本-build构建号/`；复用 [`scripts/packaging`](scripts/packaging/README.md) 中的完整流程。Flutter 桌面端需要在对应系统上构建，Windows 不能交叉构建 Linux / macOS 安装包，因此根目录只新增 Windows x64 入口，其他平台的现有脚本仍在 `scripts/packaging`，详见 [打包与发布](docs/development/打包与发布.md)。
+
+原有 [`build-windows.bat`](build-windows.bat) 仍可使用；日常清理双击 [`clear.bat`](clear.bat)。本机打包脚本不会自动安装 Vex 或发布 Release。
 
 品牌以根目录 `logo.svg / logo.png / logo.ico` 为源，按 [品牌说明](docs/品牌命名与标识.md) 同步。界面沿用系统字体，代码使用 Cascadia Code，离线 PDF 字体与许可证见 [字体说明](docs/resources/字体资源与许可.md)。其他入口：[国际化](docs/国际化.md) · [README 媒体采集](docs/development/首页媒体采集.md)。
 
