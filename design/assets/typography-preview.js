@@ -15,6 +15,6 @@
   }).join('\n');
   document.head.appendChild(style);
   window.VexTypePreview = function (key) {
-    return '<span class="type-swatch" data-preview-type="' + key + '" aria-hidden="true"><span class="type-document"><h1>落笔成文</h1><h2>第一章 · 灵感</h2><h3>1.1 看见脉络</h3><h4>1.1.1 记录想法</h4><p>让零散的想法，在文字里相遇。</p><blockquote><p>留一点空间，慢慢成形。</p></blockquote></span></span>';
+    return '<span class="type-swatch" data-preview-type="' + key + '" aria-hidden="true"><span class="type-document"><h1>在文字之间，理清思路</h1><p class="type-lead">一篇文章，从一个想法开始。让结构清晰，也让阅读舒适。</p><h2>写作，让想法有迹可循</h2><p>先记录观察，再整理线索。标题、段落与留白共同构成阅读节奏。</p><blockquote><p>好的工具，让注意力回到内容本身。</p></blockquote><h3>今天的小计划</h3><ul><li>梳理章节结构</li><li>保留必要的留白</li></ul></span></span>';
   };
 })();
