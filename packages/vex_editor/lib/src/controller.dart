@@ -37,6 +37,9 @@ final class MarkdownEditorController extends ChangeNotifier {
   final navigation = ValueNotifier<MarkdownRevealRequest?>(null);
   final viewport = ValueNotifier<MarkdownViewportPosition?>(null);
   Object? viewportOwner;
+  bool viewportLinked = true;
+  TextSelection editingSelection = const TextSelection.collapsed(offset: 0);
+  bool _explicitNavigation = false;
   TextSelection? _searchMatch;
   MarkdownSearchMatch? searchMatchFor(SourceRange range) {
     final match = _searchMatch;
@@ -75,6 +78,9 @@ final class MarkdownEditorController extends ChangeNotifier {
 
   void _inputChanged() {
     if (_syncing) return;
+    if (!_explicitNavigation && source.selection.isValid) {
+      editingSelection = source.selection;
+    }
     if (source.value.composing.isValid && !source.value.composing.isCollapsed) {
       return;
     }
@@ -119,7 +125,12 @@ final class MarkdownEditorController extends ChangeNotifier {
   void reveal(int start, {int? end, bool search = false}) {
     viewportOwner = null;
     viewport.value = null;
-    select(start, end);
+    _explicitNavigation = true;
+    try {
+      select(start, end);
+    } finally {
+      _explicitNavigation = false;
+    }
     _searchMatch = search ? selection : null;
     navigation.value = MarkdownRevealRequest(selection);
     notifyListeners();

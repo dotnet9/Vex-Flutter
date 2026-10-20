@@ -22,6 +22,7 @@ class MindMapView extends StatefulWidget {
     this.onSelect,
     this.onActivate,
     this.onMove,
+    this.movePreview,
     this.onRename,
     this.onCommand,
     this.nodeBuilder,
@@ -34,6 +35,9 @@ class MindMapView extends StatefulWidget {
   final MindMapController controller;
   final ValueChanged<MindMapNode>? onSelect, onActivate;
   final void Function(String sourceId, String targetId)? onMove;
+
+  /// A null preview rejects the drop before any source text is changed.
+  final String? Function(String sourceId, String targetId)? movePreview;
   final void Function(MindMapNode node, String title)? onRename;
   final void Function(MindMapNode node, String command)? onCommand;
   final MindMapNodeBuilder? nodeBuilder;
@@ -77,6 +81,18 @@ class _MindMapViewState extends State<MindMapView> {
       baseOffset: 0,
       extentOffset: _title.text.length,
     );
+    final viewport = _viewport, rect = controller.layout.rects[node.id];
+    if (viewport != null && rect != null) {
+      final bounds = MatrixUtils.transformRect(
+        controller.transformation.value,
+        rect,
+      );
+      final visible = (Offset.zero & viewport).deflate(16);
+      if (!visible.contains(bounds.topLeft) ||
+          !visible.contains(bounds.bottomRight)) {
+        controller.focusNode(node.id, viewport, scale: controller.scale);
+      }
+    }
     _titleFocus.requestFocus();
   }
 
@@ -499,8 +515,17 @@ class _MindMapViewState extends State<MindMapView> {
         );
     return DragTarget<String>(
       onWillAcceptWithDetails: (details) =>
-          details.data != node.id && onMove != null,
-      onAcceptWithDetails: (details) => onMove?.call(details.data, node.id),
+          details.data != node.id &&
+          !node.summary &&
+          onMove != null &&
+          (widget.movePreview == null ||
+              widget.movePreview!(details.data, node.id) != null),
+      onAcceptWithDetails: (details) {
+        if (widget.movePreview == null ||
+            widget.movePreview!(details.data, node.id) != null) {
+          onMove?.call(details.data, node.id);
+        }
+      },
       builder: (context, candidates, rejected) => Semantics(
         button: true,
         selected: selected,
@@ -539,6 +564,29 @@ class _MindMapViewState extends State<MindMapView> {
                       decoration: BoxDecoration(
                         border: Border.all(color: color.primary, width: 3),
                         borderRadius: BorderRadius.circular(7),
+                      ),
+                    ),
+                  ),
+                ),
+              if (candidates.isNotEmpty && widget.movePreview != null)
+                Positioned(
+                  left: 0,
+                  top: controller.layout.rects[node.id]!.height + 6,
+                  width: 280,
+                  child: IgnorePointer(
+                    child: Material(
+                      elevation: 4,
+                      color: color.primaryContainer,
+                      borderRadius: BorderRadius.circular(6),
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Text(
+                          widget.movePreview!(candidates.first!, node.id) ?? '',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: color.onPrimaryContainer,
+                          ),
+                        ),
                       ),
                     ),
                   ),

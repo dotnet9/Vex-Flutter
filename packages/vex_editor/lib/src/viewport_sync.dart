@@ -59,11 +59,19 @@ class _MarkdownViewportSyncState extends State<MarkdownViewportSync> {
   }
 
   void _scrolled() {
-    if (_scheduled || widget.controller.viewportOwner != this) return;
+    if (!widget.controller.viewportLinked ||
+        _scheduled ||
+        widget.controller.viewportOwner != this) {
+      return;
+    }
     _scheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scheduled = false;
-      if (!mounted || widget.controller.viewportOwner != this) return;
+      if (!mounted ||
+          !widget.controller.viewportLinked ||
+          widget.controller.viewportOwner != this) {
+        return;
+      }
       final offset = widget.readPosition();
       if (offset == null || !offset.isFinite) return;
       final previous = widget.controller.viewport.value;
@@ -78,9 +86,14 @@ class _MarkdownViewportSyncState extends State<MarkdownViewportSync> {
   void _follow() {
     final position = widget.controller.viewport.value;
     final revision = ++_followRevision;
-    if (position == null || position.origin == this) return;
+    if (!widget.controller.viewportLinked ||
+        position == null ||
+        position.origin == this) {
+      return;
+    }
     void apply(Duration _) {
       if (!mounted ||
+          !widget.controller.viewportLinked ||
           revision != _followRevision ||
           widget.controller.viewportOwner == this ||
           !widget.scroll.hasClients) {

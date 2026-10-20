@@ -57,6 +57,10 @@ final class MarkdownWordCounter {
 
   int _count(String source) {
     final text = markdownSummaryText(source);
+    return countPlainText(text);
+  }
+
+  static int countPlainText(String text) {
     return _cjk.allMatches(text).length +
         _word.allMatches(text.replaceAll(_cjk, ' ')).length;
   }
