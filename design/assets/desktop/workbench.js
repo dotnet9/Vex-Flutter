@@ -397,7 +397,11 @@
     var node = selection && selection.anchorNode;
     var element = node && (node.nodeType === 1 ? node : node.parentElement);
     var block = element && element.closest ? element.closest('[data-line]') : null;
-    if (block) activateOutlineAtLine(Number(block.dataset.line), true);
+    if (block) {
+      var line = Number(block.dataset.line);
+      activateOutlineAtLine(line, true);
+      syncPeerViewsToLine(line, document.querySelector('.instant-scroll'), false);
+    }
   }
   function bindOutlineViewSync() {
     var instantScroll = document.querySelector('.instant-scroll');
@@ -663,6 +667,7 @@
   function selectNode(node) {
     state.selected = node.id;
     activateOutlineAtLine(node.line, true);
+    syncPeerViewsToLine(node.line, null, true);
     mapElements.forEach(function (element, id) { element.classList.toggle('selected', id === node.id); });
     $('inspector-kind').textContent = node.isRoot ? '文档' : labels[node.kind];
     $('inspector-title').textContent = node.kind === 'heading' ? node.text : '完整' + labels[node.kind];
