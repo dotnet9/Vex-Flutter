@@ -215,6 +215,39 @@ class PackagingBuildTest(unittest.TestCase):
         metadata = workflow.index('python scripts/packaging/shared/release_tools.py metadata')
         self.assertLess(check, metadata)
 
+    def test_linux_flutter_is_trusted_before_its_first_version_check(self):
+        workflow = (ROOT / '.github/workflows/release.yml').read_text(encoding='utf-8')
+        desktop = workflow.split('\n  desktop:', 1)[1].split('\n  android:', 1)[0]
+        arm = desktop.split('git clone --depth 1', 1)[1]
+        self.assertIn('echo "FLUTTER_ROOT=$RUNNER_TEMP/flutter-sdk" >> "$GITHUB_ENV"', arm)
+        trust = desktop.index('git config --global --add safe.directory "$flutter_sdk"')
+        first_flutter = desktop.index('"$flutter_sdk/bin/flutter" --suppress-analytics --version --machine')
+        self.assertLess(trust, first_flutter)
+        self.assertLess(first_flutter, desktop.index('安装 Linux 原生构建依赖'))
+        self.assertNotIn('"$RUNNER_TEMP/flutter-sdk/bin/flutter"', desktop[:trust])
+        self.assertNotRegex(desktop, r'safe\.directory\s+[\'"]?\*')
+
+    def test_sdk_trust_resolves_ownership_mismatch_without_trusting_other_repositories(self):
+        with tempfile.TemporaryDirectory(prefix='vex sdk trust ') as temporary:
+            folder = Path(temporary)
+            sdk, other = folder / 'flutter-sdk', folder / 'unrelated-repository'
+            env = {**os.environ, 'GIT_CONFIG_GLOBAL': str(folder / 'gitconfig'),
+                   'GIT_CONFIG_NOSYSTEM': '1', 'GIT_TEST_ASSUME_DIFFERENT_OWNER': '1'}
+
+            def git(*args):
+                return subprocess.run(['git', *args], env=env, capture_output=True, text=True)
+
+            for repository in (sdk, other):
+                self.assertEqual(git('init', '-q', str(repository)).returncode, 0)
+                refused = git('-C', str(repository), 'rev-parse', '--show-toplevel')
+                self.assertNotEqual(refused.returncode, 0)
+                self.assertIn('dubious ownership', refused.stderr)
+            configured = git('config', '--global', '--add', 'safe.directory', sdk.resolve().as_posix())
+            self.assertEqual(configured.returncode, 0, configured.stderr)
+            accepted = git('-C', str(sdk), 'rev-parse', '--show-toplevel')
+            self.assertEqual(accepted.returncode, 0, accepted.stderr)
+            self.assertNotEqual(git('-C', str(other), 'rev-parse', '--show-toplevel').returncode, 0)
+
 
 if __name__ == '__main__':
     unittest.main()

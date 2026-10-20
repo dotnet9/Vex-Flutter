@@ -187,7 +187,16 @@ jobs:
         run: |
           git clone --depth 1 --branch "$FLUTTER_VERSION" https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter-sdk"
           echo "$RUNNER_TEMP/flutter-sdk/bin" >> "$GITHUB_PATH"
-          "$RUNNER_TEMP/flutter-sdk/bin/flutter" --version
+          echo "FLUTTER_ROOT=$RUNNER_TEMP/flutter-sdk" >> "$GITHUB_ENV"
+      - name: 配置并验证 Linux Flutter SDK 的 Git 目录归属
+        if: runner.os == 'Linux'
+        run: |
+          # 缓存 SDK 的所有者可能与容器用户不同，仅信任本次构建使用的 SDK。
+          flutter_sdk="$(readlink -f "${FLUTTER_ROOT:?Flutter SDK path is required}")"
+          test -d "$flutter_sdk/.git"
+          git config --global --add safe.directory "$flutter_sdk"
+          git -C "$flutter_sdk" rev-parse --verify HEAD
+          "$flutter_sdk/bin/flutter" --suppress-analytics --version --machine
       - name: 安装 Linux 原生构建依赖
         if: runner.os == 'Linux'
         run: |
