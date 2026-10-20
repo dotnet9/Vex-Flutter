@@ -221,6 +221,9 @@ body.device-phone .app-window .guide-card { width:310px; left:var(--vex-tour-lef
 .vex-mcp-tabs button { background:transparent; color:var(--muted); border:0; border-bottom:2px solid transparent; padding:8px 0 10px; cursor:pointer; }
 .vex-mcp-tabs button[aria-selected=true] { color:var(--accent); border-bottom-color:var(--accent); }
 .vex-mcp-status { display:flex; align-items:center; gap:8px; font-size:13px; margin:0 0 18px; }
+.vex-pref-row + .vex-mcp-status { margin-top:12px; }
+.vex-mcp-status > span { flex:1; min-width:0; overflow-wrap:anywhere; }
+.vex-mcp-status > i, .vex-mcp-status > small { flex-shrink:0; }
 .vex-mcp-status i { width:7px; height:7px; border-radius:50%; background:var(--muted); }
 .vex-mcp-status[data-state=running] i { background:var(--success,#2c9674); box-shadow:0 0 0 3px #2c967416; }
 .vex-mcp-status[data-state=error] { color:var(--danger,#bd4545); }

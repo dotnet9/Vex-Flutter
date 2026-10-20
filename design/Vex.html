@@ -27,6 +27,8 @@
 <link rel="stylesheet" href="assets/writing-chrome.css">
 <link rel="stylesheet" href="assets/appearance.css">
 <link rel="stylesheet" href="assets/desktop/polish.css">
+<link rel="stylesheet" href="assets/desktop/usability.css">
+<link rel="stylesheet" href="assets/desktop/workspace-chrome.css">
 <script src="assets/palettes.js"></script><script src="assets/typography-catalog.js"></script>
 <script src="assets/typography-preview.js"></script><script src="assets/social-copy.js"></script>
 <script src="assets/desktop/theme.js"></script>
@@ -98,19 +100,14 @@
   </header>
   <div class="window-body">
     <div class="workbar">
-      <div class="document-label"><div class="document-title"><span id="document-name">主题设计笔记.md</span><i class="doc-dot" id="dirty-dot" hidden></i></div></div>
-      <div class="view-switch" role="tablist" aria-label="文档视图" data-active="edit">
-        <button id="view-edit" role="tab" aria-controls="instant-pane source-pane reading-pane" aria-selected="true" data-view="edit"><svg class="ico" aria-hidden="true"><use href="#i-edit"/></svg>编辑</button>
-        <button id="view-read" role="tab" aria-controls="reading-pane" aria-selected="false" data-view="read"><svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg>阅读</button>
-        <button id="view-mindmap" role="tab" aria-controls="map-pane" aria-selected="false" data-view="mindmap"><svg class="ico" aria-hidden="true"><use href="#i-map"/></svg>导图</button>
-      </div>
-      <div class="work-actions"><button class="guide-launch" data-action="guide" id="guide-launch" title="新手引导"><i aria-hidden="true"></i><span>快速上手</span></button><button class="icon-button" data-action="find" title="查找 · Ctrl+F"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg></button><button class="btn sm save-button" data-action="save" title="保存副本 · Ctrl+S"><svg class="ico" aria-hidden="true"><use href="#i-save"/></svg><span>保存</span></button></div>
+      <div class="document-label"><div class="document-title"><span id="document-name">主题设计笔记.md</span><i class="doc-dot" id="dirty-dot" hidden></i></div><button id="document-save-status" type="button" aria-haspopup="dialog" aria-expanded="false">未导出副本</button></div>
+      <div class="work-actions"><button class="guide-launch" data-action="guide" id="guide-launch" title="新手引导"><i aria-hidden="true"></i><span>快速上手</span></button><button class="icon-button" data-action="find" title="查找当前正文 · Ctrl+F" aria-label="查找当前正文"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg></button><button class="btn sm save-button" data-action="save" title="保存 Markdown 副本 · Ctrl+S"><svg class="ico" aria-hidden="true"><use href="#i-save"/></svg><span>保存副本</span></button></div>
     </div>
     <main class="workspace" data-view="edit">
       <aside class="sidebar" aria-label="文档导航"><div class="sidebar-inner">
         
         <div class="side-pane" id="files-pane">
-          <label class="sidebar-search"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg><input id="file-filter" placeholder="搜索文档…" aria-label="搜索文档"><button class="clear-search" data-action="clear-file-search" title="清除搜索" aria-label="清除搜索"><svg class="ico"><use href="#i-x"/></svg></button></label>
+          <label class="sidebar-search"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg><input id="file-filter" placeholder="按文件名查找…" aria-label="按文件名查找" title="只匹配文件名，不搜索正文 · Ctrl+P"><button class="clear-search" data-action="clear-file-search" title="清除文件名筛选" aria-label="清除文件名筛选"><svg class="ico"><use href="#i-x"/></svg></button></label>
           <div class="file-list" id="file-list"></div><div class="empty-state" id="file-empty" hidden>没有匹配的文档</div>
         </div>
         
@@ -118,7 +115,7 @@
       </div></aside>
       <div class="sidebar-splitter" id="sidebar-splitter" role="separator" aria-label="调整文档导航宽度" aria-orientation="vertical" aria-valuemin="200" aria-valuemax="560" aria-valuenow="226" tabindex="0"></div>
       <div class="workspace-main">
-        <div class="find-strip" id="findbar" hidden><input class="input" id="find-input" placeholder="查找文本" aria-label="查找内容"><input class="input" id="replace-input" placeholder="替换为" aria-label="替换内容" hidden><button class="btn sm" data-action="find-next">下一个</button><button class="btn sm" data-action="replace-all" id="replace-all" hidden>全部替换</button><small id="find-count">输入查找内容</small><button class="icon-button" data-action="close-find" title="关闭查找" aria-label="关闭查找"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+        <div class="find-strip" id="findbar" hidden><span class="find-scope">当前正文</span><input class="input" id="find-input" placeholder="查找当前正文…" aria-label="查找当前正文"><input class="input" id="replace-input" placeholder="替换为" aria-label="替换内容" hidden><button class="btn sm" data-action="find-next">下一个</button><button class="btn sm" data-action="replace-all" id="replace-all" hidden>全部替换</button><small id="find-count">输入查找内容</small><button class="icon-button" data-action="close-find" title="关闭查找" aria-label="关闭查找"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
         <div class="edit-options" id="edit-options">
           <div class="format-toolbar" id="format-toolbar" role="toolbar" aria-label="常用格式">
             <button class="format-button" data-action="insert-bold" data-l10n-title="Bold" aria-label="加粗" title="加粗"><svg class="ico"><use href="#i-bold"/></svg></button>
@@ -182,12 +179,12 @@
           </aside>
         </section>
       </div>
-      <div class="document-corner-actions"><button class="on" data-action="toggle-sidebar" id="sidebar-toggle" title="显示 / 隐藏侧栏" aria-label="显示 / 隐藏侧栏" aria-pressed="true"><svg class="ico"><use href="#i-sidebar"/></svg></button><button data-action="toggle-source" id="edit-source" title="切换源码模式" aria-label="切换源码模式" aria-pressed="false"><svg class="ico"><use href="#i-code"/></svg></button><button data-action="toggle-structure" id="outline-toggle" title="文档大纲" aria-label="文档大纲" aria-pressed="true" aria-controls="structure-sidebar"><svg class="ico" style="transform:scaleX(-1)"><use href="#i-sidebar"/></svg></button></div><span class="document-word-count" id="sb-wordcount">0 词</span>
+      <footer class="document-statusbar"><div class="document-corner-actions" aria-label="辅助面板"><button class="on" data-action="toggle-sidebar" id="sidebar-toggle" title="收起文件导航" aria-label="收起文件导航" aria-pressed="true"><svg class="ico"><use href="#i-sidebar"/></svg><span>文件</span></button><button data-action="toggle-structure" id="outline-toggle" title="展开文档大纲" aria-label="展开文档大纲" aria-pressed="false" aria-controls="structure-sidebar"><svg class="ico" style="transform:scaleX(-1)"><use href="#i-sidebar"/></svg><span>大纲</span></button></div><div id="view-follow-controls" hidden><button id="view-follow-toggle" type="button" aria-pressed="true">联动开启</button><span id="view-follow-driver">跟随编辑位置</span><button id="return-to-editing" type="button">回到编辑位置</button></div><button class="document-word-count" id="sb-wordcount" data-action="dlg-statistics" aria-controls="structure-sidebar" title="查看文章信息与字数统计">字数 0</button></footer>
       </div>
     <div class="structure-splitter" id="structure-splitter" role="separator" aria-label="调整文档大纲宽度" aria-orientation="vertical" aria-valuemin="180" aria-valuemax="480" aria-valuenow="240" tabindex="0"></div>
     <aside class="structure-sidebar" id="structure-sidebar" aria-label="文档结构"><div class="structure-inner">
         <div class="structure-head"><span class="structure-title">文档结构</span><button class="structure-toggle" data-action="toggle-structure" title="收起文档结构" aria-label="收起文档结构" aria-expanded="true"><svg class="ico" aria-hidden="true"><use href="#i-chevron-down"/></svg></button></div>
-        <label class="sidebar-search structure-search"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg><input id="outline-filter" placeholder="查找标题…" aria-label="查找大纲标题"><button class="clear-search" data-action="clear-outline-search" title="清除搜索" aria-label="清除搜索"><svg class="ico"><use href="#i-x"/></svg></button></label>
+        <label class="sidebar-search structure-search"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg><input id="outline-filter" placeholder="筛选当前标题…" aria-label="筛选当前文档标题" title="只筛选当前文档的大纲标题"><button class="clear-search" data-action="clear-outline-search" title="清除标题筛选" aria-label="清除标题筛选"><svg class="ico"><use href="#i-x"/></svg></button></label>
         <div class="outline-list structure-list" id="outline-body"></div>
       </div></aside>
       </main>
@@ -449,4 +446,4 @@
 <input type="file" id="open-file-input" accept=".md,.markdown,.mdown,.txt" hidden>
 <input type="file" id="open-folder-input" accept=".md,.markdown,.mdown,.txt" webkitdirectory directory multiple hidden>
 <script src="assets/desktop/localization.js"></script><script src="assets/project-info.js"></script><script src="assets/desktop/typography.js"></script><script src="assets/desktop/interact.js"></script><script src="assets/desktop/mindmap.js"></script><script src="assets/code-fence.js"></script><script src="assets/vendor/katex/katex.min.js"></script><script src="assets/vendor/katex/mhchem.min.js"></script><script src="assets/vendor/mermaid/mermaid.min.js"></script><script src="assets/desktop/rendering.js"></script><script src="assets/desktop/samples.js"></script><script src="assets/desktop/typewriter.js"></script><script src="assets/desktop/instant-editor.js"></script><script src="assets/desktop/workbench.js"></script><script src="assets/desktop/guide.js"></script>
-<script src="assets/desktop/about-update.js"></script><script src="assets/desktop/workspace.js"></script><script src="assets/desktop/chapter-editor.js"></script><script src="assets/desktop/preview.js"></script></body></html>
+<script src="assets/desktop/about-update.js"></script><script src="assets/desktop/workspace.js"></script><script src="assets/desktop/chapter-editor.js"></script><script src="assets/desktop/usability.js"></script><script src="assets/desktop/workspace-chrome.js"></script><script src="assets/desktop/preview.js"></script></body></html>

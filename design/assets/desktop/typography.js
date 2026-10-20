@@ -16,6 +16,21 @@
     return '<button class="typography-card" data-typography-key="' + item.key + '"><strong>' + item.label + '</strong><span>' + item.en + '</span></button>';
   }).join('') + '</div><div class="typography-reading" tabindex="0" role="region" aria-label="文章排版效果预览">' + VexTypePreview(state.key, true) + '</div></div><label class="typography-compact">紧凑布局<input type="checkbox" id="typography-compact"></label>';
   document.querySelector('.window-body').appendChild(panel);
+  var previewSource = document.createElement('div'); previewSource.className = 'typography-preview-source';
+  previewSource.innerHTML = '<label>预览内容 <select id="typography-preview-source"><option value="current">当前文章</option><option value="sample">示例文章</option></select></label><span>排版影响正文与 HTML 副本，不改变 Markdown 内容。</span>';
+  panel.querySelector('.popover-title').after(previewSource);
+  function renderCurrentPreview() {
+    var reading = panel.querySelector('.typography-reading'), scroll = reading.scrollTop;
+    reading.innerHTML = VexTypePreview(state.key, true);
+    if (document.getElementById('typography-preview-source').value === 'current' && window.VexWorkbench) {
+      var previewArticle = reading.querySelector('.type-document');
+      previewArticle.innerHTML = VexWorkbench.text.trim() ? TexEditor.render(VexWorkbench.text) : '<p>当前文章还是空白。写下一段内容后，可在这里比较排版。</p>';
+      previewArticle.querySelectorAll('[id]').forEach(function (element) { element.removeAttribute('id'); });
+    }
+    reading.scrollTop = scroll;
+  }
+  document.getElementById('typography-preview-source').onchange = renderCurrentPreview;
+  panel.querySelector('.typography-reading').addEventListener('click', function (event) { if (event.target.closest('a')) event.preventDefault(); });
   function apply() {
     var theme = items.find(function (item) { return item.key === state.key; }), root = document.documentElement;
     root.dataset.typography = theme.key; root.dataset.typographyVariant = theme.variant; root.dataset.compact = String(state.compact);
@@ -48,6 +63,7 @@
     toggle: function (anchor) {
       if (!panel.hidden) { close(); return; }
       panel.hidden = false;
+      renderCurrentPreview();
       trigger = anchor || document.querySelector('[data-action="typography"]');
       var host = panel.parentElement.getBoundingClientRect(), rect = trigger.getBoundingClientRect();
       var below=host.bottom-rect.bottom-16,above=rect.top-host.top-16,flip=below<320&&above>below;

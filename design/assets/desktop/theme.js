@@ -1,4 +1,4 @@
-/* 标题栏统一提供三态、八色点和可扩展语言菜单。 */
+/* 外观集中在折叠面板中，保留三态、八套配色和语言入口。 */
 (function () {
   var palettes=VexPalettes.map(function(p){return [p.key,p.label,p.light];});
   var modes=[['light','ThemeLight','☀'],['dark','ThemeDark','☾'],['system','ThemeSystem','◐']];
@@ -33,17 +33,17 @@
       });
     }
     try{VexStorage.setItem(storeKey,JSON.stringify(state));}catch(_){}
-    var toggle=document.getElementById('vex-mode-toggle');
-    if(toggle){
-      var selectedMode=modes.find(item=>item[0]===state.mode);
-      toggle.dataset.mode=state.mode;toggle.dataset.resource=selectedMode[1];toggle.textContent=selectedMode[2];
-    }
     document.querySelectorAll('#vex-theme-panel [data-mode],#vex-theme-panel [data-palette]').forEach(button=>{
       var active=button.dataset.mode?button.dataset.mode===state.mode:button.dataset.palette===state.palette;
-      button.classList.toggle('on',active);button.setAttribute('aria-pressed',String(active));
       var palette=button.dataset.palette&&VexPalettes.find(p=>p.key===button.dataset.palette);
       button.title=palette?palette[window.VexL?.culture==='en-US'?'en':'label']:word(button.dataset.resource);
       button.setAttribute('aria-label',button.title);
+      if(button.matches('input[type="radio"]')){
+        button.checked=active;
+        button.nextElementSibling.textContent=word(button.dataset.resource);
+      }else{
+        button.classList.toggle('on',active);button.setAttribute('aria-pressed',String(active));
+      }
     });
     // Language controls do not need to be walked on every palette/mode switch.
     if(syncLanguage){
@@ -65,9 +65,11 @@
     windowPanel.querySelector('button').onclick=()=>{document.querySelector('.app-window').hidden=false;windowPanel.hidden=true;document.querySelector('#caption-btns button').focus();};
     document.getElementById('caption-btns').addEventListener('click',event=>{var button=event.target.closest('[data-action]');if(!button)return;event.stopImmediatePropagation();var app=document.querySelector('.app-window'),action=button.dataset.action;if(action==='maximize'){app.classList.toggle('expanded');return;}var words=({'zh-CN':['窗口已最小化','窗口已关闭','还原窗口','重新打开'],'zh-Hant':['視窗已最小化','視窗已關閉','還原視窗','重新開啟'],'en-US':['Window minimized','Window closed','Restore window','Reopen'],'ja-JP':['ウィンドウを最小化しました','ウィンドウを閉じました','ウィンドウを復元','もう一度開く']})[VexL.culture];app.hidden=true;windowPanel.dataset.state=action;windowPanel.querySelector('p').textContent=words[action==='close'?1:0];windowPanel.querySelector('button').textContent=words[action==='close'?3:2];windowPanel.hidden=false;windowPanel.querySelector('button').focus();},true);
     var panel=document.createElement('div');panel.id='vex-theme-panel';panel.className='studio-title-controls';
-    panel.innerHTML='<div class="studio-modes" role="group" aria-label="Theme mode">'+'<button type="button" id="vex-mode-toggle" data-mode="system" data-resource="ThemeSystem">◐</button>'+'</div><div class="studio-palettes" role="group" aria-label="Palette">'+palettes.map(item=>'<button type="button" data-palette="'+item[0]+'" aria-label="'+item[1]+'"><i style="background:'+item[2]+'"></i></button>').join('')+'</div><details id="vex-language-menu" class="studio-language"><summary>文<span aria-hidden="true">A</span></summary><div role="menu">'+Object.entries(VEX_DATA.languages).map(([code])=>'<button type="button" role="menuitemradio" data-language="'+code+'">'+({"zh-CN":"简体中文","zh-Hant":"繁體中文","en-US":"English","ja-JP":"日本語"}[code]||code)+'</button>').join('')+'</div></details>';
+    panel.innerHTML='<details id="vex-appearance-menu"><summary title="外观：主题与配色"><svg class="ico" aria-hidden="true"><use href="#i-palette"/></svg><span>外观</span></summary><div class="appearance-choices"><fieldset class="studio-modes"><legend>明暗模式</legend><div class="theme-mode-options">'+modes.map(item=>'<label><input type="radio" name="vex-theme-mode" value="'+item[0]+'" data-mode="'+item[0]+'" data-resource="'+item[1]+'"><span>'+word(item[1])+'</span></label>').join('')+'</div></fieldset><strong>界面配色</strong><div class="studio-palettes" role="group" aria-label="Palette">'+palettes.map(item=>'<button type="button" data-palette="'+item[0]+'" aria-label="'+item[1]+'"><i style="background:'+item[2]+'"></i><span>'+item[1]+'</span></button>').join('')+'</div></div></details><details id="vex-language-menu" class="studio-language"><summary>文<span aria-hidden="true">A</span></summary><div role="menu">'+Object.entries(VEX_DATA.languages).map(([code])=>'<button type="button" role="menuitemradio" data-language="'+code+'">'+({"zh-CN":"简体中文","zh-Hant":"繁體中文","en-US":"English","ja-JP":"日本語"}[code]||code)+'</button>').join('')+'</div></details>';
     document.getElementById('caption-btns').before(panel);
-    panel.addEventListener('click',event=>{var button=event.target.closest('button');if(!button)return;if(button.dataset.mode)VexTheme.setMode(({system:'light',light:'dark',dark:'system'})[state.mode]);if(button.dataset.palette)VexTheme.setPalette(button.dataset.palette);if(button.dataset.language){VexL.set(button.dataset.language);document.getElementById('vex-language-menu').open=false;}});
-    document.addEventListener('click',event=>{if(!event.target.closest('#vex-language-menu'))document.getElementById('vex-language-menu').open=false;});apply(true);
+    panel.addEventListener('change',event=>{var input=event.target;if(input.matches('input[name="vex-theme-mode"]'))VexTheme.setMode(input.value);});
+    panel.addEventListener('click',event=>{var button=event.target.closest('button');if(!button)return;if(button.dataset.palette)VexTheme.setPalette(button.dataset.palette);if(button.dataset.language){VexL.set(button.dataset.language);document.getElementById('vex-language-menu').open=false;}});
+    document.addEventListener('click',event=>{if(!event.target.closest('#vex-language-menu'))document.getElementById('vex-language-menu').open=false;if(!event.target.closest('#vex-appearance-menu'))document.getElementById('vex-appearance-menu').open=false;});
+    document.addEventListener('keydown',event=>{if(event.key==='Escape'){var menu=document.getElementById('vex-appearance-menu');if(menu.open){menu.open=false;menu.querySelector('summary').focus();}}});apply(true);
   });
 })();

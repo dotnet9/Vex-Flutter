@@ -31,14 +31,26 @@
   }
   function siblings(node) { var parent = parentOf(node); return parent ? parent.children.filter(function (item) { return item.kind === 'heading'; }) : []; }
   function lineAt(text, offset) { return text.slice(0, offset).split('\n').length; }
+  var feedback = document.createElement('div'); feedback.className = 'chapter-feedback'; feedback.hidden = true;
+  feedback.innerHTML = '<span role="status"></span><button type="button">撤销这次修改</button>';
+  document.querySelector('.map-toolbar').after(feedback);
+  var feedbackText, feedbackBefore;
+  feedback.querySelector('button').onclick = function () {
+    if (W.text !== feedbackText || W.state.undo[W.state.undo.length - 1] !== feedbackBefore) { feedback.hidden = true; VexProto.toast('正文已有后续修改，请使用 Ctrl+Z 依次撤销。'); return; }
+    W.history('undo'); feedback.hidden = true; VexProto.toast('已撤销章节修改，正文与导图一起恢复');
+  };
+  var dropPreview = document.createElement('div'); dropPreview.className = 'chapter-drop-preview'; dropPreview.hidden = true; dropPreview.setAttribute('role', 'status'); $('map-viewport').appendChild(dropPreview);
   function change(text, line, message, editTitle) {
+    var before = W.text;
     W.applyText(text, { line: line }); selectedLine = line;
+    if (W.text === before) return;
     var node = W.state.nodes.find(function (candidate) { return candidate.kind === 'heading' && candidate.line === line; });
     if (node) {
       W.selectNode(node);
       if (editTitle) requestAnimationFrame(function () { beginRename(node); });
     }
-    if (message) VexProto.toast(message);
+    feedbackText = W.text; feedbackBefore = before;
+    feedback.querySelector('span').textContent = message || '章节标题已同步修改正文'; feedback.hidden = false;
   }
   function rename(node, title) {
     title = title.trim().replace(/[\r\n]+/g, ' ');
@@ -140,7 +152,7 @@
     updateHeadingToggle();
   };
   function updateHeadingToggle() { $('chapter-headings-only').setAttribute('aria-pressed', String(!W.settings.paragraphs && !W.settings.lists && !W.settings.blocks)); }
-  document.querySelector('.map-hint').textContent = '双击标题修改 · Enter 同级 · Tab 子级 · 拖动章节调整结构';
+  document.querySelector('.map-hint').textContent = '导图与正文同步 · 拖动会移动整节正文及子章节';
   document.querySelector('.map-hint').title = '章节移动会同时移动正文和子章节；拖动画布空白处平移，Ctrl + 滚轮缩放。';
   function showInspector(node) {
     selectedLine = node.line;
@@ -154,7 +166,7 @@
       + '<button data-chapter-command="sibling"' + (node.isRoot ? ' disabled' : '') + '>＋ 同级</button><button data-chapter-command="child"' + (node.level >= 6 ? ' disabled' : '') + '>＋ 子级</button><button data-chapter-command="rename">修改标题</button>'
       + '<button data-chapter-command="promote"' + (!parent || parent.level === 0 || node.isRoot ? ' disabled' : '') + '>← 提升</button><button data-chapter-command="demote"' + (index <= 0 || list[index - 1]?.level >= 6 ? ' disabled' : '') + '>→ 降级</button><button data-chapter-command="up"' + (index <= 0 ? ' disabled' : '') + '>↑ 上移</button>'
       + '<button data-chapter-command="down"' + (index < 0 || index >= list.length - 1 ? ' disabled' : '') + '>↓ 下移</button><button class="chapter-delete-button" data-chapter-command="delete"' + (node.isRoot ? ' disabled' : '') + '>删除章节</button></div>'
-      + '<label for="chapter-body-input">本节正文</label><textarea class="chapter-body-input" id="chapter-body-input" placeholder="先写下这一节要表达的内容…">' + escape(body) + '</textarea><p class="chapter-body-note">支持 Markdown。子章节单独保留；离开输入框即同步。</p></div>';
+      + '<label for="chapter-body-input">本节正文</label><textarea class="chapter-body-input" id="chapter-body-input" placeholder="先写下这一节要表达的内容…">' + escape(body) + '</textarea><p class="chapter-body-note">这里的修改会同步到文章。支持 Markdown，子章节单独保留；离开输入框即同步，可撤销。</p></div>';
     var title = $('chapter-title-input');
     title.onchange = function () { rename(node, title.value); };
     title.onkeydown = function (event) { if (event.isComposing) return; if (event.key === 'Enter') { event.preventDefault(); title.blur(); } if (event.key === 'Escape') { title.value = node.text; title.blur(); event.stopPropagation(); } };
@@ -187,19 +199,27 @@
       button.ondblclick = function (event) { event.preventDefault(); event.stopPropagation(); W.selectNode(node); beginRename(node); };
       element.ondragstart = function (event) { if (node.isRoot || event.target.closest('input')) { event.preventDefault(); return; } dragging = node; event.stopPropagation(); event.dataTransfer.setData('application/x-vex-chapter', String(node.line)); event.dataTransfer.effectAllowed = 'move'; };
       element.ondragover = function (event) {
+        drop = null; clearDropClasses(); dropPreview.hidden = true;
         if (!dragging || dragging.id === node.id) return;
         var source = record(dragging), target = record(node); if (!source || !target || target.start >= source.start && target.start < source.end) return;
         event.preventDefault(); event.stopPropagation(); clearDropClasses();
         var rect = element.getBoundingClientRect(), ratio = (event.clientY - rect.top) / rect.height;
         var position = node.isRoot ? 'child' : ratio < .25 ? 'before' : ratio > .75 ? 'after' : 'child';
+        var level = target.level + (position === 'child' ? 1 : 0);
+        if ([source].concat(source.descendants).some(function (item) { return item.level + level - source.level > 6; })) return;
         element.classList.add('chapter-drag-' + position); drop = { node: node, position: position };
+        dropPreview.textContent = (position === 'child' ? '归入「' + node.text + '」成为子章节' : '移到「' + node.text + '」' + (position === 'before' ? '之前' : '之后')) + ' · H' + level + ' · 包含正文和 ' + source.descendants.length + ' 个子章节';
+        dropPreview.hidden = false;
       };
+      element.ondragleave = function (event) { if (!element.contains(event.relatedTarget)) { drop = null; clearDropClasses(); dropPreview.hidden = true; } };
       element.ondrop = function (event) { if (!dragging || !drop) return; event.preventDefault(); event.stopPropagation(); var source = dragging, target = drop; endDrag(); moveTo(source, target.node, target.position); };
       element.ondragend = endDrag;
     });
   }
   function clearDropClasses() { document.querySelectorAll('.chapter-drag-before,.chapter-drag-after,.chapter-drag-child').forEach(function (element) { element.classList.remove('chapter-drag-before', 'chapter-drag-after', 'chapter-drag-child'); }); }
-  function endDrag() { dragging = null; drop = null; clearDropClasses(); }
+  function endDrag() { dragging = null; drop = null; clearDropClasses(); dropPreview.hidden = true; }
+  window.addEventListener('vex-document-loaded', function () { feedback.hidden = true; endDrag(); });
+  window.addEventListener('vex-content-changed', function () { if (W.text !== feedbackText) feedback.hidden = true; });
   window.addEventListener('vex-map-rendered', attachNodes);
   $('map-viewport').addEventListener('keydown', function (event) {
     if (event.isComposing || event.target.closest('input,textarea') || event.ctrlKey || event.metaKey || event.altKey) return;

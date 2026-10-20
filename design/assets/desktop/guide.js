@@ -46,19 +46,19 @@
     {
       name: '第二幕', title: '两种写法', short: '支持源码模式与即时模式',
       resultTitle: '两种写法', result: '支持源码模式与即时模式',
-      prepare: function () { ensureText(stage0); setLayout('instant'); focusTargets = ['#edit-source']; focusKind = 'control'; focusPreferred = 'top'; },
+      prepare: function () { ensureText(stage0); setLayout('instant'); focusTargets = ['#workspace-layout']; focusKind = 'control'; focusPreferred = 'bottom'; },
       run: function (done) {
         ensureText(stage0); setLayout('instant');
-        pauseForContinue('支持源码或即时渲染编辑，点击下面的切换按钮方便切换', ['#edit-source'], 'control', function () {
-          click('#edit-source');
-          cue('切到源码，刚才的文字都在这里。', ['#edit-source'], 'control');
+        pauseForContinue('从顶部视图菜单选择源码编辑，也能打开多视图对照。', ['#workspace-layout'], 'control', function () {
+          chooseLayout('source');
+          cue('切到源码，刚才的文字都在这里。', ['#workspace-layout'], 'control');
           later(500, function () {
             cue('在源码里，也能继续修改。', ['#markdown-input'], 'text');
             transitionText(stage0, '# 成都，慢慢走\n\n这个周末，去成都。先喝一碗盖碗茶，给茶香和街巷多留些时间。\n', 26, function () {
               cue('加一份清单，再把行程写下来。', ['#markdown-input'], 'text');
               typeText(stage1, 8, function () {
-                pauseForContinue('再次点击，切换源码模式哦', ['#edit-source'], 'control', function () {
-                click('#edit-source');
+                pauseForContinue('从同一入口选择即时编辑，继续直接写作。', ['#workspace-layout'], 'control', function () {
+                chooseLayout('instant');
                 cue('切回即时渲染，继续直接写一段。', ['#instant-pane'], 'area');
                 later(450, function () {
                   typeText(stage1WithEnding, 34, function () {
@@ -77,17 +77,18 @@
       resultTitle: '大纲与导图', result: '定位章节，整理文章结构。',
       prepare: function () {
         ensureText(stage1WithEnding); setLayout('instant'); closeLayers();
-        focusTargets = ['.structure-sidebar']; focusKind = 'control'; focusPreferred = 'right';
+        focusTargets = ['#outline-toggle']; focusKind = 'control'; focusPreferred = 'top';
       },
       run: function (done) {
         ensureText(stage1WithEnding); setLayout('instant');
-        pauseForContinue('点击右侧“文档结构”，查看文章结构。', ['.structure-sidebar'], 'control', function () {
+        pauseForContinue('点击底栏“大纲”，展开右侧辅助面板。', ['#outline-toggle'], 'control', function () {
+          withAutomation(function () { VexAuxiliary.show('outline', $('#outline-toggle'), false); });
           later(280, function () {
             pauseForContinue('大纲会列出标题，点击“第一天行程”定位内容。', ['#outline-body'], 'control', function () {
               clickOutline('第一天行程');
               later(280, function () {
-                pauseForContinue('点击“导图”，查看全局结构。', ['#view-mindmap'], 'control', function () {
-                  click('#view-mindmap');
+                pauseForContinue('从顶部视图菜单选择思维导图，查看全局结构。', ['#workspace-layout'], 'control', function () {
+                  withAutomation(function () { VexAuxiliary.close(false); }); chooseLayout('map');
                   later(420, function () {
                     pauseForContinue('导图把标题关系画在这里。', ['#map-viewport'], 'area', function () {
                       var source = chapterSelector('锦里夜游'), target = chapterSelector('第一天行程');
@@ -238,6 +239,7 @@
 
   function visible(node) { return !!node && !node.closest('[hidden]') && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0; }
   function setLayout(id) { if (window.VexWorkspace) VexWorkspace.setLayout(id); }
+  function chooseLayout(id) { if ($('#workspace-layout-menu').hidden) click('#workspace-layout'); click('#workspace-layout-menu [data-layout="' + id + '"]'); }
   function closeMenu() { if (window.VexProto) VexProto.closeMenu(); }
   function openMenu(menu) { var key = menu.replace(/\(.*/, ''); click('.tb-menuitem[data-menu^="' + key + '"]'); }
   function closeLayers() { closeMenu(); if (window.VexTypography) VexTypography.close(); if (window.VexWorkspace) VexWorkspace.closeAppearance(); document.querySelectorAll('.win-layer').forEach(function (node) { node.hidden = true; }); $('#map-settings').hidden = true; $('#map-settings-button').setAttribute('aria-expanded', 'false'); $('#node-inspector').hidden = true; }
@@ -440,7 +442,7 @@
     if (!open) return;
     cancelTimers(); running = false; paused = false; pendingContinue = null; open = false; hideLightTip(); layer.classList.remove('demo-running'); card.classList.remove('demo-hidden'); card.removeAttribute('aria-hidden'); layer.hidden = true; cursor.hidden = true; pointer.hidden = true; if (app()) delete app().dataset.guideStep; closeLayers();
     var snapshot = session; session = null; if (snapshot) VexProto.endGuideSession(snapshot);
-    var target = previousFocus && previousFocus.isConnected && visible(previousFocus) ? previousFocus : $('#guide-launch');
+    var target = previousFocus && previousFocus.isConnected && visible(previousFocus) ? previousFocus : $('#workspace-layout');
     if (target) target.focus({ preventScroll: true });
   }
   function start(options) {
@@ -528,8 +530,6 @@
   window.addEventListener('resize', layout);
   new MutationObserver(layout).observe(app(), { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'style', 'class', 'data-active'] });
   window.VexGuide = { start: start, close: close, allows: function (target) { return !open || automating || card.contains(target); }, get active() { return open; } };
-  // 首次进入工作区自动弹出说明（看过一次后由 guideSeenKey 抑制）；
-  // ?scenario=guide 演示通道沿用更短的等待。
-  var autoDelay = new URLSearchParams(location.search).get('scenario') === 'guide' ? 300 : 650;
-  setTimeout(function () { start({ automatic: true }); }, autoDelay);
+  // 写作不被自动弹窗打断；只有评审场景自动打开，平时由常驻入口重看。
+  if (new URLSearchParams(location.search).get('scenario') === 'guide') setTimeout(function () { start({ automatic: true }); }, 300);
 })();

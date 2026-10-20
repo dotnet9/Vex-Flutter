@@ -3,7 +3,7 @@
   'use strict';
   const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const query = new URLSearchParams(location.search), isolated = query.get('preview') === '1';
-  const defaults = {language:'zh-CN', startup:'empty', autoSave:false, saveDelay:2, recovery:true, encoding:'UTF-8', newline:'system', size:16, font:'system', codeSize:13, indent:2, autoPair:true, codeWrap:false, lineNumbers:true, focus:false, typewriter:false, math:true, chemistry:true, mermaid:true, subscript:true, highlight:true, autoLink:true, softBreak:true, imageCopy:true, imageRelative:true, imageFolder:'assets', theme:'light', palette:'weft', typography:'Simple', compact:false, zoom:100, wordCountVisible:true, motion:true, exportFormat:'html', exportFolder:'文档所在目录', exportOpen:true, pdfSize:'A4', pdfMargin:20, htmlStyle:true, mcpEnabled:false, mcpPort:17891, mcpToken:'vx_preview_local_token', mcpScope:'document', mcpFolder:'', mcpConfirm:true};
+  const defaults = {language:'zh-CN', startup:'empty', autoSave:false, saveDelay:2, recovery:true, encoding:'UTF-8', newline:'system', size:16, font:'system', codeSize:13, indent:2, autoPair:true, codeWrap:false, lineNumbers:true, focus:false, typewriter:false, math:true, chemistry:true, mermaid:true, subscript:true, highlight:true, autoLink:true, softBreak:true, imageCopy:true, imageRelative:true, imageFolder:'assets', theme:'light', palette:'weft', typography:'Simple', compact:false, zoom:100, wordCountVisible:true, motion:true, exportFormat:'html', exportFolder:'文档所在目录', exportOpen:true, pdfSize:'A4', pdfMargin:20, htmlStyle:true, mcpEnabled:false, mcpPort:17891, mcpToken:'vx_preview_local_token_for_demo', mcpScope:'document', mcpFolder:'', mcpConfirm:true};
   Object.assign(defaults,{watermarkPreview:false,watermarkExport:false,watermarkText:'维刻 Vex',watermarkOpacity:12});
   const values = {...defaults};
   for (const key of Object.keys(values)) {
@@ -13,7 +13,7 @@
   for (const key of ['theme','palette','typography']) if (query.has(key)) values[key] = query.get(key);
   if (query.has('lang')) values.language = ({en:'en-US',zh:'zh-CN'})[query.get('lang')] || query.get('lang');
   let adapter = {}, host, releaseOverlay, section = 'general', tab = 'server', closeTimer, testTimer, generation = 0;
-  let mcpState = 'stopped', mcpMessage = '服务已停止', audit = [], request = null, mcpDraft;
+  let mcpState = 'stopped', mcpMessage = '服务已停止', audit = [], request = null, mcpDraft, mcpSaveTimer, serviceTimer, serviceRevision = 0, mcpError = '';
   const categories = [['general','通用与文件','file'],['editor','编辑器','edit'],['markdown','Markdown','code'],['images','图片','image'],['appearance','外观','palette'],['export','导出','export'],['mcp','MCP','terminal']];
   const icon = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><use href="#i-${name}"/></svg>`;
   const control = (key, label, options, note = '') => {
@@ -48,7 +48,7 @@
     if (query.get('child') === '1') return '<p>文档窗口不运行 MCP 服务。</p>';
     const tabs = `<div class="vex-mcp-tabs" role="tablist" aria-label="MCP"><button role="tab" data-mcp-tab="server" aria-selected="${tab === 'server'}">服务</button><button role="tab" data-mcp-tab="clients" aria-selected="${tab === 'clients'}">客户端</button><button role="tab" data-mcp-tab="audit" aria-selected="${tab === 'audit'}">审计</button></div>`;
     const status = `<div class="vex-mcp-status" data-state="${mcpState}" role="status"><i></i><span>${esc(mcpMessage)}</span><small style="margin-left:auto;color:var(--muted)">原型演示</small></div>`;
-    if (tab === 'server') return tabs + status + `<label class="vex-pref-row"><span>启用 MCP 服务<small>仅监听 127.0.0.1</small></span><input type="checkbox" role="switch" data-mcp-field="mcpEnabled" ${mcpDraft.mcpEnabled ? 'checked' : ''}></label>` + draftRow('mcpPort','端口','number') + `<div class="vex-pref-row"><span>访问令牌</span><span class="vex-token-field"><input data-mcp-field="mcpToken" aria-label="访问令牌" type="password" value="${esc(mcpDraft.mcpToken)}"><span class="vex-token-actions"><button class="vex-icon-button" data-mcp-action="reveal" title="显示或隐藏令牌" aria-label="显示或隐藏令牌" aria-pressed="false">${icon('eye')}</button><button class="vex-icon-button" data-mcp-action="token" title="重新生成令牌" aria-label="重新生成令牌">${icon('refresh')}</button></span></span></div>` + `<label class="vex-pref-row"><span>授权范围</span><select data-mcp-field="mcpScope">${[['document','当前文档'],['folder','当前文件夹'],['custom','指定目录']].map(([v,t])=>`<option value="${v}" ${mcpDraft.mcpScope === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>` + (mcpDraft.mcpScope === 'custom' ? draftRow('mcpFolder','授权目录') : '') + `<label class="vex-pref-row"><span>修改前确认</span><input type="checkbox" role="switch" data-mcp-field="mcpConfirm" ${mcpDraft.mcpConfirm ? 'checked' : ''}></label><p id="vex-mcp-error" class="vex-field-error" role="alert" hidden></p><div class="vex-mcp-actions"><button class="vex-button primary" data-mcp-action="apply">应用</button><button class="vex-button" data-mcp-action="stop" ${mcpState === 'stopped' ? 'disabled' : ''}>停止服务</button></div>`;
+    if (tab === 'server') return tabs + `<label class="vex-pref-row"><span>启用 MCP 服务<small>仅监听 127.0.0.1</small></span><input type="checkbox" role="switch" data-mcp-field="mcpEnabled" ${mcpDraft.mcpEnabled ? 'checked' : ''}></label>` + status + draftRow('mcpPort','端口','number') + `<div class="vex-pref-row"><span>访问令牌</span><span class="vex-token-field"><input data-mcp-field="mcpToken" aria-label="访问令牌" type="password" value="${esc(mcpDraft.mcpToken)}"><span class="vex-token-actions"><button class="vex-icon-button" data-mcp-action="reveal" title="显示或隐藏令牌" aria-label="显示或隐藏令牌" aria-pressed="false">${icon('eye')}</button><button class="vex-icon-button" data-mcp-action="token" title="重新生成令牌" aria-label="重新生成令牌">${icon('refresh')}</button></span></span></div>` + `<label class="vex-pref-row"><span>授权范围</span><select data-mcp-field="mcpScope">${[['document','当前文档'],['folder','当前文件夹'],['custom','指定目录']].map(([v,t])=>`<option value="${v}" ${mcpDraft.mcpScope === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>` + (mcpDraft.mcpScope === 'custom' ? draftRow('mcpFolder','授权目录') : '') + `<label class="vex-pref-row"><span>修改前确认</span><input type="checkbox" role="switch" data-mcp-field="mcpConfirm" ${mcpDraft.mcpConfirm ? 'checked' : ''}></label><p id="vex-mcp-error" class="vex-field-error" role="alert" ${mcpError ? '' : 'hidden'}>${esc(mcpError)}</p>`;
     if (tab === 'clients') {
       const endpoint = `http://127.0.0.1:${values.mcpPort}/mcp/`;
       const config = JSON.stringify({mcpServers:{vex:{url:endpoint,headers:{Authorization:'Bearer ' + values.mcpToken}}}},null,2);
@@ -76,13 +76,13 @@
     if (key.startsWith('watermark')) VexWatermark.apply(values);
     adapter.apply?.(key,value,values);
     window.dispatchEvent(new CustomEvent('vex-preference-changed',{detail:{key,value}}));
-    const status = host?.querySelector('.vex-settings-status'); if (status) status.textContent = '已保存';
+    const status = host?.querySelector('.vex-settings-status'); if (status) status.textContent = mcpError ? '未保存：' + mcpError : '设置已保存';
   }
   function close() {
     if (!host || host.hidden) return;
     host.classList.add('is-closing');
     clearTimeout(closeTimer); generation++; clearTimeout(testTimer); request = null;
-    if (mcpState === 'starting') { mcpState = 'stopped'; mcpMessage = '服务已停止'; }
+    saveMcp();
     closeTimer = setTimeout(() => { host.hidden = true; host.classList.remove('is-closing'); releaseOverlay?.(); releaseOverlay = null; },matchMedia('(prefers-reduced-motion:reduce)').matches || !values.motion ? 0 : 140);
   }
   function open(category = 'general') {
@@ -104,13 +104,21 @@
       host.addEventListener('input',event => {
         const el = event.target;
         if (el.dataset.vexPref && el.type === 'range') { const key = el.dataset.vexPref; set(key,Number(el.value)); el.nextElementSibling.value = el.value + el.dataset.unit; }
-        if (el.dataset.vexPref === 'watermarkText') set('watermarkText',el.value);
-        if (el.dataset.mcpField) mcpDraft[el.dataset.mcpField] = el.type === 'checkbox' ? el.checked : el.value;
+        if (el.dataset.vexPref && ['text','number'].includes(el.type)) {
+          const key = el.dataset.vexPref;
+          set(key,typeof defaults[key] === 'number' ? Number(el.value) : el.value);
+        }
+        if (el.dataset.mcpField && !['checkbox','select-one'].includes(el.type)) {
+          mcpDraft[el.dataset.mcpField] = el.value;
+          clearTimeout(mcpSaveTimer);
+          host.querySelector('.vex-settings-status').textContent = '正在保存…';
+          mcpSaveTimer = setTimeout(saveMcp,400);
+        }
       });
       host.addEventListener('change',event => {
         const el = event.target;
         if (el.dataset.vexPref) { const key = el.dataset.vexPref; set(key,el.type === 'checkbox' ? el.checked : typeof defaults[key] === 'number' ? Number(el.value) : el.value); }
-        if (el.dataset.mcpField) { mcpDraft[el.dataset.mcpField] = el.type === 'checkbox' ? el.checked : el.value; if (el.dataset.mcpField === 'mcpScope') render(); }
+        if (el.dataset.mcpField) { mcpDraft[el.dataset.mcpField] = el.type === 'checkbox' ? el.checked : el.value; saveMcp(); if (el.dataset.mcpField === 'mcpScope') render(); }
       });
     }
     section = categories.some(c => c[0] === category) ? category : 'general';
@@ -135,26 +143,58 @@
     detail(host.querySelector('.vex-settings').dataset.detail === 'true');
   });
   function record(action, result) { audit.unshift({time:new Date().toLocaleTimeString('zh-CN',{hour12:false}),action,result}); }
-  function showError(message) { const el = host.querySelector('#vex-mcp-error'); if (el) {el.hidden = false; el.textContent = message;} }
+  function refreshMcpStatus() {
+    const status = host?.querySelector('.vex-mcp-status');
+    if (status) { status.dataset.state = mcpState; status.querySelector('span').textContent = mcpMessage; }
+    const toggle = host?.querySelector('[data-mcp-field=mcpEnabled]');
+    if (toggle) toggle.checked = mcpDraft.mcpEnabled;
+    const error = host?.querySelector('#vex-mcp-error');
+    if (error) { error.hidden = !mcpError; error.textContent = mcpError; }
+    const saved = host?.querySelector('.vex-settings-status');
+    if (saved) saved.textContent = mcpError ? '未保存：' + mcpError : '设置已保存';
+  }
+  function saveMcp() {
+    clearTimeout(mcpSaveTimer);
+    if (!mcpDraft || adapter.mobile || query.get('child') === '1') return;
+    const port = Number(mcpDraft.mcpPort);
+    mcpError = !Number.isInteger(port) || port < 1024 || port > 65535 ? '端口须为 1024–65535 之间的整数'
+      : mcpDraft.mcpToken.trim().length < 24 ? '访问令牌至少需要 24 个字符'
+      : mcpDraft.mcpScope === 'custom' && !/^(?:[a-z]:[\\/]|\/)/i.test(mcpDraft.mcpFolder.trim()) ? '请输入授权目录的绝对路径' : '';
+    // Stopping remains available even while a different field is invalid.
+    if (!mcpDraft.mcpEnabled) {
+      serviceRevision++; clearTimeout(serviceTimer);
+      if (mcpState !== 'stopped') record('停止服务','完成');
+      mcpState = 'stopped'; mcpMessage = '服务已停止'; set('mcpEnabled',false);
+    }
+    if (mcpError) {
+      mcpDraft.mcpEnabled = values.mcpEnabled;
+      refreshMcpStatus(); return;
+    }
+    const restart = port !== values.mcpPort || mcpDraft.mcpToken.trim() !== values.mcpToken;
+    for (const key of Object.keys(defaults).filter(k => k.startsWith('mcp'))) {
+      const value = key === 'mcpPort' ? port : key === 'mcpToken' || key === 'mcpFolder' ? mcpDraft[key].trim() : mcpDraft[key];
+      set(key,value);
+    }
+    if (values.mcpEnabled && (restart || !['running','starting'].includes(mcpState))) {
+      const revision = ++serviceRevision;
+      clearTimeout(serviceTimer);
+      mcpState = 'starting'; mcpMessage = '正在启动…';
+      serviceTimer = setTimeout(() => {
+        if (revision !== serviceRevision) return;
+        const busy = query.get('mcpScenario') === 'port-busy';
+        mcpState = busy ? 'error' : 'running';
+        mcpMessage = busy ? '启动失败：端口已被占用，请更换端口' : `运行中 · http://127.0.0.1:${values.mcpPort}/mcp/`;
+        if (busy) { mcpDraft.mcpEnabled = false; set('mcpEnabled',false); }
+        record('启动服务',busy ? '端口占用' : '成功'); refreshMcpStatus();
+      },400);
+    }
+    refreshMcpStatus();
+  }
   async function copy(text) { try { await navigator.clipboard.writeText(text); host.querySelector('.vex-settings-status').textContent = '已复制'; } catch { adapter.toast?.('复制不可用，请选择配置文本复制'); } }
   function mcpAction(action) {
     if (adapter.mobile || query.get('child') === '1') return;
     if (action === 'reveal') { const input = host.querySelector('[data-mcp-field=mcpToken]'); input.type = input.type === 'password' ? 'text' : 'password'; host.querySelector('[data-mcp-action=reveal]').setAttribute('aria-pressed',String(input.type === 'text')); return; }
-    if (action === 'token') { mcpDraft.mcpToken = 'vx_' + crypto.randomUUID().replaceAll('-',''); render(); return; }
-    if (action === 'stop') { generation++; clearTimeout(testTimer); mcpState = 'stopped'; mcpMessage = '服务已停止'; set('mcpEnabled',false); mcpDraft.mcpEnabled = false; record('停止服务','完成'); render(); return; }
-    if (action === 'apply') {
-      const port = Number(mcpDraft.mcpPort);
-      if (!Number.isInteger(port) || port < 1024 || port > 65535) { showError('端口须为 1024–65535 之间的整数'); return; }
-      if (!mcpDraft.mcpToken.trim()) { showError('请输入访问令牌'); return; }
-      if (mcpDraft.mcpScope === 'custom' && !mcpDraft.mcpFolder.trim()) { showError('请选择授权目录'); return; }
-      for (const key of Object.keys(defaults).filter(k => k.startsWith('mcp'))) set(key,key === 'mcpPort' ? port : mcpDraft[key]);
-      generation++; clearTimeout(testTimer);
-      if (!values.mcpEnabled) { mcpState = 'stopped'; mcpMessage = '服务已停止'; render(); return; }
-      mcpState = 'starting'; mcpMessage = '正在启动…'; render();
-      const revision = generation;
-      testTimer = setTimeout(() => { if (revision !== generation) return; const busy = query.get('mcpScenario') === 'port-busy'; mcpState = busy ? 'error' : 'running'; mcpMessage = busy ? '端口已被占用，请更换端口' : `运行中 · 127.0.0.1:${values.mcpPort}`; record('启动服务',busy ? '端口占用' : '成功'); render(); },400);
-      return;
-    }
+    if (action === 'token') { mcpDraft.mcpToken = 'vx_' + crypto.randomUUID().replaceAll('-',''); saveMcp(); render(); return; }
     if (action === 'copy-config') { copy(host.querySelector('#vex-client-config').textContent); return; }
     if (action === 'test') {
       const output = host.querySelector('#vex-test-result'); output.textContent = '正在测试连接…';
@@ -184,5 +224,5 @@
     if (event.key === 'Tab') { const items = [...host.querySelectorAll('button,input,select')].filter(el => !el.disabled && !el.closest('[inert]') && el.getClientRects().length); const first = items[0], last = items.at(-1); if (event.shiftKey && document.activeElement === first) {event.preventDefault();last?.focus();} else if (!event.shiftKey && document.activeElement === last) {event.preventDefault();first?.focus();} }
     if (event.ctrlKey || event.metaKey) event.stopImmediatePropagation();
   },true);
-  window.VexPreferences = {values,open,close,set,configure(value) { adapter = value; for (const [key,value] of Object.entries(values)) set(key,value,false); }};
+  window.VexPreferences = {values,open,close,set,configure(value) { adapter = value; for (const [key,value] of Object.entries(values)) set(key,value,false); if (values.mcpEnabled) { mcpDraft = {...values}; saveMcp(); } }};
 })();

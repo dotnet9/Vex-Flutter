@@ -11,10 +11,13 @@
     el.querySelectorAll('p,li,th,td,h1,h2,h3,h4,h5,h6,pre,br').forEach(node => node.append(' '));
     return el.textContent.replace(/\s+/g, ' ').trim();
   }
+  function measureText(plain) {
+    const cjkCount = (plain.match(cjk) || []).length, wordCount = (plain.replace(cjk, ' ').match(words) || []).length;
+    return {count: cjkCount + wordCount, cjkCount, wordCount, characters: Array.from(plain.replace(/\s/gu, '')).length};
+  }
   function metrics(source) {
     if (cache.has(source)) return cache.get(source);
-    const plain = text(source), count = (plain.match(cjk) || []).length + (plain.replace(cjk, ' ').match(words) || []).length;
-    const result = {count, excerpt: Array.from(plain).slice(0, 120).join('')};
+    const plain = text(source), result = Object.assign(measureText(plain), {excerpt: Array.from(plain).slice(0, 120).join('')});
     if (cache.size >= 40) cache.delete(cache.keys().next().value);
     cache.set(source, result); return result;
   }
@@ -56,5 +59,5 @@
       const empty = document.createElement('p'); empty.className = 'empty-state'; empty.textContent = '没有匹配的文档'; container.append(empty);
     }
   }
-  window.VexWriting = {metrics, renderFiles};
+  window.VexWriting = {metrics, measureText, renderFiles};
 })();
