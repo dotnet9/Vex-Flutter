@@ -63,7 +63,7 @@ enum MarkdownTypography {
   }
 }
 
-class MarkdownReader extends StatelessWidget {
+class MarkdownReader extends StatefulWidget {
   const MarkdownReader({
     super.key,
     required this.data,
@@ -238,12 +238,68 @@ class MarkdownReader extends StatelessWidget {
   }
 
   @override
+  State<MarkdownReader> createState() => _MarkdownReaderState();
+}
+
+class _MarkdownReaderState extends State<MarkdownReader> {
+  // build 内沿用 widget 字段名，避免大面积改写。
+  MarkdownPreferences get preferences => widget.preferences;
+  String get data => widget.data;
+  bool get selectable => widget.selectable;
+  bool get inline => widget.inline;
+  double get fontSize => widget.fontSize;
+  bool get compact => widget.compact;
+  MarkdownEditorLabels get labels => widget.labels;
+  MarkdownEditingPreferences? get editingPreferences =>
+      widget.editingPreferences;
+  void Function(String text, String? href, String title)? get onTapLink =>
+      widget.onTapLink;
+  Widget Function(Uri uri, String? title, String? alt)? get imageBuilder =>
+      widget.imageBuilder;
+  MarkdownMediaContextCallback? get onMediaContext => widget.onMediaContext;
+
+  // 缓存样式表：配置未变时把同一个实例传给 MarkdownBody，
+  // 其 didUpdateWidget 以 data/styleSheet 判变——身份稳定即可跳过整块重解析。
+  MarkdownStyleSheet? _cachedSheet;
+  String? _cachedSheetKey;
+
+  MarkdownStyleSheet _styleSheetFor(BuildContext context) {
+    final widget = this.widget;
+    final colors = Theme.of(context).colorScheme;
+    final fonts = MarkdownFontFamilies.of(context);
+    final font = widget.editingPreferences?.font ?? MarkdownBodyFont.system;
+    final key = [
+      widget.typography,
+      widget.compact,
+      widget.fontSize,
+      widget.inline,
+      widget.inlineAlignment,
+      font,
+      colors.brightness,
+      colors.hashCode,
+      Theme.of(context).textTheme.bodyMedium.hashCode,
+      fonts.serif,
+      fonts.monospace,
+      fonts.sansItalic,
+      fonts.serifItalic,
+      fonts.serifFallback,
+      fonts.monospaceFallback,
+      widget.bodyStyle,
+    ].join('|');
+    if (_cachedSheetKey != key) {
+      _cachedSheetKey = key;
+      _cachedSheet = widget.styleSheet(context);
+    }
+    return _cachedSheet!;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final sheet = styleSheet(context);
+    final sheet = _styleSheetFor(context);
     final imageOccurrences = <String, int>{};
     final linkOccurrences = <String, int>{};
     final body = _LinkRecognizerHost(
-      reader: this,
+      reader: widget,
       builder: (links) => MarkdownBody(
         key: ValueKey((
           preferences,
@@ -306,16 +362,16 @@ class MarkdownReader extends StatelessWidget {
             labels,
             preferences,
           ),
-          'vex-math': _MathBuilder(this, false),
-          'vex-math-block': _MathBuilder(this, true),
+          'vex-math': _MathBuilder(widget, false),
+          'vex-math-block': _MathBuilder(widget, true),
           for (final tag in ['mark', 'sub', 'sup'])
-            tag: _InlineMarkBuilder(this, tag),
-          'vex-toc': _TableOfContentsBuilder(this),
-          'vex-callout': _CalloutBuilder(this),
-          'vex-footnote': _FootnoteDefinitionBuilder(this),
-          'vex-footnote-ref': _FootnoteReferenceBuilder(this),
+            tag: _InlineMarkBuilder(widget, tag),
+          'vex-toc': _TableOfContentsBuilder(widget),
+          'vex-callout': _CalloutBuilder(widget),
+          'vex-footnote': _FootnoteDefinitionBuilder(widget),
+          'vex-footnote-ref': _FootnoteReferenceBuilder(widget),
           for (var level = 1; level <= 6; level++)
-            'h$level': _HeadingBuilder(this, level, switch (level) {
+            'h$level': _HeadingBuilder(widget, level, switch (level) {
               1 => sheet.h1!,
               2 => sheet.h2!,
               3 => sheet.h3!,
