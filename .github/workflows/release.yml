@@ -156,13 +156,23 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y sudo git curl ca-certificates unzip xz-utils file binutils jq
+          # 使用与 glibc 2.31 同源的发行版 Python，避免宿主工具缓存要求更新的 glibc。
+          DEBIAN_FRONTEND=noninteractive apt-get install -y sudo git curl ca-certificates unzip xz-utils file binutils jq python3 python-is-python3
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.metadata.outputs.commit }}
       - uses: actions/setup-python@v5
+        if: runner.os != 'Linux'
         with:
           python-version: '3.12'
+      - name: 验证 Linux 基线 Python 与统一构建入口
+        if: runner.os == 'Linux'
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          python --version
+          python -c 'import sys; assert sys.version_info >= (3, 8), "Python 3.8+ is required"; print(sys.executable)'
+          python scripts/packaging/build.py "$TARGET" --dry-run --skip-tests --output artifacts/release
       - uses: subosito/flutter-action@v2
         if: matrix.target != 'linux-arm64'
         with:

@@ -1,4 +1,5 @@
 """Regression checks for the release boundary (never use these fixtures as artifacts)."""
+import hashlib
 import importlib.util
 from pathlib import Path
 import struct
@@ -12,6 +13,12 @@ spec.loader.exec_module(release)
 
 
 class ReleaseContractTest(unittest.TestCase):
+    def test_streamed_checksums_match_sha256_for_empty_and_multichunk_files(self):
+        for content in (b'', b'Vex installer checksum\x00' * 120000):
+            with self.subTest(size=len(content)):
+                self.path.write_bytes(content)
+                self.assertEqual(release.sha256(self.path), hashlib.sha256(content).hexdigest())
+
     def test_current_brand_and_signed_platform_boundary(self):
         self.assertEqual(release.filename('windows-x64', '1.2.3'), 'Vex-v1.2.3-windows-x64-setup.exe')
         self.assertEqual(len(release.DEFAULT_TARGETS), 7)

@@ -138,7 +138,8 @@ def recipe(args, target, flutter, dart, output):
         steps.append(([sys.executable, '-m', 'unittest', 'discover', '-s', 'scripts/tests', '-v'], ROOT))
     app = ROOT / 'apps/vex'
     if target.startswith('linux-'):
-        arch = target.removeprefix('linux-')
+        # Ubuntu 20.04 supplies Python 3.8; keep Linux recipes compatible with it.
+        arch = target[len('linux-'):]
         steps += [([flutter, 'build', 'linux', '--release', '--target', 'lib/main.dart'], app),
                   (['bash', str(HERE / 'linux/package.sh'), version, arch, str(output)], ROOT)]
         artifacts = [target]
@@ -183,9 +184,10 @@ def run_steps(steps, environment, log):
 
 
 def main(argv=None):
-    if sys.version_info < (3, 11):
-        raise ValueError('Python 3.11+ is required for installer checksum verification.')
     args = parser().parse_args(argv)
+    minimum_python = (3, 8) if args.target.startswith('linux-') else (3, 11)
+    if sys.version_info < minimum_python:
+        raise ValueError(f'Python {minimum_python[0]}.{minimum_python[1]}+ is required for {args.target}.')
     target = canonical_target(args.target)
     if args.compiler and target != 'win-x64':
         raise ValueError('--compiler is only supported for win-x64.')

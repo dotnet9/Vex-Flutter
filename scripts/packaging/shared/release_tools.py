@@ -42,8 +42,12 @@ def filename(target, version):
 
 
 def sha256(path):
+    digest = hashlib.sha256()
     with path.open('rb') as source:
-        return hashlib.file_digest(source, 'sha256').hexdigest()
+        # The Ubuntu 20.04 build baseline uses Python 3.8 (no file_digest).
+        for chunk in iter(lambda: source.read(1024 * 1024), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def check_installer(path, target, version):

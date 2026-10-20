@@ -1,3 +1,4 @@
+import ast
 import importlib.util
 from pathlib import Path
 import unittest
@@ -26,6 +27,21 @@ Version needs section '.gnu.version_r':
         self.assertIn('check_abi.py', package)
         self.assertIn('dpkg-shlibdeps', package)
         self.assertIn('"$dependencies" == *t64*', package)
+
+    def test_linux_build_python_comes_from_the_container_not_host_toolcache(self):
+        workflow = (ROOT / '.github/workflows/release.yml').read_text(encoding='utf-8')
+        desktop = workflow.split('\n  desktop:', 1)[1].split('\n  android:', 1)[0]
+        self.assertIn('python3 python-is-python3', desktop)
+        setup = desktop.split('uses: actions/setup-python@v5', 1)[1].split('      - ', 1)[0]
+        self.assertIn("if: runner.os != 'Linux'", setup)
+        self.assertIn('python scripts/packaging/build.py "$TARGET" --dry-run --skip-tests', desktop)
+        self.assertLess(desktop.index('--dry-run --skip-tests'), desktop.index('uses: subosito/flutter-action'))
+
+    def test_linux_entry_modules_support_python38_syntax(self):
+        for name in ('packaging/build.py', 'packaging/shared/release_tools.py',
+                     'packaging/linux/check_abi.py', 'sync_builtin_documents.py'):
+            with self.subTest(module=name):
+                ast.parse((ROOT / 'scripts' / name).read_text(encoding='utf-8'), feature_version=(3, 8))
 
 
 if __name__ == '__main__':

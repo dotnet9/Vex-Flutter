@@ -146,9 +146,17 @@ class PackagingBuildTest(unittest.TestCase):
             self.assertIn('--suppress-analytics', run.call_args.args[0])
 
     def test_python_version_is_checked_before_starting_a_build(self):
+        with patch.object(build.sys, 'version_info', (3, 7, 0)):
+            with self.assertRaisesRegex(ValueError, 'Python 3.8'):
+                build.main(['linux-x64', '--check-only'])
         with patch.object(build.sys, 'version_info', (3, 10, 0)):
             with self.assertRaisesRegex(ValueError, 'Python 3.11'):
-                build.main(['linux-x64', '--check-only'])
+                build.main(['android', '--check-only'])
+
+    def test_linux_baseline_python_can_plan_both_native_architectures(self):
+        with patch.object(build.sys, 'version_info', (3, 8, 0)), contextlib.redirect_stdout(io.StringIO()):
+            for target in ('linux-x64', 'linux-arm64'):
+                self.assertEqual(build.main([target, '--dry-run', '--skip-tests']), 0)
 
     def test_missing_android_signing_or_fingerprint_fails_before_build(self):
         with tempfile.TemporaryDirectory() as temporary:
