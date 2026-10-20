@@ -813,13 +813,15 @@ class MarkdownHeadingFrame extends StatelessWidget {
                       : level == 2
                       ? 1.4
                       : 1.15),
+        // 底部收紧到 Typora 量级：标题与紧邻正文只留一个呼吸间隙；
+        // 多余空行的额外间距由阅读视图按空行数补充。
         bottom:
             size *
             (level == 1
-                ? .55
+                ? .35
                 : level == 2
-                ? .45
-                : .35),
+                ? .3
+                : .25),
       ),
       padding: EdgeInsets.only(
         top: technical || (decorated && editorial) || (handbook && level <= 2)

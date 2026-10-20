@@ -547,6 +547,22 @@ class _DocumentReadingState extends State<_DocumentReading>
                     );
                   }
 
+                  // 空行规则（与 Typora 相符）：块间第一个空行不产生额外间距，
+                  // 每多一个空行则补一行正文高度——保留作者的疏密意图。
+                  var extraBlankLines = 0;
+                  if (index > 0) {
+                    final separator =
+                        block.range.start <= blocks[index - 1].range.end
+                        ? ''
+                        : vm.editor.text.substring(
+                            blocks[index - 1].range.end,
+                            block.range.start,
+                          );
+                    extraBlankLines = separator.isEmpty
+                        ? 0
+                        : (separator.split('\n').length - 3).clamp(0, 6);
+                  }
+
                   return AnimatedContainer(
                     duration: const Duration(milliseconds: 220),
                     decoration: BoxDecoration(
@@ -556,14 +572,21 @@ class _DocumentReadingState extends State<_DocumentReading>
                                 .withValues(alpha: .16)
                           : Colors.transparent,
                     ),
-                    child: GestureDetector(
-                      key: ValueKey('read-element-${block.range.start}'),
-                      behavior: HitTestBehavior.translucent,
-                      onSecondaryTapUp: (event) =>
-                          openContext(event.globalPosition),
-                      onLongPressStart: (event) =>
-                          openContext(event.globalPosition),
-                      child: reader,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (extraBlankLines > 0)
+                          SizedBox(height: extraBlankLines * vm.fontSize),
+                        GestureDetector(
+                          key: ValueKey('read-element-${block.range.start}'),
+                          behavior: HitTestBehavior.translucent,
+                          onSecondaryTapUp: (event) =>
+                              openContext(event.globalPosition),
+                          onLongPressStart: (event) =>
+                              openContext(event.globalPosition),
+                          child: reader,
+                        ),
+                      ],
                     ),
                   );
                 },
