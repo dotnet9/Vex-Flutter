@@ -64,9 +64,10 @@ class BuiltinDocumentsTest(unittest.TestCase):
             (root / 'docs' / name).write_text('# 新内容\n', encoding='utf-8')
             other = root / 'apps/vex/assets/generated/documents' / documents.DOCUMENTS[1][1]
             other.write_bytes(b'damaged')
-            self.assertEqual(len(documents.prepare(root, check=True)), len(documents.DOCUMENTS) + 1)
+            # 被改动的两份文档产物 + 随之更新的 documents-data.js
+            self.assertEqual(len(documents.prepare(root, check=True)), 3)
             self.assertEqual(other.read_bytes(), b'damaged')
-            self.assertEqual(len(documents.prepare(root)), len(documents.DOCUMENTS) + 1)
+            self.assertEqual(len(documents.prepare(root)), 3)
             self.assertEqual(documents.prepare(root, check=True), [])
 
     def test_windows_source_newlines_generate_the_same_lf_bytes(self):
