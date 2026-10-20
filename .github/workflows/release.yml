@@ -182,7 +182,8 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libsecret-1-dev liblzma-dev libxrandr-dev libayatana-appindicator3-dev dpkg-dev desktop-file-utils xvfb
+          # sudo 会重置环境变量，DEBIAN_FRONTEND 必须内联传递，否则 tzdata 配置提示会阻塞任务
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libsecret-1-dev liblzma-dev libxrandr-dev libayatana-appindicator3-dev dpkg-dev desktop-file-utils xvfb
       - name: 统一入口构建 Windows 安装包
         if: runner.os == 'Windows'
         run: python scripts/packaging/build.py win-x64 --skip-tests --no-open-folder --output artifacts/release
@@ -207,7 +208,7 @@ jobs:
           APP_VERSION: ${{ needs.metadata.outputs.version }}
           TARGET: ${{ matrix.target }}
         run: |
-          sudo apt-get install -y "./artifacts/release/Vex-v$APP_VERSION-$TARGET.deb"
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "./artifacts/release/Vex-v$APP_VERSION-$TARGET.deb"
           test -x /usr/bin/vex
           test -f /usr/share/applications/com.codewf.vex.desktop
           if ldd /usr/lib/vex/vex | grep 'not found'; then exit 1; fi
