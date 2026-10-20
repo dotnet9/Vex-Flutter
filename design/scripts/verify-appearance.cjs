@@ -45,6 +45,16 @@ async function main() {
   launcher.location.search = launched.url.search;
   assert.equal(launcher.VexDocumentWindow.read().builtin, true);
   assert.equal(launcher.VexDocumentWindow.read().readOnly, true);
+  const polish = fs.readFileSync(path.join(assets, 'desktop/polish.css'), 'utf8');
+  const themeScript = fs.readFileSync(path.join(assets, 'desktop/theme.js'), 'utf8');
+  const typographyScript = fs.readFileSync(path.join(assets, 'desktop/typography.js'), 'utf8');
+  assert.match(polish, /:root\\.theme-switching[\\s\\S]*transition:\\s*none\\s*!important/);
+  assert.match(polish, /grid-template-columns:\\s*repeat\\(2,\\s*minmax\\(0,1fr\\)\\)/);
+  assert.match(polish, /\\.type-swatch \\.type-document h1[\\s\\S]*font-size:\\s*19px\\s*!important/);
+  assert.match(themeScript, /cancelAnimationFrame\\(themeFrame\\)/);
+  assert.match(typographyScript, /new MutationObserver\\(syncThemeAccent\\)/);
+  assert.doesNotMatch(typographyScript, /new MutationObserver\\(apply\\)/);
+
   const content = {name: '新文章.md', text: '# 一段想法\n\n保留这段内容。'};
   assert.ok(launcher.VexDocumentWindow.open({document: content}));
   assert.equal(storage.size, 0, 'The parent must release its temporary handoff');
