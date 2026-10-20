@@ -119,3 +119,106 @@ body.device-phone .appearance-tabs button{min-height:44px}
 body.device-phone .map-appearance-trigger{min-height:44px;min-width:44px;justify-content:center}
 body.device-phone .map-appearance-trigger>span{display:none}
 @media(prefers-reduced-motion:reduce){.map-appearance-popover,.typography-popover{animation:none}:is(.map-scene,.map-stage)[data-map-style] .map-node{transition:none}}
+
+
+/* Typography chooser polish: make the actual sample text readable, not merely the card labels. */
+.typography-popover {
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(82vh, 780px);
+  padding: 18px;
+  border-radius: 14px;
+  box-shadow: 0 22px 64px color-mix(in srgb, var(--fg) 16%, transparent), 0 3px 10px color-mix(in srgb, var(--fg) 5%, transparent);
+}
+.typography-popover .popover-title {
+  padding: 2px 2px 15px;
+  font-size: 15px;
+}
+.typography-grid, .typography-popover .typography-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 2px;
+  max-height: min(68vh, 640px);
+}
+.typography-card {
+  min-height: 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  border-color: var(--line);
+}
+.typography-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 68%, var(--line));
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--fg) 7%, transparent);
+  transform: translateY(-1px);
+}
+.typography-card[aria-pressed=true] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent), 0 5px 18px color-mix(in srgb, var(--accent) 13%, transparent);
+  background: var(--accent-soft);
+}
+.typography-card>strong {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.type-swatch {
+  height: 190px;
+  border: 1px solid color-mix(in srgb, var(--line) 85%, var(--accent) 15%);
+  border-radius: 6px;
+  background: var(--document-bg, var(--surface));
+}
+.type-swatch .type-document {
+  width: 344px;
+  height: 260px;
+  padding: 14px 16px;
+  transform: scale(.72);
+  transform-origin: top left;
+  font-size: 17px;
+  line-height: 1.55;
+  --writing-size: 17px;
+}
+.type-swatch .type-document h1 {
+  font-size: 1.65em;
+  line-height: 1.3;
+  margin: 0 0 .45em;
+}
+.type-swatch .type-document h2 {
+  font-size: 1.25em;
+  line-height: 1.4;
+  margin-top: .65em;
+}
+.type-swatch .type-document h3 {
+  font-size: 1.05em;
+  margin-top: .6em;
+}
+.type-swatch .type-document p {
+  line-height: 1.55;
+  margin-bottom: .55em;
+}
+.typography-compact {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.typography-compact label {
+  font-size: 13px;
+}
+@media (max-width: 760px) {
+  .typography-popover { width: calc(100vw - 20px); padding: 12px; }
+  .typography-popover .typography-grid, .typography-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .type-swatch { height: 172px; }
+  .type-swatch .type-document {
+    transform: scale(.58);
+    font-size: 17px;
+  }
+  .typography-card { padding: 9px; }
+}
+@media (max-width: 480px) {
+  .typography-popover { max-height: 86vh; }
+  .typography-popover .typography-grid, .typography-grid { grid-template-columns: minmax(0, 1fr); }
+  .type-swatch { height: 178px; }
+  .type-swatch .type-document { transform: scale(.66); }
+}
