@@ -76,6 +76,8 @@
     quickSwitch.querySelectorAll('button').forEach(function (button) { button.setAttribute('aria-selected', String(button.dataset.view === quickView)); button.title = '单独打开' + button.textContent.trim() + '视图'; button.tabIndex = button.dataset.view === quickView || quickView === 'custom' && button.dataset.view === 'edit' ? 0 : -1; });
     layoutMenu.querySelectorAll('[data-layout]').forEach(function (button) { button.setAttribute('aria-pressed', String(button.dataset.layout === current)); });
     document.dispatchEvent(new CustomEvent('vex-layout-rendered'));
+    // Newly opened panes inherit the current chapter position instead of starting at the top.
+    requestAnimationFrame(function () { if (W.syncViewsToLine) W.syncViewsToLine(); });
   }
   function setLayout(id) {
     if (id === 'source-read') id = 'source-render';
