@@ -348,10 +348,16 @@ void main() {
       );
       await tester.tap(mermaid);
       await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('touch-menu-mermaid-group-0')),
+      );
+      await tester.pumpAndSettle();
       expect(
         find.byKey(const ValueKey('touch-menu-mermaid:flowchart')),
         findsOneWidget,
       );
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(

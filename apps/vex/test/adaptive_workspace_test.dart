@@ -67,8 +67,8 @@ void main() {
       vm.search('needle');
       vm.nextMatch();
       await tester.pumpAndSettle();
-      expect(vm.layout.panes.length, limit);
-      expect(vm.layout.panes, contains('source'));
+      expect(vm.layout, WorkspaceLayout.read);
+      expect(vm.layout.panes, ['read']);
       final before = vm.editor.text;
       vm.startGuide();
       for (var step = 0; step < 8; step++) {

@@ -471,8 +471,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Changes apply immediately. All views share the same content.';
 
   @override
-  String get typographyHint =>
-      'Six reading styles · independent of interface colors';
+  String get typographyHint => 'Nine styles · Preview a complete article';
 
   @override
   String get sampleHeading => 'Words take shape';
@@ -1827,4 +1826,40 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get externalChangeReloaded =>
       'External changes reloaded automatically';
+
+  @override
+  String get menuDocumentActions => 'Document actions';
+
+  @override
+  String get menuNavigationPanels => 'Sidebar & outline';
+
+  @override
+  String get menuEditorDisplay => 'Editor display';
+
+  @override
+  String get menuZoom => 'Zoom';
+
+  @override
+  String get menuTableRows => 'Rows';
+
+  @override
+  String get menuTableColumns => 'Columns';
+
+  @override
+  String get menuTableAlignment => 'Cell alignment';
+
+  @override
+  String get typographyPreviewMarkdown =>
+      '# Clear thinking, thoughtful writing\n\nA good article begins with a question worth answering. Capture ideas first, shape the structure next, and refine the sentences last. Clear hierarchy and comfortable spacing help readers focus on the content.\n\n## From an idea to an article\n\nUse **headings** to build a structure and *paragraphs* to develop it. Give each paragraph one purpose, with examples and evidence close to the claim.\n\n> Writing is a conversation with the reader. Clarity gives ideas room to grow.\n\n### A practical writing routine\n\n1. Identify the reader’s central question.\n2. Support each claim with a concrete example.\n3. Return to the opening and remove repetition.\n\n- Keep the information that matters.\n- Use lists for parallel ideas.\n- Write with `Markdown` to stay focused.\n\n## Compare the stages\n\n| Stage | Focus | Result |\n| --- | --- | --- |\n| Plan | Questions and goals | Outline |\n| Draft | Evidence and details | First draft |\n| Revise | Rhythm and accuracy | Final article |\n\n### Keep a reusable method\n\n```python\nsteps = [\'Plan\', \'Draft\', \'Revise\']\nfor step in steps:\n    print(step)\n```\n\nAs you read, notice the spacing between headings, quotations, tables and paragraphs. Good typography serves the content and makes extended reading comfortable.\n';
+
+  @override
+  String get mapHeadingsOnly => 'Headings only';
+
+  @override
+  String get mapCompareSource => 'Compare source';
+
+  @override
+  String mapSummaryLabel(int count) {
+    return 'Summary: $count characters';
+  }
 }

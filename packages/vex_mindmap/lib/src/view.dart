@@ -112,8 +112,9 @@ class _MindMapViewState extends State<MindMapView> {
       _viewport = viewport;
       if (controller.viewportSize != viewport) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && _viewport == viewport)
+          if (mounted && _viewport == viewport) {
             controller.resizeViewport(viewport);
+          }
         });
       }
       return ListenableBuilder(

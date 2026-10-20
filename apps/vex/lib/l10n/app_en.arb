@@ -145,7 +145,7 @@
   "markdownTypography": "Markdown typography",
   "closePicker": "Close selection panel",
   "layoutHint": "Changes apply immediately. All views share the same content.",
-  "typographyHint": "Six reading styles · independent of interface colors",
+  "typographyHint": "Nine styles · Preview a complete article",
   "sampleHeading": "Words take shape",
   "unsavedContent": "Unsaved changes",
   "keepDraftClose": "Keep drafts and close",
@@ -560,5 +560,18 @@
 ,
   "collapseAllFiles": "Collapse All"
 ,
-  "externalChangeReloaded": "External changes reloaded automatically"
+  "externalChangeReloaded": "External changes reloaded automatically",
+  "menuDocumentActions": "Document actions",
+  "menuNavigationPanels": "Sidebar & outline",
+  "menuEditorDisplay": "Editor display",
+  "menuWindow": "Window",
+  "menuZoom": "Zoom",
+  "menuTableRows": "Rows",
+  "menuTableColumns": "Columns",
+  "menuTableAlignment": "Cell alignment",
+  "typographyPreviewMarkdown": "# Clear thinking, thoughtful writing\n\nA good article begins with a question worth answering. Capture ideas first, shape the structure next, and refine the sentences last. Clear hierarchy and comfortable spacing help readers focus on the content.\n\n## From an idea to an article\n\nUse **headings** to build a structure and *paragraphs* to develop it. Give each paragraph one purpose, with examples and evidence close to the claim.\n\n> Writing is a conversation with the reader. Clarity gives ideas room to grow.\n\n### A practical writing routine\n\n1. Identify the reader’s central question.\n2. Support each claim with a concrete example.\n3. Return to the opening and remove repetition.\n\n- Keep the information that matters.\n- Use lists for parallel ideas.\n- Write with `Markdown` to stay focused.\n\n## Compare the stages\n\n| Stage | Focus | Result |\n| --- | --- | --- |\n| Plan | Questions and goals | Outline |\n| Draft | Evidence and details | First draft |\n| Revise | Rhythm and accuracy | Final article |\n\n### Keep a reusable method\n\n```python\nsteps = ['Plan', 'Draft', 'Revise']\nfor step in steps:\n    print(step)\n```\n\nAs you read, notice the spacing between headings, quotations, tables and paragraphs. Good typography serves the content and makes extended reading comfortable.\n",
+  "mapHeadingsOnly": "Headings only",
+  "mapCompareSource": "Compare source",
+  "mapSummaryLabel": "Summary: {count} characters",
+  "@mapSummaryLabel": {"placeholders": {"count": {"type": "int"}}}
 }

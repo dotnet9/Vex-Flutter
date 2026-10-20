@@ -12,8 +12,11 @@ List<Widget> workspaceMenuWidgets(
 }) {
   final size = availableSize ?? MediaQuery.sizeOf(context);
   final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-  final rowHeight = (14 * 1.4 * scale + 12).clamp(36.0, 100.0);
-  final height = (size.height - 90).clamp(rowHeight, double.infinity);
+  final rowHeight = (14 * 1.4 * scale + (size.height < 600 ? 8 : 12)).clamp(
+    28.0,
+    100.0,
+  );
+  final height = (size.height - 78).clamp(rowHeight, double.infinity);
   final columns = <List<WorkspaceMenuEntry>>[[]];
   var used = 0.0;
   for (final entry in entries) {
@@ -67,7 +70,7 @@ List<Widget> workspaceMenuWidgets(
       else if (item.children.isNotEmpty)
         SubmenuButton(
           style: style,
-          animated: !MediaQuery.disableAnimationsOf(context),
+          animated: false,
           key: ValueKey('menu-${item.id}'),
           focusNode: takeFocus(item.enabled),
           leadingIcon: const SizedBox(width: 16),

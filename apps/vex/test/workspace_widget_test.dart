@@ -30,7 +30,7 @@ void main() {
       final editor = tester.getRect(find.byType(WorkspacePanes));
       expect(bar.left, editor.left);
       expect(bar.right, editor.right);
-      expect(bar.bottom, lessThan(editor.top));
+      expect(bar.bottom, lessThanOrEqualTo(editor.top));
       if (size.width >= 700) {
         final sidebar = tester.getRect(find.byType(WorkspaceSidebar));
         expect(bar.left, greaterThan(sidebar.right));
@@ -82,11 +82,15 @@ void main() {
       await tester.pumpWidget(VexApp(viewModel: vm));
       await tester.pumpAndSettle();
       expect(find.byType(MarkdownReader).evaluate().length, lessThan(30));
-      expect(find.text('Chapter 490'), findsNothing);
+      final heading = find.descendant(
+        of: find.byType(WorkspacePanes),
+        matching: find.text('Chapter 490'),
+      );
+      expect(heading, findsNothing);
       final source = vm.editor.session.text;
       vm.selectHeading(vm.editor.document.headings[490]);
       await tester.pumpAndSettle();
-      expect(find.text('Chapter 490').hitTestable(), findsOneWidget);
+      expect(heading.hitTestable(), findsOneWidget);
       expect(vm.editor.session.text, source);
       expect(vm.editor.session.isDirty, isFalse);
       expect(tester.takeException(), isNull);

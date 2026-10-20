@@ -9,17 +9,27 @@ import 'support/fakes.dart';
 
 const sample = '| Name | Value |\n| --- | --- |\n| One | Two |\n';
 
+Iterable<WorkspaceMenuEntry> leaves(List<WorkspaceMenuEntry> entries) sync* {
+  for (final entry in entries) {
+    if (entry.children.isEmpty) {
+      yield entry;
+    } else {
+      yield* leaves(entry.children);
+    }
+  }
+}
+
 void main() {
   test('table submenu disables unavailable actions and respects readonly', () {
     final vm = fakeWorkspace();
     addTearDown(vm.dispose);
-    final empty = workspaceTableEntries(vm.strings, null);
+    final empty = leaves(workspaceTableEntries(vm.strings, null));
     expect(empty.where((item) => item.enabled).map((item) => item.id), [
       'format:table',
     ]);
     vm.editor.session.replace(sample);
     final target = vm.editor.tableTarget(offset: 0)!;
-    final entries = workspaceTableEntries(vm.strings, target);
+    final entries = leaves(workspaceTableEntries(vm.strings, target));
     expect(
       entries.firstWhere((item) => item.id == 'table:deleteRow').enabled,
       isFalse,
@@ -28,7 +38,9 @@ void main() {
       entries.firstWhere((item) => item.id == 'table:rowBelow').enabled,
       isTrue,
     );
-    final read = workspaceTableEntries(vm.strings, target, readOnly: true);
+    final read = leaves(
+      workspaceTableEntries(vm.strings, target, readOnly: true),
+    );
     expect(read.where((item) => item.enabled).map((item) => item.id), [
       'table:copy',
     ]);
@@ -45,6 +57,8 @@ void main() {
     await tester.pumpAndSettle();
     final cell = find.byKey(const ValueKey('table-cell-1-1'));
     await tester.tap(cell, buttons: kSecondaryMouseButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('menu-table-rows')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('menu-table:rowBelow')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('menu-table:rowBelow')));

@@ -41,18 +41,23 @@ final class WorkspaceMenuEntry {
 String workspaceMenuLabel(String label) =>
     label.replaceFirst(RegExp(r'\([A-Z]\)$'), '');
 
+WorkspaceMenuEntry? workspaceMenuEntry(
+  List<WorkspaceMenuEntry> entries,
+  String id,
+) {
+  for (final entry in entries) {
+    if (entry.id == id) return entry;
+    final child = workspaceMenuEntry(entry.children, id);
+    if (child != null) return child;
+  }
+  return null;
+}
+
 bool workspaceCommandEditsText(String id) =>
     id.startsWith('format:') ||
     id.startsWith('mermaid:') ||
     (id.startsWith('table:') && id != 'table:copy') ||
-    const [
-      'undo',
-      'redo',
-      'cut',
-      'paste',
-      'replace',
-      'mermaid-picker',
-    ].contains(id);
+    const ['undo', 'redo', 'cut', 'paste', 'mermaid-picker'].contains(id);
 
 String workspaceShortcutLabel(SingleActivator? shortcut) {
   if (shortcut == null) return '';
@@ -128,14 +133,6 @@ List<WorkspaceMenuEntry> workspaceMenus(
           item('clear-recent', l.clearRecent),
         ],
       ]),
-      // 与原型一致：按指定编码重新读取当前文件，保存时沿用所选编码。
-      if (desktop && vm.current.path != null)
-        group('encoding-reload', l.reopenWithEncoding, [
-          item('encoding-reload:utf8', 'UTF-8'),
-          item('encoding-reload:utf8Bom', 'UTF-8 BOM'),
-          item('encoding-reload:gb18030', 'GB18030'),
-          item('encoding-reload:big5', 'Big5'),
-        ]),
       divider,
       item(
         'save',
@@ -149,35 +146,52 @@ List<WorkspaceMenuEntry> workspaceMenus(
       ),
       item('save-all', l.saveAllDocuments),
       divider,
-      item('export:html', '${l.exportShare} HTML'),
-      item('export:pdf', '${l.exportShare} PDF'),
-      item('export:docx', '${l.exportShare} Word (.docx)'),
-      item('export:png', l.mindMapPng),
-      if (desktop)
-        item(
-          'export:print',
-          l.printPreview,
-          shortcut: key(LogicalKeyboardKey.keyP, shift: true),
-        ),
+      group('export', l.exportShare, [
+        item('export:html', '${l.exportShare} HTML'),
+        item('export:pdf', '${l.exportShare} PDF'),
+        item('export:docx', '${l.exportShare} Word (.docx)'),
+        item('export:png', l.mindMapPng),
+        if (desktop)
+          item(
+            'export:print',
+            l.printPreview,
+            shortcut: key(LogicalKeyboardKey.keyP, shift: true),
+          ),
+      ]),
       if (desktop && !macOS) ...[
-        divider,
-        item(
-          'document-properties',
-          l.documentProperties,
-          shortcut: SingleActivator(LogicalKeyboardKey.enter, alt: true),
-          enabled: vm.current.path != null,
-        ),
-        item(
-          'reveal-file',
-          l.openFileLocation,
-          enabled: vm.current.path != null,
-        ),
-        item(
-          'delete-document',
-          l.deleteDocument,
-          enabled: vm.current.path != null,
-        ),
+        group('document-actions', l.menuDocumentActions, [
+          item(
+            'document-properties',
+            l.documentProperties,
+            shortcut: SingleActivator(LogicalKeyboardKey.enter, alt: true),
+            enabled: vm.current.path != null,
+          ),
+          item(
+            'reveal-file',
+            l.openFileLocation,
+            enabled: vm.current.path != null,
+          ),
+          item(
+            'delete-document',
+            l.deleteDocument,
+            enabled: vm.current.path != null,
+          ),
+          if (vm.current.path != null)
+            group('encoding-reload', l.reopenWithEncoding, [
+              item('encoding-reload:utf8', 'UTF-8'),
+              item('encoding-reload:utf8Bom', 'UTF-8 BOM'),
+              item('encoding-reload:gb18030', 'GB18030'),
+              item('encoding-reload:big5', 'Big5'),
+            ]),
+        ]),
       ],
+      if (desktop && macOS && vm.current.path != null)
+        group('encoding-reload', l.reopenWithEncoding, [
+          item('encoding-reload:utf8', 'UTF-8'),
+          item('encoding-reload:utf8Bom', 'UTF-8 BOM'),
+          item('encoding-reload:gb18030', 'GB18030'),
+          item('encoding-reload:big5', 'Big5'),
+        ]),
       divider,
       item(
         'close-document',
@@ -228,11 +242,15 @@ List<WorkspaceMenuEntry> workspaceMenus(
           shift: macOS,
         ),
       ),
+      divider,
+      item('pairs', l.prefAutoPair, checked: vm.editingPreferences.autoPair),
     ], icon: 'edit'),
     group('paragraph', named(l.menuParagraph, 'P'), [
       item('format:paragraph', l.menuParagraph),
-      for (var level = 1; level <= 6; level++)
-        item('format:heading-$level', '${l.heading} $level'),
+      group('headings', l.heading, [
+        for (var level = 1; level <= 6; level++)
+          item('format:heading-$level', '${l.heading} $level'),
+      ]),
       divider,
       item('format:list', l.unorderedList),
       item('format:ordered', l.orderedList),
@@ -252,10 +270,18 @@ List<WorkspaceMenuEntry> workspaceMenus(
       item('format:math', l.mathBlock),
       item('format:rule', l.horizontalRule),
       group('mermaid', l.mermaidDiagrams, [
-        for (final template in MermaidTemplate.values)
-          item(
-            'mermaid:${template.name}',
-            template.label(vm.language.startsWith('zh')),
+        for (var category = 0; category < 4; category++)
+          group(
+            'mermaid-group-$category',
+            MermaidTemplate.groupLabel(category, vm.language.startsWith('zh')),
+            [
+              for (final template in MermaidTemplate.values)
+                if (template.group == category)
+                  item(
+                    'mermaid:${template.name}',
+                    template.label(vm.language.startsWith('zh')),
+                  ),
+            ],
           ),
       ]),
       item('format:footnote', l.footnote),
@@ -275,7 +301,7 @@ List<WorkspaceMenuEntry> workspaceMenus(
       item('format:clear', l.clearFormatting),
     ], icon: 'bold'),
     group('view', title(l.menuView), [
-      ...[
+      group('editing-layout', l.workspaceLayout, [
         for (final layout in WorkspaceLayout.values.where(
           (layout) => layout.panes.length <= maxPanes,
         ))
@@ -284,20 +310,17 @@ List<WorkspaceMenuEntry> workspaceMenus(
             l.layoutName(layout),
             checked: vm.layout == layout,
           ),
-      ],
-      divider,
-      ...[
+      ]),
+      group('navigation-panels', l.menuNavigationPanels, [
         if (desktop) item('sidebar', l.toggleSidebar, checked: vm.sidebar),
         item('files', l.files),
         item('outline', l.outline),
-      ],
-      divider,
-      ...[
+      ]),
+      group('editor-display', l.menuEditorDisplay, [
         item('lines', l.sourceLineNumbers, checked: vm.lineNumbers),
         item('watermark', l.watermarkPreview, checked: vm.watermark.preview),
-        item('pairs', l.prefAutoPair, checked: vm.editingPreferences.autoPair),
         item('word-count', l.showWordCount, checked: vm.wordCountVisible),
-      ],
+      ]),
       divider,
       ...[
         item(
@@ -342,20 +365,22 @@ List<WorkspaceMenuEntry> workspaceMenus(
         item('compact', l.compactSpacing, checked: vm.compact),
       ]),
       item('map-appearance', l.mapAppearance),
-      if (desktop && !macOS) ...[
-        divider,
-        item(
-          'fullscreen',
-          l.fullscreen,
-          shortcut: key(LogicalKeyboardKey.f11, primary: false),
-        ),
-        item('topmost', l.keepWindowOnTop, checked: vm.alwaysOnTop),
-        item('maximize', l.maximizeRestore),
-      ],
       divider,
-      item('zoom-in', l.zoomIn),
-      item('zoom-out', l.zoomOut),
-      item('zoom-reset', l.actualSize),
+      if (desktop && !macOS)
+        group('window', l.menuWindow, [
+          item(
+            'fullscreen',
+            l.fullscreen,
+            shortcut: key(LogicalKeyboardKey.f11, primary: false),
+          ),
+          item('topmost', l.keepWindowOnTop, checked: vm.alwaysOnTop),
+          item('maximize', l.maximizeRestore),
+        ]),
+      group('zoom', l.menuZoom, [
+        item('zoom-in', l.zoomIn),
+        item('zoom-out', l.zoomOut),
+        item('zoom-reset', l.actualSize),
+      ]),
     ], icon: 'eye'),
     group('tools', title(l.menuTools), [
       if (!macOS) ...[
@@ -392,40 +417,59 @@ List<WorkspaceMenuEntry> workspaceTableEntries(
   AppLocalizations l,
   MarkdownTableTarget? target, {
   bool readOnly = false,
-}) => [
-  if (!readOnly) WorkspaceMenuEntry('format:table', l.insertTable),
-  if (!readOnly) const WorkspaceMenuEntry.separator(),
-  for (final command in MarkdownTableCommand.values) ...[
-    if (const [
-      MarkdownTableCommand.columnBefore,
+}) {
+  WorkspaceMenuEntry command(
+    MarkdownTableCommand command,
+  ) => WorkspaceMenuEntry(
+    'table:${command.name}',
+    l.tableCommandName(command),
+    enabled:
+        target?.can(command) == true &&
+        (!readOnly || command == MarkdownTableCommand.copy),
+    checked: switch (command) {
+      MarkdownTableCommand.alignLeft =>
+        target?.table.alignments[target.column] == MarkdownTableAlignment.left,
+      MarkdownTableCommand.alignCenter =>
+        target?.table.alignments[target.column] ==
+            MarkdownTableAlignment.center,
+      MarkdownTableCommand.alignRight =>
+        target?.table.alignments[target.column] == MarkdownTableAlignment.right,
+      _ => null,
+    },
+  );
+  WorkspaceMenuEntry group(
+    String id,
+    String label,
+    List<MarkdownTableCommand> commands,
+  ) => WorkspaceMenuEntry(id, label, children: commands.map(command).toList());
+  return [
+    if (!readOnly) WorkspaceMenuEntry('format:table', l.insertTable),
+    if (!readOnly) const WorkspaceMenuEntry.separator(),
+    group('table-rows', l.menuTableRows, const [
+      MarkdownTableCommand.rowAbove,
+      MarkdownTableCommand.rowBelow,
       MarkdownTableCommand.rowUp,
-      MarkdownTableCommand.alignLeft,
+      MarkdownTableCommand.rowDown,
       MarkdownTableCommand.deleteRow,
-      MarkdownTableCommand.copy,
-      MarkdownTableCommand.delete,
-    ].contains(command))
-      const WorkspaceMenuEntry.separator(),
-    WorkspaceMenuEntry(
-      'table:${command.name}',
-      l.tableCommandName(command),
-      enabled:
-          target?.can(command) == true &&
-          (!readOnly || command == MarkdownTableCommand.copy),
-      checked: switch (command) {
-        MarkdownTableCommand.alignLeft =>
-          target?.table.alignments[target.column] ==
-              MarkdownTableAlignment.left,
-        MarkdownTableCommand.alignCenter =>
-          target?.table.alignments[target.column] ==
-              MarkdownTableAlignment.center,
-        MarkdownTableCommand.alignRight =>
-          target?.table.alignments[target.column] ==
-              MarkdownTableAlignment.right,
-        _ => null,
-      },
-    ),
-  ],
-];
+    ]),
+    group('table-columns', l.menuTableColumns, const [
+      MarkdownTableCommand.columnBefore,
+      MarkdownTableCommand.columnAfter,
+      MarkdownTableCommand.columnLeft,
+      MarkdownTableCommand.columnRight,
+      MarkdownTableCommand.deleteColumn,
+    ]),
+    group('table-alignment', l.menuTableAlignment, const [
+      MarkdownTableCommand.alignLeft,
+      MarkdownTableCommand.alignCenter,
+      MarkdownTableCommand.alignRight,
+    ]),
+    const WorkspaceMenuEntry.separator(),
+    command(MarkdownTableCommand.copy),
+    command(MarkdownTableCommand.format),
+    command(MarkdownTableCommand.delete),
+  ];
+}
 
 List<PlatformMenuItem> workspacePlatformItems(
   List<WorkspaceMenuEntry> entries,

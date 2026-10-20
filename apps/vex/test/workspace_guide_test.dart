@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vex/app.dart';
 import 'package:vex/domain/workspace.dart';
 import 'package:vex/ui/workspace/workspace_guide.dart';
-import 'package:vex/ui/workspace/workspace_sidebar.dart';
 
 import 'support/fakes.dart';
 
@@ -41,12 +40,12 @@ void main() {
         if (step == 2) {
           expect(find.byKey(guide.target), findsOneWidget);
           expect(
-            find.ancestor(
+            find.descendant(
               of: find.byKey(guide.target),
-              matching: find.byType(WorkspaceSidebar),
+              matching: find.byKey(const ValueKey('document-outline-toggle')),
             ),
             findsOneWidget,
-            reason: 'step $step highlights the sidebar outline tab',
+            reason: 'step $step highlights the independent structure toggle',
           );
           expect(target.width, lessThan(300));
         }

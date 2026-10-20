@@ -145,7 +145,7 @@
   "markdownTypography": "Markdown 排版",
   "closePicker": "關閉選擇面板",
   "layoutHint": "選擇後立即切換，所有檢視共享同一份內容",
-  "typographyHint": "六種閱讀結構 · 與介面配色分別設定",
+  "typographyHint": "九種排版 · 閱讀完整文章，選擇舒適的節奏",
   "sampleHeading": "落筆成文",
   "unsavedContent": "還有未儲存的內容",
   "keepDraftClose": "保留草稿並關閉",
@@ -560,5 +560,18 @@
 ,
   "collapseAllFiles": "全部摺疊"
 ,
-  "externalChangeReloaded": "已自動重新載入外部修改"
+  "externalChangeReloaded": "已自動重新載入外部修改",
+  "menuDocumentActions": "文件操作",
+  "menuNavigationPanels": "側欄與大綱",
+  "menuEditorDisplay": "編輯顯示",
+  "menuWindow": "視窗",
+  "menuZoom": "縮放",
+  "menuTableRows": "列操作",
+  "menuTableColumns": "欄操作",
+  "menuTableAlignment": "儲存格對齊",
+  "typographyPreviewMarkdown": "# 讓思考有條理，讓表達更清晰\n\n一篇好文章，從一個值得回答的問題開始。寫作時，先記錄想法，再整理結構，最後打磨每一句話。適度的留白與清晰的層級，能讓讀者把注意力放在內容上。\n\n## 從想法到文章\n\n用 **標題** 搭建骨架，用 *段落* 展開論述。一個段落只講清一件事，讓例子和證據緊跟觀點。\n\n> 寫作是一場與讀者的對話。清楚，比複雜更有力量。\n\n### 一次可執行的寫作流程\n\n1. 明確讀者最關心的問題。\n2. 為每個觀點補充一個具體例子。\n3. 回到開頭，刪去重複的表達。\n\n- 保留關鍵信息，減少閱讀負擔。\n- 使用列表整理並列的內容。\n- 用 `Markdown` 專注表達。\n\n## 比較與選擇\n\n| 階段 | 關注點 | 產出 |\n| --- | --- | --- |\n| 構思 | 問題與目標 | 提綱 |\n| 寫作 | 論據與細節 | 初稿 |\n| 修訂 | 節奏與準確性 | 定稿 |\n\n### 留下可複用的方法\n\n```python\nsteps = ['構思', '寫作', '修訂']\nfor step in steps:\n    print(step)\n```\n\n閱讀時，可以留意標題、引用、表格與正文的疏密關係。合適的排版應服務於內容，讓長時間閱讀保持輕鬆。\n",
+  "mapHeadingsOnly": "僅標題",
+  "mapCompareSource": "對照原始碼",
+  "mapSummaryLabel": "摘要 {count} 字",
+  "@mapSummaryLabel": {"placeholders": {"count": {"type": "int"}}}
 }

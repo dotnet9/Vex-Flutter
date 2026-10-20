@@ -16,8 +16,17 @@ class AppGlyph extends StatelessWidget {
         IconTheme.of(context).color ??
         Theme.of(context).colorScheme.onSurfaceVariant;
     final hex = (value.toARGB32() & 0xffffff).toRadixString(16).padLeft(6, '0');
+    final path = switch (name) {
+      'sun' => '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/>',
+      'moon' => '<path d="M20.8 13A9 9 0 0 1 11 3.2 9 9 0 1 0 20.8 13Z"/>',
+      'system-theme' =>
+        '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18Z" fill="#$hex"/>',
+      'sidebar-right' =>
+        '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/>',
+      _ => appIconPaths[name] ?? appIconPaths['file'],
+    };
     return SvgPicture.string(
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#$hex" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${appIconPaths[name] ?? appIconPaths['file']}</svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#$hex" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">$path</svg>',
       width: size,
       height: size,
       colorFilter: ColorFilter.mode(value, BlendMode.srcIn),
@@ -40,12 +49,15 @@ class AppButton extends StatelessWidget {
     this.focusNode,
     this.height = 32,
     this.padding = 9,
+    this.fontSize = 14,
+    this.selectionColor,
   });
   final String? label, icon, trailingIcon, tooltip;
   final VoidCallback? onPressed;
   final bool selected, bordered, primary;
   final FocusNode? focusNode;
-  final double height, padding;
+  final double height, padding, fontSize;
+  final Color? selectionColor;
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).colorScheme;
@@ -62,17 +74,18 @@ class AppButton extends StatelessWidget {
         backgroundColor: primary
             ? c.primary
             : selected
-            ? c.primaryContainer
+            ? selectionColor ?? c.primaryContainer
             : null,
         minimumSize: Size(label == null ? height : 0, height),
         fixedSize: Size.fromHeight(height),
         visualDensity: VisualDensity.standard,
         padding: EdgeInsets.symmetric(horizontal: padding),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        textStyle: const TextStyle(
-          fontSize: 14,
+        textStyle: Theme.of(context).textTheme.labelLarge!.copyWith(
+          fontSize: fontSize,
           height: 1.2,
           fontWeight: FontWeight.w400,
+          letterSpacing: 0,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(5),

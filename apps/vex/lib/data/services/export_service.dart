@@ -143,7 +143,11 @@ final class DocumentExportService {
       compact = false;
       colors = ColorScheme.fromSeed(seedColor: const Color(0xff24766b));
     }
-    final accent = _hex(typography.accent(colors.brightness)),
+    final accent = _hex(
+          typography == MarkdownTypography.simple
+              ? colors.onSurface
+              : colors.primary,
+        ),
         fg = _hex(colors.onSurface),
         bg = _hex(colors.surface),
         panel = _hex(colors.surfaceContainerLow),

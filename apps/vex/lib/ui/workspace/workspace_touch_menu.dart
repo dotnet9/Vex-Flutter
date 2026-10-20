@@ -8,7 +8,7 @@ List<WorkspaceMenuEntry> workspaceTouchMenus(List<WorkspaceMenuEntry> menus) {
   final file = menus.firstWhere((item) => item.id == 'file');
   return [
     for (final id in ['new', 'open', 'save', 'export:html'])
-      file.children.firstWhere((item) => item.id == id),
+      workspaceMenuEntry(file.children, id)!,
     const WorkspaceMenuEntry.separator(),
     ...menus,
   ];

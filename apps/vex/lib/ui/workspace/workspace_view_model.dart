@@ -46,6 +46,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     );
     current = _blank;
     _blank.editor.addListener(_changed);
+    _blank.editor.viewport.addListener(_viewportChanged);
     _map = MindMapController(_tree());
     mcp = WorkspaceMcp(
       this,
@@ -98,6 +99,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
   ThemeMode themeMode = ThemeMode.light;
   String palette = 'weft', language;
   bool sidebar = true, outline = false, compact = false, lineNumbers = true;
+  bool structure = true;
+  bool _structureNarrowOverride = false;
   bool findVisible = false, replaceVisible = false, focusMode = false;
   bool typewriter = false;
   MarkdownEditingPreferences editingPreferences =
@@ -113,6 +116,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   bool paragraphs = true, lists = true, blocks = false;
   int summaryLength = 30;
   double sidebarWidth = 226, fontSize = 16;
+  double structureWidth = 240;
   String filter = '', outlineFilter = '', findQuery = '', replacement = '';
   String Function(AppLocalizations)? _statusMessage;
   String get status => _statusMessage?.call(strings) ?? '';
@@ -218,6 +222,10 @@ final class WorkspaceViewModel extends ChangeNotifier {
       sidebarWidth = (preferences['sidebarWidth'] as num? ?? 226)
           .toDouble()
           .clamp(200, 560);
+      structure = preferences['structure'] != false;
+      structureWidth = (preferences['structureWidth'] as num? ?? 240)
+          .toDouble()
+          .clamp(180, 480);
       summaryLength = (preferences['summaryLength'] as num? ?? 30)
           .toInt()
           .clamp(1, 120);
@@ -288,6 +296,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   void _add(WorkspaceDocument document) {
     documents.add(document);
     document.editor.addListener(_changed);
+    document.editor.viewport.addListener(_viewportChanged);
   }
 
   int _mapRevision = -1;
@@ -316,6 +325,33 @@ final class WorkspaceViewModel extends ChangeNotifier {
         }
         _scheduleSave(current);
       }
+    }
+    _notify();
+  }
+
+  void _viewportChanged() {
+    final position = editor.viewport.value;
+    if (_disposed || position == null) return;
+    _followHeadingAt(position.offset);
+  }
+
+  void _followHeadingAt(double offset) {
+    final headings = editor.document.headings;
+    var low = 0, high = headings.length;
+    while (low < high) {
+      final middle = (low + high) ~/ 2;
+      if (headings[middle].header.start <= offset) {
+        low = middle + 1;
+      } else {
+        high = middle;
+      }
+    }
+    final id = low == 0 ? null : headings[low - 1].id;
+    if (id == selectedHeadingId) return;
+    if (layout.panes.contains('map')) _ensureMapCurrent();
+    selectedHeadingId = id;
+    if (layout.panes.contains('map')) {
+      _map.follow(_mapNodeForHeading(id));
     }
     _notify();
   }
@@ -440,7 +476,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   void selectHeading(MarkdownHeading heading) {
     selectedHeadingId = heading.id;
     editor.reveal(heading.header.start, end: heading.header.end);
-    if (!_mapDirty) _map.select(_mapNodeForHeading(heading.id));
+    if (!_mapDirty) _map.follow(_mapNodeForHeading(heading.id));
     _notify();
   }
 
@@ -591,9 +627,15 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }
 
   void setLayout(WorkspaceLayout value) {
+    final hadMap = layout.panes.contains('map');
     layout = value;
     if (!layout.panes.contains(_activePane)) _activePane = layout.panes.first;
-    if (layout.panes.contains('map')) _ensureMapCurrent();
+    if (layout.panes.contains('map')) {
+      _ensureMapCurrent();
+      if (!hadMap) {
+        _map.followRequestedId = _mapNodeForHeading(selectedHeadingId);
+      }
+    }
     _notify();
     persist();
   }
@@ -776,6 +818,25 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _notify();
   }
 
+  // Automatic collapse preserves the preference, so a wider window restores it.
+  bool structureVisible(double availableWidth, double leftWidth) {
+    final narrow = availableWidth - leftWidth - structureWidth < 440;
+    if (!narrow) _structureNarrowOverride = false;
+    return structure && !focusMode && (!narrow || _structureNarrowOverride);
+  }
+
+  void showStructure(bool value) {
+    structure = value;
+    _structureNarrowOverride = value;
+    _notify();
+    persist();
+  }
+
+  void resizeStructure(double value) {
+    structureWidth = value.clamp(180, 480);
+    _notify();
+  }
+
   void setFilter(String value) {
     filter = value;
     _notify();
@@ -882,23 +943,42 @@ final class WorkspaceViewModel extends ChangeNotifier {
 
   void closeFind() {
     findVisible = false;
+    editor.clearSearchMatch();
     // 清空查询与匹配：关闭查找栏后，输入不再触发任何全文扫描。
     findQuery = '';
     matches = const [];
     matchIndex = -1;
+    _matchesKey = null;
     _notify();
   }
 
   void search(String query, {bool? matchCase, bool? regex, bool? wholeWord}) {
+    final changed =
+        query != findQuery ||
+        (matchCase != null && matchCase != this.matchCase) ||
+        (regex != null && regex != this.regex) ||
+        (wholeWord != null && wholeWord != this.wholeWord);
     findQuery = query;
     this.matchCase = matchCase ?? this.matchCase;
     this.regex = regex ?? this.regex;
     this.wholeWord = wholeWord ?? this.wholeWord;
+    if (changed) matchIndex = -1;
     _refreshMatches();
     _notify();
   }
 
+  Object? _matchesKey;
   void _refreshMatches() {
+    final key = (
+      editor,
+      editor.session.revision,
+      findQuery,
+      matchCase,
+      regex,
+      wholeWord,
+    );
+    if (_matchesKey == key) return;
+    _matchesKey = key;
     if (findQuery.isEmpty) {
       matches = const [];
       matchIndex = -1;
@@ -922,13 +1002,12 @@ final class WorkspaceViewModel extends ChangeNotifier {
 
   void nextMatch([int direction = 1]) {
     if (matches.isEmpty) return;
-    matchIndex = (matchIndex + direction) % matches.length;
+    matchIndex = matchIndex < 0
+        ? (direction < 0 ? matches.length - 1 : 0)
+        : (matchIndex + direction) % matches.length;
     final match = matches[matchIndex];
-    editor.reveal(match.start, end: match.end);
-    if (!layout.panes.contains('source')) {
-      setLayout(WorkspaceLayout.sourceRender);
-    }
-    editor.sourceFocus.requestFocus();
+    editor.reveal(match.start, end: match.end, search: true);
+    _followHeadingAt(match.start.toDouble());
     _notify();
   }
 
@@ -950,6 +1029,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
       return;
     }
     final match = matches[matchIndex];
+    // After removing the current hit, the next one occupies its old index.
+    matchIndex--;
     editor.session.patch(TextPatch(match, value), label: '替换');
     search(findQuery);
     nextMatch();
@@ -1452,6 +1533,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     recoverable = nextRecoverable;
     documents.remove(document);
     document.editor.removeListener(_changed);
+    document.editor.viewport.removeListener(_viewportChanged);
     document.dispose();
     if (identical(document, _blank)) {
       _blank = WorkspaceDocument(
@@ -1461,6 +1543,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
         format: filePreferences.newDocumentFormat,
       );
       _blank.editor.addListener(_changed);
+      _blank.editor.viewport.addListener(_viewportChanged);
     }
     if (identical(current, document)) {
       current = documents.firstOrNull ?? _blank;
@@ -1664,6 +1747,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
           'fileSortDescending': fileSortDescending,
           'motion': motion,
           'sidebarWidth': sidebarWidth,
+          'structure': structure,
+          'structureWidth': structureWidth,
           'summaryLength': summaryLength,
           'paragraphs': paragraphs,
           'lists': lists,
@@ -1713,6 +1798,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
   ({
     bool sidebar,
     bool outline,
+    bool structure,
+    bool structureNarrowOverride,
     bool focus,
     String filter,
     String outlineFilter,
@@ -1736,6 +1823,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _guideView = (
       sidebar: sidebar,
       outline: outline,
+      structure: structure,
+      structureNarrowOverride: _structureNarrowOverride,
       focus: focusMode,
       filter: filter,
       outlineFilter: outlineFilter,
@@ -1766,6 +1855,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     };
     if (guideStep == 2) {
       sidebar = true;
+      if (viewport != WorkspaceViewport.phone) structure = false;
       // 从“文件”页出发，第三幕的“大纲”点击才是真实切换。
       outline = false;
     }
@@ -1790,6 +1880,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
     final view = _guideView!;
     sidebar = view.sidebar;
     outline = view.outline;
+    structure = view.structure;
+    _structureNarrowOverride = view.structureNarrowOverride;
     focusMode = view.focus;
     filter = view.filter;
     outlineFilter = view.outlineFilter;
@@ -1828,10 +1920,12 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _externalTimer?.cancel();
     for (final doc in documents) {
       doc.editor.removeListener(_changed);
+      doc.editor.viewport.removeListener(_viewportChanged);
       doc.dispose();
     }
     if (!documents.contains(_blank)) {
       _blank.editor.removeListener(_changed);
+      _blank.editor.viewport.removeListener(_viewportChanged);
       _blank.dispose();
     }
     _map.dispose();

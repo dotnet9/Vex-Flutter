@@ -458,7 +458,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get layoutHint => '選択するとすぐに反映されます。すべての表示で同じ内容を共有します。';
 
   @override
-  String get typographyHint => '6 種類のスタイル・配色とは個別に設定';
+  String get typographyHint => '9 種類のスタイル · 記事全体で読み心地を確認';
 
   @override
   String get sampleHeading => '言葉をかたちに';
@@ -1772,4 +1772,40 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get externalChangeReloaded => '外部変更を自動的に再読み込みしました';
+
+  @override
+  String get menuDocumentActions => '文書の操作';
+
+  @override
+  String get menuNavigationPanels => 'サイドバーとアウトライン';
+
+  @override
+  String get menuEditorDisplay => '編集表示';
+
+  @override
+  String get menuZoom => 'ズーム';
+
+  @override
+  String get menuTableRows => '行の操作';
+
+  @override
+  String get menuTableColumns => '列の操作';
+
+  @override
+  String get menuTableAlignment => 'セルの配置';
+
+  @override
+  String get typographyPreviewMarkdown =>
+      '# 考えを整理し、伝わる文章を書く\n\nよい文章は、答える価値のある問いから始まります。まずアイデアを記録し、次に構成を整理して、最後に一文ずつ磨きます。明確な見出しと適度な余白が、内容に集中できる読み心地を作ります。\n\n## アイデアから記事へ\n\n**見出し** で骨組みを作り、*段落* で説明を広げます。一つの段落には一つの役割を持たせ、主張の近くに具体例や根拠を置きましょう。\n\n> 書くことは、読者との対話です。わかりやすさが、考えを伝える力になります。\n\n### 実践できる執筆の流れ\n\n1. 読者が知りたい問いを明確にする。\n2. 主張ごとに具体例を一つ加える。\n3. 冒頭に戻り、重複した表現を削る。\n\n- 大切な情報を残し、読む負担を減らす。\n- 並列の内容はリストで整理する。\n- `Markdown` で内容に集中する。\n\n## 段階を比較する\n\n| 段階 | 注目する点 | 成果 |\n| --- | --- | --- |\n| 構想 | 問いと目標 | アウトライン |\n| 執筆 | 根拠と詳細 | 下書き |\n| 推敲 | リズムと正確さ | 完成原稿 |\n\n### 再利用できる方法を残す\n\n```python\nsteps = [\'構想\', \'執筆\', \'推敲\']\nfor step in steps:\n    print(step)\n```\n\n見出し、引用、表、本文の間隔を比べてみてください。読みやすい組版は、内容を支え、長い文章にも心地よいリズムを与えます。\n';
+
+  @override
+  String get mapHeadingsOnly => '見出しのみ';
+
+  @override
+  String get mapCompareSource => 'ソースと比較';
+
+  @override
+  String mapSummaryLabel(int count) {
+    return '要約 $count 文字';
+  }
 }

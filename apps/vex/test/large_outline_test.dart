@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vex/app.dart';
-import 'package:vex/ui/workspace/workspace_sidebar.dart';
+import 'package:vex/ui/workspace/workspace_outline.dart';
 
 import 'support/fakes.dart';
 
@@ -9,14 +9,16 @@ void main() {
   testWidgets('large outlines build only viewport rows and keep navigation', (
     tester,
   ) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     final vm = fakeWorkspace();
     vm.editor.session.replace(
       List.generate(3000, (i) => '## Heading $i\n\nBody\n\n').join(),
     );
-    vm.setOutline(true);
+    vm.showStructure(true);
     await tester.pumpWidget(VexApp(viewModel: vm));
     await tester.pumpAndSettle();
-    final sidebar = find.byType(WorkspaceSidebar);
+    final sidebar = find.byType(WorkspaceOutline);
     final rows = find.descendant(
       of: sidebar,
       matching: find.byType(TextButton),

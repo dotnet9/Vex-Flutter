@@ -3,43 +3,63 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vex/app.dart';
 import 'package:vex/domain/workspace.dart';
 import 'package:vex/ui/core/app_theme.dart';
+import 'package:vex/ui/core/palette_tokens.dart';
 import 'package:vex_editor/vex_editor.dart';
 
 import 'support/fakes.dart';
 
 void main() {
-  testWidgets('workspace palettes do not change document colors or metrics', (
-    tester,
-  ) async {
-    final styles = <TextStyle>[];
-    for (final palette in ['weft', 'graphite', 'sand', 'rose', 'iris']) {
-      final shell = appTheme(palette, Brightness.light);
-      final document = documentTheme(shell);
-      expect(document.colorScheme.surface, Colors.white);
-      expect(document.iconTheme.color, document.colorScheme.onSurfaceVariant);
+  testWidgets(
+    'workspace palettes color the document without changing metrics',
+    (tester) async {
+      final styles = <TextStyle>[];
+      for (final brightness in Brightness.values) {
+        for (final palette in paletteNames.keys) {
+          final shell = appTheme(palette, brightness);
+          final document = documentTheme(shell);
+          expect(
+            document.colorScheme.surface,
+            shell.colorScheme.surfaceContainer,
+          );
+          expect(document.colorScheme.primary, shell.colorScheme.primary);
+          expect(document.colorScheme.onSurface, shell.colorScheme.onSurface);
+          expect(
+            document.iconTheme.color,
+            document.colorScheme.onSurfaceVariant,
+          );
+          expect(
+            document.inputDecorationTheme.focusedBorder!.borderSide.color,
+            document.colorScheme.primary,
+          );
+          await tester.pumpWidget(
+            MaterialApp(
+              themeAnimationDuration: Duration.zero,
+              theme: document,
+              home: Builder(
+                builder: (context) {
+                  final style = const MarkdownReader(data: '')
+                      .styleSheet(context)
+                      .p!;
+                  expect(style.color, shell.colorScheme.onSurface);
+                  styles.add(style.copyWith(color: Colors.black));
+                  return const SizedBox();
+                },
+              ),
+            ),
+          );
+        }
+      }
+      for (final style in styles) {
+        expect(style, styles.first);
+      }
+      final dark = documentTheme(appTheme('weft', Brightness.dark));
+      expect(dark.brightness, Brightness.dark);
       expect(
-        document.inputDecorationTheme.focusedBorder!.borderSide.color,
-        document.colorScheme.primary,
+        dark.colorScheme.surface,
+        appTheme('weft', Brightness.dark).colorScheme.surfaceContainer,
       );
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: document,
-          home: Builder(
-            builder: (context) {
-              styles.add(const MarkdownReader(data: '').styleSheet(context).p!);
-              return const SizedBox();
-            },
-          ),
-        ),
-      );
-    }
-    for (final style in styles) {
-      expect(style, styles.first);
-    }
-    final dark = documentTheme(appTheme('weft', Brightness.dark));
-    expect(dark.brightness, Brightness.dark);
-    expect(dark.colorScheme.surface, const Color(0xff202124));
-  });
+    },
+  );
 
   testWidgets(
     'the same document colors apply in writing, reading and presenting',
@@ -50,9 +70,10 @@ void main() {
       for (final palette in ['weft', 'rose']) {
         for (final mode in [ThemeMode.light, ThemeMode.dark]) {
           vm.updateAppearance(palette: palette, mode: mode);
-          final expected = mode == ThemeMode.light
-              ? Colors.white
-              : const Color(0xff202124);
+          final expected = appTheme(
+            palette,
+            mode == ThemeMode.light ? Brightness.light : Brightness.dark,
+          ).colorScheme.surfaceContainer;
           for (final layout in [
             WorkspaceLayout.instant,
             WorkspaceLayout.read,

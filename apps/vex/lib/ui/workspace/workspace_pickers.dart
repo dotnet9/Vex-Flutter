@@ -382,35 +382,82 @@ class TypographyChoices extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final columns = width >= 500 ? 3 : 2;
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (final type in MarkdownTypography.values)
-          _ChoiceCard(
-            key: ValueKey('typography-${type.name}'),
-            width: (width - (columns - 1) * 8) / columns,
-            height: width >= 500 ? 200 : 176,
-            selected: vm.typography == type,
-            label: context.l10n.typographyName(type),
-            onTap: () => vm.updateAppearance(typography: type),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: _TypographySample(type)),
-                const SizedBox(height: 8),
-                Text(
-                  context.l10n.typographyName(type),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+    final colors = Theme.of(context).colorScheme;
+    final choices = [
+      for (final type in MarkdownTypography.values)
+        ListTile(
+          key: ValueKey('typography-${type.name}'),
+          minTileHeight: 36,
+          dense: true,
+          selected: vm.typography == type,
+          selectedTileColor: colors.primaryContainer,
+          selectedColor: colors.onPrimaryContainer,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+          title: Text(context.l10n.typographyName(type)),
+          trailing: vm.typography == type ? const AppGlyph('check') : null,
+          onTap: () => vm.updateAppearance(typography: type),
+        ),
+    ];
+    final preview = DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border.all(color: colors.outlineVariant),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Theme(
+        data: documentTheme(Theme.of(context)),
+        child: SingleChildScrollView(
+          key: const PageStorageKey('typography-article-preview'),
+          primary: false,
+          padding: const EdgeInsets.all(24),
+          child: MarkdownReader(
+            data: context.l10n.typographyPreviewMarkdown,
+            typography: vm.typography,
+            compact: vm.compact,
+            fontSize: 15,
+            selectable: false,
+          ),
+        ),
+      ),
+    );
+    if (width < 500) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: [
+              for (final type in MarkdownTypography.values)
+                ChoiceChip(
+                  key: ValueKey('typography-${type.name}'),
+                  label: Text(context.l10n.typographyName(type)),
+                  selected: vm.typography == type,
+                  onSelected: (_) => vm.updateAppearance(typography: type),
                 ),
-              ],
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(height: 300, child: preview),
+        ],
+      );
+    }
+    return SizedBox(
+      height: (MediaQuery.sizeOf(context).height - 390).clamp(210.0, 440.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 148,
+            child: SingleChildScrollView(
+              primary: false,
+              child: Column(children: choices),
             ),
           ),
-      ],
+          const SizedBox(width: 16),
+          Expanded(child: preview),
+        ],
+      ),
     );
   }
 }
@@ -499,41 +546,4 @@ class LayoutMiniature extends StatelessWidget {
       children: [for (final type in layout.panes) Expanded(child: panel(type))],
     );
   }
-}
-
-class _TypographySample extends StatelessWidget {
-  const _TypographySample(this.type);
-  final MarkdownTypography type;
-  @override
-  Widget build(BuildContext context) => Theme(
-    data: documentTheme(Theme.of(context)),
-    child: ClipRect(
-      child: FittedBox(
-        alignment: Alignment.topLeft,
-        fit: BoxFit.contain,
-        child: SizedBox(
-          width: 360,
-          height: 420,
-          child: ColoredBox(
-            color: documentTheme(Theme.of(context)).colorScheme.surface,
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: IgnorePointer(
-                child: SingleChildScrollView(
-                  primary: false,
-                  child: MarkdownReader(
-                    data:
-                        '# ${context.l10n.sampleHeading}\n\n## ${context.l10n.outline}\n\n### ${context.l10n.sampleHeading}\n\n#### ${context.l10n.sampleHeading}',
-                    typography: type,
-                    fontSize: 18,
-                    selectable: false,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
 }

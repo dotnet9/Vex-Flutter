@@ -27,6 +27,7 @@ class WorkspacePanes extends StatefulWidget {
     this.mapKey,
     this.mapToolbarKey,
     this.typographyControl,
+    this.formattingControl,
     this.mapAppearanceController,
     this.mapAppearancePopupKey,
   });
@@ -35,6 +36,7 @@ class WorkspacePanes extends StatefulWidget {
   final ValueChanged<Object> onError;
   final GlobalKey? editingKey, mapKey, mapToolbarKey;
   final Widget? typographyControl;
+  final Widget? formattingControl;
   final MenuController? mapAppearanceController;
   final GlobalKey? mapAppearancePopupKey;
   @override
@@ -43,6 +45,7 @@ class WorkspacePanes extends StatefulWidget {
 
 class _WorkspacePanesState extends State<WorkspacePanes> {
   bool _inspector = false;
+  (bool, bool, bool)? _summaryVisibility;
   final _mapAppearance = MenuController();
   MenuController get mapAppearance =>
       widget.mapAppearanceController ?? _mapAppearance;
@@ -74,7 +77,7 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
       return ResizableSplit(
         key: const ValueKey('three'),
         vertical: true,
-        initial: .56,
+        initial: .5,
         first: ResizableSplit(
           first: _pane('source', true),
           second: _pane('read', true),
@@ -92,14 +95,18 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
   Widget _pane(String pane, bool titled) {
     final c = Theme.of(context).colorScheme;
     final title = switch (pane) {
-      'source' => context.l10n.markdownSource,
-      'read' => context.l10n.bodyPreview,
+      'source' => context.l10n.source,
+      'read' => context.l10n.read,
       'map' => context.l10n.mindMap,
       _ => context.l10n.instantEditing,
     };
     return Focus(
       onFocusChange: (focused) {
-        if (focused) vm.activatePane(pane);
+        if (!focused) return;
+        // Focus reparenting during a layout/theme change can run in build.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && vm.layout.panes.contains(pane)) vm.activatePane(pane);
+        });
       },
       child: Listener(
         onPointerDown: (_) => vm.activatePane(pane),
@@ -112,6 +119,7 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
             children: [
               if (titled || pane != 'source')
                 PanelHeader(
+                  height: 36,
                   title: title,
                   icon: switch (pane) {
                     'map' => 'map',
@@ -129,7 +137,8 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                           controller: mapAppearance,
                           child: AppButton(
                             key: const ValueKey('map-appearance-trigger'),
-                            label: context.l10n.mapStyleName(vm.map.style),
+                            label: context.l10n.mapAppearance,
+                            fontSize: 12,
                             tooltip: context.l10n.mapAppearance,
                             trailingIcon: 'chevron-down',
                             onPressed: () => mapAppearance.isOpen
@@ -161,6 +170,8 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                     ],
                   ),
                 ),
+              if (pane == 'source' || pane == 'instant')
+                ?widget.formattingControl,
               Expanded(
                 child: _contentScale(pane, switch (pane) {
                   'source' => MarkdownSourceEditor(
@@ -246,61 +257,124 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
             ),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Row(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
+          child: LayoutBuilder(
+            builder: (context, toolbar) {
+              final only = !vm.paragraphs && !vm.lists && !vm.blocks;
+              final left = Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppButton(
+                    label: context.l10n.childSection,
+                    icon: 'plus',
+                    fontSize: 11,
+                    height: 26,
+                    padding: 6,
+                    onPressed: () => _command(
+                      () => vm.addMapHeading(
+                        child: true,
+                        title: context.l10n.newSectionTitle,
+                      ),
+                    ),
+                  ),
+                  AppButton(
+                    label: context.l10n.sibling,
+                    icon: 'plus',
+                    fontSize: 11,
+                    height: 26,
+                    padding: 6,
+                    onPressed: () => _command(
+                      () => vm.addMapHeading(
+                        child: false,
+                        title: context.l10n.newSectionTitle,
+                      ),
+                    ),
+                  ),
+                  AppButton(
+                    key: const ValueKey('map-headings-only'),
+                    label: context.l10n.mapHeadingsOnly,
+                    selected: only,
+                    fontSize: 11,
+                    height: 26,
+                    padding: 6,
+                    onPressed: () {
+                      if (!only) {
+                        _summaryVisibility = (
+                          vm.paragraphs,
+                          vm.lists,
+                          vm.blocks,
+                        );
+                      }
+                      final saved = _summaryVisibility ?? (true, true, false);
+                      vm.setSummary(
+                        paragraphs: only && saved.$1,
+                        lists: only && saved.$2,
+                        blocks: only && saved.$3,
+                      );
+                    },
+                  ),
+                ],
+              );
+              final right = Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppButton(
+                    label: only
+                        ? context.l10n.mapHeadingsOnly
+                        : context.l10n.mapSummaryLabel(vm.summaryLength),
+                    icon: 'gear',
+                    fontSize: 11,
+                    height: 26,
+                    padding: 6,
+                    onPressed: () => widget.onAction('summary'),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 16,
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                  AppButton(
+                    label: context.l10n.collapse,
+                    icon: 'list',
+                    fontSize: 11,
+                    height: 26,
+                    padding: 6,
+                    onPressed: vm.map.toggleAll,
+                  ),
+                  AppButton(
+                    label: context.l10n.mapCompareSource,
+                    icon: 'columns',
+                    fontSize: 11,
+                    height: 26,
+                    padding: 6,
+                    selected: vm.layout.panes.contains('source'),
+                    onPressed: () => vm.setLayout(
+                      vm.layout.panes.contains('source')
+                          ? WorkspaceLayout.map
+                          : WorkspaceLayout.sourceMap,
+                    ),
+                  ),
+                  AppButton(
+                    icon: 'edit',
+                    tooltip: context.l10n.arrange,
+                    selected: _inspector,
+                    height: 26,
+                    padding: 6,
+                    onPressed: () => setState(() => _inspector = !_inspector),
+                  ),
+                ],
+              );
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: toolbar.maxWidth),
                   child: Row(
-                    children: [
-                      AppButton(
-                        label: context.l10n.addSection,
-                        icon: 'plus',
-                        height: 26,
-                        onPressed: () => _command(
-                          () => vm.editor.session.addHeading(
-                            vm.selectedHeadingId,
-                            child: false,
-                            title: context.l10n.newSectionTitle,
-                          ),
-                        ),
-                      ),
-                      AppButton(
-                        label: context.l10n.childSection,
-                        height: 26,
-                        onPressed: () => _command(
-                          () => vm.editor.session.addHeading(
-                            vm.selectedHeadingId,
-                            child: true,
-                            title: context.l10n.newSectionTitle,
-                          ),
-                        ),
-                      ),
-                      AppButton(
-                        label: context.l10n.arrange,
-                        icon: 'edit',
-                        selected: _inspector,
-                        height: 26,
-                        onPressed: () =>
-                            setState(() => _inspector = !_inspector),
-                      ),
-                      AppButton(
-                        label: context.l10n.collapse,
-                        icon: 'list',
-                        height: 26,
-                        onPressed: vm.map.toggleAll,
-                      ),
-                      AppButton(
-                        label: context.l10n.summary,
-                        icon: 'gear',
-                        height: 26,
-                        onPressed: () => widget.onAction('summary'),
-                      ),
-                    ],
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [left, right],
                   ),
                 ),
-              ),
-            ],
+              );
+            },
           ),
         ),
         Expanded(
@@ -403,8 +477,8 @@ class _DocumentReadingState extends State<_DocumentReading>
     list: _list,
     scroll: _scroll,
   );
-  String? _lastSelection;
   MarkdownRevealRequest? _lastNavigation;
+  final _searchMatchKey = GlobalKey();
   // 定位后的短暂高亮（与原型 locate 1.3s 渐隐一致）：TOC、脚注、大纲共用。
   int? _flashIndex;
   Timer? _flashTimer;
@@ -428,15 +502,12 @@ class _DocumentReadingState extends State<_DocumentReading>
 
   @override
   Widget build(BuildContext context) {
-    final vm = widget.vm, selected = widget.vm.selectedHeading;
+    final vm = widget.vm;
     final blocks = vm.editor.document.blocks;
     final request = vm.editor.navigation.value;
-    if (selected?.id != _lastSelection || request != _lastNavigation) {
+    if (request != _lastNavigation) {
       _navigation.cancel();
-      final offset = request != _lastNavigation
-          ? request?.selection.start
-          : selected?.header.start;
-      _lastSelection = selected?.id;
+      final offset = request?.selection.start;
       _lastNavigation = request;
       final index = blocks.indexWhere(
         (b) => offset != null && b.range.end > offset,
@@ -445,153 +516,198 @@ class _DocumentReadingState extends State<_DocumentReading>
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted || !_list.isAttached || !_scroll.hasClients) return;
           if (vm.editor.navigation.value != request ||
-              vm.selectedHeading?.id != selected?.id) {
+              vm.editor.viewport.value != null) {
             return;
           }
-          _navigation.reveal(index);
+          if (offset! <= blocks[index].range.start) {
+            _navigation.reveal(index);
+          } else {
+            void reveal() => MarkdownListViewport.write(
+              offset.toDouble(),
+              _list,
+              _scroll,
+              vm.editor.document.blocks,
+              alignment: .08,
+            );
+            reveal();
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted &&
+                  vm.editor.navigation.value == request &&
+                  vm.editor.viewport.value == null) {
+                reveal();
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted &&
+                      vm.editor.navigation.value == request &&
+                      vm.editor.viewport.value == null) {
+                    MarkdownSearchHighlight.reveal(_searchMatchKey);
+                  }
+                });
+                WidgetsBinding.instance.ensureVisualUpdate();
+              }
+            });
+            WidgetsBinding.instance.ensureVisualUpdate();
+          }
           _flashBlock(index);
         });
       }
     }
-    return SelectionArea(
-      child: Listener(
-        onPointerDown: (_) => _navigation.cancel(),
-        onPointerSignal: (_) => _navigation.cancel(),
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              _navigation.preservePosition((
-                constraints.biggest,
-                vm.typography,
-                vm.compact,
-                vm.fontSize,
-                vm.editingPreferences,
-                vm.markdownPreferences,
-                MediaQuery.textScalerOf(context),
-              ), contentKey: vm.editor.document);
-              return SuperListView.builder(
-                key: PageStorageKey('read:${vm.current.id}'),
-                controller: _scroll,
-                listController: _list,
-                cacheExtent: constraints.maxHeight,
-                padding: widget.padding,
-                itemCount: blocks.isEmpty ? 1 : blocks.length,
-                itemBuilder: (context, index) {
-                  if (blocks.isEmpty) return Text(context.l10n.emptyDocument);
-                  final block = blocks[index];
-                  final reader = MarkdownReader(
-                    documentSource: vm.editor.text,
-                    document: vm.editor.document,
-                    onMediaContext: (url, image, occurrence, position) {
-                      final token = markdownMediaTargets(vm.editor.text, block)
-                          .where(
-                            (token) =>
-                                token.image == image &&
-                                token.url == markdownAttributeText(url),
-                          )
-                          .elementAtOrNull(occurrence);
-                      if (token == null) return;
+    return MarkdownViewportSync(
+      controller: vm.editor,
+      scroll: _scroll,
+      readPosition: () =>
+          MarkdownListViewport.read(_list, _scroll, vm.editor.document.blocks),
+      writePosition: (offset) => MarkdownListViewport.write(
+        offset,
+        _list,
+        _scroll,
+        vm.editor.document.blocks,
+      ),
+      child: SelectionArea(
+        child: Listener(
+          onPointerDown: (_) => _navigation.cancel(),
+          onPointerSignal: (_) => _navigation.cancel(),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                _navigation.preservePosition((
+                  constraints.biggest,
+                  vm.typography,
+                  vm.compact,
+                  vm.fontSize,
+                  vm.editingPreferences,
+                  vm.markdownPreferences,
+                  MediaQuery.textScalerOf(context),
+                ), contentKey: vm.editor.document);
+                return SuperListView.builder(
+                  key: PageStorageKey('read:${vm.current.id}'),
+                  controller: _scroll,
+                  listController: _list,
+                  cacheExtent: constraints.maxHeight,
+                  padding: widget.padding,
+                  itemCount: blocks.isEmpty ? 1 : blocks.length,
+                  itemBuilder: (context, index) {
+                    if (blocks.isEmpty) return Text(context.l10n.emptyDocument);
+                    final block = blocks[index];
+                    final match = vm.editor.searchMatchFor(block.range);
+                    final reader = MarkdownReader(
+                      documentSource: vm.editor.text,
+                      document: vm.editor.document,
+                      onMediaContext: (url, image, occurrence, position) {
+                        final token =
+                            markdownMediaTargets(vm.editor.text, block)
+                                .where(
+                                  (token) =>
+                                      token.image == image &&
+                                      token.url == markdownAttributeText(url),
+                                )
+                                .elementAtOrNull(occurrence);
+                        if (token == null) return;
+                        widget.onContextMenu?.call(
+                          MarkdownContextRequest(
+                            offset: token.range.start,
+                            position: position,
+                            selection: TextSelection.collapsed(
+                              offset: token.range.start,
+                            ),
+                            readOnly: true,
+                          ),
+                        );
+                      },
+                      imageBuilder: (uri, title, alt) => DocumentImage(
+                        uri: uri,
+                        documentPath: vm.current.path,
+                        alt: alt,
+                      ),
+                      key: ValueKey(block.range.start),
+                      data: block.range.slice(vm.editor.session.text),
+                      labels: context.l10n.editorLabels,
+                      typography: vm.typography,
+                      compact: vm.compact,
+                      fontSize: vm.fontSize,
+                      editingPreferences: vm.editingPreferences,
+                      preferences: vm.markdownPreferences,
+                      onTapLink: (_, href, _) {
+                        if (href == '../design/Third-Party-Licenses.html') {
+                          showLicensePage(context: context);
+                          return;
+                        }
+                        openWorkspaceLink(vm, href);
+                      },
+                    );
+                    void openContext(Offset position) {
+                      final source = vm.editor.text;
+                      final tokens =
+                          const [
+                            MarkdownBlockKind.code,
+                            MarkdownBlockKind.math,
+                          ].contains(block.kind)
+                          ? <MarkdownMediaTarget>[]
+                          : markdownMediaTargets(source, block);
                       widget.onContextMenu?.call(
                         MarkdownContextRequest(
-                          offset: token.range.start,
+                          offset: tokens.length == 1
+                              ? tokens.single.range.start
+                              : block.range.start,
                           position: position,
                           selection: TextSelection.collapsed(
-                            offset: token.range.start,
+                            offset: block.range.start,
                           ),
                           readOnly: true,
                         ),
                       );
-                    },
-                    imageBuilder: (uri, title, alt) => DocumentImage(
-                      uri: uri,
-                      documentPath: vm.current.path,
-                      alt: alt,
-                    ),
-                    key: ValueKey(block.range.start),
-                    data: block.range.slice(vm.editor.session.text),
-                    labels: context.l10n.editorLabels,
-                    typography: vm.typography,
-                    compact: vm.compact,
-                    fontSize: vm.fontSize,
-                    editingPreferences: vm.editingPreferences,
-                    preferences: vm.markdownPreferences,
-                    onTapLink: (_, href, _) {
-                      if (href == '../design/Third-Party-Licenses.html') {
-                        showLicensePage(context: context);
-                        return;
-                      }
-                      openWorkspaceLink(vm, href);
-                    },
-                  );
-                  void openContext(Offset position) {
-                    final source = vm.editor.text;
-                    final tokens =
-                        const [
-                          MarkdownBlockKind.code,
-                          MarkdownBlockKind.math,
-                        ].contains(block.kind)
-                        ? <MarkdownMediaTarget>[]
-                        : markdownMediaTargets(source, block);
-                    widget.onContextMenu?.call(
-                      MarkdownContextRequest(
-                        offset: tokens.length == 1
-                            ? tokens.single.range.start
-                            : block.range.start,
-                        position: position,
-                        selection: TextSelection.collapsed(
-                          offset: block.range.start,
-                        ),
-                        readOnly: true,
+                    }
+
+                    // 空行规则（与 Typora 相符）：块间第一个空行不产生额外间距，
+                    // 每多一个空行则补一行正文高度——保留作者的疏密意图。
+                    var extraBlankLines = 0;
+                    if (index > 0) {
+                      final separator =
+                          block.range.start <= blocks[index - 1].range.end
+                          ? ''
+                          : vm.editor.text.substring(
+                              blocks[index - 1].range.end,
+                              block.range.start,
+                            );
+                      extraBlankLines = separator.isEmpty
+                          ? 0
+                          : (separator.split('\n').length - 3).clamp(0, 6);
+                    }
+
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        color: index == _flashIndex
+                            ? Theme.of(context).colorScheme.primary
+                                  .withValues(alpha: .16)
+                            : Colors.transparent,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (extraBlankLines > 0)
+                            SizedBox(height: extraBlankLines * vm.fontSize),
+                          GestureDetector(
+                            key: ValueKey('read-element-${block.range.start}'),
+                            behavior: HitTestBehavior.translucent,
+                            onSecondaryTapUp: (event) =>
+                                openContext(event.globalPosition),
+                            onLongPressStart: (event) =>
+                                openContext(event.globalPosition),
+                            child: MarkdownSearchHighlight(
+                              key: match == null ? null : _searchMatchKey,
+                              match: match,
+                              child: reader,
+                            ),
+                          ),
+                        ],
                       ),
                     );
-                  }
-
-                  // 空行规则（与 Typora 相符）：块间第一个空行不产生额外间距，
-                  // 每多一个空行则补一行正文高度——保留作者的疏密意图。
-                  var extraBlankLines = 0;
-                  if (index > 0) {
-                    final separator =
-                        block.range.start <= blocks[index - 1].range.end
-                        ? ''
-                        : vm.editor.text.substring(
-                            blocks[index - 1].range.end,
-                            block.range.start,
-                          );
-                    extraBlankLines = separator.isEmpty
-                        ? 0
-                        : (separator.split('\n').length - 3).clamp(0, 6);
-                  }
-
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(6),
-                      color: index == _flashIndex
-                          ? Theme.of(context).colorScheme.primary
-                                .withValues(alpha: .16)
-                          : Colors.transparent,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (extraBlankLines > 0)
-                          SizedBox(height: extraBlankLines * vm.fontSize),
-                        GestureDetector(
-                          key: ValueKey('read-element-${block.range.start}'),
-                          behavior: HitTestBehavior.translucent,
-                          onSecondaryTapUp: (event) =>
-                              openContext(event.globalPosition),
-                          onLongPressStart: (event) =>
-                              openContext(event.globalPosition),
-                          child: reader,
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
+                  },
+                );
+              },
+            ),
           ),
         ),
       ),

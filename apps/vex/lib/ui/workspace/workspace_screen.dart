@@ -35,6 +35,7 @@ import 'workspace_menu_widgets.dart';
 import 'workspace_panes.dart';
 import 'workspace_pickers.dart';
 import 'workspace_presentation.dart';
+import 'workspace_outline.dart';
 import 'workspace_sidebar.dart';
 import 'workspace_touch_menu.dart';
 import 'workspace_view_model.dart';
@@ -58,6 +59,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       _guideMapToolbar = GlobalKey();
   final _guideFileMenu = GlobalKey();
   final _guideSourceToggle = GlobalKey();
+  final _guideStructure = GlobalKey();
   final _guideSave = GlobalKey();
   final _guidePresentation = GlobalKey();
   final _guideSidebar = GlobalKey(), _guideMobileViews = GlobalKey();
@@ -77,6 +79,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   bool _guideRunning = false, _guideCompleted = false, _guideShowCard = true;
   bool _guidePaused = false;
   bool _dividerActive = false;
+  bool _structureDividerActive = false;
   Completer<void>? _guideContinue;
   GlobalKey _guideTarget = GlobalKey();
   String _guideCue = '';
@@ -498,10 +501,14 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       case 'compact':
         vm.updateAppearance(compact: !vm.compact);
       case 'files' || 'outline':
-        if (!vm.sidebar) vm.toggleSidebar();
-        vm.setOutline(action == 'outline');
-        if (MediaQuery.sizeOf(context).width < 700) {
+        if (vm.viewport == WorkspaceViewport.phone) {
+          vm.setOutline(action == 'outline');
           _scaffold.currentState?.openDrawer();
+        } else if (action == 'outline') {
+          if (vm.focusMode) vm.toggleFocus();
+          vm.showStructure(true);
+        } else {
+          if (!vm.sidebar) vm.toggleSidebar();
         }
       case 'fullscreen':
         if (widget.windowIntegration) {
@@ -1035,6 +1042,19 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           200.0,
           (constraints.maxWidth - 420).clamp(200.0, 560.0),
         );
+        final showStructure =
+            !phone &&
+            state.structureVisible(
+              constraints.maxWidth,
+              showSidebar ? width + 5 : 0,
+            );
+        final structureWidth = state.structureWidth.clamp(
+          180.0,
+          (constraints.maxWidth - (showSidebar ? width + 5 : 0) - 440).clamp(
+            180.0,
+            480.0,
+          ),
+        );
         return CallbackShortcuts(
           bindings: state.presentation
               ? {}
@@ -1192,12 +1212,12 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                         width: width,
                                         child: WorkspaceSidebar(
                                           key: _guideSidebar,
+                                          showTabs: false,
                                           vm: state,
                                           onAction: _action,
                                           onOpenPath: (path) => unawaited(
                                             _run(() => state.openPath(path)),
                                           ),
-                                          outlineTabKey: _guideOutlineTab,
                                           onOpenInNewWindow:
                                               _openSidebarDocumentInNewWindow,
                                           onRevealInFolder: _revealInFolder,
@@ -1279,11 +1299,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                         children: [
                                           if (state.findVisible)
                                             _findbar(state, phone),
-                                          if (state.layout.panes.any(
-                                            (p) =>
-                                                p == 'source' || p == 'instant',
-                                          ))
-                                            _formatbar(state, phone),
                                           Expanded(
                                             child: _documentSurface(
                                               state,
@@ -1293,6 +1308,28 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                         ],
                                       ),
                                     ),
+                                    if (showStructure) ...[
+                                      _structureDivider(
+                                        state,
+                                        structureWidth,
+                                        (constraints.maxWidth -
+                                                (showSidebar ? width + 5 : 0) -
+                                                440)
+                                            .clamp(180.0, 480.0),
+                                      ),
+                                      SizedBox(
+                                        key: const ValueKey(
+                                          'workspace-structure',
+                                        ),
+                                        width: structureWidth,
+                                        child: WorkspaceOutline(
+                                          key: _guideStructure,
+                                          vm: state,
+                                          onClose: () =>
+                                              state.showStructure(false),
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
@@ -1551,10 +1588,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           if (width >= 1280) ...[
             AppButton(
               key: const ValueKey('titlebar-theme'),
-              label: switch (state.themeMode) {
-                ThemeMode.light => '☀',
-                ThemeMode.dark => '☾',
-                ThemeMode.system => '◐',
+              icon: switch (state.themeMode) {
+                ThemeMode.light => 'sun',
+                ThemeMode.dark => 'moon',
+                ThemeMode.system => 'system-theme',
               },
               tooltip:
                   '${context.l10n.themeMode} · ${switch (state.themeMode) {
@@ -1712,6 +1749,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     bool compact = false,
   }) => MenuAnchor(
     key: key,
+    animated: false,
     controller: _topMenus.putIfAbsent(menu.id, MenuController.new),
     menuChildren: _guideMenuChildren(menu),
     builder: (context, controller, _) => MouseRegion(
@@ -1723,17 +1761,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       },
       child: TextButton(
         style: TextButton.styleFrom(
-          // Grayscale AA on Windows renders light text thin and washed out;
-          // deepen the label in light mode so the bar reads like a native
-          // near-black menubar (Typora reference ≈ #1f1f1f on white).
-          foregroundColor:
-              Theme.of(context).colorScheme.brightness == Brightness.dark
-              ? Theme.of(context).colorScheme.onSurface
-              : Color.alphaBlend(
-                  Colors.black.withValues(alpha: .25),
-                  Theme.of(context).colorScheme.onSurface,
-                ),
-          textStyle: _menuTextStyle,
+          foregroundColor: Theme.of(context).colorScheme.onSurface,
+          textStyle: Theme.of(context).textTheme.labelLarge!
+              .merge(_menuTextStyle),
           minimumSize: const Size(0, 28),
           fixedSize: const Size.fromHeight(28),
           padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -1773,7 +1803,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         if (entry.id == 'save') {
           return KeyedSubtree(key: _guideFileSave, child: item);
         }
-        if (!exportKeyed && entry.id.startsWith('export:')) {
+        if (!exportKeyed &&
+            (entry.id == 'export' || entry.id.startsWith('export:'))) {
           exportKeyed = true;
           return KeyedSubtree(key: _guideFileExport, child: item);
         }
@@ -1846,11 +1877,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   Widget _workbar(WorkspaceViewModel state, bool phone, double width) {
     final c = Theme.of(context).colorScheme;
     return Container(
-      height: phone
-          ? 56
-          : width < 1100
-          ? 55
-          : 62,
+      height: phone ? 56 : 66,
       padding: EdgeInsets.symmetric(horizontal: phone ? 10 : 20),
       decoration: BoxDecoration(
         color: c.surfaceContainerLow,
@@ -1883,6 +1910,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                 tooltip: context.l10n.workspaceLayout,
                 bordered: !phone,
                 padding: 11,
+                fontSize: 12,
                 onPressed: () => _action('layouts'),
               ),
             ),
@@ -1906,6 +1934,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             Flexible(
               child: AppButton(
                 label: context.l10n.quickStartBadge,
+                fontSize: 12,
                 onPressed: () => _action('guide'),
               ),
             ),
@@ -1917,6 +1946,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           const SizedBox(width: 6),
           AppButton(
             key: _guideSave,
+            fontSize: 12,
             icon: 'save',
             label: width < 1100 ? null : context.l10n.save,
             bordered: true,
@@ -1966,6 +1996,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                     state.layout == item.$1 ||
                     (item.$1 == WorkspaceLayout.instant &&
                         state.layout == WorkspaceLayout.source),
+                selectionColor: c.surfaceContainer,
+                fontSize: 12,
                 onPressed: () => state.setLayout(item.$1),
                 height: 28,
               ),
@@ -2324,12 +2356,14 @@ flowchart LR
             )) {
               return;
             }
-            vm.outline = true;
+            _action('outline');
             if (!await _guidePause(
               step,
               token,
               '大纲会列出标题，点击“第一天行程”定位内容。',
-              target: _guideSidebar,
+              target: vm.viewport == WorkspaceViewport.phone
+                  ? _guideSidebar
+                  : _guideStructure,
             )) {
               return;
             }
@@ -2745,6 +2779,11 @@ flowchart LR
 
   Widget _formatbar(WorkspaceViewModel state, bool phone) {
     final c = Theme.of(context).colorScheme;
+    void activateEditor() => state.activatePane(
+      state.layout.panes.firstWhere(
+        (pane) => pane == 'source' || pane == 'instant',
+      ),
+    );
     return Container(
       height: 42,
       padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -2757,7 +2796,6 @@ flowchart LR
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              reverse: !phone,
               child: Row(
                 children: [
                   for (final item in [
@@ -2774,32 +2812,62 @@ flowchart LR
                     ('code', context.l10n.codeBlock, 'code-block'),
                     ('table', context.l10n.table, 'grid'),
                   ])
-                    AppButton(
-                      icon: item.$3,
-                      tooltip: item.$2,
-                      height: 28,
-                      padding: 7,
-                      onPressed: state.canEditText
-                          ? () => _action('format:${item.$1}')
-                          : null,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (item.$1 == 'heading' || item.$1 == 'link')
+                          Container(
+                            width: 1,
+                            height: 17,
+                            margin: const EdgeInsets.symmetric(horizontal: 5),
+                            color: c.outlineVariant,
+                          ),
+                        AppButton(
+                          icon: item.$3,
+                          tooltip: item.$2,
+                          height: 28,
+                          padding: 7,
+                          onPressed: () {
+                            activateEditor();
+                            _action('format:${item.$1}');
+                          },
+                        ),
+                      ],
                     ),
-                  AppButton(
-                    icon: 'map',
-                    tooltip: context.l10n.mermaidDiagrams,
-                    onPressed: state.canEditText
-                        ? () => _action('mermaid-picker')
-                        : null,
-                    padding: 7,
-                    height: 28,
-                  ),
-                  AppButton(
-                    icon: 'more',
-                    tooltip: context.l10n.moreFormatting,
-                    onPressed: state.canEditText
-                        ? () => _action('format:rule')
-                        : null,
-                    padding: 7,
-                    height: 28,
+                  if (phone)
+                    AppButton(
+                      icon: 'map',
+                      tooltip: context.l10n.mermaidDiagrams,
+                      onPressed: () {
+                        activateEditor();
+                        _action('mermaid-picker');
+                      },
+                      padding: 7,
+                      height: 28,
+                    ),
+                  MenuAnchor(
+                    animated: false,
+                    menuChildren: _menuChildren(
+                      _menus(state.windowSize.width)
+                          .where(
+                            (menu) =>
+                                menu.id == 'paragraph' || menu.id == 'format',
+                          )
+                          .toList(),
+                    ),
+                    builder: (context, controller, _) => AppButton(
+                      key: const ValueKey('format-more-trigger'),
+                      icon: 'more',
+                      tooltip: context.l10n.moreFormatting,
+                      onPressed: () {
+                        activateEditor();
+                        controller.isOpen
+                            ? controller.close()
+                            : controller.open();
+                      },
+                      padding: 7,
+                      height: 28,
+                    ),
                   ),
                 ],
               ),
@@ -2827,6 +2895,7 @@ flowchart LR
           icon: iconOnly ? 'heading' : null,
           trailingIcon: iconOnly ? null : 'chevron-down',
           tooltip: context.l10n.markdownTypography,
+          fontSize: 12,
           height: 32,
           onPressed: () => _action('typography'),
         ),
@@ -2886,9 +2955,7 @@ flowchart LR
             ),
             AppButton(
               label: context.l10n.replace,
-              onPressed: state.canEditText
-                  ? () => state.showFind(replace: !state.replaceVisible)
-                  : null,
+              onPressed: () => state.showFind(replace: !state.replaceVisible),
             ),
             AppCloseButton(
               tooltip: context.l10n.closeFind,
@@ -2896,7 +2963,7 @@ flowchart LR
             ),
           ],
         ),
-        if (state.replaceVisible && state.canEditText)
+        if (state.replaceVisible)
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Row(
@@ -2950,6 +3017,7 @@ flowchart LR
         fit: StackFit.expand,
         children: [
           WorkspacePanes(
+            formattingControl: _formatbar(state, phone),
             mapAppearanceController: _mapAppearanceMenu,
             mapAppearancePopupKey: _guideMapPopup,
             typographyControl: _typographyPicker(state),
@@ -2961,8 +3029,8 @@ flowchart LR
             onError: _error,
           ),
           Positioned(
-            left: 8,
-            bottom: 8,
+            left: 12,
+            bottom: 10,
             child: Theme(
               data: document,
               child: Material(
@@ -2974,6 +3042,7 @@ flowchart LR
                       key: const ValueKey('document-sidebar-toggle'),
                       icon: 'sidebar',
                       tooltip: context.l10n.toggleSidebar,
+                      selected: !phone && state.sidebar && !state.focusMode,
                       height: phone ? 44 : 32,
                       onPressed: () {
                         if (phone) {
@@ -3007,6 +3076,35 @@ flowchart LR
                         ),
                       ),
                     ),
+                    if (!phone)
+                      KeyedSubtree(
+                        key: _guideOutlineTab,
+                        child: AppButton(
+                          key: const ValueKey('document-outline-toggle'),
+                          icon: 'sidebar-right',
+                          tooltip: context.l10n.documentStructure,
+                          selected: state.structureVisible(
+                            state.windowSize.width,
+                            state.sidebar && !state.focusMode
+                                ? state.sidebarWidth + 5
+                                : 0,
+                          ),
+                          height: 32,
+                          onPressed: () {
+                            if (state.focusMode) {
+                              state.toggleFocus();
+                              state.showStructure(true);
+                            } else {
+                              state.showStructure(
+                                !state.structureVisible(
+                                  state.windowSize.width,
+                                  state.sidebar ? state.sidebarWidth + 5 : 0,
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -3030,6 +3128,57 @@ flowchart LR
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _structureDivider(
+    WorkspaceViewModel state,
+    double width,
+    double maximum,
+  ) {
+    final c = Theme.of(context).colorScheme;
+    void resize(double value) =>
+        state.resizeStructure(value.clamp(180.0, maximum));
+    return Semantics(
+      label: context.l10n.documentStructure,
+      value: '${width.round()}',
+      child: MouseRegion(
+        cursor: SystemMouseCursors.resizeColumn,
+        onEnter: (_) => setState(() => _structureDividerActive = true),
+        onExit: (_) => setState(() => _structureDividerActive = false),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onHorizontalDragUpdate: (event) => resize(width - event.delta.dx),
+          onHorizontalDragEnd: (_) => state.persist(),
+          child: Focus(
+            onFocusChange: (focused) =>
+                setState(() => _structureDividerActive = focused),
+            onKeyEvent: (_, event) {
+              if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+                return KeyEventResult.ignored;
+              }
+              final key = event.logicalKey;
+              if (key != LogicalKeyboardKey.arrowLeft &&
+                  key != LogicalKeyboardKey.arrowRight) {
+                return KeyEventResult.ignored;
+              }
+              resize(width + (key == LogicalKeyboardKey.arrowLeft ? 12 : -12));
+              state.persist();
+              return KeyEventResult.handled;
+            },
+            child: Container(
+              key: const ValueKey('structure-splitter'),
+              width: 5,
+              decoration: BoxDecoration(
+                color: _structureDividerActive
+                    ? c.primary.withValues(alpha: .35)
+                    : Colors.transparent,
+                border: Border(right: BorderSide(color: c.outlineVariant)),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -4,30 +4,11 @@ import 'app_fonts.dart';
 import 'app_widgets.dart';
 import 'palette_tokens.dart';
 
-/// Reading colors are independent of the workspace's accent palette.
+/// Document and chrome share semantic colors; typography owns reading metrics.
 ThemeData documentTheme(ThemeData shell) {
-  final dark = shell.brightness == Brightness.dark;
-  final scheme =
-      ColorScheme.fromSeed(
-        seedColor: const Color(0xff3975a5),
-        brightness: shell.brightness,
-      ).copyWith(
-        surface: dark ? const Color(0xff202124) : Colors.white,
-        onSurface: dark ? const Color(0xffe4e5e7) : const Color(0xff30343b),
-        onSurfaceVariant: dark
-            ? const Color(0xffafb4bb)
-            : const Color(0xff606770),
-        surfaceContainerLow: dark
-            ? const Color(0xff292b2f)
-            : const Color(0xfff6f7f8),
-        surfaceContainer: dark
-            ? const Color(0xff303238)
-            : const Color(0xfff1f3f5),
-        outlineVariant: dark
-            ? const Color(0xff484c53)
-            : const Color(0xffdde1e5),
-        primary: dark ? const Color(0xff91bffa) : const Color(0xff3975a5),
-      );
+  final scheme = shell.colorScheme.copyWith(
+    surface: shell.colorScheme.surfaceContainer,
+  );
   return shell.copyWith(
     colorScheme: scheme,
     scaffoldBackgroundColor: scheme.surface,
@@ -119,9 +100,9 @@ ThemeData appTheme(
     menuTheme: MenuThemeData(
       submenuIcon: const WidgetStatePropertyAll(AppGlyph('chevron')),
       style: MenuStyle(
-        backgroundColor: WidgetStatePropertyAll(c.surfaceContainerLow),
-        elevation: const WidgetStatePropertyAll(6),
-        padding: const WidgetStatePropertyAll(EdgeInsets.all(7)),
+        backgroundColor: WidgetStatePropertyAll(c.surfaceContainer),
+        elevation: const WidgetStatePropertyAll(4),
+        padding: const WidgetStatePropertyAll(EdgeInsets.all(5)),
         minimumSize: const WidgetStatePropertyAll(Size(272, 0)),
         shape: WidgetStatePropertyAll(
           RoundedRectangleBorder(
@@ -133,18 +114,24 @@ ThemeData appTheme(
     ),
     menuButtonTheme: MenuButtonThemeData(
       style: ButtonStyle(
-        textStyle: const WidgetStatePropertyAll(
-          TextStyle(fontSize: 14, height: 1.4, fontWeight: FontWeight.w600),
+        textStyle: WidgetStatePropertyAll(
+          TextStyle(
+            fontFamily: AppFonts.interfaceFor(language),
+            fontFamilyFallback: AppFonts.fallbackFor(language),
+            fontSize: 14,
+            height: 1.4,
+            fontWeight: FontWeight.w400,
+          ),
         ),
-        // Grayscale AA on Windows renders light labels washed out; deepen
-        // dropdown items in light mode to match the menubar treatment.
-        foregroundColor: WidgetStatePropertyAll(
-          brightness == Brightness.dark
-              ? c.onSurface
-              : Color.alphaBlend(
-                  Colors.black.withValues(alpha: .25),
-                  c.onSurface,
-                ),
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.disabled)
+              ? c.onSurface.withValues(alpha: .38)
+              : c.onSurface,
+        ),
+        overlayColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.focused)
+              ? c.primary.withValues(alpha: .14)
+              : c.primary.withValues(alpha: .08),
         ),
         minimumSize: const WidgetStatePropertyAll(Size(260, 36)),
         padding: const WidgetStatePropertyAll(
@@ -158,7 +145,13 @@ ThemeData appTheme(
     // Keep the thumb visible whenever a scrollable actually has overflow.
     // Scrollbar itself still suppresses the thumb when there is nothing to scroll.
     scrollbarTheme: ScrollbarThemeData(
-      thumbVisibility: WidgetStatePropertyAll(true),
+      thumbVisibility: const WidgetStatePropertyAll(true),
+      thumbColor: WidgetStateProperty.resolveWith(
+        (states) => c.onSurfaceVariant.withValues(
+          alpha: states.contains(WidgetState.dragged) ? .62 : .32,
+        ),
+      ),
+      trackColor: WidgetStatePropertyAll(c.surfaceContainerLow),
     ),
   );
 }

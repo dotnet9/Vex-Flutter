@@ -51,8 +51,15 @@ void main() {
       find.byKey(const ValueKey('typography-simple')),
     );
     final third = tester.getRect(find.byKey(const ValueKey('typography-book')));
-    expect(first.top, third.top);
-    expect(first.height, greaterThanOrEqualTo(200));
+    expect(first.left, third.left);
+    expect(third.top, greaterThan(first.top));
+    expect(first.height, greaterThanOrEqualTo(36));
+    final preview = find.descendant(
+      of: find.byKey(const ValueKey('typography-picker')),
+      matching: find.byType(MarkdownReader),
+    );
+    expect(preview, findsOneWidget);
+    expect(tester.widget<MarkdownReader>(preview).data, contains('|'));
     for (final type in MarkdownTypography.values) {
       final choice = find.byKey(ValueKey('typography-${type.name}'));
       await tester.ensureVisible(choice);

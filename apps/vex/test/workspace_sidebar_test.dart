@@ -30,7 +30,13 @@ void main() {
     expect(child, findsOneWidget);
     expect(
       tester.getTopLeft(child).dx,
-      greaterThan(tester.getTopLeft(find.text('topic')).dx),
+      greaterThan(
+        tester
+            .getTopLeft(
+              find.descendant(of: sidebar, matching: find.text('first.md')),
+            )
+            .dx,
+      ),
     );
     await tester.tap(find.text('topic'));
     await tester.pumpAndSettle();

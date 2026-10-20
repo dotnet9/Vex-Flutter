@@ -54,7 +54,10 @@ Future<void> checkDocumentFrameStability(
           vm.selectHeading(heading);
           await tester.pump();
           await tester.pump();
-          final target = find.text('Section $index', findRichText: true);
+          final target = find.descendant(
+            of: list,
+            matching: find.text('Section $index', findRichText: true),
+          );
           expect(target, findsOneWidget);
           final first = tester.getRect(target);
           expect(tester.getRect(list).contains(first.center), isTrue);

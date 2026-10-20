@@ -153,11 +153,11 @@ void main() {
           );
           expect(
             Theme.of(tester.element(reader)).colorScheme.surface,
-            Colors.white,
+            documentTheme(Theme.of(context)).colorScheme.surface,
           );
           expect(
             tester.widget<AppDialog>(find.byType(AppDialog)).bodyColor,
-            Colors.white,
+            documentTheme(Theme.of(context)).colorScheme.surface,
           );
           final scrolls = find.descendant(
             of: dialog,

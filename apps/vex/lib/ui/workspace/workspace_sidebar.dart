@@ -17,12 +17,14 @@ class WorkspaceSidebar extends StatefulWidget {
     this.outlineTabKey,
     this.onOpenInNewWindow,
     this.onRevealInFolder,
+    this.showTabs = true,
   });
   final WorkspaceViewModel vm;
   final ValueChanged<String> onOpenPath;
   final ValueChanged<String> onAction;
   final VoidCallback? onNavigate;
   final Key? outlineTabKey;
+  final bool showTabs;
 
   /// 右键菜单：在新窗口打开（document 为当前未保存文档时 path 为 null）。
   final void Function(WorkspaceDocument? document, String? path)?
@@ -61,6 +63,7 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).colorScheme;
+    final outline = widget.showTabs && vm.outline;
     if (_folderPath != vm.folder?.path ||
         _folderRevision != vm.folderRevision) {
       if (_folderPath != vm.folder?.path) _collapsed.clear();
@@ -71,84 +74,89 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
     if (_handledSearchFocus != vm.sidebarSearchFocus) {
       _handledSearchFocus = vm.sidebarSearchFocus;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && !vm.outline) _searchFocus.requestFocus();
+        if (mounted && !outline) _searchFocus.requestFocus();
       });
     }
     return ColoredBox(
       color: c.surfaceContainerLow,
       child: Column(
         children: [
-          Container(
-            height: 44,
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: c.outlineVariant)),
-            ),
-            child: Row(
-              children: [
-                for (final entry in [
-                  (false, context.l10n.files),
-                  (true, context.l10n.outline),
-                ])
-                  Expanded(
-                    child: KeyedSubtree(
-                      key: entry.$1 ? widget.outlineTabKey : null,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          TextButton(
-                            key: entry.$1
-                                ? const ValueKey('sidebar-outline')
-                                : const ValueKey('sidebar-files'),
-                            onPressed: () => vm.setOutline(entry.$1),
-                            style: TextButton.styleFrom(
-                              foregroundColor: vm.outline == entry.$1
-                                  ? c.primary
-                                  : c.onSurfaceVariant,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
+          if (widget.showTabs)
+            Container(
+              height: 44,
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: c.outlineVariant)),
+              ),
+              child: Row(
+                children: [
+                  for (final entry in [
+                    (false, context.l10n.files),
+                    (true, context.l10n.outline),
+                  ])
+                    Expanded(
+                      child: KeyedSubtree(
+                        key: entry.$1 ? widget.outlineTabKey : null,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            TextButton(
+                              key: entry.$1
+                                  ? const ValueKey('sidebar-outline')
+                                  : const ValueKey('sidebar-files'),
+                              onPressed: () => vm.setOutline(entry.$1),
+                              style: TextButton.styleFrom(
+                                foregroundColor: vm.outline == entry.$1
+                                    ? c.primary
+                                    : c.onSurfaceVariant,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                                shape: const RoundedRectangleBorder(),
+                                textStyle: Theme.of(context)
+                                    .textTheme
+                                    .labelLarge!
+                                    .copyWith(
+                                      fontSize: 14,
+                                      fontWeight: vm.outline == entry.$1
+                                          ? FontWeight.w600
+                                          : FontWeight.w400,
+                                    ),
                               ),
-                              shape: const RoundedRectangleBorder(),
-                              textStyle: TextStyle(
-                                fontSize: 14,
-                                fontWeight: vm.outline == entry.$1
-                                    ? FontWeight.w600
-                                    : FontWeight.w400,
-                              ),
-                            ),
-                            child: Text(
-                              entry.$2,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (vm.outline == entry.$1)
-                            Align(
-                              alignment: Alignment.bottomCenter,
-                              child: Container(
-                                width: 32,
-                                height: 2,
-                                color: c.primary,
+                              child: Text(
+                                entry.$2,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                        ],
+                            if (vm.outline == entry.$1)
+                              Align(
+                                alignment: Alignment.bottomCenter,
+                                child: Container(
+                                  width: 32,
+                                  height: 2,
+                                  color: c.primary,
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
             child: SizedBox(
-              height: 34,
+              height: widget.showTabs ? 34 : 40,
               child: TextField(
-                key: ValueKey(vm.outline ? 'outline-search' : 'sidebar-search'),
-                controller: vm.outline ? _outlineSearch : _search,
-                focusNode: vm.outline ? null : _searchFocus,
-                onChanged: vm.outline ? vm.setOutlineFilter : vm.setFilter,
+                key: ValueKey(outline ? 'outline-search' : 'sidebar-search'),
+                controller: outline ? _outlineSearch : _search,
+                focusNode: outline ? null : _searchFocus,
+                onChanged: outline ? vm.setOutlineFilter : vm.setFilter,
                 style: const TextStyle(fontSize: 13),
                 decoration: InputDecoration(
-                  hintText: vm.outline
+                  fillColor: c.surfaceContainerLow,
+                  hintText: outline
                       ? context.l10n.searchOutline
                       : context.l10n.searchDocuments,
                   prefixIcon: const Padding(
@@ -157,8 +165,7 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
                   ),
                   prefixIconConstraints: const BoxConstraints(maxWidth: 32),
                   suffixIconConstraints: const BoxConstraints(maxWidth: 32),
-                  suffixIcon:
-                      (vm.outline ? vm.outlineFilter : vm.filter).isEmpty
+                  suffixIcon: (outline ? vm.outlineFilter : vm.filter).isEmpty
                       ? null
                       : AppButton(
                           key: const ValueKey('sidebar-clear-search'),
@@ -167,8 +174,8 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
                           height: 30,
                           padding: 4,
                           onPressed: () {
-                            (vm.outline ? _outlineSearch : _search).clear();
-                            vm.outline
+                            (outline ? _outlineSearch : _search).clear();
+                            outline
                                 ? vm.setOutlineFilter('')
                                 : vm.setFilter('');
                           },
@@ -181,7 +188,7 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
               ),
             ),
           ),
-          if (vm.outline)
+          if (outline)
             Expanded(
               child: Builder(
                 builder: (context) {
@@ -230,7 +237,8 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
                             backgroundColor: vm.selectedHeadingId == heading.id
                                 ? c.primaryContainer
                                 : null,
-                            textStyle: const TextStyle(fontSize: 14),
+                            textStyle: Theme.of(context).textTheme.labelLarge!
+                                .copyWith(fontSize: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(5),
                             ),
@@ -294,16 +302,15 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
           Expanded(
             child: Tooltip(
               message: vm.folder?.path ?? l.openFolder,
-              child: TextButton(
+              child: AppButton(
                 onPressed: () => widget.onAction('folder'),
-                child: Text(
-                  vm.folder == null
-                      ? l.openFolder
-                      : p.basename(vm.folder!.path),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12),
-                ),
+                icon: 'folder',
+                height: buttonHeight,
+                fontSize: 12,
+                padding: 4,
+                label: vm.folder == null
+                    ? l.openFolder
+                    : p.basename(vm.folder!.path),
               ),
             ),
           ),
@@ -700,7 +707,8 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           padding: EdgeInsets.only(left: 8 + depth * 14, right: 8),
           foregroundColor: c.onSurface,
-          textStyle: const TextStyle(fontSize: 13),
+          textStyle: Theme.of(context).textTheme.labelLarge!
+              .copyWith(fontSize: 13),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
         ),
         child: Row(
@@ -735,7 +743,7 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
     final c = Theme.of(context).colorScheme;
     final selected = identical(document, vm.current);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
+      padding: EdgeInsets.only(left: depth * 14.0, bottom: 2),
       child: Material(
         color: selected ? c.primaryContainer : Colors.transparent,
         borderRadius: BorderRadius.circular(6),
@@ -755,7 +763,7 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
           borderRadius: BorderRadius.circular(6),
           child: Container(
             height: 36,
-            padding: EdgeInsets.only(left: 8 + depth * 14, right: 9),
+            padding: const EdgeInsets.only(left: 8, right: 9),
             decoration: BoxDecoration(
               border: Border(
                 left: BorderSide(
@@ -766,7 +774,6 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
             ),
             child: Row(
               children: [
-                if (depth > 0) const SizedBox(width: 19),
                 AppGlyph(
                   'file',
                   size: 14,

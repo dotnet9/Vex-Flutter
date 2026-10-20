@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vex/app.dart';
 import 'package:vex/domain/workspace.dart';
-import 'package:vex/ui/workspace/workspace_sidebar.dart';
+import 'package:vex/ui/workspace/workspace_outline.dart';
 
 import 'support/fakes.dart';
 
@@ -90,12 +90,11 @@ void main() {
       expect(find.text('A short excerpt', findRichText: true), findsNothing);
       expect(memory.previewPaths, ['/notes/topic/second.md']);
       expect(memory.readPaths, ['/notes/first.md']);
-      final sidebar = find.byType(WorkspaceSidebar);
+      final outline = find.byType(WorkspaceOutline);
       await tester.enterText(
         find.byKey(const ValueKey('sidebar-search')),
         'first',
       );
-      await tester.tap(find.byKey(const ValueKey('sidebar-outline')));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('outline-search')),
@@ -104,25 +103,23 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         find.descendant(
-          of: sidebar,
+          of: outline,
           matching: find.byWidgetPredicate(
             (w) => w is Text && w.data == 'Apple',
           ),
         ),
         findsOneWidget,
       );
-      expect(find.byKey(const ValueKey('sidebar-footer')), findsNothing);
+      expect(find.byKey(const ValueKey('sidebar-footer')), findsOneWidget);
       await tester.enterText(
         find.byKey(const ValueKey('outline-search')),
         'absent',
       );
       await tester.pumpAndSettle();
       expect(
-        find.descendant(of: sidebar, matching: find.text('Apple')),
+        find.descendant(of: outline, matching: find.text('Apple')),
         findsNothing,
       );
-      await tester.tap(find.byKey(const ValueKey('sidebar-files')));
-      await tester.pumpAndSettle();
       expect(vm.filter, 'first');
       expect(find.byKey(const ValueKey('sidebar-footer')), findsOneWidget);
       expect(tester.takeException(), isNull);

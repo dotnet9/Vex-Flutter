@@ -450,7 +450,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get layoutHint => '选择后立即切换，所有视图共享同一份内容';
 
   @override
-  String get typographyHint => '六种阅读结构 · 与界面配色分别设置';
+  String get typographyHint => '九种排版 · 阅读完整文章，选择舒适的节奏';
 
   @override
   String get sampleHeading => '落笔成文';
@@ -1760,6 +1760,42 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get externalChangeReloaded => '已自动重新载入外部修改';
+
+  @override
+  String get menuDocumentActions => '文档操作';
+
+  @override
+  String get menuNavigationPanels => '侧栏与大纲';
+
+  @override
+  String get menuEditorDisplay => '编辑显示';
+
+  @override
+  String get menuZoom => '缩放';
+
+  @override
+  String get menuTableRows => '行操作';
+
+  @override
+  String get menuTableColumns => '列操作';
+
+  @override
+  String get menuTableAlignment => '单元格对齐';
+
+  @override
+  String get typographyPreviewMarkdown =>
+      '# 让思考有条理，让表达更清晰\n\n一篇好文章，从一个值得回答的问题开始。写作时，先记录想法，再整理结构，最后打磨每一句话。适度的留白与清晰的层级，能让读者把注意力放在内容上。\n\n## 从想法到文章\n\n用 **标题** 搭建骨架，用 *段落* 展开论述。一个段落只讲清一件事，让例子和证据紧跟观点。\n\n> 写作是一场与读者的对话。清楚，比复杂更有力量。\n\n### 一次可执行的写作流程\n\n1. 明确读者最关心的问题。\n2. 为每个观点补充一个具体例子。\n3. 回到开头，删去重复的表达。\n\n- 保留关键信息，减少阅读负担。\n- 使用列表整理并列的内容。\n- 用 `Markdown` 专注表达。\n\n## 比较与选择\n\n| 阶段 | 关注点 | 产出 |\n| --- | --- | --- |\n| 构思 | 问题与目标 | 提纲 |\n| 写作 | 论据与细节 | 初稿 |\n| 修订 | 节奏与准确性 | 定稿 |\n\n### 留下可复用的方法\n\n```python\nsteps = [\'构思\', \'写作\', \'修订\']\nfor step in steps:\n    print(step)\n```\n\n阅读时，可以留意标题、引用、表格与正文的疏密关系。合适的排版应服务于内容，让长时间阅读保持轻松。\n';
+
+  @override
+  String get mapHeadingsOnly => '仅标题';
+
+  @override
+  String get mapCompareSource => '对照源码';
+
+  @override
+  String mapSummaryLabel(int count) {
+    return '摘要 $count 字';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -2207,7 +2243,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get layoutHint => '選擇後立即切換，所有檢視共享同一份內容';
 
   @override
-  String get typographyHint => '六種閱讀結構 · 與介面配色分別設定';
+  String get typographyHint => '九種排版 · 閱讀完整文章，選擇舒適的節奏';
 
   @override
   String get sampleHeading => '落筆成文';
@@ -3517,4 +3553,40 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get externalChangeReloaded => '已自動重新載入外部修改';
+
+  @override
+  String get menuDocumentActions => '文件操作';
+
+  @override
+  String get menuNavigationPanels => '側欄與大綱';
+
+  @override
+  String get menuEditorDisplay => '編輯顯示';
+
+  @override
+  String get menuZoom => '縮放';
+
+  @override
+  String get menuTableRows => '列操作';
+
+  @override
+  String get menuTableColumns => '欄操作';
+
+  @override
+  String get menuTableAlignment => '儲存格對齊';
+
+  @override
+  String get typographyPreviewMarkdown =>
+      '# 讓思考有條理，讓表達更清晰\n\n一篇好文章，從一個值得回答的問題開始。寫作時，先記錄想法，再整理結構，最後打磨每一句話。適度的留白與清晰的層級，能讓讀者把注意力放在內容上。\n\n## 從想法到文章\n\n用 **標題** 搭建骨架，用 *段落* 展開論述。一個段落只講清一件事，讓例子和證據緊跟觀點。\n\n> 寫作是一場與讀者的對話。清楚，比複雜更有力量。\n\n### 一次可執行的寫作流程\n\n1. 明確讀者最關心的問題。\n2. 為每個觀點補充一個具體例子。\n3. 回到開頭，刪去重複的表達。\n\n- 保留關鍵信息，減少閱讀負擔。\n- 使用列表整理並列的內容。\n- 用 `Markdown` 專注表達。\n\n## 比較與選擇\n\n| 階段 | 關注點 | 產出 |\n| --- | --- | --- |\n| 構思 | 問題與目標 | 提綱 |\n| 寫作 | 論據與細節 | 初稿 |\n| 修訂 | 節奏與準確性 | 定稿 |\n\n### 留下可複用的方法\n\n```python\nsteps = [\'構思\', \'寫作\', \'修訂\']\nfor step in steps:\n    print(step)\n```\n\n閱讀時，可以留意標題、引用、表格與正文的疏密關係。合適的排版應服務於內容，讓長時間閱讀保持輕鬆。\n';
+
+  @override
+  String get mapHeadingsOnly => '僅標題';
+
+  @override
+  String get mapCompareSource => '對照原始碼';
+
+  @override
+  String mapSummaryLabel(int count) {
+    return '摘要 $count 字';
+  }
 }

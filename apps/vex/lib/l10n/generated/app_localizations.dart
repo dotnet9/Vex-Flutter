@@ -974,7 +974,7 @@ abstract class AppLocalizations {
   /// No description provided for @typographyHint.
   ///
   /// In zh, this message translates to:
-  /// **'六种阅读结构 · 与界面配色分别设置'**
+  /// **'九种排版 · 阅读完整文章，选择舒适的节奏'**
   String get typographyHint;
 
   /// No description provided for @sampleHeading.
@@ -3394,6 +3394,72 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'已自动重新载入外部修改'**
   String get externalChangeReloaded;
+
+  /// No description provided for @menuDocumentActions.
+  ///
+  /// In zh, this message translates to:
+  /// **'文档操作'**
+  String get menuDocumentActions;
+
+  /// No description provided for @menuNavigationPanels.
+  ///
+  /// In zh, this message translates to:
+  /// **'侧栏与大纲'**
+  String get menuNavigationPanels;
+
+  /// No description provided for @menuEditorDisplay.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑显示'**
+  String get menuEditorDisplay;
+
+  /// No description provided for @menuZoom.
+  ///
+  /// In zh, this message translates to:
+  /// **'缩放'**
+  String get menuZoom;
+
+  /// No description provided for @menuTableRows.
+  ///
+  /// In zh, this message translates to:
+  /// **'行操作'**
+  String get menuTableRows;
+
+  /// No description provided for @menuTableColumns.
+  ///
+  /// In zh, this message translates to:
+  /// **'列操作'**
+  String get menuTableColumns;
+
+  /// No description provided for @menuTableAlignment.
+  ///
+  /// In zh, this message translates to:
+  /// **'单元格对齐'**
+  String get menuTableAlignment;
+
+  /// No description provided for @typographyPreviewMarkdown.
+  ///
+  /// In zh, this message translates to:
+  /// **'# 让思考有条理，让表达更清晰\n\n一篇好文章，从一个值得回答的问题开始。写作时，先记录想法，再整理结构，最后打磨每一句话。适度的留白与清晰的层级，能让读者把注意力放在内容上。\n\n## 从想法到文章\n\n用 **标题** 搭建骨架，用 *段落* 展开论述。一个段落只讲清一件事，让例子和证据紧跟观点。\n\n> 写作是一场与读者的对话。清楚，比复杂更有力量。\n\n### 一次可执行的写作流程\n\n1. 明确读者最关心的问题。\n2. 为每个观点补充一个具体例子。\n3. 回到开头，删去重复的表达。\n\n- 保留关键信息，减少阅读负担。\n- 使用列表整理并列的内容。\n- 用 `Markdown` 专注表达。\n\n## 比较与选择\n\n| 阶段 | 关注点 | 产出 |\n| --- | --- | --- |\n| 构思 | 问题与目标 | 提纲 |\n| 写作 | 论据与细节 | 初稿 |\n| 修订 | 节奏与准确性 | 定稿 |\n\n### 留下可复用的方法\n\n```python\nsteps = [\'构思\', \'写作\', \'修订\']\nfor step in steps:\n    print(step)\n```\n\n阅读时，可以留意标题、引用、表格与正文的疏密关系。合适的排版应服务于内容，让长时间阅读保持轻松。\n'**
+  String get typographyPreviewMarkdown;
+
+  /// No description provided for @mapHeadingsOnly.
+  ///
+  /// In zh, this message translates to:
+  /// **'仅标题'**
+  String get mapHeadingsOnly;
+
+  /// No description provided for @mapCompareSource.
+  ///
+  /// In zh, this message translates to:
+  /// **'对照源码'**
+  String get mapCompareSource;
+
+  /// No description provided for @mapSummaryLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'摘要 {count} 字'**
+  String mapSummaryLabel(int count);
 }
 
 class _AppLocalizationsDelegate
