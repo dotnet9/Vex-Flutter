@@ -103,3 +103,124 @@ body { font-family:var(--font); font-size:14px; }
 @media (max-width:900px) {
   .format-button:nth-of-type(n+6):not(.format-more), .format-divider:nth-of-type(2) { display:none; }
 }
+
+
+/* Update flow: clearer hierarchy, generous spacing and safe sizing on smaller windows. */
+#layer-update > .mini-window {
+  width: min(580px, calc(100vw - 32px)) !important;
+  max-height: min(86vh, 760px) !important;
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--line) 80%, var(--accent) 20%);
+  border-radius: 14px;
+  box-shadow: 0 24px 80px color-mix(in srgb, var(--fg) 20%, transparent), 0 3px 12px color-mix(in srgb, var(--fg) 7%, transparent);
+}
+#layer-update .mini-titlebar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: color-mix(in srgb, var(--surface) 92%, var(--accent-soft) 8%);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(14px);
+}
+#layer-update .update-body {
+  padding: 28px 30px 26px;
+  gap: 20px;
+}
+#layer-update .update-hero {
+  align-items: flex-start;
+  gap: 17px;
+}
+#layer-update .update-icon {
+  width: 48px;
+  height: 48px;
+  flex-basis: 48px;
+  box-shadow: none;
+}
+#layer-update .update-copy {
+  min-width: 0;
+  padding-top: 2px;
+}
+#layer-update .update-copy strong {
+  display: block;
+  font-size: 19px;
+  line-height: 1.4;
+  letter-spacing: -.025em;
+}
+#layer-update .update-sub {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+#layer-update .update-progress {
+  gap: 14px;
+}
+#layer-update .update-progress-track {
+  height: 8px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--line));
+}
+#layer-update .update-progress-bar {
+  min-width: 0;
+}
+#layer-update .update-actions {
+  padding-top: 2px;
+  gap: 10px;
+}
+#layer-update .update-actions .btn {
+  min-width: 104px;
+  min-height: 38px;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+#layer-update .update-actions .btn.primary {
+  box-shadow: 0 3px 9px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+#layer-update .update-changes {
+  padding: 14px 15px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel) 70%, var(--surface));
+}
+#layer-update .update-changes summary {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+  line-height: 1.6;
+}
+#layer-update .update-list {
+  padding-top: 12px;
+  gap: 16px;
+}
+#layer-update .update-version {
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--line);
+}
+#layer-update .update-entries {
+  margin: 9px 0 0;
+  padding-left: 0;
+  list-style: none;
+}
+#layer-update .update-entries li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 7px 0;
+  font-size: 13px;
+  line-height: 1.65;
+}
+#layer-update .update-tag {
+  margin-top: 2px;
+  padding: 2px 7px;
+  font-size: 10px;
+  line-height: 1.5;
+}
+@media (max-width: 560px) {
+  #layer-update > .mini-window { width: calc(100vw - 20px) !important; }
+  #layer-update .update-body { padding: 20px 18px; gap: 17px; }
+  #layer-update .update-hero { gap: 12px; }
+  #layer-update .update-icon { width: 40px; height: 40px; flex-basis: 40px; }
+  #layer-update .update-copy strong { font-size: 17px; }
+  #layer-update .update-actions { flex-wrap: wrap; }
+  #layer-update .update-actions .btn { flex: 1 1 auto; }
+}
