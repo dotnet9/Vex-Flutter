@@ -323,11 +323,74 @@
         if (element && element.getBoundingClientRect().top <= threshold) chosen = node;
       });
       activateOutlineAtLine(chosen.line, true);
+      syncPeerViewsToLine(chosen.line, scroller, false);
     });
+  }
+  var syncingPeerScroll = false, peerScrollTimer = 0, lastPeerLine = 0;
+  function scrollArticleToLine(scroller, article, line) {
+    if (!scroller || !article || !scroller.getClientRects().length) return;
+    var target = article.querySelector('[data-line="' + line + '"]');
+    if (!target) {
+      var candidates = article.querySelectorAll('[data-line]');
+      for (var i = 0; i < candidates.length; i++) {
+        if (Number(candidates[i].dataset.line) <= line) target = candidates[i];
+        else break;
+      }
+    }
+    if (!target) return;
+    var delta = target.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 14;
+    if (Math.abs(delta) > 8) scroller.scrollTop += delta;
+  }
+  function revealAndCenterMapNode(node) {
+    if (!node || !$('map-pane').getClientRects().length) return;
+    var expanded = false;
+    function reveal(current, ancestors) {
+      if (current.id === node.id) {
+        ancestors.forEach(function (id) { if (state.collapsed.has(id)) { state.collapsed.delete(id); expanded = true; } });
+        return true;
+      }
+      for (var i = 0; i < current.children.length; i++) {
+        if (reveal(current.children[i], ancestors.concat(current.id))) return true;
+      }
+      return false;
+    }
+    reveal(state.parsed.root, []);
+    if (expanded) renderMap();
+    var element = mapElements.get(node.id);
+    if (!element) return;
+    mapElements.forEach(function (item, id) { item.classList.toggle('selected', id === node.id); });
+    state.selected = node.id;
+    state.x = canvas.clientWidth / 2 - (node.x + node.width / 2) * state.scale;
+    state.y = canvas.clientHeight / 2 - (node.y + node.height / 2) * state.scale;
+    transform(true);
+  }
+  function syncPeerViewsToLine(line, sourceScroller, force) {
+    line = Math.max(1, Number(line) || 1);
+    if (!force && (syncingPeerScroll || line === lastPeerLine)) return;
+    lastPeerLine = line;
+    syncingPeerScroll = true;
+    if (peerScrollTimer) clearTimeout(peerScrollTimer);
+    var instantScroll = document.querySelector('.instant-scroll');
+    var readingScroll = document.querySelector('.reading-scroll');
+    var sourceScroll = document.querySelector('.source-scroll');
+    if (sourceScroller !== instantScroll) scrollArticleToLine(instantScroll, $('instant-content'), line);
+    if (sourceScroller !== readingScroll) scrollArticleToLine(readingScroll, $('markdown-preview'), line);
+    if (sourceScroller !== sourceScroll) {
+      var lineHeight = parseFloat(getComputedStyle(input).lineHeight) || 23;
+      input.scrollTop = Math.max(0, (line - 1) * lineHeight);
+      sourceScroll.scrollTop = Math.max(0, (line - 1) * lineHeight);
+    }
+    var node = state.nodes.find(function (item) { return item.kind === 'heading' && item.line === line; });
+    if (!node) {
+      state.nodes.forEach(function (item) { if (item.kind === 'heading' && item.line <= line && (!node || item.line > node.line)) node = item; });
+    }
+    if (node) revealAndCenterMapNode(node);
+    peerScrollTimer = setTimeout(function () { syncingPeerScroll = false; peerScrollTimer = 0; }, 100);
   }
   function syncOutlineFromSource() {
     var line = input.value.slice(0, input.selectionStart || 0).split('\n').length;
     activateOutlineAtLine(line, true);
+    syncPeerViewsToLine(line, document.querySelector('.source-scroll'), false);
   }
   function syncOutlineFromInstantSelection() {
     var selection = window.getSelection && window.getSelection();
@@ -340,10 +403,21 @@
     var instantScroll = document.querySelector('.instant-scroll');
     var readingScroll = document.querySelector('.reading-scroll');
     var sourceScroll = document.querySelector('.source-scroll');
-    instantScroll.addEventListener('scroll', function () { syncOutlineFromDocumentScroll(instantScroll, $('instant-content')); }, { passive: true });
-    readingScroll.addEventListener('scroll', function () { syncOutlineFromDocumentScroll(readingScroll, $('markdown-preview')); }, { passive: true });
+    instantScroll.addEventListener('scroll', function () { if (!syncingPeerScroll) syncOutlineFromDocumentScroll(instantScroll, $('instant-content')); }, { passive: true });
+    readingScroll.addEventListener('scroll', function () { if (!syncingPeerScroll) syncOutlineFromDocumentScroll(readingScroll, $('markdown-preview')); }, { passive: true });
     sourceScroll.addEventListener('scroll', function () {
-      activateOutlineAtLine(Math.floor(sourceScroll.scrollTop / 23) + 1, true);
+      if (syncingPeerScroll) return;
+      var lineHeight = parseFloat(getComputedStyle(input).lineHeight) || 23;
+      var line = Math.floor(Math.max(sourceScroll.scrollTop, input.scrollTop) / lineHeight) + 1;
+      activateOutlineAtLine(line, true);
+      syncPeerViewsToLine(line, sourceScroll, false);
+    }, { passive: true });
+    input.addEventListener('scroll', function () {
+      if (syncingPeerScroll) return;
+      var lineHeight = parseFloat(getComputedStyle(input).lineHeight) || 23;
+      var line = Math.floor(input.scrollTop / lineHeight) + 1;
+      activateOutlineAtLine(line, true);
+      syncPeerViewsToLine(line, sourceScroll, false);
     }, { passive: true });
     ['click', 'keyup', 'select', 'input'].forEach(function (eventName) {
       input.addEventListener(eventName, syncOutlineFromSource);
@@ -376,6 +450,7 @@
           if (target) { target.scrollIntoView({ block: 'start', behavior: reducedMotion() ? 'auto' : 'smooth' }); target.classList.remove('located'); void target.offsetWidth; target.classList.add('located'); }
         } else locate(node);
         activateOutlineAtLine(node.line, true);
+        syncPeerViewsToLine(node.line, null, true);
       };
       $('outline-body').appendChild(button);
     });
