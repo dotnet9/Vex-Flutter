@@ -325,12 +325,24 @@
     </div>
 
     <!-- 关于 Vex -->
+    <div class="overlay win-layer" id="layer-update" hidden>
+      <div class="mini-window" role="dialog" aria-modal="true" aria-labelledby="update-title" style="width:540px;max-height:85vh;overflow:auto">
+        <div class="mini-titlebar"><span data-proto-label="检查更新">检查更新</span><span class="caption-btns"><button class="caption-btn close" data-close data-l10n-title="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></span></div>
+        <div class="update-body">
+          <div class="about-rows">
+            <div class="about-row"><span class="k" data-l10n="AboutVersionLabel"></span><span class="v about-version"><span class="ver-badge" id="update-current-version"></span><span class="update-date" id="update-current-date"></span></span></div>
+          </div>
+          <div class="update-actions"><button class="btn sm" id="vex-update"></button><span id="vex-update-status" role="status" hidden></span></div>
+          <div class="update-list" id="update-list" hidden></div>
+        </div>
+      </div>
+    </div>
     <div class="overlay win-layer" id="layer-about" hidden>
       <div class="mini-window about-updated" role="dialog" aria-modal="true" aria-labelledby="about-title" style="max-height:85vh;overflow:auto">
         <div class="mini-titlebar"><span data-proto-label="关于">关于</span><span class="caption-btns"><button class="caption-btn close" data-close data-l10n-title="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></span></div>
         <div class="about-hero"><img class="about-logo" src="assets/vex-logo.svg" alt=""><div class="about-identity"><h2 id="about-title">维刻 Vex</h2><div class="slogan" data-proto-label="写下想法，看见脉络。">写下想法，看见脉络。</div></div></div>
         <div class="about-rows">
-          <div class="about-row"><span class="k" data-l10n="AboutVersionLabel"></span><span class="v about-version"><a class="ver-badge" id="about-version" href="https://github.com/dotnet9/Vex-Flutter/releases/latest" target="_blank" rel="noopener" title="查看此版本的发布与下载"></a><button class="about-link" data-action="dlg-doc" data-proto-label="更新日志">更新日志</button><button class="btn sm" id="vex-update"></button><span id="vex-update-status" role="status" hidden></span></span></div>
+          <div class="about-row"><span class="k" data-l10n="AboutVersionLabel"></span><span class="v about-version"><a class="ver-badge" id="about-version" href="https://github.com/dotnet9/Vex-Flutter/releases/latest" target="_blank" rel="noopener" title="查看此版本的发布与下载"></a></span></div>
           <div class="about-row"><span class="k" data-l10n="AboutAuthorLabel"></span><span class="v" data-l10n="AboutAuthorName"></span></div>
           <div class="about-row"><span class="k" data-l10n="ProjectLicenseLabel"></span><span class="v">MIT License</span></div>
           <div class="about-row"><span class="k" data-proto-label="链接">链接</span><span class="v about-links"><a href="https://codewf.com" data-proto-label="官网">官网</a><span aria-hidden="true">·</span><a href="https://github.com/dotnet9/Vex-Flutter" data-proto-label="开源仓库">开源仓库</a></span></div>

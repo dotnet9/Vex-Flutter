@@ -57,6 +57,16 @@ body { font-family:var(--font); font-size:14px; }
 .about-identity h2 { font-size:24px; letter-spacing:0; }
 .about-identity .slogan,.about-row { font-size:14px; line-height:1.8; }
 .about-rows { padding:22px 32px 0; gap:10px 24px; }
+/* 检查更新对话框：当前版本行、检查按钮与版本日志列表。 */
+.update-body { padding:22px 32px 24px; display:flex; flex-direction:column; gap:14px; }
+.update-actions { display:flex; align-items:center; gap:12px; }
+.update-date { color:var(--muted); font-size:12px; }
+.update-list { display:flex; flex-direction:column; gap:14px; }
+.update-item { border:1px solid var(--border); border-radius:9px; padding:12px 14px; background:color-mix(in srgb, var(--panel) 92%, var(--accent) 8%); }
+.update-item header { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:6px; }
+.update-item header strong { font-size:14px; }
+.update-item .update-log { font-size:12.5px; line-height:1.7; color:var(--fg); }
+.update-item .update-log ul { margin:4px 0 4px 18px; padding:0; list-style:disc; }
 .about-footer { grid-template-columns:minmax(0,1fr); gap:4px; margin-top:22px; padding-top:14px; padding-bottom:20px; }
 .about-framework { color:var(--muted); font-size:12px; }
 .about-foot,.ver-badge { font-size:12px; }
