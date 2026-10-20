@@ -366,6 +366,20 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
                   controller.isOpen ? controller.close() : controller.open(),
             ),
           ),
+          // 树视图下提供“全部折叠”：有展开的目录才可用，点击后全部收起。
+          if (vm.fileListMode == FileListMode.tree && vm.folder != null)
+            AppButton(
+              height: buttonHeight,
+              key: const ValueKey('sidebar-collapse-files'),
+              icon: 'fold',
+              tooltip: l.collapseAllFiles,
+              onPressed: _anyDirectoryExpanded
+                  ? () => setState(() {
+                      _collapsed.addAll(_directoryPaths());
+                      _collapseRevision++;
+                    })
+                  : null,
+            ),
           AppButton(
             height: buttonHeight,
             key: const ValueKey('sidebar-view-toggle'),
@@ -383,6 +397,15 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
       ),
     );
   }
+
+  Iterable<String> _directoryPaths() sync* {
+    for (final row in _rows) {
+      if (row.directory) yield row.path;
+    }
+  }
+
+  bool get _anyDirectoryExpanded =>
+      _directoryPaths().any((path) => !_collapsed.contains(path));
 
   String _excerpt(String source) =>
       markdownSummaryText(source.substring(0, source.length.clamp(0, 8192)))

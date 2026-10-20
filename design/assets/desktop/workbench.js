@@ -111,6 +111,10 @@
     VexWriting.renderFiles({container:$('file-list'), docs:visibleDocs, current:visibleDocs[state.doc], folder:workspaceFolder, mode:fileListMode, descending:fileDescending, query:$('file-filter').value, icon:icon,
       onOpen:function (_, index) { if (index !== state.doc) confirmSwitch(function () { loadDoc(index); }); }});
     $('file-empty').hidden = true;
+    var collapseFiles = $('collapse-files');
+    if (collapseFiles) {
+      collapseFiles.disabled = fileListMode !== 'tree' || !document.querySelectorAll('#file-list details.file-directory[open]').length;
+    }
   }
   function filterFiles() {
     renderFiles();
@@ -183,8 +187,15 @@
       }
       return { html: '<' + tag + '>' + items.map(function (item) { return item.html; }).join('') + '</' + tag + '>', end: index };
     }
+    var lastEndLine = 0;
     for (var blockIndex = 0; blockIndex < blocks.length;) {
-      var block = blocks[blockIndex];
+      var block = blocks[blockIndex];
+      // 空行规则（与 Typora 相符）：第一个空行不产生额外间距，每多一个空行补一行正文高度。
+      if (blockIndex > 0) {
+        var prev = blocks[blockIndex - 1];
+        var blanks = block.line - (prev.line - 1 + prev.raw.split('\n').length) - 1;
+        for (var gap = Math.max(0, blanks - 1); gap > 0; gap--) html += '<div class="md-blank-gap"></div>';
+      }
       var attr = ' data-line="' + block.line + '"';
       if (block.kind === 'list') {
         var list = renderListAt(blockIndex, block.indent || 0); html += list.html; blockIndex = list.end; continue;
@@ -600,6 +611,7 @@
       case 'file-list-toggle': fileListMode = fileListMode === 'tree' ? 'list' : 'tree'; if (!bundledDocument) VexStorage.setItem('vex-design-file-list-mode', fileListMode); renderFiles(); break;
       case 'file-actions': $('file-navigation-menu').hidden = !$('file-navigation-menu').hidden; document.querySelector('[data-action=file-actions]').setAttribute('aria-expanded', String(!$('file-navigation-menu').hidden)); break;
       case 'refresh-files': renderFiles(); $('file-navigation-menu').hidden = true; break;
+      case 'collapse-files': document.querySelectorAll('#file-list details.file-directory[open]').forEach(function (group) { group.open = false; }); renderFiles(); break;
       case 'sort-files': fileDescending = !fileDescending; renderFiles(); $('file-navigation-menu').hidden = true; break;
       case 'new': if (!VexDocumentWindow.open({document:{name:'未命名文档.md',text:''}})) VexProto.toast('请允许弹出窗口后重试'); break;
       case 'new-window': if (!VexDocumentWindow.open({document:{name:'未命名文档.md',text:''}})) VexProto.toast('请允许弹出窗口后重试'); break;
