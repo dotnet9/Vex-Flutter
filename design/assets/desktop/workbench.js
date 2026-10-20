@@ -910,6 +910,7 @@
     finish: function () { instant.finish(); refreshNow(); },
     setView: setView, setEditMode: setEditMode, fit: fit, renderMap: renderMap,
     selectNode: selectNode, locate: locate, highlightSource: highlightSource,
+    syncViewsToLine: function (line) { syncPeerViewsToLine(line || activeOutlineLine, null, true); },
     focusLine: function (line) {
       var node = state.nodes.find(function (candidate) { return candidate.line === line; });
       if (!node) return;
