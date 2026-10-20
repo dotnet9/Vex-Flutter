@@ -1,4 +1,4 @@
-/* Desktop layout and auxiliary-panel regression. Uses the existing Playwright runtime. */
+/* Optional headless browser checks; requires Playwright and a running preview server. */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');

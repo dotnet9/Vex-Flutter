@@ -1,4 +1,4 @@
-/* Optional browser checks. Uses an existing Playwright installation; no app dependency. */
+/* Optional headless browser checks; requires Playwright and a running preview server. */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
