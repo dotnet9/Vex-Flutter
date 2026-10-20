@@ -8,19 +8,57 @@
   if(modes.some(item=>item[0]===theme))state.mode=theme;else if(palettes.some(item=>item[0]===theme))state.palette=theme;
   if(query.has('palette'))state.palette=query.get('palette');state.palette=VexPaletteKey(state.palette);
   function word(key){return window.VexL?VexL.get(key):key;}
-  function apply(){
-    if(!modes.some(item=>item[0]===state.mode))state.mode='system';if(!palettes.some(item=>item[0]===state.palette))state.palette='weft';
-    document.documentElement.dataset.themeMode=state.mode;document.documentElement.dataset.theme=state.mode==='system'?(system.matches?'dark':'light'):state.mode;document.documentElement.dataset.palette=state.palette;
+  var themeFrame = 0;
+  function apply(syncLanguage){
+    if(!modes.some(item=>item[0]===state.mode))state.mode='system';
+    if(!palettes.some(item=>item[0]===state.palette))state.palette='weft';
+    var root=document.documentElement;
+    var nextTheme=state.mode==='system'?(system.matches?'dark':'light'):state.mode;
+    var changed=root.dataset.theme!==nextTheme||root.dataset.palette!==state.palette;
+    // Prevent every themed control from animating independently during a palette swap.
+    // One frame applies the tokens together; ordinary hover/focus transitions remain enabled.
+    if(changed && root.dataset.theme){
+      root.classList.add('theme-switching');
+      if(themeFrame)cancelAnimationFrame(themeFrame);
+    }
+    root.dataset.themeMode=state.mode;
+    root.dataset.theme=nextTheme;
+    root.dataset.palette=state.palette;
+    if(changed && root.dataset.theme){
+      themeFrame=requestAnimationFrame(function(){
+        themeFrame=requestAnimationFrame(function(){
+          root.classList.remove('theme-switching');
+          themeFrame=0;
+        });
+      });
+    }
     try{VexStorage.setItem(storeKey,JSON.stringify(state));}catch(_){}
-    var toggle=document.getElementById('vex-mode-toggle');if(toggle){var selectedMode=modes.find(item=>item[0]===state.mode);toggle.dataset.mode=state.mode;toggle.dataset.resource=selectedMode[1];toggle.textContent=selectedMode[2];}
-    document.querySelectorAll('#vex-theme-panel [data-mode],#vex-theme-panel [data-palette]').forEach(button=>{var active=button.dataset.mode?button.dataset.mode===state.mode:button.dataset.palette===state.palette;button.classList.toggle('on',active);button.setAttribute('aria-pressed',String(active));button.title=button.dataset.palette?(VexPalettes.find(function(p){return p.key===button.dataset.palette;})[window.VexL?.culture==='en-US'?'en':'label']):word(button.dataset.resource);button.setAttribute('aria-label',button.title);});
-    document.querySelectorAll('#vex-language-menu [data-language]').forEach(button=>{var active=button.dataset.language===window.VexL?.culture;button.setAttribute('aria-checked',String(active));button.classList.toggle('on',active);});
-    var language=document.querySelector('#vex-language-menu>summary');if(language){language.title=word('MenuLanguage');language.setAttribute('aria-label',language.title);}
+    var toggle=document.getElementById('vex-mode-toggle');
+    if(toggle){
+      var selectedMode=modes.find(item=>item[0]===state.mode);
+      toggle.dataset.mode=state.mode;toggle.dataset.resource=selectedMode[1];toggle.textContent=selectedMode[2];
+    }
+    document.querySelectorAll('#vex-theme-panel [data-mode],#vex-theme-panel [data-palette]').forEach(button=>{
+      var active=button.dataset.mode?button.dataset.mode===state.mode:button.dataset.palette===state.palette;
+      button.classList.toggle('on',active);button.setAttribute('aria-pressed',String(active));
+      var palette=button.dataset.palette&&VexPalettes.find(p=>p.key===button.dataset.palette);
+      button.title=palette?palette[window.VexL?.culture==='en-US'?'en':'label']:word(button.dataset.resource);
+      button.setAttribute('aria-label',button.title);
+    });
+    // Language controls do not need to be walked on every palette/mode switch.
+    if(syncLanguage){
+      document.querySelectorAll('#vex-language-menu [data-language]').forEach(button=>{
+        var active=button.dataset.language===window.VexL?.culture;
+        button.setAttribute('aria-checked',String(active));button.classList.toggle('on',active);
+      });
+      var language=document.querySelector('#vex-language-menu>summary');
+      if(language){language.title=word('MenuLanguage');language.setAttribute('aria-label',language.title);}
+    }
   }
-  window.VexTheme={state:state,setMode(value){state.mode=value;apply();},setPalette(value){state.palette=VexPaletteKey(value);apply();}};apply();
-  system.addEventListener('change',()=>{if(state.mode==='system')apply();});
-  window.addEventListener('storage',event=>{if(event.key===storeKey)try{Object.assign(state,JSON.parse(event.newValue||'{}'));apply();}catch(_){}});
-  window.addEventListener('vex-language-changed',apply);
+  window.VexTheme={state:state,setMode(value){state.mode=value;apply(false);},setPalette(value){state.palette=VexPaletteKey(value);apply(false);}};apply(false);
+  system.addEventListener('change',()=>{if(state.mode==='system')apply(false);});
+  window.addEventListener('storage',event=>{if(event.key===storeKey)try{Object.assign(state,JSON.parse(event.newValue||'{}'));apply(true);}catch(_){}});
+  window.addEventListener('vex-language-changed',()=>apply(true));
   window.addEventListener('keydown',event=>{var index=Number(event.key)-1;if(event.altKey&&!event.ctrlKey&&index>=0&&index<palettes.length)VexTheme.setPalette(palettes[index][0]);if(event.key==='Escape'){var menu=document.getElementById('vex-language-menu');if(menu)menu.open=false;}});
   document.addEventListener('DOMContentLoaded',()=>{
     var windowPanel=document.createElement('section');windowPanel.id='prototype-window-state';windowPanel.hidden=true;windowPanel.innerHTML='<p></p><button type="button" id="restore-window"></button>';document.body.append(windowPanel);
@@ -30,6 +68,6 @@
     panel.innerHTML='<div class="studio-modes" role="group" aria-label="Theme mode">'+'<button type="button" id="vex-mode-toggle" data-mode="system" data-resource="ThemeSystem">◐</button>'+'</div><div class="studio-palettes" role="group" aria-label="Palette">'+palettes.map(item=>'<button type="button" data-palette="'+item[0]+'" aria-label="'+item[1]+'"><i style="background:'+item[2]+'"></i></button>').join('')+'</div><details id="vex-language-menu" class="studio-language"><summary>文<span aria-hidden="true">A</span></summary><div role="menu">'+Object.entries(VEX_DATA.languages).map(([code])=>'<button type="button" role="menuitemradio" data-language="'+code+'">'+({"zh-CN":"简体中文","zh-Hant":"繁體中文","en-US":"English","ja-JP":"日本語"}[code]||code)+'</button>').join('')+'</div></details>';
     document.getElementById('caption-btns').before(panel);
     panel.addEventListener('click',event=>{var button=event.target.closest('button');if(!button)return;if(button.dataset.mode)VexTheme.setMode(({system:'light',light:'dark',dark:'system'})[state.mode]);if(button.dataset.palette)VexTheme.setPalette(button.dataset.palette);if(button.dataset.language){VexL.set(button.dataset.language);document.getElementById('vex-language-menu').open=false;}});
-    document.addEventListener('click',event=>{if(!event.target.closest('#vex-language-menu'))document.getElementById('vex-language-menu').open=false;});apply();
+    document.addEventListener('click',event=>{if(!event.target.closest('#vex-language-menu'))document.getElementById('vex-language-menu').open=false;});apply(true);
   });
 })();
