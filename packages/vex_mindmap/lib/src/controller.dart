@@ -48,6 +48,20 @@ final class MindMapController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 摘要等“根与模式一起变化”的场景一次性重排，避免 setMode+setRoot 双次 compute。
+  void setRootAndMode(MindMapNode value, MindMapLayoutMode mode) {
+    _mode = mode;
+    final changed = value.id != _root.id;
+    _root = value;
+    if (changed) {
+      _selected = null;
+      _collapsed.clear();
+    }
+    _layout = MindMapLayout.compute(value, collapsed: _collapsed, mode: _mode);
+    fitRequested = true;
+    notifyListeners();
+  }
+
   String? _selected;
   bool fitRequested = true;
   MindMapNode get root => _root;
@@ -64,7 +78,10 @@ final class MindMapController extends ChangeNotifier {
       ..addAll(state.collapsed);
     _layout = MindMapLayout.compute(root, collapsed: _collapsed, mode: _mode);
     fitRequested = state.fitRequested;
+    // 恢复矩阵不再触发一次多余的监听广播，统一由末尾的单次 notify 通知。
+    _suppressTransformNotify = true;
     transformation.value = Matrix4.copy(state._transformation);
+    _suppressTransformNotify = false;
     notifyListeners();
   }
 
@@ -75,7 +92,13 @@ final class MindMapController extends ChangeNotifier {
     return math.sqrt(matrix[0] * matrix[0] + matrix[1] * matrix[1]);
   }
 
-  void _transformed() => notifyListeners();
+  bool _suppressTransformNotify = false;
+
+  void _transformed() {
+    if (_suppressTransformNotify) return;
+    notifyListeners();
+  }
+
   void setRoot(MindMapNode value) {
     final changed = value.id != _root.id;
     _root = value;

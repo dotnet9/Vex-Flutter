@@ -744,8 +744,18 @@ final class WorkspaceViewModel extends ChangeNotifier {
     this.paragraphs = paragraphs ?? this.paragraphs;
     this.lists = lists ?? this.lists;
     this.blocks = blocks ?? this.blocks;
-    if (mode != null) _map.setMode(mode);
-    _refreshMap();
+    if (mode != null) {
+      // 摘要开关与布局模式一起变化时合并为一次全树重排。
+      final tree = _tree();
+      _mapDocument = current.id;
+      _mapRevision = editor.session.revision;
+      _mapDirty = false;
+      _map.setRootAndMode(tree, mode);
+      final selected = _mapNodeForHeading(selectedHeadingId);
+      if (_map.selectedId != selected) _map.select(selected);
+    } else {
+      _refreshMap();
+    }
     _notify();
     persist();
   }
@@ -1777,8 +1787,9 @@ final class WorkspaceViewModel extends ChangeNotifier {
     paragraphs = view.paragraphs;
     lists = view.lists;
     blocks = view.blocks;
-    _refreshMap();
-    _ensureMapCurrent();
+    // 引导结束恢复视图：session.restore 已触发一次刷新，这里不再显式重排，
+    // 只保留 restoreView 的单次 compute + 单次通知。
+    _mapDirty = false;
     _map.restoreView(_guideMapView!);
     _guiding = false;
     guideSeen = true;
