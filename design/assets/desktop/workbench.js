@@ -326,7 +326,7 @@
     });
   }
   function syncOutlineFromSource() {
-    var line = input.value.slice(0, input.selectionStart || 0).split('\\n').length;
+    var line = input.value.slice(0, input.selectionStart || 0).split('\n').length;
     activateOutlineAtLine(line, true);
   }
   function syncOutlineFromInstantSelection() {
