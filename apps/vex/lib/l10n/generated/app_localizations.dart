@@ -3382,6 +3382,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'Markdown 功能示例'**
   String get builtinMarkdownSample;
+
+  /// No description provided for @collapseAllFiles.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部折叠'**
+  String get collapseAllFiles;
+
+  /// No description provided for @externalChangeReloaded.
+  ///
+  /// In zh, this message translates to:
+  /// **'已自动重新载入外部修改'**
+  String get externalChangeReloaded;
 }
 
 class _AppLocalizationsDelegate

@@ -1766,4 +1766,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get builtinMarkdownSample => 'Markdown機能サンプル';
+
+  @override
+  String get collapseAllFiles => 'すべて折りたたむ';
+
+  @override
+  String get externalChangeReloaded => '外部変更を自動的に再読み込みしました';
 }

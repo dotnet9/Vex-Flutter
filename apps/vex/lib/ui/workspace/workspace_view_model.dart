@@ -1493,7 +1493,18 @@ final class WorkspaceViewModel extends ChangeNotifier {
         final next = latest.text != normalizeNewlines(doc.persistedText ?? '')
             ? latest
             : null;
-        if (next?.text != externalChange?.text) {
+        if (next != null &&
+            filePreferences.autoSave &&
+            !doc.editor.session.isDirty) {
+          // 已开启自动保存且无未保存改动：静默重载外部修改，不再弹横幅。
+          editor.session.replace(latest.text, label: '载入外部修改');
+          editor.session.markSaved();
+          current.persistedText = latest.text;
+          current.format = latest.format;
+          externalChange = null;
+          _setStatus((l) => l.externalChangeReloaded);
+          _notify();
+        } else if (next?.text != externalChange?.text) {
           externalChange = next;
           _notify();
         }

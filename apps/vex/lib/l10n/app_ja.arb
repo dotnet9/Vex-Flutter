@@ -557,4 +557,8 @@
   "calloutWarning": "警告"
 ,
   "builtinMarkdownSample": "Markdown機能サンプル"
+,
+  "collapseAllFiles": "すべて折りたたむ"
+,
+  "externalChangeReloaded": "外部変更を自動的に再読み込みしました"
 }

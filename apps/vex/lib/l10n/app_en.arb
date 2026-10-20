@@ -557,4 +557,8 @@
   "calloutWarning": "Warning"
 ,
   "builtinMarkdownSample": "Markdown Features"
+,
+  "collapseAllFiles": "Collapse All"
+,
+  "externalChangeReloaded": "External changes reloaded automatically"
 }

@@ -1820,4 +1820,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get builtinMarkdownSample => 'Markdown Features';
+
+  @override
+  String get collapseAllFiles => 'Collapse All';
+
+  @override
+  String get externalChangeReloaded =>
+      'External changes reloaded automatically';
 }

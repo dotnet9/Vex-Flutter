@@ -557,4 +557,8 @@
   "calloutWarning": "警告"
 ,
   "builtinMarkdownSample": "Markdown 功能示例"
+,
+  "collapseAllFiles": "全部摺疊"
+,
+  "externalChangeReloaded": "已自動重新載入外部修改"
 }
