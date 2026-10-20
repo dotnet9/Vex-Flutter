@@ -60,6 +60,24 @@
   // Right-side outline splitter: independent width, keyboard accessible, persisted in prototype storage.
   var structureSidebar = $('structure-sidebar'), structureSplitter = $('structure-splitter');
   var structureWidth = 240, structureInner = structureSidebar.querySelector('.structure-inner');
+  var structurePreferred = VexStorage.getItem('vex-design-structure') !== '0', structureNarrowOverride = false;
+  function syncStructureVisibility() {
+    var narrow = workspace.clientWidth - (state.sidebar ? sidebarWidth : 0) - structureWidth < 440;
+    if (!narrow) structureNarrowOverride = false;
+    var expanded = structurePreferred && (!narrow || structureNarrowOverride);
+    structureSidebar.classList.toggle('collapsed', !expanded);
+    structureSidebar.inert = !expanded;
+    var toggle = structureSidebar.querySelector('.structure-toggle');
+    toggle.setAttribute('aria-expanded', String(expanded));
+    toggle.title = expanded ? '收起文档结构' : '展开文档结构';
+    toggle.setAttribute('aria-label', toggle.title);
+    $('outline-toggle').setAttribute('aria-pressed', String(expanded));
+  }
+  function showStructure(expanded) {
+    structurePreferred = expanded; structureNarrowOverride = expanded;
+    VexStorage.setItem('vex-design-structure', expanded ? '1' : '0');
+    syncStructureVisibility();
+  }
   try {
     var savedStructureWidth = Number(VexStorage.getItem('vex-design-structure-width'));
     if (savedStructureWidth >= 180 && savedStructureWidth <= 480) structureWidth = savedStructureWidth;
@@ -74,17 +92,17 @@
     structureInner.style.width = structureWidth + 'px';
     structureSplitter.setAttribute('aria-valuenow', String(Math.round(structureWidth)));
     if (persist) {
-      try { VexStorage.setItem('vex-design-structure-width', String(structureWidth)); VexStorage.setItem('vex-design-structure', '1'); } catch (_) {}
-      structureSidebar.classList.remove('collapsed');
-      structureSidebar.querySelector('.structure-toggle').setAttribute('aria-expanded', 'true');
+      try { VexStorage.setItem('vex-design-structure-width', String(structureWidth)); } catch (_) {}
+      showStructure(true);
     }
+    syncStructureVisibility();
   }
   resizeStructure(structureWidth, false);
   var structureDrag = null;
   structureSplitter.addEventListener('pointerdown', function (event) {
     if (event.button !== 0) return;
     event.preventDefault();
-    structureSidebar.classList.remove('collapsed');
+    showStructure(true);
     var current = structureSplitter.getBoundingClientRect(), host = workspace.getBoundingClientRect();
     structureDrag = { offset: current.right - event.clientX, hostRight: host.right };
     structureSplitter.setPointerCapture(event.pointerId);
@@ -106,17 +124,17 @@
   structureSplitter.addEventListener('keydown', function (event) {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
     event.preventDefault();
-    structureSidebar.classList.remove('collapsed');
+    showStructure(true);
     resizeStructure(structureWidth + (event.key === 'ArrowLeft' ? 12 : -12), true);
   });
-  window.addEventListener('resize', function () {
+  new ResizeObserver(function () {
     resizeSidebar(sidebarWidth, false);
     resizeStructure(structureWidth, false);
-  });
+  }).observe(workspace);
 
   var canvas = $('map-viewport'), scene = $('map-scene'), input = $('markdown-input'), mapElements = new Map();
   var labels = { heading: '标题', paragraph: '段落', quote: '引用', list: '列表项', code: '代码块', table: '表格' };
-  var branchColors = ['var(--accent)', 'var(--success)', 'var(--warning)', 'var(--accent)', 'var(--muted)'];
+  var branchColors = ['var(--accent)', 'var(--branch-secondary)', 'var(--branch-tertiary)', 'var(--accent)', 'var(--muted)'];
   var textMeasure = document.createElement('canvas').getContext('2d');
   var typewriter = VexTypewriter.create({
     source: input, instant: $('instant-content'), enabled: function () { return state.typewriter; },
@@ -151,6 +169,7 @@
   }
   function loadDoc(index) {
     instant.finish(); state.undo = []; state.redo = [];
+    activeDocumentLine = 1; activeOutlineLine = 1; lastMapChapter = null;
     clearTimeout(state.pending);
     state.doc = index; state.selected = null; state.collapsed.clear(); state.dirty = false; state.mapVisited = false;
     input.value = docs[index].pendingText ?? docs[index].text; state.dirty = input.value !== docs[index].text; $('document-name').textContent = docs[index].name; $('node-inspector').hidden = true;
@@ -290,7 +309,7 @@
     }
     $('markdown-preview').innerHTML = html || '<p class="empty-state">输入 Markdown，开始写作。</p>';
   }
-  var activeOutlineLine = 1, outlineSyncFrame = 0;
+  var activeOutlineLine = 1, activeDocumentLine = 1, outlineSyncFrame = 0;
   function activateOutlineAtLine(line, ensureVisible) {
     if (!Number.isFinite(Number(line))) return;
     activeOutlineLine = Math.max(1, Number(line));
@@ -312,34 +331,49 @@
   }
   function syncOutlineFromDocumentScroll(scroller, article) {
     if (!scroller || !article || scroller.hidden || !article.isConnected) return;
+    queuePeerScroll(scroller, function () {
+      var anchors = articleAnchors(scroller, article), top = scroller.scrollTop + 14;
+      if (!anchors.length) return 1;
+      var index = 0;
+      while (index + 1 < anchors.length && anchors[index + 1].top <= top) index++;
+      var current = anchors[index], next = anchors[index + 1];
+      return current.line + (next ? Math.max(0, Math.min(1, (top - current.top) / Math.max(1, next.top - current.top))) * (next.line - current.line) : 0);
+    });
+  }
+  // Ignore only the exact scroll positions we wrote. User input never waits for a timer.
+  var peerScrollPositions = new WeakMap(), lastMapChapter = null;
+  function articleAnchors(scroller, article) {
+    var origin = scroller.getBoundingClientRect().top - scroller.scrollTop, previous = 0;
+    return Array.from(article.querySelectorAll('[data-line]')).map(function (element) {
+      return { line: Number(element.dataset.line), top: element.getBoundingClientRect().top - origin };
+    }).filter(function (anchor) { if (anchor.line <= previous) return false; previous = anchor.line; return true; });
+  }
+  function writePeerScroll(scroller, top) {
+    if (!scroller || !scroller.getClientRects().length) return;
+    top = Math.max(0, Math.min(top, scroller.scrollHeight - scroller.clientHeight));
+    if (Math.abs(scroller.scrollTop - top) < .5) return;
+    scroller.scrollTop = top;
+    peerScrollPositions.set(scroller, scroller.scrollTop);
+  }
+  function queuePeerScroll(scroller, readLine) {
+    if (!scroller.getClientRects().length || state.guideRestoring) return;
+    var expected = peerScrollPositions.get(scroller);
+    if (expected !== undefined && Math.abs(scroller.scrollTop - expected) < 1) return;
+    peerScrollPositions.delete(scroller);
     if (outlineSyncFrame) cancelAnimationFrame(outlineSyncFrame);
     outlineSyncFrame = requestAnimationFrame(function () {
       outlineSyncFrame = 0;
-      var headings = state.nodes.filter(function (node) { return node.kind === 'heading' && node.level > 0; });
-      if (!headings.length) return;
-      var threshold = scroller.getBoundingClientRect().top + 76, chosen = headings[0];
-      headings.forEach(function (node) {
-        var element = article.querySelector('[data-line="' + node.line + '"]');
-        if (element && element.getBoundingClientRect().top <= threshold) chosen = node;
-      });
-      activateOutlineAtLine(chosen.line, true);
-      syncPeerViewsToLine(chosen.line, scroller, false);
+      if (!scroller.getClientRects().length || state.guideRestoring) return;
+      syncPeerViewsToLine(readLine(), scroller, false);
     });
   }
-  var syncingPeerScroll = false, peerScrollTimer = 0, lastPeerLine = 0;
-  function scrollArticleToLine(scroller, article, line) {
+  function articleTopAtLine(scroller, article, line) {
     if (!scroller || !article || !scroller.getClientRects().length) return;
-    var target = article.querySelector('[data-line="' + line + '"]');
-    if (!target) {
-      var candidates = article.querySelectorAll('[data-line]');
-      for (var i = 0; i < candidates.length; i++) {
-        if (Number(candidates[i].dataset.line) <= line) target = candidates[i];
-        else break;
-      }
-    }
-    if (!target) return;
-    var delta = target.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 14;
-    if (Math.abs(delta) > 8) scroller.scrollTop += delta;
+    var anchors = articleAnchors(scroller, article), index = 0;
+    if (!anchors.length) return 0;
+    while (index + 1 < anchors.length && anchors[index + 1].line <= line) index++;
+    var current = anchors[index], next = anchors[index + 1];
+    return current.top - 14 + (next ? Math.max(0, (line - current.line) / (next.line - current.line)) * (next.top - current.top) : 0);
   }
   function revealAndCenterMapNode(node) {
     if (!node || !$('map-pane').getClientRects().length) return;
@@ -358,41 +392,48 @@
     if (expanded) renderMap();
     var element = mapElements.get(node.id);
     if (!element) return;
+    if (state.selected !== node.id) $('node-inspector').hidden = true;
     mapElements.forEach(function (item, id) { item.classList.toggle('selected', id === node.id); });
     state.selected = node.id;
     state.x = canvas.clientWidth / 2 - (node.x + node.width / 2) * state.scale;
     state.y = canvas.clientHeight / 2 - (node.y + node.height / 2) * state.scale;
+    lastCanvasSize = { width: canvas.clientWidth, height: canvas.clientHeight };
     transform(true);
   }
   function syncPeerViewsToLine(line, sourceScroller, force) {
     line = Math.max(1, Number(line) || 1);
-    if (!force && (syncingPeerScroll || line === lastPeerLine)) return;
-    lastPeerLine = line;
-    syncingPeerScroll = true;
-    if (peerScrollTimer) clearTimeout(peerScrollTimer);
+    activeDocumentLine = line;
     var instantScroll = document.querySelector('.instant-scroll');
     var readingScroll = document.querySelector('.reading-scroll');
     var sourceScroll = document.querySelector('.source-scroll');
-    if (sourceScroller !== instantScroll) scrollArticleToLine(instantScroll, $('instant-content'), line);
-    if (sourceScroller !== readingScroll) scrollArticleToLine(readingScroll, $('markdown-preview'), line);
+    // Read both article geometries before writing scroll offsets.
+    var instantTop = sourceScroller !== instantScroll ? articleTopAtLine(instantScroll, $('instant-content'), line) : undefined;
+    var readingTop = sourceScroller !== readingScroll ? articleTopAtLine(readingScroll, $('markdown-preview'), line) : undefined;
+    var inputStyle = getComputedStyle(input), lineHeight = parseFloat(inputStyle.lineHeight) || 23;
+    if (instantTop !== undefined) writePeerScroll(instantScroll, instantTop);
+    if (readingTop !== undefined) writePeerScroll(readingScroll, readingTop);
     if (sourceScroller !== sourceScroll) {
-      var lineHeight = parseFloat(getComputedStyle(input).lineHeight) || 23;
-      input.scrollTop = Math.max(0, (line - 1) * lineHeight);
-      sourceScroll.scrollTop = Math.max(0, (line - 1) * lineHeight);
+      input.scrollTop = 0;
+      writePeerScroll(sourceScroll, (line - 1) * lineHeight + parseFloat(inputStyle.paddingTop) - 14);
     }
+    activateOutlineAtLine(line, true);
     var node = state.nodes.find(function (item) { return item.kind === 'heading' && item.line === line; });
     if (!node) {
       state.nodes.forEach(function (item) { if (item.kind === 'heading' && item.line <= line && (!node || item.line > node.line)) node = item; });
     }
-    if (node) revealAndCenterMapNode(node);
-    peerScrollTimer = setTimeout(function () { syncingPeerScroll = false; peerScrollTimer = 0; }, 100);
+    if (node && sourceScroller !== canvas && (force || node.id !== lastMapChapter) && $('map-pane').getClientRects().length) {
+      lastMapChapter = node.id;
+      revealAndCenterMapNode(node);
+    }
   }
   function syncOutlineFromSource() {
+    if (!input.getClientRects().length || document.activeElement !== input) return;
     var line = input.value.slice(0, input.selectionStart || 0).split('\n').length;
     activateOutlineAtLine(line, true);
     syncPeerViewsToLine(line, document.querySelector('.source-scroll'), false);
   }
   function syncOutlineFromInstantSelection() {
+    if (!$('instant-content').getClientRects().length) return;
     var selection = window.getSelection && window.getSelection();
     var node = selection && selection.anchorNode;
     var element = node && (node.nodeType === 1 ? node : node.parentElement);
@@ -407,22 +448,25 @@
     var instantScroll = document.querySelector('.instant-scroll');
     var readingScroll = document.querySelector('.reading-scroll');
     var sourceScroll = document.querySelector('.source-scroll');
-    instantScroll.addEventListener('scroll', function () { if (!syncingPeerScroll) syncOutlineFromDocumentScroll(instantScroll, $('instant-content')); }, { passive: true });
-    readingScroll.addEventListener('scroll', function () { if (!syncingPeerScroll) syncOutlineFromDocumentScroll(readingScroll, $('markdown-preview')); }, { passive: true });
+    instantScroll.addEventListener('scroll', function () { syncOutlineFromDocumentScroll(instantScroll, $('instant-content')); }, { passive: true });
+    readingScroll.addEventListener('scroll', function () { syncOutlineFromDocumentScroll(readingScroll, $('markdown-preview')); }, { passive: true });
     sourceScroll.addEventListener('scroll', function () {
-      if (syncingPeerScroll) return;
-      var lineHeight = parseFloat(getComputedStyle(input).lineHeight) || 23;
-      var line = Math.floor(Math.max(sourceScroll.scrollTop, input.scrollTop) / lineHeight) + 1;
-      activateOutlineAtLine(line, true);
-      syncPeerViewsToLine(line, sourceScroll, false);
+      queuePeerScroll(sourceScroll, function () {
+        var style = getComputedStyle(input);
+        return Math.max(0, sourceScroll.scrollTop + input.scrollTop + 14 - parseFloat(style.paddingTop)) / (parseFloat(style.lineHeight) || 23) + 1;
+      });
     }, { passive: true });
     input.addEventListener('scroll', function () {
-      if (syncingPeerScroll) return;
+      if (!input.scrollTop) return;
       var lineHeight = parseFloat(getComputedStyle(input).lineHeight) || 23;
-      var line = Math.floor(input.scrollTop / lineHeight) + 1;
-      activateOutlineAtLine(line, true);
+      var line = (sourceScroll.scrollTop + input.scrollTop) / lineHeight + 1;
       syncPeerViewsToLine(line, sourceScroll, false);
     }, { passive: true });
+    [instantScroll, readingScroll, sourceScroll].forEach(function (scroller) {
+      ['wheel', 'touchstart', 'pointerdown'].forEach(function (eventName) {
+        scroller.addEventListener(eventName, function () { peerScrollPositions.delete(scroller); }, { passive: true });
+      });
+    });
     ['click', 'keyup', 'select', 'input'].forEach(function (eventName) {
       input.addEventListener(eventName, syncOutlineFromSource);
     });
@@ -470,7 +514,7 @@
     state.collapsed = new Set(state.nodes.filter(function (node) { return collapsedKeys.has(node.key); }).map(function (node) { return node.id; }));
     state.lastText = input.value; state.lastDoc = state.doc;
     // 源码变化后关闭旧节点详情，防止重新编号后显示到其他段落。
-    state.selected = null; $('node-inspector').hidden = true;
+    state.selected = null; lastMapChapter = null; $('node-inspector').hidden = true;
     $('line-numbers').innerHTML = state.parsed.lines.map(function (_, index) { return '<div>' + (index + 1) + '</div>'; }).join('');
     input.style.height = typewriter.sourceHeight() + 'px';
     updateMeta(); renderPreview(); instant.render(); VexRendering.diagrams(); renderOutline(); renderMap(); updateCursor();
@@ -562,10 +606,7 @@
     setView(views[index]); $('view-' + views[index]).focus();
   });
   // 右侧“文档结构”栏：记忆展开状态，收起时箭头翻转。
-  var structureSaved = '1';
-  try { structureSaved = window.VexStorage ? (VexStorage.getItem('vex-design-structure') || '1') : '1'; } catch (_) {}
-  if (structureSaved === '0') $('structure-sidebar').classList.add('collapsed');
-  $('structure-sidebar').querySelector('.structure-toggle').setAttribute('aria-expanded', structureSaved !== '0');
+  syncStructureVisibility();
   function visibleChildren(node) {
     return node.children.filter(function (child) {
       return child.kind === 'heading' || (['paragraph', 'quote'].includes(child.kind) && settings.paragraphs)
@@ -631,6 +672,7 @@
     state.x = (canvas.clientWidth - state.bounds.width * state.scale) / 2;
     state.y = (canvas.clientHeight - state.bounds.height * state.scale) / 2;
     if (readable === true) state.x = Math.max(24, state.x);
+    lastCanvasSize = { width: canvas.clientWidth, height: canvas.clientHeight };
     transform(true);
   }
   function zoom(factor, anchor) {
@@ -667,7 +709,7 @@
   function selectNode(node) {
     state.selected = node.id;
     activateOutlineAtLine(node.line, true);
-    syncPeerViewsToLine(node.line, null, true);
+    syncPeerViewsToLine(node.line, canvas, false);
     mapElements.forEach(function (element, id) { element.classList.toggle('selected', id === node.id); });
     $('inspector-kind').textContent = node.isRoot ? '文档' : labels[node.kind];
     $('inspector-title').textContent = node.kind === 'heading' ? node.text : '完整' + labels[node.kind];
@@ -681,7 +723,9 @@
     var start = state.parsed.lines.slice(0, node.line - 1).join('\n').length + (node.line > 1 ? 1 : 0);
     var length = state.parsed.lines.slice(node.line - 1, node.endLine).join('\n').length;
     input.setSelectionRange(start, start + length);
-    document.querySelector('.source-scroll').scrollTo({ top: Math.max(0, (node.line - 1) * 23 - 90), behavior: reducedMotion() ? 'auto' : 'smooth' });
+    var style = getComputedStyle(input);
+    input.scrollTop = 0;
+    writePeerScroll(document.querySelector('.source-scroll'), (node.line - 1) * (parseFloat(style.lineHeight) || 23) + parseFloat(style.paddingTop) - 14);
     if (focus) input.focus({ preventScroll: true }); updateCursor();
   }
   function locate(node) {
@@ -731,6 +775,7 @@
       input.dispatchEvent(new Event('input')); refreshNow();
       instant.focusAt(input.value.slice(0, input.selectionEnd).split('\n').length); return;
     }
+    remember(input.value);
     input.focus();
     if (!document.execCommand('insertText', false, text)) input.setRangeText(text, input.selectionStart, input.selectionEnd, 'end');
     input.dispatchEvent(new Event('input'));
@@ -743,7 +788,7 @@
     if (index < 0) { $('find-count').textContent = '没有匹配内容'; return; }
     input.setSelectionRange(index, index + term.length); input.focus();
     var line = input.value.slice(0, index).split('\n').length;
-    document.querySelector('.source-scroll').scrollTop = Math.max(0, (line - 1) * 23 - 90); updateCursor();
+    syncPeerViewsToLine(line, null, true); updateCursor();
   }
   function updateFind() {
     var term = $('find-input').value; $('find-count').textContent = term ? input.value.split(term).length - 1 + ' 处匹配' : '输入查找内容';
@@ -815,12 +860,7 @@
       case 'clear-file-search': $('file-filter').value = ''; renderFiles(); $('file-filter').focus(); break;
       case 'clear-outline-search': $('outline-filter').value = ''; renderOutline(); $('outline-filter').focus(); break;
       case 'toggle-structure': {
-        var structurePanel = $('structure-sidebar');
-        structurePanel.classList.toggle('collapsed');
-        var collapsedNow = structurePanel.classList.contains('collapsed');
-        structurePanel.querySelector('.structure-toggle').setAttribute('aria-expanded', String(!collapsedNow));
-        structurePanel.querySelector('.structure-toggle').title = collapsedNow ? '展开文档结构' : '收起文档结构';
-        try { VexStorage.setItem('vex-design-structure', collapsedNow ? '0' : '1'); } catch (_) {}
+        showStructure(structureSidebar.classList.contains('collapsed'));
         break;
       }
       case 'file-list-toggle': fileListMode = fileListMode === 'tree' ? 'list' : 'tree'; if (!bundledDocument) VexStorage.setItem('vex-design-file-list-mode', fileListMode); renderFiles(); break;
@@ -844,8 +884,8 @@
       case 'export-html': instant.finish(); refreshNow(); download('<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>' + escape(docs[state.doc].name) + '</title><style>body{max-width:780px;margin:50px auto;font:16px/1.9 system-ui;padding:0 24px;color:#242933;background:#fff}pre{padding:16px;background:#f4f5f7;overflow:auto}table{border-collapse:collapse}td,th{border:1px solid #ddd;padding:6px 12px}blockquote{border-left:3px solid #888;padding-left:16px;color:#666}' + VexTypography.exportStyles() + VexWatermark.exportStyles + '</style><body>' + $('markdown-preview').innerHTML + VexWatermark.exportMark() + '</body></html>', docs[state.doc].name.replace(/\.[^.]+$/, '') + '.html', 'text/html;charset=utf-8'); break;
       case 'export-pdf': instant.finish(); refreshNow(); VexWatermark.preview('PDF · ' + docs[state.doc].name,$('markdown-preview').innerHTML); break;
       case 'toggle-watermark': VexPreferences.set('watermarkPreview',!VexPreferences.values.watermarkPreview); break;
-      case 'toggle-sidebar': state.sidebar = !state.sidebar; document.querySelector('.sidebar').classList.toggle('closed', !state.sidebar); if (!state.sidebar) sidebar.style.removeProperty('width'); $('sidebar-toggle').classList.toggle('on', state.sidebar); $('sidebar-toggle').setAttribute('aria-pressed', String(state.sidebar)); break;
-      case 'pane-outline': { if (!state.sidebar) VexProto.handleAction('toggle-sidebar'); var structure = $('structure-sidebar'); structure.classList.remove('collapsed'); try { VexStorage.setItem('vex-design-structure', '1'); } catch (_) {} renderOutline(); break; }
+      case 'toggle-sidebar': state.sidebar = !state.sidebar; document.querySelector('.sidebar').classList.toggle('closed', !state.sidebar); if (!state.sidebar) sidebar.style.removeProperty('width'); $('sidebar-toggle').classList.toggle('on', state.sidebar); $('sidebar-toggle').setAttribute('aria-pressed', String(state.sidebar)); syncStructureVisibility(); break;
+      case 'pane-outline': showStructure(true); renderOutline(); break;
       case 'pane-files': if (!state.sidebar) VexProto.handleAction('toggle-sidebar'); break;
       case 'map-source': state.source = !state.source; applySource(); break;
       case 'map-settings': var opened = !$('map-settings').hidden; if (state.view !== 'mindmap') setView('mindmap'); $('map-settings').hidden = opened; $('map-settings-button').setAttribute('aria-expanded', String(!opened)); $('node-inspector').hidden = true; break;
@@ -910,7 +950,7 @@
     finish: function () { instant.finish(); refreshNow(); },
     setView: setView, setEditMode: setEditMode, fit: fit, renderMap: renderMap,
     selectNode: selectNode, locate: locate, highlightSource: highlightSource,
-    syncViewsToLine: function (line) { syncPeerViewsToLine(line || activeOutlineLine, null, true); },
+    syncViewsToLine: function (line) { syncPeerViewsToLine(line || activeDocumentLine, null, true); },
     focusLine: function (line) {
       var node = state.nodes.find(function (candidate) { return candidate.line === line; });
       if (!node) return;

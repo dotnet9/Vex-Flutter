@@ -222,7 +222,8 @@
         pauseForContinue('想继续写，可以保存这份 Markdown。', ['.tb-menuitem[data-menu^="文件"]'], 'control', function () {
           openMenu('文件(F)');
           pauseForContinue('这里是保存入口。', ['.menu-flyout [data-menu-action="save"]'], 'control', function () {
-            pauseForContinue('想交给别人阅读，也能选择合适的格式。', ['.menu-flyout [data-menu-action="export-html"]', '.menu-flyout [data-menu-action="export-pdf"]', '.menu-flyout [data-menu-label="导出 PNG 长图"]', '.menu-flyout [data-menu-label="导出 Word（.docx）"]'], 'control', function () {
+            click('.menu-flyout [data-menu-label="导出"]');
+            pauseForContinue('想交给别人阅读，也能选择合适的格式。', ['.submenu [data-menu-action="export-html"]', '.submenu [data-menu-action="export-pdf"]', '.submenu [data-menu-label="导出 PNG 长图"]', '.submenu [data-menu-label="导出 Word（.docx）"]'], 'control', function () {
               closeMenu(); openMenu('工具(T)');
               pauseForContinue('准备发布时，从这里选择对应的平台。', ['.menu-flyout [data-menu-action^="copy-"]'], 'control', function () {
                 closeMenu();

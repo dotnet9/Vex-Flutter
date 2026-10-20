@@ -38,32 +38,47 @@
     return html
       .replace(/\u0001(\d+)\u0002/g, function (_, index) { return tokens[index]; });
   }
-  var serial = 0, pending = false, requested = false, themeRevision = 0;
+  var serial = 0, pending = false, requested = false, initialized = false;
+  // Mermaid needs literal colors while calculating its theme. Replace these unique
+  // seed colors with CSS tokens once, so mode/palette changes retain the same SVG.
+  var diagramTokens = {
+    '#d1e2f3': '--accent-soft', '#253647': '--fg', '#456789': '--accent',
+    '#e2d3c4': '--code-bg', '#f3e4d5': '--panel', '#647586': '--muted', '#b4c5d6': '--border'
+  };
+  function themedSVG(svg) {
+    return svg.replace(/#[\da-f]{6}\b/gi, function (color) {
+      return diagramTokens[color.toLowerCase()] ? 'var(' + diagramTokens[color.toLowerCase()] + ')' : color;
+    }).replace(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)/g, function (color, r, g, b, alpha) {
+      var hex = '#' + [r,g,b].map(function (value) { return Number(value).toString(16).padStart(2,'0'); }).join('');
+      var token = diagramTokens[hex];
+      return token ? alpha && Number(alpha) < 1 ? 'color-mix(in srgb, var(' + token + ') ' + Number(alpha) * 100 + '%, transparent)' : 'var(' + token + ')' : color;
+    });
+  }
   function diagrams() {
     requested = true;
     if (pending) return;
     pending = true;
     requestAnimationFrame(async function () {
       requested = false;
-      var revision = themeRevision, style = getComputedStyle(document.documentElement);
-      var color = function (name) { return style.getPropertyValue(name).trim(); };
-      mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'base', suppressErrorRendering: true,
-        themeVariables: { darkMode: document.documentElement.dataset.theme === 'dark', fontFamily: 'Microsoft YaHei UI, Segoe UI, sans-serif', fontSize: '14px',
-          primaryColor: color('--accent-soft'), primaryTextColor: color('--fg'), primaryBorderColor: color('--accent'),
-          secondaryColor: color('--code-bg'), tertiaryColor: color('--panel'), lineColor: color('--muted'), textColor: color('--fg'),
-          mainBkg: color('--accent-soft'), nodeBorder: color('--accent'), clusterBkg: color('--panel'), clusterBorder: color('--border'),
-          edgeLabelBackground: color('--panel'), actorBkg: color('--accent-soft'), actorBorder: color('--accent'), actorTextColor: color('--fg'),
-          actorLineColor: color('--muted'), signalColor: color('--fg'), signalTextColor: color('--fg'), labelBoxBkgColor: color('--panel'), labelTextColor: color('--fg') }
-      });
       var elements = Array.from(document.querySelectorAll('.md-diagram:not([data-rendered])'));
+      if (elements.length && !initialized) {
+        mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'base', suppressErrorRendering: true,
+          themeVariables: { darkMode: false, fontFamily: 'Microsoft YaHei UI, Segoe UI, sans-serif', fontSize: '14px',
+            primaryColor: '#d1e2f3', primaryTextColor: '#253647', primaryBorderColor: '#456789',
+            secondaryColor: '#e2d3c4', tertiaryColor: '#f3e4d5', lineColor: '#647586', textColor: '#253647',
+            mainBkg: '#d1e2f3', nodeBorder: '#456789', clusterBkg: '#f3e4d5', clusterBorder: '#b4c5d6',
+            edgeLabelBackground: '#f3e4d5', actorBkg: '#d1e2f3', actorBorder: '#456789', actorTextColor: '#253647',
+            actorLineColor: '#647586', signalColor: '#253647', signalTextColor: '#253647', labelBoxBkgColor: '#f3e4d5', labelTextColor: '#253647' }
+        });
+        initialized = true;
+      }
       for (var element of elements) {
         if (!element.isConnected || element.dataset.rendered) continue;
         element.dataset.rendered = 'pending';
         try {
           var result = await mermaid.render('vex-diagram-' + (++serial), element.dataset.source);
           if (!element.isConnected) continue;
-          if (revision !== themeRevision) { delete element.dataset.rendered; continue; }
-          element.innerHTML = result.svg; element.dataset.rendered = 'true';
+          element.innerHTML = themedSVG(result.svg); element.dataset.rendered = 'true';
           var svg = element.querySelector('svg'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', element.dataset.label || 'Markdown 图表');
         } catch (_) {
           if (element.isConnected) { element.dataset.rendered = 'error'; element.innerHTML = '<p class="md-render-error">图表语法有误，请切换源码检查。</p><pre><code>' + escape(element.dataset.source) + '</code></pre>'; }
@@ -81,8 +96,4 @@
     return '<div class="md-diagram"' + attr + ' data-source="' + escape(block.text) + '" data-label="' + escape(VexMermaid.label(block.text)) + '"><pre><code>' + escape(block.text) + '</code></pre></div>';
   }
   window.VexRendering = { inline: inline, special: special, renderSpecial: renderSpecial, diagrams: diagrams };
-  new MutationObserver(function () {
-    themeRevision++;
-    document.querySelectorAll('.md-diagram').forEach(function (element) { delete element.dataset.rendered; }); diagrams();
-  }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-palette'] });
 })();

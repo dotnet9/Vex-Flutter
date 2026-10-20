@@ -25,6 +25,7 @@ async function main() {
     const preview = catalog.VexTypePreview(type.key);
     for (const level of [1, 2, 3, 4]) assert.ok(preview.includes(`<h${level}>`));
     assert.ok(liveStyles.includes(`:root[data-typography="${type.key}"] .markdown-body`));
+    for (const element of ["blockquote", "ul", "table", "pre", "code"]) assert.ok(preview.includes(`<${element}>`));
   }
 
   let storage = new Map(), launched;
@@ -49,10 +50,10 @@ async function main() {
   const themeScript = fs.readFileSync(path.join(assets, 'desktop/theme.js'), 'utf8');
   const typographyScript = fs.readFileSync(path.join(assets, 'desktop/typography.js'), 'utf8');
   assert.match(polish, /:root\.theme-switching[\s\S]*transition:\s*none\s*!important/);
-  assert.match(polish, /grid-template-columns:\s*repeat\(2,\s*minmax\(0,1fr\)\)/);
-  assert.match(polish, /\.type-swatch \.type-document h1[\s\S]*font-size:\s*19px\s*!important/);
+  assert.match(polish, /--document-bg:\s*var\(--paper\)/);
+  assert.match(typographyScript, /class="typography-reading"[^>]*role="region"/);
   assert.match(themeScript, /cancelAnimationFrame\(themeFrame\)/);
-  assert.match(typographyScript, /new MutationObserver\(syncThemeAccent\)/);
+  assert.doesNotMatch(typographyScript, /new MutationObserver/);
   assert.doesNotMatch(typographyScript, /new MutationObserver\(apply\)/);
 
   const content = {name: '新文章.md', text: '# 一段想法\n\n保留这段内容。'};

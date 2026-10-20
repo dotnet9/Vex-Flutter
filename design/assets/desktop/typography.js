@@ -12,14 +12,15 @@
   if (items.some(function (item) { return item.key === requested; })) state.key = requested;
   var panel = document.createElement('section'); panel.id = 'typography-panel'; panel.className = 'typography-popover'; panel.hidden = true;
   panel.setAttribute('aria-label', '正文排版'); panel.setAttribute('role', 'dialog');
-  panel.innerHTML = '<div class="popover-title">正文排版<button class="icon-button" id="typography-close" aria-label="关闭排版"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div><div class="typography-grid">' + items.map(function (item) {
-    return '<button class="typography-card" data-typography-key="' + item.key + '">' + VexTypePreview(item.key) + '<strong>' + item.label + '</strong></button>';
-  }).join('') + '</div><label class="typography-compact">紧凑布局<input type="checkbox" id="typography-compact"></label>';
+  panel.innerHTML = '<div class="popover-title">正文排版<button class="icon-button" id="typography-close" aria-label="关闭排版"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div><div class="typography-workspace"><div class="typography-grid" role="group" aria-label="排版样式">' + items.map(function (item) {
+    return '<button class="typography-card" data-typography-key="' + item.key + '"><strong>' + item.label + '</strong><span>' + item.en + '</span></button>';
+  }).join('') + '</div><div class="typography-reading" tabindex="0" role="region" aria-label="文章排版效果预览">' + VexTypePreview(state.key, true) + '</div></div><label class="typography-compact">紧凑布局<input type="checkbox" id="typography-compact"></label>';
   document.querySelector('.window-body').appendChild(panel);
   function apply() {
     var theme = items.find(function (item) { return item.key === state.key; }), root = document.documentElement;
     root.dataset.typography = theme.key; root.dataset.typographyVariant = theme.variant; root.dataset.compact = String(state.compact);
-    root.style.setProperty('--typography-accent', root.dataset.theme === 'dark' ? theme.dark : theme.light);
+    root.style.setProperty('--typography-accent', 'var(--accent)');
+    panel.querySelector('[data-preview-type]').dataset.previewType = state.key;
     document.querySelectorAll('[data-typography-label]').forEach(function (label) { label.textContent = theme.label; });
     panel.querySelectorAll('[data-typography-key]').forEach(function (button) {
       button.setAttribute('aria-pressed', String(button.dataset.typographyKey === state.key));
@@ -30,21 +31,16 @@
   panel.querySelector('.typography-grid').onclick = function (event) {
     var button = event.target.closest('[data-typography-key]'); if (button) choose(button.dataset.typographyKey);
   };
-  function close() { panel.hidden = true; document.querySelectorAll('[data-action="typography"]').forEach(function (button) { button.setAttribute('aria-expanded', 'false'); }); }
-  document.getElementById('typography-close').onclick = close;
+  var trigger;
+  function close(restoreFocus) { var wasOpen = !panel.hidden; panel.hidden = true; document.querySelectorAll('[data-action="typography"]').forEach(function (button) { button.setAttribute('aria-expanded', 'false'); }); if (restoreFocus && wasOpen && trigger) trigger.focus({preventScroll:true}); }
+  document.getElementById('typography-close').onclick = function () { close(true); };
   document.getElementById('typography-compact').onchange = function () { state.compact = this.checked; apply(); };
   function choose(key) { key=VexTypeKey(key);if (items.some(function (item) { return item.key === key; })) { state.key = key; apply(); } }
   document.addEventListener('click', function (event) {
     if (!panel.contains(event.target) && !event.target.closest('[data-action="typography"]') && !event.target.closest('.menu-flyout')) close();
   });
-  document.addEventListener('keydown', function (event) { if (event.key === 'Escape') close(); });
+  document.addEventListener('keydown', function (event) { if (event.key === 'Escape') close(true); });
   document.addEventListener('vex-layout-rendered', function () { if (!document.querySelector('[data-action="typography"]:not([hidden])')) close(); });
-  function syncThemeAccent() {
-    var item = items.find(function (entry) { return entry.key === state.key; });
-    if (item) document.documentElement.style.setProperty('--typography-accent', document.documentElement.dataset.theme === 'dark' ? item.dark : item.light);
-  }
-  // Theme swaps only need one token update; do not rebuild labels, selection states or storage.
-  new MutationObserver(syncThemeAccent).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   window.VexTypography = {
     items: items, state: state, apply: apply, choose: choose,
     toggleCompact: function () { state.compact = !state.compact; apply(); },
@@ -52,11 +48,12 @@
     toggle: function (anchor) {
       if (!panel.hidden) { close(); return; }
       panel.hidden = false;
-      var host = panel.parentElement.getBoundingClientRect(), trigger = (anchor || document.querySelector('[data-action="typography"]')).getBoundingClientRect();
-      panel.style.left = Math.max(8,Math.min(host.width-panel.offsetWidth-8,trigger.right-host.left-panel.offsetWidth))+'px';panel.style.right='auto';
-      var below=host.bottom-trigger.bottom-20,above=trigger.top-host.top-20,flip=below<320&&above>below;
+      trigger = anchor || document.querySelector('[data-action="typography"]');
+      var host = panel.parentElement.getBoundingClientRect(), rect = trigger.getBoundingClientRect();
+      var below=host.bottom-rect.bottom-16,above=rect.top-host.top-16,flip=below<320&&above>below;
       panel.style.maxHeight=Math.max(180,flip?above:below)+'px';
-      panel.style.top=(flip?Math.max(8,trigger.top-host.top-panel.offsetHeight-8):Math.max(8,trigger.bottom-host.top+8))+'px';
+      panel.style.left = Math.max(8,Math.min(host.width-panel.offsetWidth-8,rect.right-host.left-panel.offsetWidth))+'px';panel.style.right='auto';
+      panel.style.top=(flip?Math.max(8,rect.top-host.top-panel.offsetHeight-8):Math.max(8,rect.bottom-host.top+8))+'px';
       document.querySelectorAll('[data-action="typography"]').forEach(function (button) { button.setAttribute('aria-expanded', 'true'); });
     },
     exportStyles: function () { return VexTypeExport(state.key,state.compact); }

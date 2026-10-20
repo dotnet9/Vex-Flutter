@@ -11,7 +11,13 @@
   ];
   let current;
   function tableItems() {
-    return [{label:'插入表格…',action:'element-insert-table',disabled:() => !current?.editable()}, {sep:true}, ...tableCommands.map(([label,action]) => label ? {label,action:'element-table-'+action,disabled:() => !current?.canTable(action),danger:action==='delete'} : {sep:true})];
+    const items=tableCommands.filter(([label])=>label).map(([label,action])=>({label,action:'element-table-'+action,disabled:()=>!current?.canTable(action),danger:action==='delete'}));
+    const group=(label,actions)=>({label,sub:actions.map(action=>items.find(item=>item.action==='element-table-'+action))});
+    return [{label:'插入表格…',action:'element-insert-table',disabled:()=>!current?.editable()},{sep:true},
+      group('行操作',['row-above','row-below','row-up','row-down','row-delete']),
+      group('列操作',['col-before','col-after','col-left','col-right','col-delete']),
+      group('列对齐',['align-left','align-center','align-right']),{sep:true},
+      ...items.filter(item=>['element-table-copy','element-table-format','element-table-delete'].includes(item.action))];
   }
   function mount(options) {
     const source = options.source, roots = options.roots, scope = VexOverlay.scope();
@@ -107,9 +113,12 @@
     function closeMenu(restore=true) {if(!menuLayer)return;menuLayer.remove();menuLayer=null;const release=unlock;unlock=null;if(release)release();if(restore&&menuFocus?.isConnected)menuFocus.focus({preventScroll:true});}
     function closeDialog() {if(!dialogLayer)return;dialogLayer.remove();dialogLayer=null;dialogUnlock?.();dialogUnlock=null;}
     const choice=(label,action,extra={})=>({label,action,...extra});
-    function tableChoices(){return [choice('插入表格…','insert-table',{disabled:!editable()}),{},...tableCommands.map(([label,action])=>label?choice(label,'table-'+action,{disabled:!canTable(action),danger:action==='delete'}):{})];}
+    function tableChoices(){
+      const convert=item=>item.sep?{}:item.sub?{label:item.label,children:()=>item.sub.map(convert)}:choice(item.label,item.action.slice(8),{disabled:item.disabled(),danger:item.danger});
+      return tableItems().map(convert);
+    }
     function paragraphChoices(){return [choice('正文','convert-paragraph'),...[1,2,3,4,5,6].map(n=>choice(n+' 级标题','convert-heading'+n)),{},choice('引用','convert-quote'),choice('无序列表','convert-list'),choice('有序列表','convert-ordered'),choice('任务列表','convert-task')].map(item=>({...item,disabled:!editable()||['table','code','math','hr','rule'].includes(snapshot.block.type)}));}
-    function insertChoices(){return [choice('链接…','insert-link'),choice('图片…','insert-image'),choice('表格…','insert-table'),choice('代码块…','insert-code'),choice('公式块…','insert-math'),{label:'Mermaid 图表',children:()=>VexMermaid.items.map(item=>choice(item.label,'mermaid-'+item.key))},{},choice('在上方插入段落','insert-above'),choice('在下方插入段落','insert-below')].map(item=>({...item,disabled:!editable()}));}
+    function insertChoices(){return [choice('链接…','insert-link'),choice('图片…','insert-image'),choice('表格…','insert-table'),choice('代码块…','insert-code'),choice('公式块…','insert-math'),{label:'Mermaid 图表',children:()=>Array.from(new Set(VexMermaid.items.map(item=>item.group))).map(group=>({label:group,children:()=>VexMermaid.items.filter(item=>item.group===group).map(item=>choice(item.label,'mermaid-'+item.key))}))},{},choice('在上方插入段落','insert-above'),choice('在下方插入段落','insert-below')].map(item=>({...item,disabled:!editable()}));}
     function rootChoices() {
       const context=snapshot, type=context.block.type, media=context.token?.kind, choices=[];
       if(media){choices.push(choice(media==='image'?'预览图片':'打开链接',media==='image'?'preview-image':'open-link'),choice(media==='image'?'复制图片地址':'复制链接地址','copy-url'));if(!context.readonly)choices.push(choice(media==='image'?'替换图片 / 修改描述…':'编辑链接…','edit-media'),choice(media==='image'?'删除图片':'取消链接','unlink',{danger:media==='image'}));choices.push({});}
@@ -141,6 +150,11 @@
       const stack=[], menu=document.createElement('section');menu.className='vex-element-menu';menu.setAttribute('role',sheet?'dialog':'menu');menu.setAttribute('aria-label',tableOnly?'表格操作':'当前元素操作');if(sheet)menu.setAttribute('aria-modal','true');menuLayer.append(menu);
       const content=document.createElement('div');content.className='vex-element-content';content.setAttribute('role','menu');
       const branches=[];
+      function menuBounds(){
+        const layer=menuLayer.getBoundingClientRect(),app=document.querySelector('.app-window')?.getBoundingClientRect()||layer;
+        return {left:layer.left,top:layer.top,minX:Math.max(8,app.left-layer.left+6),maxX:Math.min(layer.width-8,app.right-layer.left-6),minY:Math.max(8,app.top-layer.top+6),maxY:Math.min(layer.height-8,app.bottom-layer.top-6)};
+      }
+      function fitMenu(element){if(sheet)return;element.classList.remove('vex-element-compact');const bounds=menuBounds();if(element.offsetHeight>bounds.maxY-bounds.minY)element.classList.add('vex-element-compact');}
       function clearBranches(depth=0){for(let i=branches.length-1;i>=depth;i--){const branch=branches.pop();clearTimeout(branch.timer);branch.owner.setAttribute('aria-expanded','false');branch.element.remove();}}
       function flyout(title,items,owner,keyboard=false){
         const parent=owner.closest('.vex-element-menu'),depth=Number(parent.dataset.depth||0);
@@ -153,9 +167,10 @@
           button.onclick=()=>{if(item.children)flyout(item.label,item.children(),button,true);else run(item.action);};
           button.onmouseenter=()=>{if(item.children&&!button.disabled)flyout(item.label,item.children(),button);else clearBranches(depth+1);};element.append(button);
         }
-        const bounds=menuLayer.getBoundingClientRect(),r=owner.getBoundingClientRect(),right=r.right+4,left=r.left-element.offsetWidth-4;
-        element.style.left=Math.max(8,Math.min((right+element.offsetWidth<bounds.right-8?right:left)-bounds.left,bounds.width-element.offsetWidth-8))+'px';
-        element.style.top=Math.max(8,Math.min(r.top-bounds.top-6,bounds.height-element.offsetHeight-8))+'px';
+        fitMenu(element);
+        const bounds=menuBounds(),r=parent.getBoundingClientRect(),row=owner.getBoundingClientRect(),right=r.right-bounds.left+4,left=r.left-bounds.left-element.offsetWidth-4;
+        element.style.left=Math.max(bounds.minX,Math.min(right+element.offsetWidth<=bounds.maxX?right:left,bounds.maxX-element.offsetWidth))+'px';
+        element.style.top=Math.max(bounds.minY,Math.min(row.top-bounds.top-6,bounds.maxY-element.offsetHeight))+'px';
         const delay=()=>{clearTimeout(branch.timer);branch.timer=setTimeout(()=>{if(!owner.matches(':hover')&&!branches.slice(depth).some(item=>item.element.matches(':hover')))clearBranches(depth);},180);};
         owner.onmouseleave=delay;element.onmouseleave=delay;element.onmouseenter=()=>clearTimeout(branch.timer);element.addEventListener('scroll',()=>clearBranches(depth+1));
         if(keyboard)element.querySelector('button:not(:disabled)')?.focus({preventScroll:true});
@@ -171,13 +186,13 @@
           if(!sheet)button.onmouseenter=()=>{if(item.children&&!button.disabled)flyout(item.label,item.children(),button);else clearBranches();};content.append(button);
         }
         if(sheet&&VexPreferences.values.motion&&!matchMedia('(prefers-reduced-motion:reduce)').matches)content.animate([{opacity:.4,transform:'translateX(8px)'},{opacity:1,transform:'translateX(0)'}],{duration:180,easing:'ease-out'});
-        if(!sheet)place();menu.querySelector('button:not(:disabled)')?.focus({preventScroll:true});
+        if(!sheet){fitMenu(menu);place();}menu.querySelector('button:not(:disabled)')?.focus({preventScroll:true});
       }
-      function place(){const bounds=menuLayer.getBoundingClientRect(),r=anchor?.getBoundingClientRect?.();const x=r?r.right+4:anchor?.x??bounds.left+16,y=r?r.top:anchor?.y??bounds.top+16;menu.style.left=Math.max(8,Math.min(x-bounds.left,bounds.width-menu.offsetWidth-8))+'px';menu.style.top=Math.max(8,Math.min(y-bounds.top,bounds.height-menu.offsetHeight-8))+'px';}
+      function place(){const bounds=menuBounds(),r=anchor?.getBoundingClientRect?.();const x=r?r.right+4:anchor?.x??bounds.left+16,y=r?r.top:anchor?.y??bounds.top+16;menu.style.left=Math.max(bounds.minX,Math.min(x-bounds.left,bounds.maxX-menu.offsetWidth))+'px';menu.style.top=Math.max(bounds.minY,Math.min(y-bounds.top,bounds.maxY-menu.offsetHeight))+'px';}
       menuLayer.addEventListener('pointerdown',event=>{if(event.target===menuLayer){event.preventDefault();closeMenu();if(focus?.isConnected)focus.focus({preventScroll:true});}});
       menuLayer.addEventListener('click',event=>event.stopPropagation());
       menuLayer.addEventListener('keydown',event=>{
-        if(event.key==='Escape'){event.preventDefault();event.stopPropagation();if(stack.length){const previous=stack.pop();page(previous.title,previous.items,stack.length>0);}else closeMenu();return;}
+        if(event.key==='Escape'){event.preventDefault();event.stopPropagation();if(branches.length){const depth=branches.length-1,owner=branches[depth].owner;clearBranches(depth);owner.focus();}else if(stack.length){const previous=stack.pop();page(previous.title,previous.items,stack.length>0);}else closeMenu();return;}
         const activeMenu=document.activeElement.closest('.vex-element-menu')||menu,buttons=[...activeMenu.querySelectorAll('button:not(:disabled)')],index=buttons.indexOf(document.activeElement);let next;
         if(event.key==='ArrowDown'||event.key==='ArrowUp')next=(index+(event.key==='ArrowDown'?1:buttons.length-1))%buttons.length;
         if(event.key==='Home')next=0;if(event.key==='End')next=buttons.length-1;

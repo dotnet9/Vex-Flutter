@@ -5,7 +5,7 @@
     {key:'quiet',label:'清雅'}, {key:'colorful',label:'缤纷'}, {key:'outline',label:'线框'},
     {key:'capsule',label:'胶囊'}, {key:'underline',label:'脉络'}, {key:'mono',label:'黑白'}
   ];
-  var colors = ['#24766b','#4776a5','#956bb0','#ad6748'];
+  var colors = ['var(--accent)','var(--branch-secondary, var(--accent))','var(--branch-tertiary, var(--accent))','var(--muted)'];
   function miniature(layout, style) {
     var tree = {children:[{children:[{},{}]},{children:[{},{}]}]};
     var graph = VexMapLayout.layout(tree, {mode:layout, measure:function (node) {node.width=52;node.height=22;}});

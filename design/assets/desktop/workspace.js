@@ -82,15 +82,15 @@
   function setLayout(id) {
     if (id === 'source-read') id = 'source-render';
     var preset = presets.find(function (entry) { return entry.id === id; }); if (!preset) return;
-    W.finish(); current = id; tree = clone(preset.tree); if (preset.mode) editorMode = preset.mode;
+    W.finish(); $('node-inspector').hidden = true; current = id; tree = clone(preset.tree); if (preset.mode) editorMode = preset.mode;
     var wanted = leaves(tree); changing = true;
     if (wanted.includes('editor')) W.setEditMode(editorMode); else W.setView(wanted.includes('map') ? 'mindmap' : 'read');
-    changing = false; renderLayout(); saveLayout(); if (wanted.includes('map')) requestAnimationFrame(function () { W.fit(current !== 'three'); });
+    changing = false; renderLayout(); saveLayout();
   }
   function openPanel(id) { if (leaves(tree).includes(id)) return; var wanted = new Set(leaves(tree).concat(id)); setLayout(wanted.size === 3 ? 'three' : wanted.has('map') ? (editorMode === 'source' ? 'source-map' : 'instant-map') : 'source-render'); }
   function switchEditorMode(mode) { var hasMap = leaves(tree).includes('map'), hasRender = leaves(tree).includes('render'); setLayout(mode === 'instant' ? hasMap ? 'instant-map' : 'instant' : hasMap ? hasRender ? 'three' : 'source-map' : hasRender ? 'source-render' : 'source'); }
   function locateEditor(line) { editorMode = 'source'; changing = true; W.setEditMode('source'); changing = false; openPanel('editor'); renderLayout(); saveLayout(); W.focusLine(line); }
-  function navigate(line) { if (leaves(tree).includes('editor')) W.focusLine(line); else if (leaves(tree).includes('render')) $('markdown-preview').querySelector('[data-line="' + line + '"]')?.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+  function navigate(line) { if (leaves(tree).includes('editor')) W.focusLine(line); W.syncViewsToLine(line); }
   function handleAction(action) {
     if(action==='map-appearance'){if(!leaves(tree).includes('map'))openPanel('map');mapAppearance.toggle(mapButton);return true;}
     if(action==='typography'){mapAppearance.close();if(typeButton.hidden&&readingTypeButton.hidden)return true;}
