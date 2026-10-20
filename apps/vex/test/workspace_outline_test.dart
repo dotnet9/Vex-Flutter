@@ -18,6 +18,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       final vm = fakeWorkspace();
+      vm.showStructure(true);
       vm.editor.session.replace(
         List.generate(90, (i) => '## 章节 $i\n\n正文 $i\n\n').join(),
       );
@@ -36,7 +37,7 @@ void main() {
         tester.getRect(outline).left,
         greaterThan(tester.getRect(surface).right),
       );
-      expect(tester.getSize(outline).width, 240);
+      expect(tester.getSize(outline).width, 312);
       final toggle = find.byKey(const ValueKey('document-outline-toggle'));
       await tester.tap(toggle);
       await tester.pumpAndSettle();
@@ -84,33 +85,49 @@ void main() {
   );
 
   testWidgets(
-    'narrow windows collapse structure temporarily and restore the preference',
+    'narrow windows overlay structure without squeezing the document',
     (tester) async {
       tester.view.physicalSize = const Size(1440, 900);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       final vm = fakeWorkspace();
+      vm.showStructure(true);
       await tester.pumpWidget(VexApp(viewModel: vm));
       await tester.pumpAndSettle();
       final outline = find.byType(WorkspaceOutline);
       expect(outline, findsOneWidget);
       tester.view.physicalSize = const Size(900, 700);
       await tester.pumpAndSettle();
-      expect(outline, findsNothing);
+      expect(outline, findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('workspace-structure-overlay')),
+        findsOneWidget,
+      );
+      final surface = tester.getRect(
+        find.byKey(const ValueKey('document-surface')),
+      );
+      expect(surface.right, 900);
+      expect(tester.getRect(outline).overlaps(surface), isTrue);
       expect(vm.structure, isTrue);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(outline, findsNothing);
       await tester.tap(find.byKey(const ValueKey('document-outline-toggle')));
       await tester.pumpAndSettle();
       expect(outline, findsOneWidget);
       tester.view.physicalSize = const Size(1440, 900);
       await tester.pumpAndSettle();
-      tester.view.physicalSize = const Size(900, 700);
-      await tester.pumpAndSettle();
-      expect(outline, findsNothing);
-      await tester.tap(find.byKey(const ValueKey('document-sidebar-toggle')));
-      await tester.pumpAndSettle();
-      expect(outline, findsOneWidget);
-      expect(find.byType(WorkspaceSidebar), findsNothing);
+      expect(
+        find.byKey(const ValueKey('workspace-structure-overlay')),
+        findsNothing,
+      );
+      expect(
+        tester.getRect(outline).left,
+        greaterThan(
+          tester.getRect(find.byKey(const ValueKey('document-surface'))).right,
+        ),
+      );
       vm.showStructure(false);
       await tester.pumpAndSettle();
       tester.view.physicalSize = const Size(1440, 900);

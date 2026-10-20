@@ -7,9 +7,15 @@ import 'workspace_view_model.dart';
 
 /// Desktop document structure is independent of the file navigator.
 class WorkspaceOutline extends StatefulWidget {
-  const WorkspaceOutline({super.key, required this.vm, required this.onClose});
+  const WorkspaceOutline({
+    super.key,
+    required this.vm,
+    required this.onClose,
+    this.showHeader = true,
+  });
   final WorkspaceViewModel vm;
   final VoidCallback onClose;
+  final bool showHeader;
 
   @override
   State<WorkspaceOutline> createState() => _WorkspaceOutlineState();
@@ -76,29 +82,30 @@ class _WorkspaceOutlineState extends State<WorkspaceOutline> {
       color: c.surfaceContainerLow,
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 10, 8, 6),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    context.l10n.documentStructure,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
+          if (widget.showHeader)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 8, 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      context.l10n.documentStructure,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                ),
-                AppButton(
-                  icon: 'chevron-down',
-                  tooltip: context.l10n.outline,
-                  height: 26,
-                  padding: 4,
-                  onPressed: widget.onClose,
-                ),
-              ],
+                  AppButton(
+                    icon: 'chevron-down',
+                    tooltip: context.l10n.outline,
+                    height: 26,
+                    padding: 4,
+                    onPressed: widget.onClose,
+                  ),
+                ],
+              ),
             ),
-          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
             child: SizedBox(

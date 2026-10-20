@@ -96,7 +96,7 @@ class _PreferencesDialogState extends State<PreferencesDialog> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: vm,
+    listenable: Listenable.merge([vm, vm.mcp]),
     builder: (context, _) {
       final l = context.l10n, c = Theme.of(context).colorScheme;
       final small = preferenceCompact(context);
@@ -310,7 +310,9 @@ class _PreferencesDialogState extends State<PreferencesDialog> {
                         child: Text(
                           vm.preferencesError != null
                               ? l.preferencesSaveFailed(vm.preferencesError!)
-                              : vm.preferencesSaving
+                              : vm.mcp.settingsError.isNotEmpty
+                              ? vm.mcp.settingsError
+                              : vm.preferencesSaving || vm.mcp.settingsSaving
                               ? l.prefSaving
                               : l.prefSaved,
                           maxLines: 2,

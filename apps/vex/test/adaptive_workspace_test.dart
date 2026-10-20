@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vex/app.dart';
 import 'package:vex/domain/workspace.dart';
@@ -60,8 +61,9 @@ void main() {
             layout.panes.length <= limit ? findsOneWidget : findsNothing,
           );
         }
-        await tester.tap(find.byTooltip(vm.strings.closePicker));
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
         await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('layout-read')), findsNothing);
       }
       vm.setLayout(WorkspaceLayout.read);
       vm.search('needle');

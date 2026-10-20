@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -17,6 +18,14 @@ import '../core/palette_tokens.dart';
 import 'workspace_view_model.dart';
 
 typedef _McpAccess = ({String scope, String? documentPath, String folder});
+typedef McpPreferences = ({
+  bool enabled,
+  int port,
+  String token,
+  String scope,
+  String folder,
+  bool confirmation,
+});
 
 final class WorkspaceMcp extends ChangeNotifier {
   WorkspaceMcp(this.vm, {required this.credentials}) {
@@ -37,6 +46,118 @@ final class WorkspaceMcp extends ChangeNotifier {
   Future<bool> Function(String name)? confirm;
   final audit = <Map<String, String>>[];
   int _configurationRevision = 0;
+  int _settingsRevision = 0;
+  Timer? _settingsTimer;
+  McpPreferences? _pendingSettings;
+  Future<void> _settingsWrite = Future.value();
+  bool settingsSaving = false;
+  bool configuring = false;
+  String settingsError = '';
+
+  /// Coalesce text input; switches and selections take effect immediately.
+  /// The workspace owns pending writes so closing the settings pane loses none.
+  void updatePreferences(McpPreferences value, {bool immediate = false}) {
+    if (_disposed) return;
+    if (!value.enabled && (enabled || configuring || server.running)) {
+      // Stop promptly, including while a previous credential write is pending.
+      unawaited(stopFromSettings());
+    }
+    _settingsRevision++;
+    _settingsTimer?.cancel();
+    _pendingSettings = value;
+    settingsSaving = true;
+    settingsError = '';
+    notifyListeners();
+    if (immediate) {
+      unawaited(flushSettings());
+    } else {
+      _settingsTimer = Timer(
+        const Duration(milliseconds: 400),
+        () => unawaited(flushSettings()),
+      );
+    }
+  }
+
+  void rejectPreferences(String message) {
+    _settingsRevision++;
+    _settingsTimer?.cancel();
+    _pendingSettings = null;
+    settingsSaving = false;
+    settingsError = message;
+    if (!_disposed) notifyListeners();
+  }
+
+  Future<void> stopFromSettings({String validationError = ''}) {
+    _settingsTimer?.cancel();
+    _pendingSettings = null;
+    final revision = ++_settingsRevision;
+    settingsSaving = true;
+    settingsError = validationError;
+    if (!_disposed) notifyListeners();
+    final stopping = configure(false);
+    return _settingsWrite = Future.wait([_settingsWrite, stopping]).then((_) {
+      if (_disposed || revision != _settingsRevision) return;
+      settingsSaving = false;
+      notifyListeners();
+    });
+  }
+
+  Future<void> flushSettings() {
+    _settingsTimer?.cancel();
+    _settingsTimer = null;
+    final next = _pendingSettings;
+    if (next == null) return _settingsWrite;
+    _pendingSettings = null;
+    final revision = _settingsRevision;
+    return _settingsWrite = _settingsWrite.then((_) async {
+      if (_disposed || revision != _settingsRevision) return;
+      try {
+        if (next.port < 1024 || next.port > 65535 || next.token.length < 24) {
+          throw ArgumentError(vm.strings.mcpInvalid);
+        }
+        if (!['document', 'folder', 'custom'].contains(next.scope) ||
+            (next.scope == 'custom' &&
+                (!p.isAbsolute(next.folder) ||
+                    !await Directory(next.folder).exists()))) {
+          throw ArgumentError(vm.strings.prefMcpDirectoryError);
+        }
+        if (_disposed || revision != _settingsRevision) return;
+        if (next.token != token) {
+          await credentials.writeMcpToken(next.token);
+          if (await credentials.readMcpToken() != next.token) {
+            throw StateError(
+              'System credential storage did not retain the token',
+            );
+          }
+        }
+        if (_disposed || revision != _settingsRevision) return;
+        final restart = next.port != port || next.token != token;
+        port = next.port;
+        token = next.token;
+        scope = next.scope;
+        customFolder = next.folder;
+        requireConfirmation = next.confirmation;
+        if (restart ||
+            next.enabled != enabled ||
+            (next.enabled && !server.running)) {
+          await configure(next.enabled);
+        } else {
+          vm.persist();
+        }
+        if (revision == _settingsRevision) settingsError = '';
+      } catch (_) {
+        if (revision == _settingsRevision) {
+          settingsError = vm.strings.prefMcpSaveFailed;
+        }
+      } finally {
+        if (!_disposed && revision == _settingsRevision) {
+          settingsSaving = false;
+          notifyListeners();
+        }
+      }
+    });
+  }
+
   bool get available => ![
     TargetPlatform.android,
     TargetPlatform.iOS,
@@ -130,23 +251,23 @@ final class WorkspaceMcp extends ChangeNotifier {
   Future<void> load(Object? value) async {
     if (value is! Map) return;
     port = (value['port'] as int? ?? 17891).clamp(1024, 65535);
-    if (available && value['enabled'] == true) {
+    scope = ['document', 'folder', 'custom'].contains(value['scope'])
+        ? value['scope'] as String
+        : 'document';
+    customFolder = value['customFolder'] as String? ?? '';
+    requireConfirmation = value['confirm'] != false;
+    if (available) {
       try {
         final savedToken = await credentials.readMcpToken();
         if (_disposed) return;
         if (savedToken != null && savedToken.length >= 24) token = savedToken;
       } catch (_) {
         enabled = false;
-        error = 'System credential storage is unavailable';
+        error = vm.strings.prefMcpSaveFailed;
         if (!_disposed) notifyListeners();
         return;
       }
     }
-    scope = ['document', 'folder', 'custom'].contains(value['scope'])
-        ? value['scope'] as String
-        : 'document';
-    customFolder = value['customFolder'] as String? ?? '';
-    requireConfirmation = value['confirm'] != false;
     await configure(value['enabled'] == true, persist: false);
   }
 
@@ -155,7 +276,9 @@ final class WorkspaceMcp extends ChangeNotifier {
     final configuration = ++_configurationRevision;
     value = value && available;
     enabled = value;
+    configuring = true;
     error = '';
+    notifyListeners();
     var failure = '';
     try {
       if (value) {
@@ -174,13 +297,13 @@ final class WorkspaceMcp extends ChangeNotifier {
       }
     } catch (e) {
       if (_disposed || configuration != _configurationRevision) return;
-      failure =
-          'Unable to start MCP; check the port and system credential storage';
+      failure = vm.strings.prefMcpStartFailed;
       enabled = false;
       await server.stop();
     }
     if (_disposed || configuration != _configurationRevision) return;
     error = failure;
+    configuring = false;
     if (persist) vm.persist();
     if (!_disposed) notifyListeners();
   }
@@ -968,6 +1091,8 @@ final class WorkspaceMcp extends ChangeNotifier {
   ];
   @override
   void dispose() {
+    _settingsTimer?.cancel();
+    _settingsRevision++;
     _disposed = true;
     _configurationRevision++;
     confirm = null;

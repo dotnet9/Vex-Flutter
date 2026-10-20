@@ -80,7 +80,7 @@ void main() {
       vm.search('match');
       vm.editor.session.replace('# Title\n\nmatch match');
       expect(vm.matches, hasLength(2));
-      vm.setSummary(length: 5);
+      vm.setSummary(paragraphs: true, length: 5);
 
       expect(vm.map.root.children.single.title, 'match…');
       expect(map, same(vm.map));

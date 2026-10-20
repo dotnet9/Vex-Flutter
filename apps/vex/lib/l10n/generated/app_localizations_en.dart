@@ -10,6 +10,29 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get documentAuxiliary => 'Document companion';
+
+  @override
+  String get articleInfo => 'Article info';
+
+  @override
+  String get chapterDetails => 'Section details';
+
+  @override
+  String get revealSection => 'Reveal section';
+
+  @override
+  String get selectChapter => 'Select a section';
+
+  @override
+  String get selectChapterHint =>
+      'Select a mind map node to view and edit its section.';
+
+  @override
+  String get chapterBodyAutosaveHint =>
+      'Changes sync to the article. Child sections stay intact. Use Undo to restore.';
+
+  @override
   String get updateDownload => 'Download update';
 
   @override
@@ -647,7 +670,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get layoutDropdown => 'Layout';
 
   @override
-  String get findTooltip => 'Find · Ctrl+F';
+  String get findTooltip => 'Find in current content · Ctrl+F';
 
   @override
   String get saveTooltip => 'Save · Ctrl+S';
@@ -695,7 +718,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get moreFormatting => 'More formatting';
 
   @override
-  String get findText => 'Find text';
+  String get findText => 'Find in current content…';
 
   @override
   String get matchCase => 'Match case';
@@ -794,7 +817,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outlineHint => 'Organize your document with # headings.';
 
   @override
-  String get searchDocuments => 'Search documents…';
+  String get searchDocuments => 'Find by filename…';
 
   @override
   String get notes => 'Notes';
@@ -1044,13 +1067,7 @@ class AppLocalizationsEn extends AppLocalizations {
         intl.NumberFormat.decimalPattern(localeName);
     final String countString = countNumberFormat.format(count);
 
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$countString words',
-      one: '1 word',
-    );
-    return '$_temp0';
+    return '$countString words';
   }
 
   @override
@@ -1177,7 +1194,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Allow AI clients to read and edit documents through the local MCP endpoint.';
 
   @override
-  String get mcpEnable => 'Enable MCP server';
+  String get mcpEnable => 'Enable MCP service';
 
   @override
   String get mcpAddress => 'Listen address';
@@ -1186,7 +1203,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mcpPort => 'Port';
 
   @override
-  String get mcpToken => 'Authorization token';
+  String get mcpToken => 'Access token';
 
   @override
   String get mcpGenerate => 'Regenerate';
@@ -1213,7 +1230,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mcpRunning => 'Server running';
 
   @override
-  String get mcpStopped => 'Stopped';
+  String get mcpStopped => 'Service stopped';
 
   @override
   String get mcpConfirmTitle => 'Confirm MCP operation';
@@ -1386,7 +1403,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get showWordCount => 'Show word count';
 
   @override
-  String get searchOutline => 'Find a heading…';
+  String get searchOutline => 'Filter current headings…';
 
   @override
   String get clearSearch => 'Clear search';
@@ -1869,4 +1886,170 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get mapNavigationHint =>
       'Enter: sibling · Tab: child · Drag chapters to rearrange';
+
+  @override
+  String get savingDocument => 'Saving…';
+
+  @override
+  String get saveFailedRetry => 'Save failed · retry';
+
+  @override
+  String get newUnsaved => 'New document · not saved to disk';
+
+  @override
+  String get unsavedChanges => 'Unsaved changes';
+
+  @override
+  String savedAt(String time) {
+    return 'Saved · $time';
+  }
+
+  @override
+  String get diskVersion => 'Disk version loaded';
+
+  @override
+  String get recoveredNeedsSave => 'Draft restored · save required';
+
+  @override
+  String get saveDetails => 'Save and recovery status';
+
+  @override
+  String get lastSaved => 'Last saved';
+
+  @override
+  String get noSaveYet => 'Not saved since opening';
+
+  @override
+  String get draftStatus => 'Recovery draft';
+
+  @override
+  String get draftProtected => 'Current changes stored in recovery draft';
+
+  @override
+  String get draftPending => 'Recovery draft pending';
+
+  @override
+  String get draftDisabled => 'Draft recovery disabled';
+
+  @override
+  String get draftNone => 'No pending changes to recover';
+
+  @override
+  String get draftReview => 'Review recovery drafts';
+
+  @override
+  String get draftCompareHint =>
+      'Last saved content is on the left; recovery draft on the right. Restored drafts still need saving. Disk conflicts are checked when saving.';
+
+  @override
+  String get draftSource => 'Draft source';
+
+  @override
+  String get savedContent => 'Last saved content';
+
+  @override
+  String get recoveryContent => 'Recovery draft content';
+
+  @override
+  String get linkedViews => 'Link views';
+
+  @override
+  String get freeBrowse => 'Browse freely';
+
+  @override
+  String followSource(String pane) {
+    return 'Following: $pane';
+  }
+
+  @override
+  String get returnToEditing => 'Return to editing position';
+
+  @override
+  String get activePaneLabel => 'Active pane';
+
+  @override
+  String get switchToSource => 'Switch to source editing';
+
+  @override
+  String get switchToInstant => 'Switch to instant editing';
+
+  @override
+  String get showFiles => 'Show files';
+
+  @override
+  String get hideFiles => 'Hide files';
+
+  @override
+  String get showOutline => 'Show heading outline';
+
+  @override
+  String get hideOutline => 'Hide heading outline';
+
+  @override
+  String get wordCountRules =>
+      'CJK characters and other words; Markdown markers and whitespace excluded.';
+
+  @override
+  String selectedWords(int count) {
+    return 'Selection: $count words';
+  }
+
+  @override
+  String get visibleWords => 'Visible words';
+
+  @override
+  String get currentArticle => 'Current article';
+
+  @override
+  String get sampleArticle => 'Full sample article';
+
+  @override
+  String get emptyPreviewHint =>
+      'The article is empty. Select the sample to preview typography.';
+
+  @override
+  String get layoutPurpose =>
+      'Use a single view to write, read or map; combine views to compare. Toggle files and outline in the bottom bar.';
+
+  @override
+  String get noFilenameResults =>
+      'No matching filenames. This search does not include content.';
+
+  @override
+  String get findInContent => 'Find in current content';
+
+  @override
+  String get mapEmptyHint => 'Add Markdown headings to create a chapter map.';
+
+  @override
+  String get undoChapter => 'Undo chapter change';
+
+  @override
+  String mapMovePreview(String title, int level, int children, int characters) {
+    return 'Append under “$title” as H$level; move its body and $children subsections ($characters source characters).';
+  }
+
+  @override
+  String get guidePractice => 'Guided practice · original file untouched';
+
+  @override
+  String get emptyWorkspaceTitle => 'Start with an article';
+
+  @override
+  String get emptyWorkspaceHint =>
+      'Create a document or open an existing Markdown file.';
+
+  @override
+  String get prefMcpSaveFailed =>
+      'Settings could not be saved. Check system credential storage and retry.';
+
+  @override
+  String get prefMcpStartFailed =>
+      'Could not start. Check the port and system credential storage.';
+
+  @override
+  String get prefMcpStarting => 'Starting…';
+
+  @override
+  String get prefMcpStopping => 'Stopping…';
 }

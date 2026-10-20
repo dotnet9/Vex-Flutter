@@ -76,12 +76,7 @@ Future<void> main(List<String> arguments) async {
       /* A stale association must not prevent startup. */
     }
   }
-  // 剧本：首次进入工作区自动弹出快速上手；看过一次（guideSeen 持久化）
-  // 或带文档路径启动时不打扰。
-  if (!vm.guideSeen &&
-      builtin == null &&
-      !arguments.any((argument) => !argument.startsWith('-'))) {
-    vm.startGuide();
-  }
+  // Keep first launch focused on writing. Quick start remains in the toolbar
+  // and Help menu, and starts only when the user asks for it.
   runApp(VexApp(viewModel: vm, windowIntegration: true));
 }

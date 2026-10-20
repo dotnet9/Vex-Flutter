@@ -13,7 +13,7 @@ void main() {
     const Size(390, 844),
     const Size(1280, 900),
   ]) {
-    testWidgets('writing and reading use matching margins at $size', (
+    testWidgets('writing margins and bounded reading lines fit $size', (
       tester,
     ) async {
       tester.view.physicalSize = size;
@@ -36,7 +36,16 @@ void main() {
             ),
           );
           final padding = list.padding!.resolve(TextDirection.ltr);
-          expect(padding.left, size.width < 700 ? 25 : 44);
+          final base = size.width < 700 ? 25.0 : 44.0;
+          if (layout == WorkspaceLayout.read) {
+            final listWidth = tester.getSize(find.byWidget(list)).width;
+            final readingWidth = listWidth - padding.horizontal;
+            expect(padding.left, greaterThanOrEqualTo(base));
+            expect(readingWidth, lessThanOrEqualTo(820));
+            expect(readingWidth, greaterThan(0));
+          } else {
+            expect(padding.left, base);
+          }
           expect(padding.right, padding.left);
           expect(padding.top, size.width < 700 ? 28 : 34);
           expect(tester.takeException(), isNull);

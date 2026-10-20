@@ -33,13 +33,16 @@ void main() {
         await tester.tap(find.byKey(const ValueKey('layout-read')));
         await tester.pumpAndSettle();
         expect(vm.layout, WorkspaceLayout.read);
-        expect(find.byKey(const ValueKey('layout-picker')), findsOneWidget);
+        expect(find.byKey(const ValueKey('layout-read')), findsNothing);
+        await tester.tap(find.byKey(const ValueKey('workspace-view-selector')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('layout-read')), findsOneWidget);
         await tester.sendKeyEvent(LogicalKeyboardKey.escape);
         await tester.pumpAndSettle();
       }
       await tester.tap(find.byTooltip('Markdown 排版'));
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('layout-picker')), findsNothing);
+      expect(find.byKey(const ValueKey('layout-read')), findsNothing);
       expect(find.byKey(const ValueKey('typography-picker')), findsOneWidget);
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();

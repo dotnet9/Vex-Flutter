@@ -58,6 +58,13 @@ void main() {
       of: find.byKey(const ValueKey('typography-picker')),
       matching: find.byType(MarkdownReader),
     );
+    expect(preview, findsWidgets);
+    expect(
+      tester.widgetList<MarkdownReader>(preview).map((r) => r.data).join(),
+      contains('# Title'),
+    );
+    await tester.tap(find.byKey(const ValueKey('preview-sample-article')));
+    await tester.pumpAndSettle();
     expect(preview, findsOneWidget);
     expect(tester.widget<MarkdownReader>(preview).data, contains('|'));
     for (final type in MarkdownTypography.values) {

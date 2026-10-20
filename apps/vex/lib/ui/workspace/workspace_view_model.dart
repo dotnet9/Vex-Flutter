@@ -78,6 +78,32 @@ final class WorkspaceViewModel extends ChangeNotifier {
 
   MarkdownEditorController get editor => current.editor;
   String _activePane = 'instant';
+  String get activePane =>
+      layout.panes.contains(_activePane) ? _activePane : layout.panes.first;
+  bool linkedViews = true;
+  void setLinkedViews(bool value) {
+    linkedViews = value;
+    for (final doc in {...documents, _blank, current}) {
+      doc.editor.viewportLinked = value;
+      doc.editor.viewportOwner = null;
+      doc.editor.viewport.value = null;
+    }
+    _notify();
+  }
+
+  void returnToEditing() {
+    final selection = editor.editingSelection;
+    editor.reveal(selection.start, end: selection.end);
+    _followHeadingAt(selection.start.toDouble());
+  }
+
+  bool _sidebarNarrowOverride = false;
+  bool get sidebarVisible =>
+      sidebar &&
+      !focusMode &&
+      (layout != WorkspaceLayout.three ||
+          windowSize.width >= 1100 ||
+          _sidebarNarrowOverride);
   bool get canEditText {
     final panes = layout.panes;
     final active = panes.contains(_activePane) ? _activePane : panes.first;
@@ -99,8 +125,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
   ThemeMode themeMode = ThemeMode.light;
   String palette = 'weft', language;
   bool sidebar = true, outline = false, compact = false, lineNumbers = true;
-  bool structure = true;
-  bool _structureNarrowOverride = false;
+  bool structure = false;
+  WorkspaceAuxiliary auxiliary = WorkspaceAuxiliary.outline;
   bool findVisible = false, replaceVisible = false, focusMode = false;
   bool typewriter = false;
   MarkdownEditingPreferences editingPreferences =
@@ -113,10 +139,10 @@ final class WorkspaceViewModel extends ChangeNotifier {
   int folderRevision = 0;
   PresentationController? presenter;
   bool get presentation => presenter != null;
-  bool paragraphs = true, lists = true, blocks = false;
+  bool paragraphs = false, lists = false, blocks = false;
   int summaryLength = 30;
   double sidebarWidth = 226, fontSize = 16;
-  double structureWidth = 240;
+  double structureWidth = 312;
   String filter = '', outlineFilter = '', findQuery = '', replacement = '';
   String Function(AppLocalizations)? _statusMessage;
   String get status => _statusMessage?.call(strings) ?? '';
@@ -163,6 +189,56 @@ final class WorkspaceViewModel extends ChangeNotifier {
 
   final _headingForNode = <String, String>{};
   List<Map<String, Object?>> recoverable = [];
+  Object? recoveryError;
+  Map<String, String> recoverySavedText = {};
+  bool get currentDraftSaved => recoverySavedText[current.id] == editor.text;
+  String get saveState {
+    final l = strings, doc = current;
+    if (guiding) return l.guidePractice;
+    if (doc.saving) return l.savingDocument;
+    if (doc.saveError != null) return l.saveFailedRetry;
+    if (doc.recovered) return l.recoveredNeedsSave;
+    if (doc.path == null) return l.newUnsaved;
+    if (editor.session.isDirty) return l.unsavedChanges;
+    if (doc.lastSavedAt case final time?) {
+      return l.savedAt(
+        '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}:${time.second.toString().padLeft(2, '0')}',
+      );
+    }
+    return l.diskVersion;
+  }
+
+  String? _countedSelection;
+  String? _readingSelection;
+  void setReadingSelection(String? text) {
+    if (_readingSelection == text) return;
+    _readingSelection = text;
+    _notify();
+  }
+
+  int _selectionCount = 0;
+  int? get selectedWordCount {
+    if (activePane == 'read') {
+      final selected = _readingSelection;
+      return selected == null || selected.isEmpty
+          ? null
+          : MarkdownWordCounter.countPlainText(selected);
+    }
+    final selection = editor.selection;
+    if (!selection.isValid ||
+        selection.isCollapsed ||
+        selection.end > editor.text.length) {
+      return null;
+    }
+    final text = selection.textInside(editor.text);
+    if (text != _countedSelection) {
+      _countedSelection = text;
+      _selectionCount = MarkdownWordCounter().count(
+        MarkdownDocument.parse(text),
+      );
+    }
+    return _selectionCount;
+  }
 
   Future<void> initialize({bool watchFiles = true}) async {
     Object? mcpPreferences;
@@ -222,15 +298,20 @@ final class WorkspaceViewModel extends ChangeNotifier {
       sidebarWidth = (preferences['sidebarWidth'] as num? ?? 226)
           .toDouble()
           .clamp(200, 560);
-      structure = preferences['structure'] != false;
-      structureWidth = (preferences['structureWidth'] as num? ?? 240)
+      structure = preferences['structure'] == true;
+      auxiliary =
+          WorkspaceAuxiliary.values
+              .where((tab) => tab.name == preferences['auxiliary'])
+              .firstOrNull ??
+          WorkspaceAuxiliary.outline;
+      structureWidth = (preferences['structureWidth'] as num? ?? 312)
           .toDouble()
-          .clamp(180, 480);
+          .clamp(280, 480);
       summaryLength = (preferences['summaryLength'] as num? ?? 30)
           .toInt()
           .clamp(1, 120);
-      paragraphs = preferences['paragraphs'] != false;
-      lists = preferences['lists'] != false;
+      paragraphs = preferences['paragraphs'] == true;
+      lists = preferences['lists'] == true;
       blocks = preferences['blocks'] == true;
       _map.setMode(
         MindMapLayoutMode.values
@@ -294,6 +375,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }
 
   void _add(WorkspaceDocument document) {
+    document.editor.viewportLinked = linkedViews;
     documents.add(document);
     document.editor.addListener(_changed);
     document.editor.viewport.addListener(_viewportChanged);
@@ -331,7 +413,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
 
   void _viewportChanged() {
     final position = editor.viewport.value;
-    if (_disposed || position == null) return;
+    if (_disposed || !linkedViews || position == null) return;
     _followHeadingAt(position.offset);
   }
 
@@ -466,7 +548,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _ensureMapCurrent();
     selectedHeadingId = _headingForNode[node.id];
     final heading = selectedHeading;
-    if (heading != null) editor.reveal(heading.header.start);
+    if (heading != null && linkedViews) editor.reveal(heading.header.start);
     _notify();
   }
 
@@ -586,9 +668,82 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }
 
   void moveNode(String source, String target) {
+    if (movePreview(source, target) == null) return;
     _ensureMapCurrent();
     final from = _headingForNode[source], to = _headingForNode[target];
-    if (from != null && to != null) editor.session.reparentHeading(from, to);
+    if (from != null && to != null) {
+      chapterEdit(() => editor.session.reparentHeading(from, to));
+    }
+  }
+
+  ({String title, int level, int children, int characters})? movePreview(
+    String source,
+    String target,
+  ) {
+    _ensureMapCurrent();
+    if (_map.layout.nodes[source]?.summary != false ||
+        _map.layout.nodes[target]?.summary != false ||
+        source == current.id) {
+      return null;
+    }
+    final from = editor.document.heading(_headingForNode[source] ?? '');
+    final to = editor.document.heading(_headingForNode[target] ?? '');
+    if (from == null || to == null || from.section.contains(to.header.start)) {
+      return null;
+    }
+    final descendants = editor.document.headings
+        .where((h) => from.section.contains(h.header.start))
+        .toList();
+    final delta = to.level + 1 - from.level;
+    if (descendants.any((h) => h.level + delta > 6 || h.level + delta < 1)) {
+      return null;
+    }
+    return (
+      title: to.title,
+      level: to.level + 1,
+      children: descendants.length - 1,
+      characters: from.section.length,
+    );
+  }
+
+  MarkdownSnapshot? _chapterSnapshot;
+  WorkspaceDocument? _chapterDocument;
+  int? _chapterRevision;
+  bool get canUndoChapter =>
+      identical(current, _chapterDocument) &&
+      _chapterSnapshot != null &&
+      editor.session.revision == _chapterRevision;
+  String? _chapterSelectedHeading;
+  void chapterEdit(VoidCallback edit) {
+    final session = editor.session;
+    final before = session.snapshot();
+    final revision = session.revision;
+    final selected = selectedHeadingId;
+    try {
+      edit();
+    } catch (_) {
+      if (session.revision != revision) {
+        session.restore(before, restoreSavedState: false);
+      }
+      rethrow;
+    }
+    if (session.revision == revision) return;
+    _chapterSnapshot = before;
+    _chapterSelectedHeading = selected;
+    _chapterDocument = current;
+    _chapterRevision = session.revision;
+    _notify();
+  }
+
+  void undoChapter() {
+    if (!canUndoChapter) return;
+    final snapshot = _chapterSnapshot!;
+    _chapterSnapshot = null;
+    editor.session.restore(snapshot, restoreSavedState: false);
+    selectedHeadingId = _chapterSelectedHeading;
+    _ensureMapCurrent();
+    _map.select(_mapNodeForHeading(selectedHeadingId));
+    _notify();
   }
 
   void renameNode(MindMapNode node, String title) {
@@ -597,7 +752,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     if (id == null || node.summary) return;
     final heading = editor.document.heading(id);
     if (heading == null) return;
-    editor.session.renameHeading(id, title);
+    chapterEdit(() => editor.session.renameHeading(id, title));
     selectedHeadingId = editor.document.headings
         .where((h) => h.header.start == heading.header.start)
         .firstOrNull
@@ -614,7 +769,9 @@ final class WorkspaceViewModel extends ChangeNotifier {
         : child
         ? heading.body.end
         : heading.section.end;
-    editor.session.addHeading(heading?.id, child: child, title: title);
+    chapterEdit(
+      () => editor.session.addHeading(heading?.id, child: child, title: title),
+    );
     final added = editor.document.headings
         .where((h) => h.header.start >= offset && h.title == title)
         .firstOrNull;
@@ -627,6 +784,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }
 
   void setLayout(WorkspaceLayout value) {
+    _sidebarNarrowOverride = false;
     final hadMap = layout.panes.contains('map');
     layout = value;
     if (!layout.panes.contains(_activePane)) _activePane = layout.panes.first;
@@ -804,7 +962,9 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }
 
   void toggleSidebar() {
-    sidebar = !sidebar;
+    final visible = sidebarVisible;
+    sidebar = !visible;
+    _sidebarNarrowOverride = !visible;
     _notify();
   }
 
@@ -819,22 +979,30 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _notify();
   }
 
-  // Automatic collapse preserves the preference, so a wider window restores it.
-  bool structureVisible(double availableWidth, double leftWidth) {
-    final narrow = availableWidth - leftWidth - structureWidth < 440;
-    if (!narrow) _structureNarrowOverride = false;
-    return structure && !focusMode && (!narrow || _structureNarrowOverride);
+  bool structureVisible(double availableWidth, double leftWidth) =>
+      structure && !focusMode;
+
+  bool structureOverlay(double availableWidth, double leftWidth) =>
+      availableWidth - leftWidth - structureWidth - 5 < 640 ||
+      (layout == WorkspaceLayout.three && availableWidth - leftWidth < 1400);
+
+  void showAuxiliary(WorkspaceAuxiliary tab) {
+    auxiliary = tab;
+    structure = true;
+    focusMode = false;
+    _notify();
+    persist();
   }
 
   void showStructure(bool value) {
     structure = value;
-    _structureNarrowOverride = value;
+    if (value) auxiliary = WorkspaceAuxiliary.outline;
     _notify();
     persist();
   }
 
   void resizeStructure(double value) {
-    structureWidth = value.clamp(180, 480);
+    structureWidth = value.clamp(280, 480);
     _notify();
   }
 
@@ -1044,6 +1212,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     presenter?.dispose();
     presenter = null;
     current = document;
+    _readingSelection = null;
     selectedHeadingId = null;
     externalChange = null;
     _refreshMap();
@@ -1372,6 +1541,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
       _saveDocument(document ?? current, saveAs: saveAs);
 
   Future<void> finishPendingSaves() async {
+    await mcp.flushSettings();
     for (final timer in _saveTimers.values) {
       timer.cancel();
     }
@@ -1387,19 +1557,30 @@ final class WorkspaceViewModel extends ChangeNotifier {
       return Future.value(false);
     }
     final text = doc.editor.session.text;
+    doc.saving = true;
+    doc.saveError = null;
+    _notify();
     _saveTimers.remove(doc)?.cancel();
     // A manual save and a pending autosave share one ordered queue per document.
     final task = (_saveQueues[doc] ?? Future.value(true))
         .catchError((Object _) => false)
-        .then((_) => _writeDocument(doc, text, saveAs: saveAs));
+        .then((_) => _writeDocument(doc, text, saveAs: saveAs || doc.saveCopy));
     _saveQueues[doc] = task;
     unawaited(
       task.then(
         (_) {
-          if (identical(_saveQueues[doc], task)) _saveQueues.remove(doc);
+          if (identical(_saveQueues[doc], task)) {
+            _saveQueues.remove(doc);
+            doc.saving = false;
+            _notify();
+          }
         },
         onError: (Object _, StackTrace _) {
-          if (identical(_saveQueues[doc], task)) _saveQueues.remove(doc);
+          if (identical(_saveQueues[doc], task)) {
+            _saveQueues.remove(doc);
+            doc.saving = false;
+            _notify();
+          }
         },
       ),
     );
@@ -1407,6 +1588,21 @@ final class WorkspaceViewModel extends ChangeNotifier {
   }
 
   Future<bool> _writeDocument(
+    WorkspaceDocument doc,
+    String text, {
+    required bool saveAs,
+  }) async {
+    doc.saveError = null;
+    try {
+      return await _writeSnapshot(doc, text, saveAs: saveAs);
+    } catch (error) {
+      doc.saveError = error;
+      _notify();
+      rethrow;
+    }
+  }
+
+  Future<bool> _writeSnapshot(
     WorkspaceDocument doc,
     String text, {
     required bool saveAs,
@@ -1438,6 +1634,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
     }
     doc.persistedText = text;
     doc.saveCopy = false;
+    doc.lastSavedAt = DateTime.now();
+    doc.recovered = false;
     if (!documents.contains(doc)) documents.add(doc);
     doc.editor.session.markSaved(savedText: text);
     if (identical(doc, current)) externalChange = null;
@@ -1644,6 +1842,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
           .where((d) => !identical(d, excluding) && d.editor.session.isDirty)
           .map(
             (d) => <String, Object?>{
+              'id': d.id,
               'name': d.name,
               'path': d.path,
               'saveCopy': d.saveCopy,
@@ -1687,7 +1886,16 @@ final class WorkspaceViewModel extends ChangeNotifier {
         throw _recoveryLoadError!;
       }
       await recovery.save(filePreferences.recovery ? snapshots : []);
+      recoveryError = null;
+      recoverySavedText = {
+        if (filePreferences.recovery)
+          for (final snapshot in snapshots)
+            if (snapshot['id'] is String && snapshot['text'] is String)
+              snapshot['id']! as String: snapshot['text']! as String,
+      };
+      _notify();
     } catch (error) {
+      recoveryError = error;
       _setStatus((l) => l.recoverySaveFailed(error.toString()));
       _notify();
       if (throwOnError) rethrow;
@@ -1709,6 +1917,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
       );
       doc.editor.session.replace(draft['text']! as String, label: '恢复草稿');
       doc.saveCopy = draft['saveCopy'] == true;
+      doc.recovered = true;
       _add(doc);
       current = doc;
     }
@@ -1750,6 +1959,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
           'sidebarWidth': sidebarWidth,
           'structure': structure,
           'structureWidth': structureWidth,
+          'auxiliary': auxiliary.name,
           'summaryLength': summaryLength,
           'paragraphs': paragraphs,
           'lists': lists,
@@ -1793,6 +2003,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   MarkdownSnapshot? _guideSnapshot;
   WorkspaceLayout? _guideLayout;
   TextSelection? _guideSelection;
+  TextSelection? _guideEditingSelection;
   MarkdownTypography? _guideTypography;
   bool _guideCompact = false;
   MindMapViewState? _guideMapView;
@@ -1800,7 +2011,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     bool sidebar,
     bool outline,
     bool structure,
-    bool structureNarrowOverride,
+    WorkspaceAuxiliary auxiliary,
     bool focus,
     String filter,
     String outlineFilter,
@@ -1817,6 +2028,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     presenter = null;
     _guideSnapshot = editor.session.snapshot();
     _guideSelection = editor.selection;
+    _guideEditingSelection = editor.editingSelection;
     _guideTypography = typography;
     _guideCompact = compact;
     _guideLayout = _layout;
@@ -1825,7 +2037,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
       sidebar: sidebar,
       outline: outline,
       structure: structure,
-      structureNarrowOverride: _structureNarrowOverride,
+      auxiliary: auxiliary,
       focus: focusMode,
       filter: filter,
       outlineFilter: outlineFilter,
@@ -1875,6 +2087,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     if (selection != null && selection.isValid) {
       editor.select(selection.baseOffset, selection.extentOffset);
     }
+    editor.editingSelection = _guideEditingSelection!;
     typography = _guideTypography!;
     compact = _guideCompact;
     layout = _guideLayout!;
@@ -1882,7 +2095,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     sidebar = view.sidebar;
     outline = view.outline;
     structure = view.structure;
-    _structureNarrowOverride = view.structureNarrowOverride;
+    auxiliary = view.auxiliary;
     focusMode = view.focus;
     filter = view.filter;
     outlineFilter = view.outlineFilter;

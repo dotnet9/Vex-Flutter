@@ -202,11 +202,13 @@ class PanelHeader extends StatelessWidget {
     this.icon,
     this.trailing,
     this.height = 32,
+    this.backgroundColor,
   });
   final String title;
   final String? icon;
   final Widget? trailing;
   final double height;
+  final Color? backgroundColor;
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).colorScheme;
@@ -214,7 +216,7 @@ class PanelHeader extends StatelessWidget {
       height: height,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: c.surfaceContainerLow,
+        color: backgroundColor ?? c.surfaceContainerLow,
         border: Border(bottom: BorderSide(color: c.outlineVariant)),
       ),
       child: Row(

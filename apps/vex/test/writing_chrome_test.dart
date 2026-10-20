@@ -37,7 +37,7 @@ void main() {
     vm.dispose();
   });
 
-  testWidgets('document reaches bottom with only corner controls and words', (
+  testWidgets('document keeps controls and words in a fixed bottom bar', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(1280, 800));
@@ -46,7 +46,7 @@ void main() {
     vm.editor.session.replace('# 想法\n\nHello world 你好');
     await tester.pumpWidget(VexApp(viewModel: vm));
     await tester.pumpAndSettle();
-    expect(find.text('6 词'), findsOneWidget);
+    expect(find.text('6 字词'), findsOneWidget);
     final surface = tester.getRect(
       find.byKey(const ValueKey('document-surface')),
     );
@@ -56,7 +56,10 @@ void main() {
     );
     expect(count.right, lessThan(surface.right));
     expect(count.bottom, lessThan(surface.bottom));
-    await tester.tap(find.byKey(const ValueKey('document-source-toggle')));
+    expect(find.byKey(const ValueKey('document-source-toggle')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('workspace-view-selector')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('layout-source')));
     await tester.pumpAndSettle();
     expect(vm.layout, WorkspaceLayout.source);
     await tester.tap(find.byKey(const ValueKey('document-sidebar-toggle')));
@@ -77,12 +80,15 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final vm = fakeWorkspace();
       final memory = vm.files as MemoryFiles;
+      vm.showStructure(true);
       memory.content.addAll({
         '/notes/first.md': '# First\n\n## Apple\n\nVisible **summary**',
         '/notes/topic/second.md': '# Second\n\nA short excerpt',
       });
       await vm.openPath('/notes/first.md');
       await tester.pumpWidget(VexApp(viewModel: vm));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('sidebar-file-actions')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('sidebar-view-toggle')));
       await tester.pumpAndSettle();

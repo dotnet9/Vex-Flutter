@@ -59,6 +59,7 @@ void main() {
     () {
       final vm = fakeWorkspace();
       addTearDown(vm.dispose);
+      vm.setSummary(paragraphs: true, lists: true);
       vm.editor.session.replace(
         '# Root\n\nRoot body\n\n## Same\n\nFirst body\n\n### Child\n\nChild body\n\n## Same\n\nSecond body\n',
       );

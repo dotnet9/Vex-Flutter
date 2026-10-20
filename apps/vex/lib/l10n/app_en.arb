@@ -1,5 +1,12 @@
 {
   "@@locale": "en",
+  "documentAuxiliary": "Document companion",
+  "articleInfo": "Article info",
+  "chapterDetails": "Section details",
+  "revealSection": "Reveal section",
+  "selectChapter": "Select a section",
+  "selectChapterHint": "Select a mind map node to view and edit its section.",
+  "chapterBodyAutosaveHint": "Changes sync to the article. Child sections stay intact. Use Undo to restore.",
   "updateDownload": "Download update",
   "updateDownloadPrompt": "Download the installer for this device. You can install it after verification.",
   "updateDownloading": "Downloading…",
@@ -203,7 +210,7 @@
   "filesOutline": "Files and outline",
   "quickStartBadge": "• Quick start",
   "layoutDropdown": "Layout",
-  "findTooltip": "Find · Ctrl+F",
+  "findTooltip": "Find in current content · Ctrl+F",
   "saveTooltip": "Save · Ctrl+S",
   "newAction": "New",
   "layout": "Layout",
@@ -219,7 +226,7 @@
   "taskList": "Task list",
   "inlineCode": "Inline code",
   "moreFormatting": "More formatting",
-  "findText": "Find text",
+  "findText": "Find in current content…",
   "matchCase": "Match case",
   "regularExpression": "Regular expression",
   "wholeWord": "Whole word",
@@ -250,7 +257,7 @@
   "outline": "Outline",
   "documentStructure": "Document structure",
   "outlineHint": "Organize your document with # headings.",
-  "searchDocuments": "Search documents…",
+  "searchDocuments": "Find by filename…",
   "notes": "Notes",
   "openMarkdownFolder": "Open a Markdown folder",
   "recentlyOpened": "Recently opened",
@@ -307,7 +314,7 @@
   "recoveryDraftCount": "{count, plural, one{One recovery draft found} other{{count} recovery drafts found}}",
   "typographyDropdown": "Style: {name}",
   "matchCount": "{count, plural, =0{No matches} one{One match} other{{count} matches}}",
-  "wordCount": "{count, plural, one{1 word} other{{count} words}}",
+  "wordCount": "{count} words",
   "preferencesLoadFailed": "Could not load preferences or recovery drafts: {error}",
   "savedFile": "Saved {name}",
   "fileReadFailed": "Cannot read the original file: {error}",
@@ -339,10 +346,10 @@
   "presentationMarkdown": "Markdown",
   "mcpSettings": "MCP settings",
   "mcpIntro": "Allow AI clients to read and edit documents through the local MCP endpoint.",
-  "mcpEnable": "Enable MCP server",
+  "mcpEnable": "Enable MCP service",
   "mcpAddress": "Listen address",
   "mcpPort": "Port",
-  "mcpToken": "Authorization token",
+  "mcpToken": "Access token",
   "mcpGenerate": "Regenerate",
   "mcpCopyAddress": "Copy address",
   "mcpScope": "Allowed scope",
@@ -351,7 +358,7 @@
   "mcpCustom": "Custom folder",
   "mcpConfirm": "Confirm before modifying, saving or opening files",
   "mcpRunning": "Server running",
-  "mcpStopped": "Stopped",
+  "mcpStopped": "Service stopped",
   "mcpConfirmTitle": "Confirm MCP operation",
   "mcpConfirmBody": "An AI client requested this operation. Document edits can be undone.",
   "mcpExecute": "Execute",
@@ -408,7 +415,7 @@
   "prefFolderError": "Enter a relative folder without ..",
   "prefZoom": "Content zoom",
   "showWordCount": "Show word count",
-  "searchOutline": "Find a heading…",
+  "searchOutline": "Filter current headings…",
   "clearSearch": "Clear search",
   "noSearchResults": "No matches",
   "fileTreeView": "Switch to tree view",
@@ -446,7 +453,13 @@
   "prefMcpAction": "Operation",
   "prefMcpResult": "Result",
   "prefSeconds": "{count} seconds",
-  "@prefSeconds": {"placeholders":{"count":{"type":"int"}}},
+  "@prefSeconds": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "mermaidDiagrams": "Mermaid Diagrams",
   "mermaidExamples": "Mermaid Examples",
   "mermaidSource": "Mermaid source",
@@ -522,49 +535,72 @@
   "prefAutoLink": "Detect links automatically",
   "prefSoftBreak": "Render single line breaks",
   "prefSpaces": "{count} spaces",
-  "@prefSpaces": {"placeholders":{"count":{"type":"int"}}},
+  "@prefSpaces": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "anchorNotFound": "Heading not found: {anchor}",
-  "@anchorNotFound": {"placeholders":{"anchor":{"type":"String"}}},
+  "@anchorNotFound": {
+    "placeholders": {
+      "anchor": {
+        "type": "String"
+      }
+    }
+  },
   "excludeGeneratedFolders": "Skip generated folders",
-  "saveCopy": "Save a copy"
-,
+  "saveCopy": "Save a copy",
   "quickOpen": "Quick Open…",
   "copyAsPlainText": "Copy as Plain Text",
   "keepWindowOnTop": "Keep Window on Top",
   "reopenWithEncoding": "Reopen with Encoding",
   "deleteDocument": "Delete Document…",
   "deleteDocumentConfirm": "Delete “{name}” from disk?",
-  "@deleteDocumentConfirm": {"placeholders":{"name":{"type":"String"}}},
+  "@deleteDocumentConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "deleteDocumentHint": "The file will be permanently deleted from disk. This cannot be undone.",
   "statisticsTitle": "Statistics",
   "statSourceCharacters": "Source characters",
   "statParagraphs": "Paragraphs",
   "statReadingTime": "~{minutes} min",
-  "@statReadingTime": {"placeholders":{"minutes":{"type":"int"}}},
+  "@statReadingTime": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "statStatus": "Status",
   "statModified": "Modified",
   "propertyName": "Name",
   "propertyFormat": "Format",
   "propertySize": "Size",
   "propertyBytes": "{count} bytes",
-  "@propertyBytes": {"placeholders":{"count":{"type":"int"}}},
-  "propertyLocation": "Location"
-,
-  "statReadingTimeLabel": "Reading time"
-,
+  "@propertyBytes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "propertyLocation": "Location",
+  "statReadingTimeLabel": "Reading time",
   "tocTitle": "Contents",
   "calloutInfo": "Info",
-  "calloutWarning": "Warning"
-,
-  "builtinMarkdownSample": "Markdown Features"
-,
-  "collapseAllFiles": "Collapse All"
-,
+  "calloutWarning": "Warning",
+  "builtinMarkdownSample": "Markdown Features",
+  "collapseAllFiles": "Collapse All",
   "externalChangeReloaded": "External changes reloaded automatically",
   "menuDocumentActions": "Document actions",
   "menuNavigationPanels": "Sidebar & outline",
   "menuEditorDisplay": "Editor display",
-  "menuWindow": "Window",
   "menuZoom": "Zoom",
   "menuTableRows": "Rows",
   "menuTableColumns": "Columns",
@@ -573,7 +609,100 @@
   "mapHeadingsOnly": "Headings only",
   "mapCompareSource": "Compare source",
   "mapSummaryLabel": "Summary: {count} characters",
-  "@mapSummaryLabel": {"placeholders": {"count": {"type": "int"}}},
+  "@mapSummaryLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "mapContentSummary": "Content summary",
-  "mapNavigationHint": "Enter: sibling · Tab: child · Drag chapters to rearrange"
+  "mapNavigationHint": "Enter: sibling · Tab: child · Drag chapters to rearrange",
+  "savingDocument": "Saving…",
+  "saveFailedRetry": "Save failed · retry",
+  "newUnsaved": "New document · not saved to disk",
+  "unsavedChanges": "Unsaved changes",
+  "savedAt": "Saved · {time}",
+  "diskVersion": "Disk version loaded",
+  "recoveredNeedsSave": "Draft restored · save required",
+  "saveDetails": "Save and recovery status",
+  "lastSaved": "Last saved",
+  "noSaveYet": "Not saved since opening",
+  "draftStatus": "Recovery draft",
+  "draftProtected": "Current changes stored in recovery draft",
+  "draftPending": "Recovery draft pending",
+  "draftDisabled": "Draft recovery disabled",
+  "draftNone": "No pending changes to recover",
+  "draftReview": "Review recovery drafts",
+  "draftCompareHint": "Last saved content is on the left; recovery draft on the right. Restored drafts still need saving. Disk conflicts are checked when saving.",
+  "draftSource": "Draft source",
+  "savedContent": "Last saved content",
+  "recoveryContent": "Recovery draft content",
+  "linkedViews": "Link views",
+  "freeBrowse": "Browse freely",
+  "followSource": "Following: {pane}",
+  "returnToEditing": "Return to editing position",
+  "activePaneLabel": "Active pane",
+  "switchToSource": "Switch to source editing",
+  "switchToInstant": "Switch to instant editing",
+  "showFiles": "Show files",
+  "hideFiles": "Hide files",
+  "showOutline": "Show heading outline",
+  "hideOutline": "Hide heading outline",
+  "wordCountRules": "CJK characters and other words; Markdown markers and whitespace excluded.",
+  "selectedWords": "Selection: {count} words",
+  "visibleWords": "Visible words",
+  "currentArticle": "Current article",
+  "sampleArticle": "Full sample article",
+  "emptyPreviewHint": "The article is empty. Select the sample to preview typography.",
+  "layoutPurpose": "Use a single view to write, read or map; combine views to compare. Toggle files and outline in the bottom bar.",
+  "noFilenameResults": "No matching filenames. This search does not include content.",
+  "findInContent": "Find in current content",
+  "mapEmptyHint": "Add Markdown headings to create a chapter map.",
+  "undoChapter": "Undo chapter change",
+  "mapMovePreview": "Append under “{title}” as H{level}; move its body and {children} subsections ({characters} source characters).",
+  "@savedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@followSource": {
+    "placeholders": {
+      "pane": {
+        "type": "String"
+      }
+    }
+  },
+  "@selectedWords": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@mapMovePreview": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "level": {
+        "type": "int"
+      },
+      "children": {
+        "type": "int"
+      },
+      "characters": {
+        "type": "int"
+      }
+    }
+  },
+  "guidePractice": "Guided practice · original file untouched",
+  "emptyWorkspaceTitle": "Start with an article",
+  "emptyWorkspaceHint": "Create a document or open an existing Markdown file.",
+  "prefMcpSaveFailed": "Settings could not be saved. Check system credential storage and retry.",
+  "prefMcpStartFailed": "Could not start. Check the port and system credential storage.",
+  "prefMcpStarting": "Starting…",
+  "prefMcpStopping": "Stopping…"
 }

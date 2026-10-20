@@ -5,6 +5,8 @@ import 'file_preferences.dart';
 
 enum FileListMode { tree, list }
 
+enum WorkspaceAuxiliary { outline, info, chapter }
+
 enum WorkspaceViewport {
   phone(1),
   tablet(2),
@@ -81,6 +83,9 @@ final class WorkspaceDocument {
   String name;
   String? path, persistedText;
   bool saveCopy = false;
+  bool saving = false, recovered = false;
+  DateTime? lastSavedAt;
+  Object? saveError;
   final bool demo;
   TextFileFormat format;
 

@@ -101,6 +101,48 @@ abstract class AppLocalizations {
     Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
   ];
 
+  /// No description provided for @documentAuxiliary.
+  ///
+  /// In zh, this message translates to:
+  /// **'文档辅助'**
+  String get documentAuxiliary;
+
+  /// No description provided for @articleInfo.
+  ///
+  /// In zh, this message translates to:
+  /// **'文章信息'**
+  String get articleInfo;
+
+  /// No description provided for @chapterDetails.
+  ///
+  /// In zh, this message translates to:
+  /// **'章节详情'**
+  String get chapterDetails;
+
+  /// No description provided for @revealSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'定位到正文'**
+  String get revealSection;
+
+  /// No description provided for @selectChapter.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择一个章节'**
+  String get selectChapter;
+
+  /// No description provided for @selectChapterHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'在导图中选择节点，即可查看和编辑章节正文。'**
+  String get selectChapterHint;
+
+  /// No description provided for @chapterBodyAutosaveHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'修改会同步到文章，子章节单独保留。可使用撤销恢复。'**
+  String get chapterBodyAutosaveHint;
+
   /// No description provided for @updateDownload.
   ///
   /// In zh, this message translates to:
@@ -1322,7 +1364,7 @@ abstract class AppLocalizations {
   /// No description provided for @findTooltip.
   ///
   /// In zh, this message translates to:
-  /// **'查找 · Ctrl+F'**
+  /// **'查找当前正文 · Ctrl+F'**
   String get findTooltip;
 
   /// No description provided for @saveTooltip.
@@ -1418,7 +1460,7 @@ abstract class AppLocalizations {
   /// No description provided for @findText.
   ///
   /// In zh, this message translates to:
-  /// **'查找文本'**
+  /// **'查找当前正文…'**
   String get findText;
 
   /// No description provided for @matchCase.
@@ -1604,7 +1646,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchDocuments.
   ///
   /// In zh, this message translates to:
-  /// **'搜索文档…'**
+  /// **'按文件名查找…'**
   String get searchDocuments;
 
   /// No description provided for @notes.
@@ -1946,7 +1988,7 @@ abstract class AppLocalizations {
   /// No description provided for @wordCount.
   ///
   /// In zh, this message translates to:
-  /// **'{count} 词'**
+  /// **'{count} 字词'**
   String wordCount(int count);
 
   /// No description provided for @preferencesLoadFailed.
@@ -2138,7 +2180,7 @@ abstract class AppLocalizations {
   /// No description provided for @mcpEnable.
   ///
   /// In zh, this message translates to:
-  /// **'启用 MCP Server'**
+  /// **'启用 MCP 服务'**
   String get mcpEnable;
 
   /// No description provided for @mcpAddress.
@@ -2156,7 +2198,7 @@ abstract class AppLocalizations {
   /// No description provided for @mcpToken.
   ///
   /// In zh, this message translates to:
-  /// **'授权 Token'**
+  /// **'访问令牌'**
   String get mcpToken;
 
   /// No description provided for @mcpGenerate.
@@ -2210,7 +2252,7 @@ abstract class AppLocalizations {
   /// No description provided for @mcpStopped.
   ///
   /// In zh, this message translates to:
-  /// **'未启动'**
+  /// **'服务已停止'**
   String get mcpStopped;
 
   /// No description provided for @mcpConfirmTitle.
@@ -2552,7 +2594,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchOutline.
   ///
   /// In zh, this message translates to:
-  /// **'查找标题…'**
+  /// **'筛选当前文章标题…'**
   String get searchOutline;
 
   /// No description provided for @clearSearch.
@@ -3472,6 +3514,306 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'Enter 同级 · Tab 子级 · 拖动章节调整结构'**
   String get mapNavigationHint;
+
+  /// No description provided for @savingDocument.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在保存…'**
+  String get savingDocument;
+
+  /// No description provided for @saveFailedRetry.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存失败 · 点击重试'**
+  String get saveFailedRetry;
+
+  /// No description provided for @newUnsaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'新文档 · 尚未保存到磁盘'**
+  String get newUnsaved;
+
+  /// No description provided for @unsavedChanges.
+  ///
+  /// In zh, this message translates to:
+  /// **'有未保存的修改'**
+  String get unsavedChanges;
+
+  /// No description provided for @savedAt.
+  ///
+  /// In zh, this message translates to:
+  /// **'已保存 · {time}'**
+  String savedAt(String time);
+
+  /// No description provided for @diskVersion.
+  ///
+  /// In zh, this message translates to:
+  /// **'已载入磁盘版本'**
+  String get diskVersion;
+
+  /// No description provided for @recoveredNeedsSave.
+  ///
+  /// In zh, this message translates to:
+  /// **'已恢复草稿 · 仍需保存'**
+  String get recoveredNeedsSave;
+
+  /// No description provided for @saveDetails.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存与恢复状态'**
+  String get saveDetails;
+
+  /// No description provided for @lastSaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'最近保存'**
+  String get lastSaved;
+
+  /// No description provided for @noSaveYet.
+  ///
+  /// In zh, this message translates to:
+  /// **'本次打开后尚未保存'**
+  String get noSaveYet;
+
+  /// No description provided for @draftStatus.
+  ///
+  /// In zh, this message translates to:
+  /// **'恢复草稿'**
+  String get draftStatus;
+
+  /// No description provided for @draftProtected.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前修改已写入恢复草稿'**
+  String get draftProtected;
+
+  /// No description provided for @draftPending.
+  ///
+  /// In zh, this message translates to:
+  /// **'等待写入恢复草稿'**
+  String get draftPending;
+
+  /// No description provided for @draftDisabled.
+  ///
+  /// In zh, this message translates to:
+  /// **'草稿恢复已关闭'**
+  String get draftDisabled;
+
+  /// No description provided for @draftNone.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前没有待恢复的修改'**
+  String get draftNone;
+
+  /// No description provided for @draftReview.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看恢复草稿'**
+  String get draftReview;
+
+  /// No description provided for @draftCompareHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'左侧为上次保存内容，右侧为恢复草稿。恢复后仍需保存，写入时会检查磁盘冲突。'**
+  String get draftCompareHint;
+
+  /// No description provided for @draftSource.
+  ///
+  /// In zh, this message translates to:
+  /// **'草稿来源'**
+  String get draftSource;
+
+  /// No description provided for @savedContent.
+  ///
+  /// In zh, this message translates to:
+  /// **'上次保存内容'**
+  String get savedContent;
+
+  /// No description provided for @recoveryContent.
+  ///
+  /// In zh, this message translates to:
+  /// **'恢复草稿内容'**
+  String get recoveryContent;
+
+  /// No description provided for @linkedViews.
+  ///
+  /// In zh, this message translates to:
+  /// **'视图联动'**
+  String get linkedViews;
+
+  /// No description provided for @freeBrowse.
+  ///
+  /// In zh, this message translates to:
+  /// **'自由浏览'**
+  String get freeBrowse;
+
+  /// No description provided for @followSource.
+  ///
+  /// In zh, this message translates to:
+  /// **'跟随：{pane}'**
+  String followSource(String pane);
+
+  /// No description provided for @returnToEditing.
+  ///
+  /// In zh, this message translates to:
+  /// **'回到编辑位置'**
+  String get returnToEditing;
+
+  /// No description provided for @activePaneLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前操作'**
+  String get activePaneLabel;
+
+  /// No description provided for @switchToSource.
+  ///
+  /// In zh, this message translates to:
+  /// **'切到源码编辑'**
+  String get switchToSource;
+
+  /// No description provided for @switchToInstant.
+  ///
+  /// In zh, this message translates to:
+  /// **'切到即时编辑'**
+  String get switchToInstant;
+
+  /// No description provided for @showFiles.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示文件栏'**
+  String get showFiles;
+
+  /// No description provided for @hideFiles.
+  ///
+  /// In zh, this message translates to:
+  /// **'收起文件栏'**
+  String get hideFiles;
+
+  /// No description provided for @showOutline.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示标题大纲'**
+  String get showOutline;
+
+  /// No description provided for @hideOutline.
+  ///
+  /// In zh, this message translates to:
+  /// **'收起标题大纲'**
+  String get hideOutline;
+
+  /// No description provided for @wordCountRules.
+  ///
+  /// In zh, this message translates to:
+  /// **'中文按字、英文按词；不计 Markdown 标记和空白。'**
+  String get wordCountRules;
+
+  /// No description provided for @selectedWords.
+  ///
+  /// In zh, this message translates to:
+  /// **'选区 {count} 字词'**
+  String selectedWords(int count);
+
+  /// No description provided for @visibleWords.
+  ///
+  /// In zh, this message translates to:
+  /// **'正文字词'**
+  String get visibleWords;
+
+  /// No description provided for @currentArticle.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前文章'**
+  String get currentArticle;
+
+  /// No description provided for @sampleArticle.
+  ///
+  /// In zh, this message translates to:
+  /// **'完整示例文章'**
+  String get sampleArticle;
+
+  /// No description provided for @emptyPreviewHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前文章为空，可切换示例查看排版。'**
+  String get emptyPreviewHint;
+
+  /// No description provided for @layoutPurpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'单视图用于专注写作、阅读或导图；组合布局用于对照。文件栏与大纲在底栏开关。'**
+  String get layoutPurpose;
+
+  /// No description provided for @noFilenameResults.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有匹配的文件名；这里不搜索正文。'**
+  String get noFilenameResults;
+
+  /// No description provided for @findInContent.
+  ///
+  /// In zh, this message translates to:
+  /// **'转到当前正文查找'**
+  String get findInContent;
+
+  /// No description provided for @mapEmptyHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加 Markdown 标题即可生成章节导图。'**
+  String get mapEmptyHint;
+
+  /// No description provided for @undoChapter.
+  ///
+  /// In zh, this message translates to:
+  /// **'撤销刚才的章节修改'**
+  String get undoChapter;
+
+  /// No description provided for @mapMovePreview.
+  ///
+  /// In zh, this message translates to:
+  /// **'移到「{title}」末尾，作为 H{level} 子章节；正文及 {children} 个子章节共 {characters} 字符一起移动。'**
+  String mapMovePreview(String title, int level, int children, int characters);
+
+  /// No description provided for @guidePractice.
+  ///
+  /// In zh, this message translates to:
+  /// **'引导演练 · 不写入原文件'**
+  String get guidePractice;
+
+  /// No description provided for @emptyWorkspaceTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'从一篇文章开始'**
+  String get emptyWorkspaceTitle;
+
+  /// No description provided for @emptyWorkspaceHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建文档开始写作，或打开已有 Markdown 文件。'**
+  String get emptyWorkspaceHint;
+
+  /// No description provided for @prefMcpSaveFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'设置保存失败，请检查系统凭据存储后重试。'**
+  String get prefMcpSaveFailed;
+
+  /// No description provided for @prefMcpStartFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'启动失败，请检查端口是否被占用及系统凭据存储。'**
+  String get prefMcpStartFailed;
+
+  /// No description provided for @prefMcpStarting.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在启动…'**
+  String get prefMcpStarting;
+
+  /// No description provided for @prefMcpStopping.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在停止…'**
+  String get prefMcpStopping;
 }
 
 class _AppLocalizationsDelegate

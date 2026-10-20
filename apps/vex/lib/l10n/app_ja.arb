@@ -1,5 +1,12 @@
 {
   "@@locale": "ja",
+  "documentAuxiliary": "文書サポート",
+  "articleInfo": "文書情報",
+  "chapterDetails": "セクション詳細",
+  "revealSection": "本文に移動",
+  "selectChapter": "セクションを選択",
+  "selectChapterHint": "マインドマップのノードを選ぶと、本文の確認と編集ができます。",
+  "chapterBodyAutosaveHint": "変更は文書に同期されます。子セクションは保持され、元に戻す操作も可能です。",
   "updateDownload": "更新をダウンロード",
   "updateDownloadPrompt": "この端末用のインストーラーをダウンロードします。検証後、任意のタイミングでインストールできます。",
   "updateDownloading": "ダウンロード中…",
@@ -203,7 +210,7 @@
   "filesOutline": "ファイルとアウトライン",
   "quickStartBadge": "• 使い方ガイド",
   "layoutDropdown": "レイアウト",
-  "findTooltip": "検索 · Ctrl+F",
+  "findTooltip": "現在の本文を検索 · Ctrl+F",
   "saveTooltip": "保存 · Ctrl+S",
   "newAction": "新規",
   "layout": "レイアウト",
@@ -219,7 +226,7 @@
   "taskList": "タスクリスト",
   "inlineCode": "インラインコード",
   "moreFormatting": "その他の書式",
-  "findText": "検索するテキスト",
+  "findText": "現在の本文を検索…",
   "matchCase": "大文字と小文字を区別",
   "regularExpression": "正規表現",
   "wholeWord": "単語全体",
@@ -250,7 +257,7 @@
   "outline": "アウトライン",
   "documentStructure": "文書の構造",
   "outlineHint": "# 見出しで文書を整理しましょう。",
-  "searchDocuments": "文書を検索…",
+  "searchDocuments": "ファイル名で検索…",
   "notes": "ノート",
   "openMarkdownFolder": "Markdown フォルダーを開く",
   "recentlyOpened": "最近開いた項目",
@@ -307,7 +314,7 @@
   "recoveryDraftCount": "復元できる下書きが {count} 件あります",
   "typographyDropdown": "書式 {name}",
   "matchCount": "{count} 件の一致",
-  "wordCount": "{count} 語",
+  "wordCount": "{count} 字・語",
   "preferencesLoadFailed": "設定または下書きを読み込めませんでした：{error}",
   "savedFile": "{name} を保存しました",
   "fileReadFailed": "元のファイルを読み込めません：{error}",
@@ -339,10 +346,10 @@
   "presentationMarkdown": "本文",
   "mcpSettings": "MCP 設定",
   "mcpIntro": "ローカル MCP 接続から AI クライアントが文書を読み取り、編集できます。",
-  "mcpEnable": "MCP サーバーを有効にする",
+  "mcpEnable": "MCP サービスを有効にする",
   "mcpAddress": "待受アドレス",
   "mcpPort": "ポート",
-  "mcpToken": "認証トークン",
+  "mcpToken": "アクセストークン",
   "mcpGenerate": "再生成",
   "mcpCopyAddress": "アドレスをコピー",
   "mcpScope": "アクセス範囲",
@@ -351,7 +358,7 @@
   "mcpCustom": "指定フォルダー",
   "mcpConfirm": "編集・保存・ファイルを開く前に確認する",
   "mcpRunning": "サーバー稼働中",
-  "mcpStopped": "停止中",
+  "mcpStopped": "サービス停止中",
   "mcpConfirmTitle": "MCP 操作の確認",
   "mcpConfirmBody": "AI クライアントが次の操作を要求しています。文書の編集は元に戻せます。",
   "mcpExecute": "実行",
@@ -408,7 +415,7 @@
   "prefFolderError": ".. を含まない相対フォルダーを入力",
   "prefZoom": "コンテンツの拡大率",
   "showWordCount": "語数を表示",
-  "searchOutline": "見出しを検索…",
+  "searchOutline": "現在の見出しを絞り込む…",
   "clearSearch": "検索をクリア",
   "noSearchResults": "一致する項目はありません",
   "fileTreeView": "ツリー表示に切り替え",
@@ -446,7 +453,13 @@
   "prefMcpAction": "操作",
   "prefMcpResult": "結果",
   "prefSeconds": "{count} 秒",
-  "@prefSeconds": {"placeholders":{"count":{"type":"int"}}},
+  "@prefSeconds": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "mermaidDiagrams": "Mermaid 図表",
   "mermaidExamples": "Mermaid のサンプル",
   "mermaidSource": "Mermaid ソース",
@@ -522,49 +535,72 @@
   "prefAutoLink": "リンクを自動検出",
   "prefSoftBreak": "単一改行を表示",
   "prefSpaces": "{count} スペース",
-  "@prefSpaces": {"placeholders":{"count":{"type":"int"}}},
+  "@prefSpaces": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "anchorNotFound": "見出しが見つかりません：{anchor}",
-  "@anchorNotFound": {"placeholders":{"anchor":{"type":"String"}}},
+  "@anchorNotFound": {
+    "placeholders": {
+      "anchor": {
+        "type": "String"
+      }
+    }
+  },
   "excludeGeneratedFolders": "生成されたフォルダーを除外",
-  "saveCopy": "コピーを保存"
-,
+  "saveCopy": "コピーを保存",
   "quickOpen": "クイックオープン…",
   "copyAsPlainText": "プレーンテキストとしてコピー",
   "keepWindowOnTop": "常に手前に表示",
   "reopenWithEncoding": "文字コードを指定して開き直す",
   "deleteDocument": "文書を削除…",
   "deleteDocumentConfirm": "「{name}」をディスクから削除しますか？",
-  "@deleteDocumentConfirm": {"placeholders":{"name":{"type":"String"}}},
+  "@deleteDocumentConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "deleteDocumentHint": "ファイルはディスクから完全に削除され、元に戻せません。",
   "statisticsTitle": "文字数統計",
   "statSourceCharacters": "ソース文字数",
   "statParagraphs": "段落",
   "statReadingTime": "約 {minutes} 分",
-  "@statReadingTime": {"placeholders":{"minutes":{"type":"int"}}},
+  "@statReadingTime": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "statStatus": "状態",
   "statModified": "変更あり",
   "propertyName": "名前",
   "propertyFormat": "形式",
   "propertySize": "サイズ",
   "propertyBytes": "{count} バイト",
-  "@propertyBytes": {"placeholders":{"count":{"type":"int"}}},
-  "propertyLocation": "場所"
-,
-  "statReadingTimeLabel": "読了時間"
-,
+  "@propertyBytes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "propertyLocation": "場所",
+  "statReadingTimeLabel": "読了時間",
   "tocTitle": "目次",
   "calloutInfo": "情報",
-  "calloutWarning": "警告"
-,
-  "builtinMarkdownSample": "Markdown機能サンプル"
-,
-  "collapseAllFiles": "すべて折りたたむ"
-,
+  "calloutWarning": "警告",
+  "builtinMarkdownSample": "Markdown機能サンプル",
+  "collapseAllFiles": "すべて折りたたむ",
   "externalChangeReloaded": "外部変更を自動的に再読み込みしました",
   "menuDocumentActions": "文書の操作",
   "menuNavigationPanels": "サイドバーとアウトライン",
   "menuEditorDisplay": "編集表示",
-  "menuWindow": "ウィンドウ",
   "menuZoom": "ズーム",
   "menuTableRows": "行の操作",
   "menuTableColumns": "列の操作",
@@ -573,7 +609,100 @@
   "mapHeadingsOnly": "見出しのみ",
   "mapCompareSource": "ソースと比較",
   "mapSummaryLabel": "要約 {count} 文字",
-  "@mapSummaryLabel": {"placeholders": {"count": {"type": "int"}}},
+  "@mapSummaryLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "mapContentSummary": "本文の要約",
-  "mapNavigationHint": "Enter：同階層 · Tab：子階層 · ドラッグで構成を変更"
+  "mapNavigationHint": "Enter：同階層 · Tab：子階層 · ドラッグで構成を変更",
+  "savingDocument": "保存中…",
+  "saveFailedRetry": "保存失敗 · 再試行",
+  "newUnsaved": "新規文書 · 未保存",
+  "unsavedChanges": "未保存の変更あり",
+  "savedAt": "保存済み · {time}",
+  "diskVersion": "ディスクの版を読み込み済み",
+  "recoveredNeedsSave": "下書きを復元 · 保存が必要",
+  "saveDetails": "保存と復元の状態",
+  "lastSaved": "最終保存",
+  "noSaveYet": "開いてから未保存",
+  "draftStatus": "復元用下書き",
+  "draftProtected": "現在の変更を復元用下書きに保存済み",
+  "draftPending": "下書きの保存待ち",
+  "draftDisabled": "下書きの復元は無効",
+  "draftNone": "復元が必要な変更なし",
+  "draftReview": "復元する下書きを確認",
+  "draftCompareHint": "左は最終保存内容、右は下書きです。復元後も保存が必要です。保存時にディスクとの競合を確認します。",
+  "draftSource": "下書きの保存元",
+  "savedContent": "最終保存内容",
+  "recoveryContent": "復元用下書きの内容",
+  "linkedViews": "ビューを連動",
+  "freeBrowse": "自由に閲覧",
+  "followSource": "連動元：{pane}",
+  "returnToEditing": "編集位置へ戻る",
+  "activePaneLabel": "操作中",
+  "switchToSource": "ソース編集へ切り替え",
+  "switchToInstant": "即時編集へ切り替え",
+  "showFiles": "ファイル欄を表示",
+  "hideFiles": "ファイル欄を閉じる",
+  "showOutline": "見出し一覧を表示",
+  "hideOutline": "見出し一覧を閉じる",
+  "wordCountRules": "日本語・中国語は文字、英語などは単語で集計。Markdown 記号と空白は除外。",
+  "selectedWords": "選択範囲：{count} 字・語",
+  "visibleWords": "本文の字・語数",
+  "currentArticle": "現在の文書",
+  "sampleArticle": "サンプル文書",
+  "emptyPreviewHint": "文書が空です。サンプルで組版を確認できます。",
+  "layoutPurpose": "単一ビューで執筆・閲覧・マップに集中、組み合わせで比較。ファイルと見出し一覧は下部で切り替えます。",
+  "noFilenameResults": "一致するファイル名なし。本文は検索されません。",
+  "findInContent": "現在の本文を検索",
+  "mapEmptyHint": "Markdown 見出しを追加すると章のマップができます。",
+  "undoChapter": "直前の章の変更を元に戻す",
+  "mapMovePreview": "「{title}」末尾へ H{level} として移動。本文と子章 {children} 件（{characters} 文字）も移動します。",
+  "@savedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@followSource": {
+    "placeholders": {
+      "pane": {
+        "type": "String"
+      }
+    }
+  },
+  "@selectedWords": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@mapMovePreview": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "level": {
+        "type": "int"
+      },
+      "children": {
+        "type": "int"
+      },
+      "characters": {
+        "type": "int"
+      }
+    }
+  },
+  "guidePractice": "ガイド練習 · 元ファイルには保存されません",
+  "emptyWorkspaceTitle": "文書を作成して始める",
+  "emptyWorkspaceHint": "文書を新規作成するか、既存の Markdown ファイルを開きます。",
+  "prefMcpSaveFailed": "設定を保存できませんでした。システムの資格情報ストアを確認して再試行してください。",
+  "prefMcpStartFailed": "起動できませんでした。ポートとシステムの資格情報ストアを確認してください。",
+  "prefMcpStarting": "起動中…",
+  "prefMcpStopping": "停止中…"
 }

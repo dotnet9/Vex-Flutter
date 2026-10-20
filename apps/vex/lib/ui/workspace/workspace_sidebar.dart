@@ -64,6 +64,7 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
   Widget build(BuildContext context) {
     final c = Theme.of(context).colorScheme;
     final outline = widget.showTabs && vm.outline;
+    if (_search.text != vm.filter) _search.text = vm.filter;
     if (_folderPath != vm.folder?.path ||
         _folderRevision != vm.folderRevision) {
       if (_folderPath != vm.folder?.path) _collapsed.clear();
@@ -262,6 +263,7 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
                   : Builder(
                       builder: (context) {
                         final rows = _files(vm.filter.toLowerCase());
+                        if (rows.isEmpty) return _emptyFiles(context);
                         return ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           itemCount: rows.length,
@@ -293,6 +295,9 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
           AppButton(
             height: buttonHeight,
             icon: 'plus',
+            label: l.newAction,
+            fontSize: 11,
+            padding: 4,
             tooltip: l.newDocument,
             onPressed: () {
               widget.onAction('new');
@@ -350,6 +355,37 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
               ),
               const Divider(),
               MenuItemButton(
+                key: const ValueKey('sidebar-collapse-files'),
+                leadingIcon: const AppGlyph('fold'),
+                onPressed:
+                    vm.fileListMode == FileListMode.tree &&
+                        vm.folder != null &&
+                        _anyDirectoryExpanded
+                    ? () => setState(() {
+                        _collapsed.addAll(_directoryPaths());
+                        _collapseRevision++;
+                      })
+                    : null,
+                child: Text(l.collapseAllFiles),
+              ),
+              MenuItemButton(
+                key: const ValueKey('sidebar-view-toggle'),
+                leadingIcon: AppGlyph(
+                  vm.fileListMode == FileListMode.tree ? 'list' : 'map',
+                ),
+                onPressed: () => vm.setFileListMode(
+                  vm.fileListMode == FileListMode.tree
+                      ? FileListMode.list
+                      : FileListMode.tree,
+                ),
+                child: Text(
+                  vm.fileListMode == FileListMode.tree
+                      ? l.fileListView
+                      : l.fileTreeView,
+                ),
+              ),
+              const Divider(),
+              MenuItemButton(
                 leadingIcon: vm.fileSortDescending
                     ? null
                     : const AppGlyph('check'),
@@ -371,33 +407,6 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
               tooltip: l.fileActions,
               onPressed: () =>
                   controller.isOpen ? controller.close() : controller.open(),
-            ),
-          ),
-          // 树视图下提供“全部折叠”：有展开的目录才可用，点击后全部收起。
-          if (vm.fileListMode == FileListMode.tree && vm.folder != null)
-            AppButton(
-              height: buttonHeight,
-              key: const ValueKey('sidebar-collapse-files'),
-              icon: 'fold',
-              tooltip: l.collapseAllFiles,
-              onPressed: _anyDirectoryExpanded
-                  ? () => setState(() {
-                      _collapsed.addAll(_directoryPaths());
-                      _collapseRevision++;
-                    })
-                  : null,
-            ),
-          AppButton(
-            height: buttonHeight,
-            key: const ValueKey('sidebar-view-toggle'),
-            icon: vm.fileListMode == FileListMode.tree ? 'list' : 'map',
-            tooltip: vm.fileListMode == FileListMode.tree
-                ? l.fileListView
-                : l.fileTreeView,
-            onPressed: () => vm.setFileListMode(
-              vm.fileListMode == FileListMode.tree
-                  ? FileListMode.list
-                  : FileListMode.tree,
             ),
           ),
         ],
@@ -458,6 +467,49 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
     }
   }
 
+  Widget _emptyFiles(BuildContext context) {
+    final l = context.l10n;
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              vm.filter.trim().isEmpty ? l.openFolder : l.noFilenameResults,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 10),
+            if (vm.filter.trim().isNotEmpty) ...[
+              AppButton(
+                label: l.clearSearch,
+                fontSize: 12,
+                onPressed: () => vm.setFilter(''),
+              ),
+              AppButton(
+                label: l.findInContent,
+                fontSize: 12,
+                onPressed: () {
+                  vm.showFind();
+                  vm.search(vm.filter);
+                  widget.onAction('find');
+                  widget.onNavigate?.call();
+                },
+              ),
+            ] else
+              AppButton(
+                label: l.newDocument,
+                icon: 'plus',
+                fontSize: 12,
+                onPressed: () => widget.onAction('new'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _fileList(BuildContext context) {
     final open = {for (final doc in vm.documents) doc.path ?? doc.id: doc};
     _openPreviews.removeWhere((path, _) => !open.containsKey(path));
@@ -471,12 +523,7 @@ class _WorkspaceSidebarState extends State<WorkspaceSidebar> {
             .toList()
           ..sort(_comparePaths);
     if (entries.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Text(context.l10n.noSearchResults),
-        ),
-      );
+      return _emptyFiles(context);
     }
     return ListView.builder(
       key: const PageStorageKey('sidebar-file-list'),

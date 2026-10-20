@@ -1,5 +1,12 @@
 {
   "@@locale": "zh",
+  "documentAuxiliary": "文档辅助",
+  "articleInfo": "文章信息",
+  "chapterDetails": "章节详情",
+  "revealSection": "定位到正文",
+  "selectChapter": "选择一个章节",
+  "selectChapterHint": "在导图中选择节点，即可查看和编辑章节正文。",
+  "chapterBodyAutosaveHint": "修改会同步到文章，子章节单独保留。可使用撤销恢复。",
   "updateDownload": "下载更新",
   "updateDownloadPrompt": "下载适合当前设备的安装包，核验完成后由你决定何时安装。",
   "updateDownloading": "正在下载…",
@@ -101,7 +108,13 @@
   "checking": "正在检查…",
   "updateCurrent": "当前已是最新正式版本。",
   "updateAvailable": "发现新版本 {version}。",
-  "@updateAvailable": {"placeholders": {"version": {"type": "String"}}},
+  "@updateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "updateLocalNewer": "本机版本比最新正式版更新，无需降级。",
   "updateInvalidResponse": "发布信息不完整，暂时无法判断是否需要更新。",
   "closeChanged": "保存期间又有新的输入，窗口已保留。请确认后再次关闭。",
@@ -204,7 +217,7 @@
   "filesOutline": "文件与大纲",
   "quickStartBadge": "• 快速上手",
   "layoutDropdown": "布局",
-  "findTooltip": "查找 · Ctrl+F",
+  "findTooltip": "查找当前正文 · Ctrl+F",
   "saveTooltip": "保存 · Ctrl+S",
   "newAction": "新建",
   "layout": "布局",
@@ -220,7 +233,7 @@
   "taskList": "任务列表",
   "inlineCode": "行内代码",
   "moreFormatting": "更多格式",
-  "findText": "查找文本",
+  "findText": "查找当前正文…",
   "matchCase": "区分大小写",
   "regularExpression": "正则表达式",
   "wholeWord": "整词",
@@ -251,7 +264,7 @@
   "outline": "大纲",
   "documentStructure": "文档结构",
   "outlineHint": "使用 # 标题来组织内容。",
-  "searchDocuments": "搜索文档…",
+  "searchDocuments": "按文件名查找…",
   "notes": "笔记",
   "openMarkdownFolder": "打开 Markdown 文件夹",
   "recentlyOpened": "最近打开",
@@ -405,7 +418,7 @@
       }
     }
   },
-  "wordCount": "{count} 词",
+  "wordCount": "{count} 字词",
   "@wordCount": {
     "placeholders": {
       "count": {
@@ -509,10 +522,10 @@
   "presentationMarkdown": "正文",
   "mcpSettings": "MCP 设置",
   "mcpIntro": "允许 AI 客户端通过本机 MCP 接口读取和操作当前文档。",
-  "mcpEnable": "启用 MCP Server",
+  "mcpEnable": "启用 MCP 服务",
   "mcpAddress": "监听地址",
   "mcpPort": "端口",
-  "mcpToken": "授权 Token",
+  "mcpToken": "访问令牌",
   "mcpGenerate": "重新生成",
   "mcpCopyAddress": "复制地址",
   "mcpScope": "允许访问范围",
@@ -521,7 +534,7 @@
   "mcpCustom": "自定义目录",
   "mcpConfirm": "修改、保存或打开文件前需要确认",
   "mcpRunning": "服务运行中",
-  "mcpStopped": "未启动",
+  "mcpStopped": "服务已停止",
   "mcpConfirmTitle": "确认 MCP 操作",
   "mcpConfirmBody": "AI 客户端请求执行以下操作。执行后可通过撤销恢复文档修改。",
   "mcpExecute": "执行",
@@ -578,7 +591,7 @@
   "prefFolderError": "请输入不含 .. 的相对目录",
   "prefZoom": "内容缩放",
   "showWordCount": "显示词数",
-  "searchOutline": "查找标题…",
+  "searchOutline": "筛选当前文章标题…",
   "clearSearch": "清空查找",
   "noSearchResults": "没有匹配的内容",
   "fileTreeView": "切换为树视图",
@@ -616,7 +629,13 @@
   "prefMcpAction": "操作",
   "prefMcpResult": "结果",
   "prefSeconds": "{count} 秒",
-  "@prefSeconds": {"placeholders":{"count":{"type":"int"}}},
+  "@prefSeconds": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "mermaidDiagrams": "Mermaid 图表",
   "mermaidExamples": "Mermaid 图表示例",
   "mermaidSource": "Mermaid 源码",
@@ -692,49 +711,72 @@
   "prefAutoLink": "自动识别链接",
   "prefSoftBreak": "单次换行显示为换行",
   "prefSpaces": "{count} 空格",
-  "@prefSpaces": {"placeholders":{"count":{"type":"int"}}},
+  "@prefSpaces": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "anchorNotFound": "未找到标题：{anchor}",
-  "@anchorNotFound": {"placeholders":{"anchor":{"type":"String"}}},
+  "@anchorNotFound": {
+    "placeholders": {
+      "anchor": {
+        "type": "String"
+      }
+    }
+  },
   "excludeGeneratedFolders": "跳过工具生成的文件夹",
-  "saveCopy": "保存副本"
-,
+  "saveCopy": "保存副本",
   "quickOpen": "快速打开…",
   "copyAsPlainText": "复制为纯文本",
   "keepWindowOnTop": "保持窗口在最前",
   "reopenWithEncoding": "选择编码重新打开",
   "deleteDocument": "删除文档…",
   "deleteDocumentConfirm": "从磁盘删除「{name}」？",
-  "@deleteDocumentConfirm": {"placeholders":{"name":{"type":"String"}}},
+  "@deleteDocumentConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "deleteDocumentHint": "文件将从磁盘永久删除，此操作不可撤销。",
   "statisticsTitle": "字数统计",
   "statSourceCharacters": "源码字符",
   "statParagraphs": "段落",
   "statReadingTime": "约 {minutes} 分钟",
-  "@statReadingTime": {"placeholders":{"minutes":{"type":"int"}}},
+  "@statReadingTime": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "statStatus": "状态",
   "statModified": "已修改",
   "propertyName": "名称",
   "propertyFormat": "格式",
   "propertySize": "大小",
   "propertyBytes": "{count} 字节",
-  "@propertyBytes": {"placeholders":{"count":{"type":"int"}}},
-  "propertyLocation": "位置"
-,
-  "statReadingTimeLabel": "阅读时间"
-,
+  "@propertyBytes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "propertyLocation": "位置",
+  "statReadingTimeLabel": "阅读时间",
   "tocTitle": "目录",
   "calloutInfo": "信息",
-  "calloutWarning": "警告"
-,
-  "builtinMarkdownSample": "Markdown 功能示例"
-,
-  "collapseAllFiles": "全部折叠"
-,
+  "calloutWarning": "警告",
+  "builtinMarkdownSample": "Markdown 功能示例",
+  "collapseAllFiles": "全部折叠",
   "externalChangeReloaded": "已自动重新载入外部修改",
   "menuDocumentActions": "文档操作",
   "menuNavigationPanels": "侧栏与大纲",
   "menuEditorDisplay": "编辑显示",
-  "menuWindow": "窗口",
   "menuZoom": "缩放",
   "menuTableRows": "行操作",
   "menuTableColumns": "列操作",
@@ -743,7 +785,100 @@
   "mapHeadingsOnly": "仅标题",
   "mapCompareSource": "对照源码",
   "mapSummaryLabel": "摘要 {count} 字",
-  "@mapSummaryLabel": {"placeholders": {"count": {"type": "int"}}},
+  "@mapSummaryLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "mapContentSummary": "内容摘要",
-  "mapNavigationHint": "Enter 同级 · Tab 子级 · 拖动章节调整结构"
+  "mapNavigationHint": "Enter 同级 · Tab 子级 · 拖动章节调整结构",
+  "savingDocument": "正在保存…",
+  "saveFailedRetry": "保存失败 · 点击重试",
+  "newUnsaved": "新文档 · 尚未保存到磁盘",
+  "unsavedChanges": "有未保存的修改",
+  "savedAt": "已保存 · {time}",
+  "diskVersion": "已载入磁盘版本",
+  "recoveredNeedsSave": "已恢复草稿 · 仍需保存",
+  "saveDetails": "保存与恢复状态",
+  "lastSaved": "最近保存",
+  "noSaveYet": "本次打开后尚未保存",
+  "draftStatus": "恢复草稿",
+  "draftProtected": "当前修改已写入恢复草稿",
+  "draftPending": "等待写入恢复草稿",
+  "draftDisabled": "草稿恢复已关闭",
+  "draftNone": "当前没有待恢复的修改",
+  "draftReview": "查看恢复草稿",
+  "draftCompareHint": "左侧为上次保存内容，右侧为恢复草稿。恢复后仍需保存，写入时会检查磁盘冲突。",
+  "draftSource": "草稿来源",
+  "savedContent": "上次保存内容",
+  "recoveryContent": "恢复草稿内容",
+  "linkedViews": "视图联动",
+  "freeBrowse": "自由浏览",
+  "followSource": "跟随：{pane}",
+  "returnToEditing": "回到编辑位置",
+  "activePaneLabel": "当前操作",
+  "switchToSource": "切到源码编辑",
+  "switchToInstant": "切到即时编辑",
+  "showFiles": "显示文件栏",
+  "hideFiles": "收起文件栏",
+  "showOutline": "显示标题大纲",
+  "hideOutline": "收起标题大纲",
+  "wordCountRules": "中文按字、英文按词；不计 Markdown 标记和空白。",
+  "selectedWords": "选区 {count} 字词",
+  "visibleWords": "正文字词",
+  "currentArticle": "当前文章",
+  "sampleArticle": "完整示例文章",
+  "emptyPreviewHint": "当前文章为空，可切换示例查看排版。",
+  "layoutPurpose": "单视图用于专注写作、阅读或导图；组合布局用于对照。文件栏与大纲在底栏开关。",
+  "noFilenameResults": "没有匹配的文件名；这里不搜索正文。",
+  "findInContent": "转到当前正文查找",
+  "mapEmptyHint": "添加 Markdown 标题即可生成章节导图。",
+  "undoChapter": "撤销刚才的章节修改",
+  "mapMovePreview": "移到「{title}」末尾，作为 H{level} 子章节；正文及 {children} 个子章节共 {characters} 字符一起移动。",
+  "@savedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@followSource": {
+    "placeholders": {
+      "pane": {
+        "type": "String"
+      }
+    }
+  },
+  "@selectedWords": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@mapMovePreview": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "level": {
+        "type": "int"
+      },
+      "children": {
+        "type": "int"
+      },
+      "characters": {
+        "type": "int"
+      }
+    }
+  },
+  "guidePractice": "引导演练 · 不写入原文件",
+  "emptyWorkspaceTitle": "从一篇文章开始",
+  "emptyWorkspaceHint": "新建文档开始写作，或打开已有 Markdown 文件。",
+  "prefMcpSaveFailed": "设置保存失败，请检查系统凭据存储后重试。",
+  "prefMcpStartFailed": "启动失败，请检查端口是否被占用及系统凭据存储。",
+  "prefMcpStarting": "正在启动…",
+  "prefMcpStopping": "正在停止…"
 }

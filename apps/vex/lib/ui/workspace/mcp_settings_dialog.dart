@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -30,39 +31,61 @@ class _McpSettingsPaneState extends State<McpSettingsPane> {
   bool _busy = false, _reveal = false;
   String _error = '', _result = '';
 
-  Future<void> _apply() async {
+  @override
+  void initState() {
+    super.initState();
+    widget.mcp.addListener(_syncEnabled);
+  }
+
+  void _syncEnabled() {
+    if (mounted && !widget.mcp.settingsSaving) {
+      setState(() => _enabled = widget.mcp.enabled);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.mcp.removeListener(_syncEnabled);
+    unawaited(widget.mcp.flushSettings());
+    super.dispose();
+  }
+
+  String _validationError() {
     final port = int.tryParse(_port);
     if (port == null ||
         port < 1024 ||
         port > 65535 ||
         _token.trim().length < 24) {
-      setState(() => _error = context.l10n.mcpInvalid);
-      return;
+      return context.l10n.mcpInvalid;
     }
     if (_scope == 'custom' &&
         (!p.isAbsolute(_folder.trim()) ||
-            !await Directory(_folder.trim()).exists())) {
-      if (mounted) setState(() => _error = context.l10n.prefMcpDirectoryError);
+            !Directory(_folder.trim()).existsSync())) {
+      return context.l10n.prefMcpDirectoryError;
+    }
+    return '';
+  }
+
+  void _save({bool immediate = false, bool stopping = false}) {
+    final validation = _validationError();
+    setState(() => _error = '');
+    final mcp = widget.mcp;
+    if (stopping && validation.isNotEmpty) {
+      unawaited(mcp.stopFromSettings(validationError: validation));
       return;
     }
-    if (!mounted) return;
-    setState(() {
-      _busy = true;
-      _error = '';
-    });
-    final mcp = widget.mcp;
-    mcp.port = port;
-    mcp.token = _token.trim();
-    mcp.scope = _scope;
-    mcp.customFolder = _folder.trim();
-    mcp.requireConfirmation = _confirmation;
-    await mcp.configure(_enabled);
-    if (mounted) {
-      setState(() {
-        _busy = false;
-        _error = mcp.error;
-      });
+    if (validation.isNotEmpty) {
+      mcp.rejectPreferences(validation);
+      return;
     }
+    mcp.updatePreferences((
+      enabled: _enabled,
+      port: int.parse(_port),
+      token: _token.trim(),
+      scope: _scope,
+      folder: _folder.trim(),
+      confirmation: _confirmation,
+    ), immediate: immediate);
   }
 
   Future<void> _test() async {
@@ -152,49 +175,71 @@ class _McpSettingsPaneState extends State<McpSettingsPane> {
             ),
           ),
           const SizedBox(height: 18),
-          Row(
-            children: [
-              Container(
-                width: 7,
-                height: 7,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: widget.mcp.server.running
-                      ? c.primary
-                      : c.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  widget.mcp.server.running
-                      ? '${l.mcpRunning} · ${widget.mcp.server.endpoint}'
-                      : l.mcpStopped,
-                  style: const TextStyle(fontSize: 13, height: 1.6),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
           if (_tab == 0) ...[
             PreferenceSwitch(
               label: l.mcpEnable,
               note: '127.0.0.1',
               value: _enabled,
-              onChanged: _busy ? null : (v) => setState(() => _enabled = v),
+              key: const ValueKey('mcp-enabled'),
+              onChanged: (v) {
+                setState(() => _enabled = v);
+                _save(immediate: true, stopping: !v);
+              },
             ),
+            Semantics(
+              liveRegion: true,
+              child: Row(
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: widget.mcp.error.isNotEmpty
+                          ? c.error
+                          : widget.mcp.server.running
+                          ? c.primary
+                          : c.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      widget.mcp.configuring
+                          ? (widget.mcp.enabled
+                                ? l.prefMcpStarting
+                                : l.prefMcpStopping)
+                          : widget.mcp.error.isNotEmpty
+                          ? widget.mcp.error
+                          : widget.mcp.server.running
+                          ? '${l.mcpRunning} · ${widget.mcp.server.endpoint}'
+                          : l.mcpStopped,
+                      style: const TextStyle(fontSize: 13, height: 1.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
             PreferenceText(
               label: l.mcpPort,
               value: _port,
               numeric: true,
-              onChanged: (v) => _port = v,
+              key: const ValueKey('mcp-port'),
+              onChanged: (v) {
+                _port = v;
+                _save();
+              },
             ),
             PreferenceText(
               key: const ValueKey('mcp-token'),
               label: l.mcpToken,
               value: _token,
               obscure: !_reveal,
-              onChanged: (v) => _token = v,
+              onChanged: (v) {
+                _token = v;
+                _save();
+              },
               suffix: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -210,8 +255,10 @@ class _McpSettingsPaneState extends State<McpSettingsPane> {
                     tooltip: l.mcpGenerate,
                     height: 28,
                     padding: 5,
-                    onPressed: () =>
-                        setState(() => _token = McpServer.generateToken()),
+                    onPressed: () {
+                      setState(() => _token = McpServer.generateToken());
+                      _save(immediate: true);
+                    },
                   ),
                 ],
               ),
@@ -224,42 +271,28 @@ class _McpSettingsPaneState extends State<McpSettingsPane> {
                 ('folder', l.mcpFolder),
                 ('custom', l.mcpCustom),
               ],
-              onChanged: (value) => setState(() => _scope = value),
+              onChanged: (value) {
+                setState(() => _scope = value);
+                _save(immediate: true);
+              },
             ),
             if (_scope == 'custom')
               PreferenceText(
                 label: l.mcpCustom,
                 value: _folder,
-                onChanged: (v) => _folder = v,
+                key: const ValueKey('mcp-folder'),
+                onChanged: (v) {
+                  _folder = v;
+                  _save();
+                },
               ),
             PreferenceSwitch(
               label: l.mcpConfirm,
               value: _confirmation,
-              onChanged: _busy
-                  ? null
-                  : (v) => setState(() => _confirmation = v),
-            ),
-            const SizedBox(height: 18),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                AppButton(
-                  label: l.prefApply,
-                  primary: true,
-                  onPressed: _busy ? null : _apply,
-                ),
-                AppButton(
-                  label: l.prefMcpStop,
-                  bordered: true,
-                  onPressed: _busy || !widget.mcp.server.running
-                      ? null
-                      : () async {
-                          await widget.mcp.configure(false);
-                          if (mounted) setState(() => _enabled = false);
-                        },
-                ),
-              ],
+              onChanged: (v) {
+                setState(() => _confirmation = v);
+                _save(immediate: true);
+              },
             ),
           ],
           if (_tab == 1) ...[
@@ -373,6 +406,14 @@ class _McpSettingsPaneState extends State<McpSettingsPane> {
               child: Text(
                 _result,
                 style: TextStyle(color: c.primary, fontSize: 13),
+              ),
+            ),
+          if (widget.mcp.settingsError.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Text(
+                widget.mcp.settingsError,
+                style: TextStyle(color: c.error, fontSize: 13),
               ),
             ),
           if (_error.isNotEmpty)

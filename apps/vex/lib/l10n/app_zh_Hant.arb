@@ -1,5 +1,12 @@
 {
   "@@locale": "zh_Hant",
+  "documentAuxiliary": "文件輔助",
+  "articleInfo": "文章資訊",
+  "chapterDetails": "章節詳情",
+  "revealSection": "定位至內文",
+  "selectChapter": "選擇一個章節",
+  "selectChapterHint": "在心智圖中選擇節點，即可檢視及編輯章節內文。",
+  "chapterBodyAutosaveHint": "修改會同步到文章，子章節獨立保留。可使用復原還原。",
   "updateDownload": "下載更新",
   "updateDownloadPrompt": "下載適合目前裝置的安裝程式，核驗完成後由你決定何時安裝。",
   "updateDownloading": "正在下載…",
@@ -203,7 +210,7 @@
   "filesOutline": "檔案與大綱",
   "quickStartBadge": "• 快速上手",
   "layoutDropdown": "版面配置",
-  "findTooltip": "尋找 · Ctrl+F",
+  "findTooltip": "搜尋目前內文 · Ctrl+F",
   "saveTooltip": "儲存 · Ctrl+S",
   "newAction": "新增",
   "layout": "版面配置",
@@ -219,7 +226,7 @@
   "taskList": "工作清單",
   "inlineCode": "行內程式碼",
   "moreFormatting": "更多格式",
-  "findText": "尋找文字",
+  "findText": "搜尋目前內文…",
   "matchCase": "區分大小寫",
   "regularExpression": "正規表示式",
   "wholeWord": "整詞",
@@ -250,7 +257,7 @@
   "outline": "大綱",
   "documentStructure": "文件結構",
   "outlineHint": "使用 # 標題來組織內容。",
-  "searchDocuments": "搜尋文件…",
+  "searchDocuments": "依檔名搜尋…",
   "notes": "筆記",
   "openMarkdownFolder": "開啟 Markdown 資料夾",
   "recentlyOpened": "最近開啟",
@@ -307,7 +314,7 @@
   "recoveryDraftCount": "發現 {count} 篇復原草稿",
   "typographyDropdown": "排版 {name}",
   "matchCount": "{count} 筆符合項目",
-  "wordCount": "{count} 詞",
+  "wordCount": "{count} 字詞",
   "preferencesLoadFailed": "偏好設定或復原草稿讀取失敗：{error}",
   "savedFile": "已儲存 {name}",
   "fileReadFailed": "原檔案暫時無法讀取：{error}",
@@ -339,10 +346,10 @@
   "presentationMarkdown": "正文",
   "mcpSettings": "MCP 設定",
   "mcpIntro": "允許 AI 用戶端透過本機 MCP 介面讀取和操作目前文件。",
-  "mcpEnable": "啟用 MCP Server",
+  "mcpEnable": "啟用 MCP 服務",
   "mcpAddress": "監聽位址",
   "mcpPort": "連接埠",
-  "mcpToken": "授權 Token",
+  "mcpToken": "存取權杖",
   "mcpGenerate": "重新產生",
   "mcpCopyAddress": "複製位址",
   "mcpScope": "允許存取範圍",
@@ -351,7 +358,7 @@
   "mcpCustom": "自訂目錄",
   "mcpConfirm": "修改、儲存或開啟檔案前需要確認",
   "mcpRunning": "服務執行中",
-  "mcpStopped": "未啟動",
+  "mcpStopped": "服務已停止",
   "mcpConfirmTitle": "確認 MCP 操作",
   "mcpConfirmBody": "AI 用戶端要求執行以下操作。執行後可透過復原還原文件修改。",
   "mcpExecute": "執行",
@@ -408,7 +415,7 @@
   "prefFolderError": "請輸入不含 .. 的相對目錄",
   "prefZoom": "內容縮放",
   "showWordCount": "顯示詞數",
-  "searchOutline": "尋找標題…",
+  "searchOutline": "篩選目前文章標題…",
   "clearSearch": "清除搜尋",
   "noSearchResults": "沒有符合的內容",
   "fileTreeView": "切換為樹狀檢視",
@@ -446,7 +453,13 @@
   "prefMcpAction": "操作",
   "prefMcpResult": "結果",
   "prefSeconds": "{count} 秒",
-  "@prefSeconds": {"placeholders":{"count":{"type":"int"}}},
+  "@prefSeconds": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "mermaidDiagrams": "Mermaid 圖表",
   "mermaidExamples": "Mermaid 圖表示例",
   "mermaidSource": "Mermaid 原始碼",
@@ -522,49 +535,72 @@
   "prefAutoLink": "自動識別連結",
   "prefSoftBreak": "單次換行顯示為換行",
   "prefSpaces": "{count} 空格",
-  "@prefSpaces": {"placeholders":{"count":{"type":"int"}}},
+  "@prefSpaces": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "anchorNotFound": "找不到標題：{anchor}",
-  "@anchorNotFound": {"placeholders":{"anchor":{"type":"String"}}},
+  "@anchorNotFound": {
+    "placeholders": {
+      "anchor": {
+        "type": "String"
+      }
+    }
+  },
   "excludeGeneratedFolders": "略過工具產生的資料夾",
-  "saveCopy": "儲存副本"
-,
+  "saveCopy": "儲存副本",
   "quickOpen": "快速開啟…",
   "copyAsPlainText": "複製為純文字",
   "keepWindowOnTop": "保持視窗在最前",
   "reopenWithEncoding": "選擇編碼重新開啟",
   "deleteDocument": "刪除文件…",
   "deleteDocumentConfirm": "從磁碟刪除「{name}」？",
-  "@deleteDocumentConfirm": {"placeholders":{"name":{"type":"String"}}},
+  "@deleteDocumentConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "deleteDocumentHint": "檔案將從磁碟永久刪除，無法復原。",
   "statisticsTitle": "字數統計",
   "statSourceCharacters": "原始檔字元",
   "statParagraphs": "段落",
   "statReadingTime": "約 {minutes} 分鐘",
-  "@statReadingTime": {"placeholders":{"minutes":{"type":"int"}}},
+  "@statReadingTime": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "statStatus": "狀態",
   "statModified": "已修改",
   "propertyName": "名稱",
   "propertyFormat": "格式",
   "propertySize": "大小",
   "propertyBytes": "{count} 位元組",
-  "@propertyBytes": {"placeholders":{"count":{"type":"int"}}},
-  "propertyLocation": "位置"
-,
-  "statReadingTimeLabel": "閱讀時間"
-,
+  "@propertyBytes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "propertyLocation": "位置",
+  "statReadingTimeLabel": "閱讀時間",
   "tocTitle": "目錄",
   "calloutInfo": "資訊",
-  "calloutWarning": "警告"
-,
-  "builtinMarkdownSample": "Markdown 功能示例"
-,
-  "collapseAllFiles": "全部摺疊"
-,
+  "calloutWarning": "警告",
+  "builtinMarkdownSample": "Markdown 功能示例",
+  "collapseAllFiles": "全部摺疊",
   "externalChangeReloaded": "已自動重新載入外部修改",
   "menuDocumentActions": "文件操作",
   "menuNavigationPanels": "側欄與大綱",
   "menuEditorDisplay": "編輯顯示",
-  "menuWindow": "視窗",
   "menuZoom": "縮放",
   "menuTableRows": "列操作",
   "menuTableColumns": "欄操作",
@@ -573,7 +609,100 @@
   "mapHeadingsOnly": "僅標題",
   "mapCompareSource": "對照原始碼",
   "mapSummaryLabel": "摘要 {count} 字",
-  "@mapSummaryLabel": {"placeholders": {"count": {"type": "int"}}},
+  "@mapSummaryLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "mapContentSummary": "內容摘要",
-  "mapNavigationHint": "Enter 同級 · Tab 子級 · 拖動章節調整結構"
+  "mapNavigationHint": "Enter 同級 · Tab 子級 · 拖動章節調整結構",
+  "savingDocument": "正在儲存…",
+  "saveFailedRetry": "儲存失敗 · 點擊重試",
+  "newUnsaved": "新文件 · 尚未儲存至磁碟",
+  "unsavedChanges": "有尚未儲存的修改",
+  "savedAt": "已儲存 · {time}",
+  "diskVersion": "已載入磁碟版本",
+  "recoveredNeedsSave": "已復原草稿 · 仍需儲存",
+  "saveDetails": "儲存與復原狀態",
+  "lastSaved": "最近儲存",
+  "noSaveYet": "本次開啟後尚未儲存",
+  "draftStatus": "復原草稿",
+  "draftProtected": "目前修改已寫入復原草稿",
+  "draftPending": "等待寫入復原草稿",
+  "draftDisabled": "草稿復原已關閉",
+  "draftNone": "目前沒有待復原的修改",
+  "draftReview": "檢視復原草稿",
+  "draftCompareHint": "左側為上次儲存內容，右側為復原草稿。復原後仍需儲存，寫入時會檢查磁碟衝突。",
+  "draftSource": "草稿來源",
+  "savedContent": "上次儲存內容",
+  "recoveryContent": "復原草稿內容",
+  "linkedViews": "視圖連動",
+  "freeBrowse": "自由瀏覽",
+  "followSource": "跟隨：{pane}",
+  "returnToEditing": "回到編輯位置",
+  "activePaneLabel": "目前操作",
+  "switchToSource": "切換至原始碼編輯",
+  "switchToInstant": "切換至即時編輯",
+  "showFiles": "顯示檔案欄",
+  "hideFiles": "收起檔案欄",
+  "showOutline": "顯示標題大綱",
+  "hideOutline": "收起標題大綱",
+  "wordCountRules": "中文按字、英文按詞；不計 Markdown 標記和空白。",
+  "selectedWords": "選取 {count} 字詞",
+  "visibleWords": "正文字詞",
+  "currentArticle": "目前文章",
+  "sampleArticle": "完整範例文章",
+  "emptyPreviewHint": "目前文章為空，可切換範例檢視排版。",
+  "layoutPurpose": "單一視圖用於專注寫作、閱讀或導圖；組合配置用於對照。檔案欄與大綱在底欄開關。",
+  "noFilenameResults": "沒有相符的檔名；此處不搜尋內文。",
+  "findInContent": "切換至目前內文搜尋",
+  "mapEmptyHint": "新增 Markdown 標題即可產生章節心智圖。",
+  "undoChapter": "復原剛才的章節修改",
+  "mapMovePreview": "移到「{title}」末尾，作為 H{level} 子章節；內文及 {children} 個子章節共 {characters} 字元一起移動。",
+  "@savedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@followSource": {
+    "placeholders": {
+      "pane": {
+        "type": "String"
+      }
+    }
+  },
+  "@selectedWords": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@mapMovePreview": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "level": {
+        "type": "int"
+      },
+      "children": {
+        "type": "int"
+      },
+      "characters": {
+        "type": "int"
+      }
+    }
+  },
+  "guidePractice": "導覽練習 · 不寫入原檔案",
+  "emptyWorkspaceTitle": "從一篇文章開始",
+  "emptyWorkspaceHint": "新增文件開始寫作，或開啟現有 Markdown 檔案。",
+  "prefMcpSaveFailed": "設定儲存失敗，請檢查系統憑證儲存後重試。",
+  "prefMcpStartFailed": "啟動失敗，請檢查連接埠及系統憑證儲存。",
+  "prefMcpStarting": "正在啟動…",
+  "prefMcpStopping": "正在停止…"
 }

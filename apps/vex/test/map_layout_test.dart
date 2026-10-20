@@ -57,6 +57,16 @@ void main() {
       await tester.pumpAndSettle();
       final field = find.byKey(const ValueKey('mindmap-inline-title'));
       expect(field, findsOneWidget);
+      void checkRenameVisible() {
+        final canvas = tester.getRect(find.byType(MindMapView));
+        final input = tester.getRect(field);
+        expect(input.left, greaterThanOrEqualTo(canvas.left));
+        expect(input.right, lessThanOrEqualTo(canvas.right));
+        expect(input.top, greaterThanOrEqualTo(canvas.top));
+        expect(input.bottom, lessThanOrEqualTo(canvas.bottom));
+      }
+
+      checkRenameVisible();
       expect(vm.selectedHeading, isNotNull);
       expect(vm.map.layout.nodes[vm.map.selectedId], isNotNull);
       await tester.enterText(field, 'Created');
@@ -71,6 +81,7 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pumpAndSettle();
       expect(field, findsOneWidget);
+      checkRenameVisible();
       expect(vm.selectedHeading?.parentId, contains('Created'));
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());

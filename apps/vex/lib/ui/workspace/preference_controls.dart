@@ -133,7 +133,7 @@ class PreferenceDropdown<T> extends StatelessWidget {
       child: DropdownButtonFormField<T>(
         initialValue: value,
         isExpanded: true,
-        style: TextStyle(
+        style: Theme.of(context).textTheme.bodyMedium!.copyWith(
           fontSize: 14,
           height: 1.3,
           color: Theme.of(context).colorScheme.onSurface,

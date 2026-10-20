@@ -10,6 +10,27 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get documentAuxiliary => '文書サポート';
+
+  @override
+  String get articleInfo => '文書情報';
+
+  @override
+  String get chapterDetails => 'セクション詳細';
+
+  @override
+  String get revealSection => '本文に移動';
+
+  @override
+  String get selectChapter => 'セクションを選択';
+
+  @override
+  String get selectChapterHint => 'マインドマップのノードを選ぶと、本文の確認と編集ができます。';
+
+  @override
+  String get chapterBodyAutosaveHint => '変更は文書に同期されます。子セクションは保持され、元に戻す操作も可能です。';
+
+  @override
   String get updateDownload => '更新をダウンロード';
 
   @override
@@ -632,7 +653,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get layoutDropdown => 'レイアウト';
 
   @override
-  String get findTooltip => '検索 · Ctrl+F';
+  String get findTooltip => '現在の本文を検索 · Ctrl+F';
 
   @override
   String get saveTooltip => '保存 · Ctrl+S';
@@ -680,7 +701,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get moreFormatting => 'その他の書式';
 
   @override
-  String get findText => '検索するテキスト';
+  String get findText => '現在の本文を検索…';
 
   @override
   String get matchCase => '大文字と小文字を区別';
@@ -777,7 +798,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get outlineHint => '# 見出しで文書を整理しましょう。';
 
   @override
-  String get searchDocuments => '文書を検索…';
+  String get searchDocuments => 'ファイル名で検索…';
 
   @override
   String get notes => 'ノート';
@@ -1005,7 +1026,7 @@ class AppLocalizationsJa extends AppLocalizations {
         intl.NumberFormat.decimalPattern(localeName);
     final String countString = countNumberFormat.format(count);
 
-    return '$countString 語';
+    return '$countString 字・語';
   }
 
   @override
@@ -1131,7 +1152,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mcpIntro => 'ローカル MCP 接続から AI クライアントが文書を読み取り、編集できます。';
 
   @override
-  String get mcpEnable => 'MCP サーバーを有効にする';
+  String get mcpEnable => 'MCP サービスを有効にする';
 
   @override
   String get mcpAddress => '待受アドレス';
@@ -1140,7 +1161,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mcpPort => 'ポート';
 
   @override
-  String get mcpToken => '認証トークン';
+  String get mcpToken => 'アクセストークン';
 
   @override
   String get mcpGenerate => '再生成';
@@ -1167,7 +1188,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mcpRunning => 'サーバー稼働中';
 
   @override
-  String get mcpStopped => '停止中';
+  String get mcpStopped => 'サービス停止中';
 
   @override
   String get mcpConfirmTitle => 'MCP 操作の確認';
@@ -1338,7 +1359,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get showWordCount => '語数を表示';
 
   @override
-  String get searchOutline => '見出しを検索…';
+  String get searchOutline => '現在の見出しを絞り込む…';
 
   @override
   String get clearSearch => '検索をクリア';
@@ -1814,4 +1835,164 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get mapNavigationHint => 'Enter：同階層 · Tab：子階層 · ドラッグで構成を変更';
+
+  @override
+  String get savingDocument => '保存中…';
+
+  @override
+  String get saveFailedRetry => '保存失敗 · 再試行';
+
+  @override
+  String get newUnsaved => '新規文書 · 未保存';
+
+  @override
+  String get unsavedChanges => '未保存の変更あり';
+
+  @override
+  String savedAt(String time) {
+    return '保存済み · $time';
+  }
+
+  @override
+  String get diskVersion => 'ディスクの版を読み込み済み';
+
+  @override
+  String get recoveredNeedsSave => '下書きを復元 · 保存が必要';
+
+  @override
+  String get saveDetails => '保存と復元の状態';
+
+  @override
+  String get lastSaved => '最終保存';
+
+  @override
+  String get noSaveYet => '開いてから未保存';
+
+  @override
+  String get draftStatus => '復元用下書き';
+
+  @override
+  String get draftProtected => '現在の変更を復元用下書きに保存済み';
+
+  @override
+  String get draftPending => '下書きの保存待ち';
+
+  @override
+  String get draftDisabled => '下書きの復元は無効';
+
+  @override
+  String get draftNone => '復元が必要な変更なし';
+
+  @override
+  String get draftReview => '復元する下書きを確認';
+
+  @override
+  String get draftCompareHint =>
+      '左は最終保存内容、右は下書きです。復元後も保存が必要です。保存時にディスクとの競合を確認します。';
+
+  @override
+  String get draftSource => '下書きの保存元';
+
+  @override
+  String get savedContent => '最終保存内容';
+
+  @override
+  String get recoveryContent => '復元用下書きの内容';
+
+  @override
+  String get linkedViews => 'ビューを連動';
+
+  @override
+  String get freeBrowse => '自由に閲覧';
+
+  @override
+  String followSource(String pane) {
+    return '連動元：$pane';
+  }
+
+  @override
+  String get returnToEditing => '編集位置へ戻る';
+
+  @override
+  String get activePaneLabel => '操作中';
+
+  @override
+  String get switchToSource => 'ソース編集へ切り替え';
+
+  @override
+  String get switchToInstant => '即時編集へ切り替え';
+
+  @override
+  String get showFiles => 'ファイル欄を表示';
+
+  @override
+  String get hideFiles => 'ファイル欄を閉じる';
+
+  @override
+  String get showOutline => '見出し一覧を表示';
+
+  @override
+  String get hideOutline => '見出し一覧を閉じる';
+
+  @override
+  String get wordCountRules => '日本語・中国語は文字、英語などは単語で集計。Markdown 記号と空白は除外。';
+
+  @override
+  String selectedWords(int count) {
+    return '選択範囲：$count 字・語';
+  }
+
+  @override
+  String get visibleWords => '本文の字・語数';
+
+  @override
+  String get currentArticle => '現在の文書';
+
+  @override
+  String get sampleArticle => 'サンプル文書';
+
+  @override
+  String get emptyPreviewHint => '文書が空です。サンプルで組版を確認できます。';
+
+  @override
+  String get layoutPurpose =>
+      '単一ビューで執筆・閲覧・マップに集中、組み合わせで比較。ファイルと見出し一覧は下部で切り替えます。';
+
+  @override
+  String get noFilenameResults => '一致するファイル名なし。本文は検索されません。';
+
+  @override
+  String get findInContent => '現在の本文を検索';
+
+  @override
+  String get mapEmptyHint => 'Markdown 見出しを追加すると章のマップができます。';
+
+  @override
+  String get undoChapter => '直前の章の変更を元に戻す';
+
+  @override
+  String mapMovePreview(String title, int level, int children, int characters) {
+    return '「$title」末尾へ H$level として移動。本文と子章 $children 件（$characters 文字）も移動します。';
+  }
+
+  @override
+  String get guidePractice => 'ガイド練習 · 元ファイルには保存されません';
+
+  @override
+  String get emptyWorkspaceTitle => '文書を作成して始める';
+
+  @override
+  String get emptyWorkspaceHint => '文書を新規作成するか、既存の Markdown ファイルを開きます。';
+
+  @override
+  String get prefMcpSaveFailed => '設定を保存できませんでした。システムの資格情報ストアを確認して再試行してください。';
+
+  @override
+  String get prefMcpStartFailed => '起動できませんでした。ポートとシステムの資格情報ストアを確認してください。';
+
+  @override
+  String get prefMcpStarting => '起動中…';
+
+  @override
+  String get prefMcpStopping => '停止中…';
 }

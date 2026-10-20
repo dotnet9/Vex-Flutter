@@ -77,7 +77,7 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
       return ResizableSplit(
         key: const ValueKey('three'),
         vertical: true,
-        initial: .5,
+        initial: vm.windowSize.height < 600 ? .44 : .5,
         first: ResizableSplit(
           first: _pane('source', true),
           second: _pane('read', true),
@@ -110,6 +110,7 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
       },
       child: Listener(
         onPointerDown: (_) => vm.activatePane(pane),
+        onPointerSignal: (_) => vm.activatePane(pane),
         child: ColoredBox(
           key: ValueKey('${vm.current.id}-$pane'),
           color: pane == 'map'
@@ -121,6 +122,9 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                 PanelHeader(
                   height: 36,
                   title: title,
+                  backgroundColor: titled && vm.activePane == pane
+                      ? c.primary.withValues(alpha: .045)
+                      : null,
                   icon: switch (pane) {
                     'map' => 'map',
                     'read' => 'eye',
@@ -356,11 +360,24 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                   ),
                   AppButton(
                     icon: 'edit',
+                    label: context.l10n.sectionBody,
                     tooltip: context.l10n.arrange,
-                    selected: _inspector,
+                    selected: vm.viewport == WorkspaceViewport.phone
+                        ? _inspector
+                        : vm.structure &&
+                              vm.auxiliary == WorkspaceAuxiliary.chapter,
                     height: 26,
                     padding: 6,
-                    onPressed: () => setState(() => _inspector = !_inspector),
+                    onPressed: () {
+                      if (vm.viewport == WorkspaceViewport.phone) {
+                        setState(() => _inspector = !_inspector);
+                      } else if (vm.structure &&
+                          vm.auxiliary == WorkspaceAuxiliary.chapter) {
+                        vm.showStructure(false);
+                      } else {
+                        vm.showAuxiliary(WorkspaceAuxiliary.chapter);
+                      }
+                    },
                   ),
                 ],
               );
@@ -387,12 +404,34 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                     key: widget.mapKey,
                     controller: vm.map,
                     labels: context.l10n.mapLabels,
-                    onSelect: vm.selectNode,
+                    onSelect: (node) {
+                      vm.selectNode(node);
+                      if (vm.viewport == WorkspaceViewport.phone) {
+                        setState(() => _inspector = true);
+                      } else {
+                        vm.showAuxiliary(WorkspaceAuxiliary.chapter);
+                      }
+                    },
                     onActivate: (node) {
                       vm.selectNode(node);
-                      setState(() => _inspector = true);
+                      if (vm.viewport == WorkspaceViewport.phone) {
+                        setState(() => _inspector = true);
+                      } else {
+                        vm.showAuxiliary(WorkspaceAuxiliary.chapter);
+                      }
                     },
                     onMove: (from, to) => _command(() => vm.moveNode(from, to)),
+                    movePreview: (from, to) {
+                      final preview = vm.movePreview(from, to);
+                      return preview == null
+                          ? null
+                          : context.l10n.mapMovePreview(
+                              preview.title,
+                              preview.level,
+                              preview.children,
+                              preview.characters,
+                            );
+                    },
                     onRename: (node, title) =>
                         _command(() => vm.renameNode(node, title)),
                     onCommand: (node, command) async {
@@ -408,9 +447,11 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                             mode != null &&
                             vm.editor.document.heading(heading.id) != null) {
                           _command(
-                            () => vm.editor.session.deleteHeading(
-                              heading.id,
-                              keepContents: mode == 'keep',
+                            () => vm.chapterEdit(
+                              () => vm.editor.session.deleteHeading(
+                                heading.id,
+                                keepContents: mode == 'keep',
+                              ),
                             ),
                           );
                         }
@@ -462,6 +503,37 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                   ),
                 ),
               ),
+              if (vm.editor.document.headings.isEmpty)
+                Positioned(
+                  left: 24,
+                  right: 24,
+                  bottom: 56,
+                  child: IgnorePointer(
+                    child: Text(
+                      context.l10n.mapEmptyHint,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+              if (vm.canUndoChapter)
+                Positioned(
+                  left: 12,
+                  bottom: 54,
+                  child: Material(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(5),
+                    child: AppButton(
+                      key: const ValueKey('undo-chapter'),
+                      label: context.l10n.undoChapter,
+                      icon: 'undo',
+                      fontSize: 11,
+                      onPressed: vm.undoChapter,
+                    ),
+                  ),
+                ),
               if (constraints.maxWidth >= 680)
                 Positioned(
                   left: 116,
@@ -476,7 +548,9 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                     ),
                   ),
                 ),
-              if (_inspector && vm.selectedHeading != null)
+              if (vm.viewport == WorkspaceViewport.phone &&
+                  _inspector &&
+                  vm.selectedHeading != null)
                 Positioned(
                   right: 10,
                   top: 10,
@@ -613,6 +687,8 @@ class _DocumentReadingState extends State<_DocumentReading>
         vm.editor.document.blocks,
       ),
       child: SelectionArea(
+        onSelectionChanged: (selection) =>
+            vm.setReadingSelection(selection?.plainText),
         child: Listener(
           onPointerDown: (_) => _navigation.cancel(),
           onPointerSignal: (_) => _navigation.cancel(),
@@ -634,7 +710,16 @@ class _DocumentReadingState extends State<_DocumentReading>
                   controller: _scroll,
                   listController: _list,
                   cacheExtent: constraints.maxHeight,
-                  padding: widget.padding,
+                  padding: widget.padding.copyWith(
+                    left: ((constraints.maxWidth - 820) / 2).clamp(
+                      widget.padding.left,
+                      double.infinity,
+                    ),
+                    right: ((constraints.maxWidth - 820) / 2).clamp(
+                      widget.padding.right,
+                      double.infinity,
+                    ),
+                  ),
                   itemCount: blocks.isEmpty ? 1 : blocks.length,
                   itemBuilder: (context, index) {
                     if (blocks.isEmpty) return Text(context.l10n.emptyDocument);
@@ -795,10 +880,12 @@ class ChapterInspector extends StatefulWidget {
     required this.vm,
     required this.onClose,
     required this.onError,
+    this.embedded = false,
   });
   final WorkspaceViewModel vm;
   final VoidCallback onClose;
   final ValueChanged<Object> onError;
+  final bool embedded;
   @override
   State<ChapterInspector> createState() => _ChapterInspectorState();
 }
@@ -812,6 +899,51 @@ class _ChapterInspectorState extends State<ChapterInspector> {
         .slice(widget.vm.editor.session.text)
         .trim(),
   );
+  late String _syncedTitle = widget.vm.selectedHeading!.title;
+  late String _syncedBody = _body.text;
+
+  @override
+  void didUpdateWidget(covariant ChapterInspector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final heading = widget.vm.selectedHeading;
+    if (heading == null) return;
+    final body = heading.body.slice(widget.vm.editor.text).trim();
+    if (heading.title != _syncedTitle) {
+      _title.text = _syncedTitle = heading.title;
+    }
+    if (body != _syncedBody) _body.text = _syncedBody = body;
+  }
+
+  void _syncTitle(String text) {
+    final vm = widget.vm, heading = widget.vm.selectedHeading;
+    if (heading == null || text.trim().isEmpty) return;
+    _syncedTitle = text.trim();
+    _command(() {
+      vm.editor.session.renameHeading(heading.id, text);
+      vm.selectedHeadingId = vm.editor.document.headings
+          .where((h) => h.header.start == heading.header.start)
+          .firstOrNull
+          ?.id;
+    });
+  }
+
+  void _syncBody(String text) {
+    final vm = widget.vm, heading = widget.vm.selectedHeading;
+    if (heading == null) return;
+    _syncedBody = text.trim();
+    _command(() => vm.editor.session.replaceBody(heading.id, text));
+  }
+
+  void _changeLevel(int delta) {
+    final vm = widget.vm, heading = widget.vm.selectedHeading;
+    if (heading == null) return;
+    vm.editor.session.changeLevel(heading.id, delta);
+    vm.selectedHeadingId = vm.editor.document.headings
+        .where((h) => h.header.start == heading.header.start)
+        .firstOrNull
+        ?.id;
+  }
+
   @override
   void dispose() {
     _title.dispose();
@@ -821,7 +953,7 @@ class _ChapterInspectorState extends State<ChapterInspector> {
 
   void _command(VoidCallback action) {
     try {
-      action();
+      widget.vm.chapterEdit(action);
     } catch (e) {
       widget.onError(e);
     }
@@ -833,20 +965,23 @@ class _ChapterInspectorState extends State<ChapterInspector> {
     final c = Theme.of(context).colorScheme;
     return Material(
       color: c.surfaceContainerLow,
-      elevation: 5,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(9),
-        side: BorderSide(color: c.outlineVariant),
-      ),
+      elevation: widget.embedded ? 0 : 5,
+      shape: widget.embedded
+          ? null
+          : RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(9),
+              side: BorderSide(color: c.outlineVariant),
+            ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            PanelHeader(
-              title: context.l10n.sectionArrangement,
-              icon: 'edit',
-              trailing: AppCloseButton(onPressed: widget.onClose),
-            ),
+            if (!widget.embedded)
+              PanelHeader(
+                title: context.l10n.sectionArrangement,
+                icon: 'edit',
+                trailing: AppCloseButton(onPressed: widget.onClose),
+              ),
             Padding(
               padding: const EdgeInsets.all(14),
               child: Column(
@@ -866,7 +1001,9 @@ class _ChapterInspectorState extends State<ChapterInspector> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
+                          key: const ValueKey('chapter-title-input'),
                           controller: _title,
+                          onChanged: widget.embedded ? _syncTitle : null,
                           style: const TextStyle(fontSize: 12),
                         ),
                       ),
@@ -886,14 +1023,8 @@ class _ChapterInspectorState extends State<ChapterInspector> {
                           context.l10n.moveDown,
                           () => vm.editor.session.moveHeading(h.id, 1),
                         ),
-                        (
-                          context.l10n.promote,
-                          () => vm.editor.session.changeLevel(h.id, -1),
-                        ),
-                        (
-                          context.l10n.demote,
-                          () => vm.editor.session.changeLevel(h.id, 1),
-                        ),
+                        (context.l10n.promote, () => _changeLevel(-1)),
+                        (context.l10n.demote, () => _changeLevel(1)),
                         (
                           context.l10n.sibling,
                           () => vm.editor.session.addHeading(
@@ -920,20 +1051,45 @@ class _ChapterInspectorState extends State<ChapterInspector> {
                     ],
                   ),
                   const SizedBox(height: 15),
+                  if (widget.embedded) ...[
+                    AppButton(
+                      label: context.l10n.revealSection,
+                      icon: 'edit',
+                      key: const ValueKey('chapter-reveal'),
+                      fontSize: 12,
+                      onPressed: () {
+                        if (!vm.layout.panes.any(
+                          (pane) => pane == 'source' || pane == 'instant',
+                        )) {
+                          vm.setLayout(
+                            vm.layout.panes.contains('map')
+                                ? WorkspaceLayout.instantMap
+                                : WorkspaceLayout.instant,
+                          );
+                        }
+                        vm.selectHeading(h);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   Text(
                     context.l10n.sectionBody,
                     style: const TextStyle(fontSize: 12),
                   ),
                   const SizedBox(height: 7),
                   TextField(
+                    key: const ValueKey('chapter-body-input'),
                     controller: _body,
+                    onChanged: widget.embedded ? _syncBody : null,
                     minLines: 3,
-                    maxLines: 7,
+                    maxLines: widget.embedded ? null : 7,
                     style: const TextStyle(fontSize: 11.5, height: 1.7),
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    context.l10n.sectionBodyHint,
+                    widget.embedded
+                        ? context.l10n.chapterBodyAutosaveHint
+                        : context.l10n.sectionBodyHint,
                     style: TextStyle(fontSize: 12, color: c.onSurfaceVariant),
                   ),
                   const SizedBox(height: 12),
@@ -957,20 +1113,26 @@ class _ChapterInspectorState extends State<ChapterInspector> {
                         },
                       ),
                       const Spacer(),
-                      AppButton(
-                        label: context.l10n.apply,
-                        primary: true,
-                        onPressed: () => _command(() {
-                          // Body first: renaming changes the derived heading identity.
-                          vm.editor.session.replaceBody(h.id, _body.text);
-                          vm.editor.session.renameHeading(h.id, _title.text);
-                          vm.selectedHeadingId = vm.editor.document.headings
-                              .where((n) => n.header.start == h.header.start)
-                              .firstOrNull
-                              ?.id;
-                          widget.onClose();
-                        }),
-                      ),
+                      if (widget.embedded)
+                        AppButton(
+                          label: context.l10n.undo,
+                          onPressed: vm.canUndoChapter ? vm.undoChapter : null,
+                        )
+                      else
+                        AppButton(
+                          label: context.l10n.apply,
+                          primary: true,
+                          onPressed: () => _command(() {
+                            // Body first: renaming changes the derived heading identity.
+                            vm.editor.session.replaceBody(h.id, _body.text);
+                            vm.editor.session.renameHeading(h.id, _title.text);
+                            vm.selectedHeadingId = vm.editor.document.headings
+                                .where((n) => n.header.start == h.header.start)
+                                .firstOrNull
+                                ?.id;
+                            widget.onClose();
+                          }),
+                        ),
                     ],
                   ),
                 ],

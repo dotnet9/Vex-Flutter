@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vex/app.dart';
 import 'package:vex/domain/workspace.dart';
@@ -170,9 +171,17 @@ void main() {
         if (size.width >= 700) {
           await tester.tap(find.byTooltip(l.workspaceLayout));
           await tester.pumpAndSettle();
-          expect(find.text(l.workspaceLayout), findsWidgets);
+          for (final layout in WorkspaceLayout.values.where(
+            (layout) => layout.panes.length <= vm.viewport.maxPanes,
+          )) {
+            expect(
+              find.byKey(ValueKey('layout-${layout.name}')),
+              findsOneWidget,
+            );
+            expect(find.text(l.layoutName(layout)), findsWidgets);
+          }
           expect(tester.takeException(), isNull);
-          await tester.tap(find.byTooltip(l.closePicker));
+          await tester.sendKeyEvent(LogicalKeyboardKey.escape);
           await tester.pumpAndSettle();
         } else {
           expect(find.byTooltip(l.workspaceLayout), findsNothing);
@@ -220,11 +229,38 @@ void main() {
     await tester.pumpWidget(VexApp(viewModel: vm));
     await tester.pumpAndSettle();
     final source = vm.editor.text;
+    await tester.tap(find.byKey(const ValueKey('titlebar-appearance')));
+    await tester.pumpAndSettle();
+    expect(find.byType(Radio<ThemeMode>), findsNWidgets(3));
     for (final mode in [ThemeMode.dark, ThemeMode.system, ThemeMode.light]) {
-      await tester.tap(find.byKey(const ValueKey('titlebar-theme')));
+      await tester.tap(find.byKey(ValueKey('appearance-mode-${mode.name}')));
       await tester.pumpAndSettle();
       expect(vm.themeMode, mode);
+      expect(find.byKey(const ValueKey('appearance-picker')), findsOneWidget);
+      expect((vm.settings as MemorySettings).value['theme'], mode.name);
+      expect(vm.editor.text, source);
+      expect(tester.takeException(), isNull);
     }
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    expect(vm.themeMode, ThemeMode.dark);
+    expect(find.byKey(const ValueKey('appearance-picker')), findsOneWidget);
+    await tester.tap(find.text(vm.strings.followSystem));
+    await tester.pumpAndSettle();
+    expect(vm.themeMode, ThemeMode.system);
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    for (final brightness in [Brightness.dark, Brightness.light]) {
+      tester.platformDispatcher.platformBrightnessTestValue = brightness;
+      await tester.pumpAndSettle();
+      final appearance = tester.element(
+        find.byKey(const ValueKey('appearance-picker')),
+      );
+      expect(Theme.of(appearance).brightness, brightness);
+      expect(vm.themeMode, ThemeMode.system);
+      expect((vm.settings as MemorySettings).value['theme'], 'system');
+    }
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
     for (final language in ['en', 'zh_Hant', 'ja', 'zh']) {
       await tester.tap(find.byKey(const ValueKey('titlebar-language')));
       await tester.pumpAndSettle();

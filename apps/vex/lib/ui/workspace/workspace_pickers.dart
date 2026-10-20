@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:super_sliver_list/super_sliver_list.dart';
 import 'package:vex_editor/vex_editor.dart';
 import 'package:vex_mindmap/vex_mindmap.dart';
 
@@ -144,15 +145,26 @@ class WorkspacePickerAnchor extends StatelessWidget {
     required this.controller,
     required this.child,
     this.popupKey,
+    this.focusNode,
   });
   final WorkspaceViewModel vm;
   final WorkspacePicker picker;
   final MenuController controller;
   final Widget child;
   final GlobalKey? popupKey;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
+    if (picker == WorkspacePicker.layout) {
+      return _WorkspaceViewMenu(
+        vm: vm,
+        controller: controller,
+        focusNode: focusNode,
+        popupKey: popupKey,
+        child: child,
+      );
+    }
     final width = math.min(
       picker == WorkspacePicker.typography ? 650.0 : 496.0,
       vm.guiding &&
@@ -219,7 +231,7 @@ class WorkspacePickerAnchor extends StatelessWidget {
                         if (picker == WorkspacePicker.layout)
                           Text(
                             picker == WorkspacePicker.layout
-                                ? context.l10n.layoutHint
+                                ? context.l10n.layoutPurpose
                                 : context.l10n.typographyHint,
                             style: TextStyle(
                               fontSize: 12,
@@ -230,7 +242,11 @@ class WorkspacePickerAnchor extends StatelessWidget {
                           ),
                         const SizedBox(height: 14),
                         if (picker == WorkspacePicker.layout)
-                          LayoutChoices(vm: vm, width: width - 32)
+                          LayoutChoices(
+                            vm: vm,
+                            width: width - 32,
+                            onSelected: controller.close,
+                          )
                         else if (picker == WorkspacePicker.map)
                           MapAppearanceChoices(vm: vm, width: width - 32)
                         else ...[
@@ -335,10 +351,104 @@ class _MapAppearanceChoicesState extends State<MapAppearanceChoices> {
   );
 }
 
+class _WorkspaceViewMenu extends StatefulWidget {
+  const _WorkspaceViewMenu({
+    required this.vm,
+    required this.controller,
+    required this.child,
+    this.focusNode,
+    this.popupKey,
+  });
+  final WorkspaceViewModel vm;
+  final MenuController controller;
+  final Widget child;
+  final FocusNode? focusNode;
+  final GlobalKey? popupKey;
+  @override
+  State<_WorkspaceViewMenu> createState() => _WorkspaceViewMenuState();
+}
+
+class _WorkspaceViewMenuState extends State<_WorkspaceViewMenu> {
+  final _nodes = {
+    for (final layout in WorkspaceLayout.values) layout: FocusNode(),
+  };
+  List<WorkspaceLayout> get _layouts => WorkspaceLayout.values
+      .where((layout) => layout.panes.length <= widget.vm.viewport.maxPanes)
+      .toList();
+  void _move(int delta) {
+    final layouts = _layouts;
+    final index = layouts.indexWhere((layout) => _nodes[layout]!.hasFocus);
+    _nodes[layouts[((index < 0 ? 0 : index) + delta) % layouts.length]]!
+        .requestFocus();
+  }
+
+  @override
+  void dispose() {
+    for (final node in _nodes.values) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => MenuAnchor(
+    controller: widget.controller,
+    childFocusNode: widget.focusNode,
+    consumeOutsideTap: true,
+    alignmentOffset: const Offset(0, 6),
+    onOpen: () => WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.controller.isOpen) {
+        _nodes[widget.vm.layout]!.requestFocus();
+      }
+    }),
+    menuChildren: [
+      for (final layout in _layouts)
+        CallbackShortcuts(
+          bindings: {
+            const SingleActivator(LogicalKeyboardKey.home): () =>
+                _nodes[_layouts.first]!.requestFocus(),
+            const SingleActivator(LogicalKeyboardKey.end): () =>
+                _nodes[_layouts.last]!.requestFocus(),
+            const SingleActivator(LogicalKeyboardKey.arrowLeft): () =>
+                _move(-1),
+            const SingleActivator(LogicalKeyboardKey.arrowRight): () =>
+                _move(1),
+          },
+          child: MenuItemButton(
+            key: ValueKey('layout-${layout.name}'),
+            focusNode: _nodes[layout],
+            leadingIcon: SizedBox(
+              key: layout == WorkspaceLayout.instant ? widget.popupKey : null,
+              width: 38,
+              height: 22,
+              child: LayoutMiniature(layout),
+            ),
+            trailingIcon: widget.vm.layout == layout
+                ? const AppGlyph('check', size: 14)
+                : const SizedBox(width: 14),
+            onPressed: () {
+              widget.vm.setLayout(layout);
+              widget.controller.close();
+              widget.focusNode?.requestFocus();
+            },
+            child: Text(context.l10n.layoutName(layout)),
+          ),
+        ),
+    ],
+    child: widget.child,
+  );
+}
+
 class LayoutChoices extends StatelessWidget {
-  const LayoutChoices({super.key, required this.vm, required this.width});
+  const LayoutChoices({
+    super.key,
+    required this.vm,
+    required this.width,
+    this.onSelected,
+  });
   final WorkspaceViewModel vm;
   final double width;
+  final VoidCallback? onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -356,7 +466,10 @@ class LayoutChoices extends StatelessWidget {
             height: 92,
             selected: vm.layout == layout,
             label: context.l10n.layoutName(layout),
-            onTap: () => vm.setLayout(layout),
+            onTap: () {
+              vm.setLayout(layout);
+              onSelected?.call();
+            },
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -375,10 +488,19 @@ class LayoutChoices extends StatelessWidget {
   }
 }
 
-class TypographyChoices extends StatelessWidget {
+class TypographyChoices extends StatefulWidget {
   const TypographyChoices({super.key, required this.vm, required this.width});
   final WorkspaceViewModel vm;
   final double width;
+
+  @override
+  State<TypographyChoices> createState() => _TypographyChoicesState();
+}
+
+class _TypographyChoicesState extends State<TypographyChoices> {
+  bool _sample = false;
+  WorkspaceViewModel get vm => widget.vm;
+  double get width => widget.width;
 
   @override
   Widget build(BuildContext context) {
@@ -398,7 +520,7 @@ class TypographyChoices extends StatelessWidget {
           onTap: () => vm.updateAppearance(typography: type),
         ),
     ];
-    final preview = DecoratedBox(
+    final article = DecoratedBox(
       decoration: BoxDecoration(
         color: colors.surface,
         border: Border.all(color: colors.outlineVariant),
@@ -406,12 +528,18 @@ class TypographyChoices extends StatelessWidget {
       ),
       child: Theme(
         data: documentTheme(Theme.of(context)),
-        child: SingleChildScrollView(
+        child: SuperListView.builder(
           key: const PageStorageKey('typography-article-preview'),
           primary: false,
           padding: const EdgeInsets.all(24),
-          child: MarkdownReader(
-            data: context.l10n.typographyPreviewMarkdown,
+          itemCount: _sample ? 1 : vm.editor.document.blocks.length,
+          itemBuilder: (context, index) => MarkdownReader(
+            data: _sample
+                ? context.l10n.typographyPreviewMarkdown
+                : vm.editor.document.blocks[index].range.slice(vm.editor.text),
+            document: _sample ? null : vm.editor.document,
+            preferences: vm.markdownPreferences,
+            editingPreferences: vm.editingPreferences,
             typography: vm.typography,
             compact: vm.compact,
             fontSize: 15,
@@ -419,6 +547,39 @@ class TypographyChoices extends StatelessWidget {
           ),
         ),
       ),
+    );
+    final preview = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Wrap(
+          spacing: 6,
+          runSpacing: 4,
+          children: [
+            ChoiceChip(
+              key: const ValueKey('preview-current-article'),
+              label: Text(context.l10n.currentArticle),
+              selected: !_sample,
+              onSelected: (_) => setState(() => _sample = false),
+            ),
+            ChoiceChip(
+              key: const ValueKey('preview-sample-article'),
+              label: Text(context.l10n.sampleArticle),
+              selected: _sample,
+              onSelected: (_) => setState(() => _sample = true),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (!_sample && vm.editor.text.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              context.l10n.emptyPreviewHint,
+              style: const TextStyle(fontSize: 12),
+            ),
+          ),
+        Expanded(child: article),
+      ],
     );
     if (width < 500) {
       return Column(

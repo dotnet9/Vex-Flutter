@@ -20,9 +20,7 @@ import '../../domain/file_preferences.dart';
 import '../../domain/workspace.dart';
 import '../../l10n/l10n.dart';
 import '../core/app_fonts.dart';
-import '../core/app_theme.dart';
 import '../core/app_widgets.dart';
-import '../core/palette_tokens.dart';
 import 'builtin_documents.dart';
 import 'insert_table_dialog.dart';
 import 'mermaid_picker.dart';
@@ -35,10 +33,12 @@ import 'workspace_menu_widgets.dart';
 import 'workspace_panes.dart';
 import 'workspace_pickers.dart';
 import 'workspace_presentation.dart';
-import 'workspace_outline.dart';
+import 'workspace_auxiliary.dart';
+import 'workspace_appearance.dart';
 import 'workspace_sidebar.dart';
 import 'workspace_touch_menu.dart';
 import 'workspace_view_model.dart';
+import 'workspace_save_status.dart';
 import 'unsaved_dialog.dart';
 
 class WorkspaceScreen extends StatefulWidget {
@@ -85,8 +85,12 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   String _guideCue = '';
   final _find = TextEditingController(), _replace = TextEditingController();
   final _findFocus = FocusNode();
+  final _viewFocus = FocusNode();
+  final _outlineFocus = FocusNode();
+  FocusNode? _auxiliaryOpener;
   final _layoutsMenu = MenuController(), _typographyMenu = MenuController();
   final _mapAppearanceMenu = MenuController();
+  final _appearanceMenu = MenuController();
   final _topMenus = <String, MenuController>{};
   final _compactTopMenus = <String, MenuController>{};
   final _overflowMenu = MenuController();
@@ -142,6 +146,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     _find.dispose();
     _replace.dispose();
     _findFocus.dispose();
+    _viewFocus.dispose();
+    _outlineFocus.dispose();
     super.dispose();
   }
 
@@ -619,10 +625,16 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             vm.setAlwaysOnTop(next);
           }),
         );
-      case 'statistics':
-        unawaited(showWorkspaceStatistics(context, vm));
-      case 'document-properties':
-        unawaited(showWorkspaceProperties(context, vm));
+      case 'statistics' || 'document-properties':
+        if (vm.viewport == WorkspaceViewport.phone) {
+          unawaited(
+            action == 'statistics'
+                ? showWorkspaceStatistics(context, vm)
+                : showWorkspaceProperties(context, vm),
+          );
+        } else {
+          _openAuxiliary(WorkspaceAuxiliary.info);
+        }
       case 'reveal-file':
         {
           final path = vm.current.path;
@@ -702,7 +714,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       case 'layouts':
         _layoutsMenu.isOpen ? _layoutsMenu.close() : _layoutsMenu.open();
       case 'appearance':
-        unawaited(showAppearance(context, vm));
+        if (vm.viewport == WorkspaceViewport.phone) {
+          unawaited(showAppearance(context, vm));
+        } else {
+          _appearanceMenu.isOpen
+              ? _appearanceMenu.close()
+              : _appearanceMenu.open();
+        }
       case 'typography':
         _typographyMenu.isOpen
             ? _typographyMenu.close()
@@ -1036,8 +1054,14 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         );
         _scheduleGuideStep(state);
         final phone = state.viewport == WorkspaceViewport.phone;
+        if (state.findVisible && _find.text != state.findQuery) {
+          _find.value = TextEditingValue(
+            text: state.findQuery,
+            selection: TextSelection.collapsed(offset: state.findQuery.length),
+          );
+        }
         final desktop = _desktop && !phone;
-        final showSidebar = !phone && state.sidebar && !state.focusMode;
+        final showSidebar = !phone && state.sidebarVisible;
         final width = state.sidebarWidth.clamp(
           200.0,
           (constraints.maxWidth - 420).clamp(200.0, 560.0),
@@ -1048,12 +1072,19 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
               constraints.maxWidth,
               showSidebar ? width + 5 : 0,
             );
+        final overlayStructure =
+            showStructure &&
+            state.structureOverlay(
+              constraints.maxWidth,
+              showSidebar ? width + 5 : 0,
+            );
+        final structureMaximum = (constraints.maxWidth - 32).clamp(
+          280.0,
+          480.0,
+        );
         final structureWidth = state.structureWidth.clamp(
-          180.0,
-          (constraints.maxWidth - (showSidebar ? width + 5 : 0) - 440).clamp(
-            180.0,
-            480.0,
-          ),
+          280.0,
+          structureMaximum,
         );
         return CallbackShortcuts(
           bindings: state.presentation
@@ -1079,17 +1110,31 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                     ): () =>
                         _action('redo'),
                   const SingleActivator(LogicalKeyboardKey.escape): () {
-                    for (final menu in [
+                    final menus = [
                       ..._topMenus.values,
                       ..._compactTopMenus.values,
-                    ]) {
-                      menu.close();
+                      _overflowMenu,
+                      _layoutsMenu,
+                      _typographyMenu,
+                      _mapAppearanceMenu,
+                      _appearanceMenu,
+                    ];
+                    final open = menus.where((menu) => menu.isOpen).toList();
+                    if (open.isNotEmpty) {
+                      for (final menu in open) {
+                        menu.close();
+                      }
+                      return;
                     }
-                    _overflowMenu.close();
-                    _layoutsMenu.close();
-                    _typographyMenu.close();
-                    state.closeFind();
-                    if (state.guiding) state.endGuide();
+                    if (state.guiding) {
+                      _endGuide();
+                      return;
+                    }
+                    if (state.findVisible) {
+                      state.closeFind();
+                      return;
+                    }
+                    if (state.structure) _closeAuxiliary();
                   },
                 },
           child: Focus(
@@ -1149,8 +1194,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                   [
                                     AppButton(
                                       label: context.l10n.restore,
-                                      onPressed: () =>
-                                          unawaited(_run(state.restoreDrafts)),
+                                      onPressed: () => unawaited(
+                                        showRecoveryDrafts(context, state),
+                                      ),
                                     ),
                                     AppButton(
                                       label: context.l10n.discard,
@@ -1203,133 +1249,173 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                                   ),
                                 ]),
                               Expanded(
-                                child: Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
+                                child: Stack(
                                   children: [
-                                    if (showSidebar)
-                                      SizedBox(
-                                        width: width,
-                                        child: WorkspaceSidebar(
-                                          key: _guideSidebar,
-                                          showTabs: false,
-                                          vm: state,
-                                          onAction: _action,
-                                          onOpenPath: (path) => unawaited(
-                                            _run(() => state.openPath(path)),
-                                          ),
-                                          onOpenInNewWindow:
-                                              _openSidebarDocumentInNewWindow,
-                                          onRevealInFolder: _revealInFolder,
-                                        ),
-                                      ),
-                                    if (showSidebar)
-                                      MouseRegion(
-                                        cursor:
-                                            SystemMouseCursors.resizeLeftRight,
-                                        onEnter: (_) => setState(
-                                          () => _dividerActive = true,
-                                        ),
-                                        onExit: (_) => setState(
-                                          () => _dividerActive = false,
-                                        ),
-                                        child: GestureDetector(
-                                          behavior: HitTestBehavior.opaque,
-                                          onHorizontalDragStart: (_) =>
-                                              setState(
-                                                () => _dividerActive = true,
+                                    Positioned.fill(
+                                      child: Listener(
+                                        onPointerDown: (_) {
+                                          if (overlayStructure) {
+                                            state.showStructure(false);
+                                          }
+                                        },
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.stretch,
+                                          children: [
+                                            if (showSidebar)
+                                              SizedBox(
+                                                width: width,
+                                                child: WorkspaceSidebar(
+                                                  key: _guideSidebar,
+                                                  showTabs: false,
+                                                  vm: state,
+                                                  onAction: _action,
+                                                  onOpenPath: (path) =>
+                                                      unawaited(
+                                                        _run(
+                                                          () => state.openPath(
+                                                            path,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                  onOpenInNewWindow:
+                                                      _openSidebarDocumentInNewWindow,
+                                                  onRevealInFolder:
+                                                      _revealInFolder,
+                                                ),
                                               ),
-                                          onHorizontalDragUpdate: (d) =>
-                                              state.resizeSidebar(
-                                                width + d.delta.dx,
-                                              ),
-                                          onHorizontalDragEnd: (_) {
-                                            setState(
-                                              () => _dividerActive = false,
-                                            );
-                                            state.persist();
-                                          },
-                                          // 与原型一致：聚焦分隔条后可用左右方向键微调。
-                                          child: Focus(
-                                            onKeyEvent: (node, event) {
-                                              final key = event.logicalKey;
-                                              if (key !=
-                                                          LogicalKeyboardKey
-                                                              .arrowLeft &&
-                                                      key !=
-                                                          LogicalKeyboardKey
-                                                              .arrowRight ||
-                                                  event is! KeyDownEvent) {
-                                                return KeyEventResult.ignored;
-                                              }
-                                              state.resizeSidebar(
-                                                state.sidebarWidth +
-                                                    (key ==
-                                                            LogicalKeyboardKey
-                                                                .arrowRight
-                                                        ? 10
-                                                        : -10),
-                                              );
-                                              state.persist();
-                                              return KeyEventResult.handled;
-                                            },
-                                            child: Container(
-                                              width: 5,
-                                              decoration: BoxDecoration(
-                                                color: _dividerActive
-                                                    ? Theme.of(context)
-                                                          .colorScheme
-                                                          .primary
-                                                          .withValues(
-                                                            alpha: .35,
-                                                          )
-                                                    : Colors.transparent,
-                                                border: Border(
-                                                  left: BorderSide(
-                                                    color: c.outlineVariant,
+                                            if (showSidebar)
+                                              MouseRegion(
+                                                cursor: SystemMouseCursors
+                                                    .resizeLeftRight,
+                                                onEnter: (_) => setState(
+                                                  () => _dividerActive = true,
+                                                ),
+                                                onExit: (_) => setState(
+                                                  () => _dividerActive = false,
+                                                ),
+                                                child: GestureDetector(
+                                                  behavior:
+                                                      HitTestBehavior.opaque,
+                                                  onHorizontalDragStart: (_) =>
+                                                      setState(
+                                                        () => _dividerActive =
+                                                            true,
+                                                      ),
+                                                  onHorizontalDragUpdate: (d) =>
+                                                      state.resizeSidebar(
+                                                        width + d.delta.dx,
+                                                      ),
+                                                  onHorizontalDragEnd: (_) {
+                                                    setState(
+                                                      () => _dividerActive =
+                                                          false,
+                                                    );
+                                                    state.persist();
+                                                  },
+                                                  // 与原型一致：聚焦分隔条后可用左右方向键微调。
+                                                  child: Focus(
+                                                    onKeyEvent: (node, event) {
+                                                      final key =
+                                                          event.logicalKey;
+                                                      if (key !=
+                                                                  LogicalKeyboardKey
+                                                                      .arrowLeft &&
+                                                              key !=
+                                                                  LogicalKeyboardKey
+                                                                      .arrowRight ||
+                                                          event
+                                                              is! KeyDownEvent) {
+                                                        return KeyEventResult
+                                                            .ignored;
+                                                      }
+                                                      state.resizeSidebar(
+                                                        state.sidebarWidth +
+                                                            (key ==
+                                                                    LogicalKeyboardKey
+                                                                        .arrowRight
+                                                                ? 10
+                                                                : -10),
+                                                      );
+                                                      state.persist();
+                                                      return KeyEventResult
+                                                          .handled;
+                                                    },
+                                                    child: Container(
+                                                      width: 5,
+                                                      decoration: BoxDecoration(
+                                                        color: _dividerActive
+                                                            ? Theme.of(context)
+                                                                  .colorScheme
+                                                                  .primary
+                                                                  .withValues(
+                                                                    alpha: .35,
+                                                                  )
+                                                            : Colors
+                                                                  .transparent,
+                                                        border: Border(
+                                                          left: BorderSide(
+                                                            color: c
+                                                                .outlineVariant,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
                                                   ),
                                                 ),
                                               ),
+                                            Expanded(
+                                              child: Column(
+                                                children: [
+                                                  if (state.findVisible)
+                                                    _findbar(state, phone),
+                                                  Expanded(
+                                                    child: _documentSurface(
+                                                      state,
+                                                      phone,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
-                                          ),
+                                            if (showStructure &&
+                                                !overlayStructure) ...[
+                                              _structureDivider(
+                                                state,
+                                                structureWidth,
+                                                (constraints.maxWidth -
+                                                        (showSidebar
+                                                            ? width + 5
+                                                            : 0) -
+                                                        645)
+                                                    .clamp(280.0, 480.0),
+                                              ),
+                                              SizedBox(
+                                                key: const ValueKey(
+                                                  'workspace-structure',
+                                                ),
+                                                width: structureWidth,
+                                                child: _auxiliaryPanel(state),
+                                              ),
+                                            ],
+                                          ],
                                         ),
-                                      ),
-                                    Expanded(
-                                      child: Column(
-                                        children: [
-                                          if (state.findVisible)
-                                            _findbar(state, phone),
-                                          Expanded(
-                                            child: _documentSurface(
-                                              state,
-                                              phone,
-                                            ),
-                                          ),
-                                        ],
                                       ),
                                     ),
-                                    if (showStructure) ...[
-                                      _structureDivider(
-                                        state,
-                                        structureWidth,
-                                        (constraints.maxWidth -
-                                                (showSidebar ? width + 5 : 0) -
-                                                440)
-                                            .clamp(180.0, 480.0),
-                                      ),
-                                      SizedBox(
-                                        key: const ValueKey(
-                                          'workspace-structure',
-                                        ),
+                                    if (overlayStructure)
+                                      Positioned(
+                                        top: 0,
+                                        bottom: 0,
+                                        right: 0,
                                         width: structureWidth,
-                                        child: WorkspaceOutline(
-                                          key: _guideStructure,
-                                          vm: state,
-                                          onClose: () =>
-                                              state.showStructure(false),
+                                        child: Material(
+                                          key: const ValueKey(
+                                            'workspace-structure-overlay',
+                                          ),
+                                          elevation: 8,
+                                          child: _auxiliaryPanel(state),
                                         ),
                                       ),
-                                    ],
                                   ],
                                 ),
                               ),
@@ -1585,73 +1671,19 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
               },
             ),
           ),
-          if (width >= 1280) ...[
-            AppButton(
-              key: const ValueKey('titlebar-theme'),
-              icon: switch (state.themeMode) {
-                ThemeMode.light => 'sun',
-                ThemeMode.dark => 'moon',
-                ThemeMode.system => 'system-theme',
-              },
-              tooltip:
-                  '${context.l10n.themeMode} · ${switch (state.themeMode) {
-                    ThemeMode.light => context.l10n.light,
-                    ThemeMode.dark => context.l10n.dark,
-                    ThemeMode.system => context.l10n.followSystem,
-                  }}',
-              bordered: true,
-              padding: 7,
-              onPressed: () => state.updateAppearance(
-                mode: switch (state.themeMode) {
-                  ThemeMode.light => ThemeMode.dark,
-                  ThemeMode.dark => ThemeMode.system,
-                  ThemeMode.system => ThemeMode.light,
-                },
-              ),
+          WorkspaceAppearanceAnchor(
+            vm: state,
+            controller: _appearanceMenu,
+            child: AppButton(
+              key: const ValueKey('titlebar-appearance'),
+              icon: 'sun',
+              label: context.l10n.appearance,
+              tooltip: context.l10n.appearanceMenu,
+              height: 28,
+              fontSize: 12,
+              onPressed: () => _action('appearance'),
             ),
-            for (final palette in paletteNames.entries)
-              Tooltip(
-                message: context.l10n.paletteName(palette.key),
-                child: Semantics(
-                  button: true,
-                  selected: state.palette == palette.key,
-                  child: InkWell(
-                    onTap: () => state.updateAppearance(palette: palette.key),
-                    borderRadius: BorderRadius.circular(12),
-                    child: SizedBox(
-                      width: 22,
-                      height: 32,
-                      child: Center(
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Container(
-                              width: 22,
-                              height: 22,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: state.palette == palette.key
-                                    ? Border.all(color: c.primary, width: 2)
-                                    : null,
-                              ),
-                            ),
-                            Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: paletteSchemes['${palette.key}-light']!
-                                    .primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
+          ),
           MenuAnchor(
             menuChildren: [
               for (final language in languageNames.entries)
@@ -1874,10 +1906,37 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     }
   }
 
+  void _openAuxiliary(WorkspaceAuxiliary tab) {
+    if (!vm.structure) _auxiliaryOpener = FocusManager.instance.primaryFocus;
+    vm.showAuxiliary(tab);
+  }
+
+  void _closeAuxiliary() {
+    vm.showStructure(false);
+    final opener = _auxiliaryOpener;
+    if (opener != null && opener.context != null && opener.canRequestFocus) {
+      opener.requestFocus();
+    } else {
+      _outlineFocus.requestFocus();
+    }
+  }
+
+  Widget _auxiliaryPanel(WorkspaceViewModel state) => WorkspaceAuxiliaryPanel(
+    key: _guideStructure,
+    vm: state,
+    onClose: _closeAuxiliary,
+    onError: _error,
+    onSaveDetails: () => unawaited(showSaveStatus(context, state)),
+  );
+
   Widget _workbar(WorkspaceViewModel state, bool phone, double width) {
     final c = Theme.of(context).colorScheme;
     return Container(
-      height: phone ? 56 : 66,
+      height:
+          (MediaQuery.textScalerOf(context).scale(13) * 1.4 +
+                  MediaQuery.textScalerOf(context).scale(10.5) * 1.4 +
+                  12)
+              .clamp(phone ? 56.0 : 66.0, 160.0),
       padding: EdgeInsets.symmetric(horizontal: phone ? 10 : 20),
       decoration: BoxDecoration(
         color: c.surfaceContainerLow,
@@ -1886,32 +1945,65 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              '${state.current.name}${state.editor.session.isDirty ? ' •' : ''}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Tooltip(
+                  message: state.current.path ?? state.current.name,
+                  child: Text(
+                    state.current.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                InkWell(
+                  key: const ValueKey('document-save-status'),
+                  onTap: () => unawaited(showSaveStatus(context, state)),
+                  child: Tooltip(
+                    message: context.l10n.saveDetails,
+                    child: Text(
+                      state.saveState,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        color: state.current.saveError == null
+                            ? c.onSurfaceVariant
+                            : c.error,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          if (!phone) ...[
-            _viewSwitch(state, width),
-            SizedBox(width: width < 1100 ? 8 : 14),
-          ],
           if (!phone)
-            WorkspacePickerAnchor(
-              popupKey: _guideLayoutPopup,
-              vm: state,
-              picker: WorkspacePicker.layout,
-              controller: _layoutsMenu,
-              child: AppButton(
-                label: phone ? null : context.l10n.layoutDropdown,
-                icon: 'columns',
-                trailingIcon: phone ? null : 'chevron-down',
-                tooltip: context.l10n.workspaceLayout,
-                bordered: !phone,
-                padding: 11,
-                fontSize: 12,
-                onPressed: () => _action('layouts'),
+            KeyedSubtree(
+              key: _guideSourceToggle,
+              child: WorkspacePickerAnchor(
+                popupKey: _guideLayoutPopup,
+                vm: state,
+                picker: WorkspacePicker.layout,
+                controller: _layoutsMenu,
+                focusNode: _viewFocus,
+                child: AppButton(
+                  key: const ValueKey('workspace-view-selector'),
+                  focusNode: _viewFocus,
+                  label: context.l10n.layoutName(state.layout),
+                  icon: 'columns',
+                  trailingIcon: phone ? null : 'chevron-down',
+                  tooltip: context.l10n.workspaceLayout,
+                  bordered: !phone,
+                  padding: 11,
+                  fontSize: 12,
+                  onPressed: () => _action('layouts'),
+                ),
               ),
             ),
           if (!phone) const SizedBox(width: 14),
@@ -1929,15 +2021,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          // 工具栏“快速上手”是常驻重入口：看过引导也能随时再次进入。
-          if (!phone && width >= 1100)
-            Flexible(
-              child: AppButton(
-                label: context.l10n.quickStartBadge,
-                fontSize: 12,
-                onPressed: () => _action('guide'),
-              ),
-            ),
           AppButton(
             icon: 'search',
             tooltip: context.l10n.findTooltip,
@@ -1968,44 +2051,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
             ),
         ],
       );
-
-  Widget _viewSwitch(WorkspaceViewModel state, double width) {
-    final c = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: c.surfaceContainerLow,
-        border: Border.all(color: c.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        spacing: 2,
-        children: [
-          for (final item in [
-            (WorkspaceLayout.instant, context.l10n.edit, 'edit'),
-            (WorkspaceLayout.read, context.l10n.read, 'eye'),
-            (WorkspaceLayout.map, context.l10n.map, 'map'),
-          ])
-            SizedBox(
-              width: width < 1100 ? 72 : 86,
-              child: AppButton(
-                key: item.$1 == WorkspaceLayout.map ? _guideMapTab : null,
-                label: item.$2,
-                icon: item.$3,
-                selected:
-                    state.layout == item.$1 ||
-                    (item.$1 == WorkspaceLayout.instant &&
-                        state.layout == WorkspaceLayout.source),
-                selectionColor: c.surfaceContainer,
-                fontSize: 12,
-                onPressed: () => state.setLayout(item.$1),
-                height: 28,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 
   static const _guideStage0 = '''# 成都，慢慢走
 
@@ -2275,7 +2320,7 @@ flowchart LR
             if (!await _guidePause(
               step,
               token,
-              '支持源码或即时渲染编辑，点击下面的切换按钮方便切换',
+              '从视图入口选择源码或即时编辑。',
               target: _guideSourceToggle,
             )) {
               return;
@@ -2317,7 +2362,7 @@ flowchart LR
             if (!await _guidePause(
               step,
               token,
-              '再次点击，切换源码模式哦',
+              '再次打开视图入口，切回即时编辑。',
               target: _guideSourceToggle,
             )) {
               return;
@@ -2379,7 +2424,9 @@ flowchart LR
               step,
               token,
               '点击“导图”，查看全局结构。',
-              target: _guideMapTab,
+              target: vm.viewport == WorkspaceViewport.phone
+                  ? _guideMapTab
+                  : _guideSourceToggle,
             )) {
               return;
             }
@@ -3007,126 +3054,196 @@ flowchart LR
     ),
   );
   Widget _documentSurface(WorkspaceViewModel state, bool phone) {
-    final document = documentTheme(Theme.of(context));
-    final c = document.colorScheme;
-    final source = state.layout.panes.contains('source');
     return KeyedSubtree(
       key: const ValueKey('document-surface'),
-      child: Stack(
+      child: Column(
         key: _guideDocumentSurface,
-        fit: StackFit.expand,
         children: [
-          WorkspacePanes(
-            formattingControl: _formatbar(state, phone),
-            mapAppearanceController: _mapAppearanceMenu,
-            mapAppearancePopupKey: _guideMapPopup,
-            typographyControl: _typographyPicker(state),
-            editingKey: _guideEditing,
-            mapKey: _guideMap,
-            mapToolbarKey: _guideMapToolbar,
-            vm: state,
-            onAction: _action,
-            onError: _error,
+          Expanded(
+            child: WorkspacePanes(
+              formattingControl: _formatbar(state, phone),
+              mapAppearanceController: _mapAppearanceMenu,
+              mapAppearancePopupKey: _guideMapPopup,
+              typographyControl: _typographyPicker(state),
+              editingKey: _guideEditing,
+              mapKey: _guideMap,
+              mapToolbarKey: _guideMapToolbar,
+              vm: state,
+              onAction: _action,
+              onError: _error,
+            ),
           ),
-          Positioned(
-            left: 12,
-            bottom: 10,
-            child: Theme(
-              data: document,
-              child: Material(
-                color: c.surface.withValues(alpha: .94),
-                borderRadius: BorderRadius.circular(5),
-                child: Row(
+          if (state.documents.isEmpty &&
+              !state.guiding &&
+              state.editor.text.isEmpty &&
+              !state.layout.panes.contains('map'))
+            Material(
+              key: const ValueKey('empty-workspace'),
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    AppButton(
-                      key: const ValueKey('document-sidebar-toggle'),
-                      icon: 'sidebar',
-                      tooltip: context.l10n.toggleSidebar,
-                      selected: !phone && state.sidebar && !state.focusMode,
-                      height: phone ? 44 : 32,
-                      onPressed: () {
-                        if (phone) {
-                          _scaffold.currentState?.openDrawer();
-                        } else if (state.focusMode) {
-                          state.toggleFocus();
-                        } else {
-                          state.toggleSidebar();
-                        }
-                      },
+                    Text(
+                      context.l10n.emptyWorkspaceTitle,
+                      style: const TextStyle(fontSize: 12),
                     ),
+                    AppButton(
+                      label: context.l10n.newDocument,
+                      icon: 'plus',
+                      primary: true,
+                      fontSize: 12,
+                      onPressed: () => _action('new'),
+                    ),
+                    AppButton(
+                      label: context.l10n.open,
+                      icon: 'folder',
+                      fontSize: 12,
+                      onPressed: () => _action('open'),
+                    ),
+                    AppButton(
+                      label: context.l10n.quickStartBadge,
+                      fontSize: 12,
+                      onPressed: () => _action('guide'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          _documentStatusBar(state, phone),
+        ],
+      ),
+    );
+  }
+
+  Widget _documentStatusBar(WorkspaceViewModel state, bool phone) {
+    final l = context.l10n, c = Theme.of(context).colorScheme;
+    final source = state.layout.panes.contains('source');
+    final outline =
+        state.structure &&
+        !state.focusMode &&
+        state.auxiliary == WorkspaceAuxiliary.outline;
+    return Container(
+      key: const ValueKey('document-status-bar'),
+      decoration: BoxDecoration(
+        color: c.surfaceContainerLow,
+        border: Border(top: BorderSide(color: c.outlineVariant)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      height: phone ? 44 : 36,
+      child: Row(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  AppButton(
+                    key: const ValueKey('document-sidebar-toggle'),
+                    icon: 'sidebar',
+                    label: l.files,
+                    fontSize: 11,
+                    padding: 6,
+                    tooltip: state.sidebarVisible ? l.hideFiles : l.showFiles,
+                    selected: !phone && state.sidebarVisible,
+                    onPressed: () {
+                      if (phone) {
+                        _scaffold.currentState?.openDrawer();
+                      } else if (state.focusMode) {
+                        state.toggleFocus();
+                      } else {
+                        state.toggleSidebar();
+                      }
+                    },
+                  ),
+                  if (phone)
                     KeyedSubtree(
                       key: _guideSourceToggle,
                       child: AppButton(
                         key: const ValueKey('document-source-toggle'),
                         icon: 'code',
-                        tooltip: source
-                            ? context.l10n.instantEditing
-                            : context.l10n.markdownSource,
+                        label: source ? l.instantEditing : l.source,
+                        fontSize: 11,
+                        padding: 6,
                         selected: source,
-                        height: phone ? 44 : 32,
+                        tooltip: source ? l.switchToInstant : l.switchToSource,
                         onPressed: () => state.setLayout(
-                          state.layout.panes.contains('map') &&
-                                  state.layout.panes.length > 1
-                              ? source
-                                    ? WorkspaceLayout.instantMap
-                                    : WorkspaceLayout.sourceMap
-                              : source
+                          source
                               ? WorkspaceLayout.instant
                               : WorkspaceLayout.source,
                         ),
                       ),
                     ),
-                    if (!phone)
-                      KeyedSubtree(
-                        key: _guideOutlineTab,
-                        child: AppButton(
-                          key: const ValueKey('document-outline-toggle'),
-                          icon: 'sidebar-right',
-                          tooltip: context.l10n.documentStructure,
-                          selected: state.structureVisible(
-                            state.windowSize.width,
-                            state.sidebar && !state.focusMode
-                                ? state.sidebarWidth + 5
-                                : 0,
-                          ),
-                          height: 32,
-                          onPressed: () {
-                            if (state.focusMode) {
-                              state.toggleFocus();
-                              state.showStructure(true);
-                            } else {
-                              state.showStructure(
-                                !state.structureVisible(
-                                  state.windowSize.width,
-                                  state.sidebar ? state.sidebarWidth + 5 : 0,
-                                ),
-                              );
-                            }
-                          },
-                        ),
+                  if (!phone)
+                    KeyedSubtree(
+                      key: _guideOutlineTab,
+                      child: AppButton(
+                        key: const ValueKey('document-outline-toggle'),
+                        focusNode: _outlineFocus,
+                        icon: 'sidebar-right',
+                        label: l.outline,
+                        fontSize: 11,
+                        padding: 6,
+                        tooltip: outline ? l.hideOutline : l.showOutline,
+                        selected: outline,
+                        onPressed: () {
+                          if (outline) {
+                            _closeAuxiliary();
+                          } else {
+                            _openAuxiliary(WorkspaceAuxiliary.outline);
+                          }
+                        },
                       ),
+                    ),
+                  if (state.layout.panes.length > 1) ...[
+                    const SizedBox(width: 12),
+                    AppButton(
+                      key: const ValueKey('view-link-toggle'),
+                      label: state.linkedViews ? l.linkedViews : l.freeBrowse,
+                      selected: state.linkedViews,
+                      fontSize: 11,
+                      height: 28,
+                      padding: 6,
+                      onPressed: () => state.setLinkedViews(!state.linkedViews),
+                    ),
+                    AppButton(
+                      key: const ValueKey('return-to-editing'),
+                      label: l.returnToEditing,
+                      fontSize: 11,
+                      height: 28,
+                      onPressed: state.returnToEditing,
+                    ),
                   ],
-                ),
+                ],
               ),
             ),
           ),
-          if (state.wordCountVisible && !state.focusMode)
-            Positioned(
-              right: 16,
-              bottom: state.layout.panes.last == 'map' ? 70 : 13,
-              child: Container(
-                key: const ValueKey('document-word-count'),
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-                decoration: BoxDecoration(
-                  color: c.surface.withValues(alpha: .94),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  context.l10n.wordCount(state.wordCount),
-                  style: TextStyle(fontSize: 12, color: c.onSurfaceVariant),
-                ),
-              ),
+          if (state.wordCountVisible && !state.focusMode) ...[
+            AppButton(
+              key: const ValueKey('document-word-count'),
+              label: l.wordCount(state.wordCount),
+              tooltip: l.articleInfo,
+              fontSize: 11,
+              padding: 8,
+              selected:
+                  !phone &&
+                  state.structure &&
+                  state.auxiliary == WorkspaceAuxiliary.info,
+              onPressed: () => _action('statistics'),
             ),
+            if (state.selectedWordCount case final count?)
+              AppButton(
+                key: const ValueKey('document-selected-word-count'),
+                label: l.selectedWords(count),
+                tooltip: l.wordCountRules,
+                fontSize: 11,
+                padding: 4,
+                onPressed: () => _action('statistics'),
+              ),
+          ],
         ],
       ),
     );
@@ -3139,7 +3256,7 @@ flowchart LR
   ) {
     final c = Theme.of(context).colorScheme;
     void resize(double value) =>
-        state.resizeStructure(value.clamp(180.0, maximum));
+        state.resizeStructure(value.clamp(280.0, maximum));
     return Semantics(
       label: context.l10n.documentStructure,
       value: '${width.round()}',
@@ -3378,6 +3495,7 @@ flowchart LR
     _layoutsMenu.close();
     _typographyMenu.close();
     _mapAppearanceMenu.close();
+    _appearanceMenu.close();
     if (_guideTouchMenu) {
       _guideTouchMenu = false;
       _guideTouchGeneration++;

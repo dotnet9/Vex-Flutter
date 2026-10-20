@@ -10,6 +10,27 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get documentAuxiliary => '文档辅助';
+
+  @override
+  String get articleInfo => '文章信息';
+
+  @override
+  String get chapterDetails => '章节详情';
+
+  @override
+  String get revealSection => '定位到正文';
+
+  @override
+  String get selectChapter => '选择一个章节';
+
+  @override
+  String get selectChapterHint => '在导图中选择节点，即可查看和编辑章节正文。';
+
+  @override
+  String get chapterBodyAutosaveHint => '修改会同步到文章，子章节单独保留。可使用撤销恢复。';
+
+  @override
   String get updateDownload => '下载更新';
 
   @override
@@ -624,7 +645,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get layoutDropdown => '布局';
 
   @override
-  String get findTooltip => '查找 · Ctrl+F';
+  String get findTooltip => '查找当前正文 · Ctrl+F';
 
   @override
   String get saveTooltip => '保存 · Ctrl+S';
@@ -672,7 +693,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get moreFormatting => '更多格式';
 
   @override
-  String get findText => '查找文本';
+  String get findText => '查找当前正文…';
 
   @override
   String get matchCase => '区分大小写';
@@ -766,7 +787,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get outlineHint => '使用 # 标题来组织内容。';
 
   @override
-  String get searchDocuments => '搜索文档…';
+  String get searchDocuments => '按文件名查找…';
 
   @override
   String get notes => '笔记';
@@ -994,7 +1015,7 @@ class AppLocalizationsZh extends AppLocalizations {
         intl.NumberFormat.decimalPattern(localeName);
     final String countString = countNumberFormat.format(count);
 
-    return '$countString 词';
+    return '$countString 字词';
   }
 
   @override
@@ -1120,7 +1141,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mcpIntro => '允许 AI 客户端通过本机 MCP 接口读取和操作当前文档。';
 
   @override
-  String get mcpEnable => '启用 MCP Server';
+  String get mcpEnable => '启用 MCP 服务';
 
   @override
   String get mcpAddress => '监听地址';
@@ -1129,7 +1150,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mcpPort => '端口';
 
   @override
-  String get mcpToken => '授权 Token';
+  String get mcpToken => '访问令牌';
 
   @override
   String get mcpGenerate => '重新生成';
@@ -1156,7 +1177,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mcpRunning => '服务运行中';
 
   @override
-  String get mcpStopped => '未启动';
+  String get mcpStopped => '服务已停止';
 
   @override
   String get mcpConfirmTitle => '确认 MCP 操作';
@@ -1327,7 +1348,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get showWordCount => '显示词数';
 
   @override
-  String get searchOutline => '查找标题…';
+  String get searchOutline => '筛选当前文章标题…';
 
   @override
   String get clearSearch => '清空查找';
@@ -1802,11 +1823,190 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get mapNavigationHint => 'Enter 同级 · Tab 子级 · 拖动章节调整结构';
+
+  @override
+  String get savingDocument => '正在保存…';
+
+  @override
+  String get saveFailedRetry => '保存失败 · 点击重试';
+
+  @override
+  String get newUnsaved => '新文档 · 尚未保存到磁盘';
+
+  @override
+  String get unsavedChanges => '有未保存的修改';
+
+  @override
+  String savedAt(String time) {
+    return '已保存 · $time';
+  }
+
+  @override
+  String get diskVersion => '已载入磁盘版本';
+
+  @override
+  String get recoveredNeedsSave => '已恢复草稿 · 仍需保存';
+
+  @override
+  String get saveDetails => '保存与恢复状态';
+
+  @override
+  String get lastSaved => '最近保存';
+
+  @override
+  String get noSaveYet => '本次打开后尚未保存';
+
+  @override
+  String get draftStatus => '恢复草稿';
+
+  @override
+  String get draftProtected => '当前修改已写入恢复草稿';
+
+  @override
+  String get draftPending => '等待写入恢复草稿';
+
+  @override
+  String get draftDisabled => '草稿恢复已关闭';
+
+  @override
+  String get draftNone => '当前没有待恢复的修改';
+
+  @override
+  String get draftReview => '查看恢复草稿';
+
+  @override
+  String get draftCompareHint => '左侧为上次保存内容，右侧为恢复草稿。恢复后仍需保存，写入时会检查磁盘冲突。';
+
+  @override
+  String get draftSource => '草稿来源';
+
+  @override
+  String get savedContent => '上次保存内容';
+
+  @override
+  String get recoveryContent => '恢复草稿内容';
+
+  @override
+  String get linkedViews => '视图联动';
+
+  @override
+  String get freeBrowse => '自由浏览';
+
+  @override
+  String followSource(String pane) {
+    return '跟随：$pane';
+  }
+
+  @override
+  String get returnToEditing => '回到编辑位置';
+
+  @override
+  String get activePaneLabel => '当前操作';
+
+  @override
+  String get switchToSource => '切到源码编辑';
+
+  @override
+  String get switchToInstant => '切到即时编辑';
+
+  @override
+  String get showFiles => '显示文件栏';
+
+  @override
+  String get hideFiles => '收起文件栏';
+
+  @override
+  String get showOutline => '显示标题大纲';
+
+  @override
+  String get hideOutline => '收起标题大纲';
+
+  @override
+  String get wordCountRules => '中文按字、英文按词；不计 Markdown 标记和空白。';
+
+  @override
+  String selectedWords(int count) {
+    return '选区 $count 字词';
+  }
+
+  @override
+  String get visibleWords => '正文字词';
+
+  @override
+  String get currentArticle => '当前文章';
+
+  @override
+  String get sampleArticle => '完整示例文章';
+
+  @override
+  String get emptyPreviewHint => '当前文章为空，可切换示例查看排版。';
+
+  @override
+  String get layoutPurpose => '单视图用于专注写作、阅读或导图；组合布局用于对照。文件栏与大纲在底栏开关。';
+
+  @override
+  String get noFilenameResults => '没有匹配的文件名；这里不搜索正文。';
+
+  @override
+  String get findInContent => '转到当前正文查找';
+
+  @override
+  String get mapEmptyHint => '添加 Markdown 标题即可生成章节导图。';
+
+  @override
+  String get undoChapter => '撤销刚才的章节修改';
+
+  @override
+  String mapMovePreview(String title, int level, int children, int characters) {
+    return '移到「$title」末尾，作为 H$level 子章节；正文及 $children 个子章节共 $characters 字符一起移动。';
+  }
+
+  @override
+  String get guidePractice => '引导演练 · 不写入原文件';
+
+  @override
+  String get emptyWorkspaceTitle => '从一篇文章开始';
+
+  @override
+  String get emptyWorkspaceHint => '新建文档开始写作，或打开已有 Markdown 文件。';
+
+  @override
+  String get prefMcpSaveFailed => '设置保存失败，请检查系统凭据存储后重试。';
+
+  @override
+  String get prefMcpStartFailed => '启动失败，请检查端口是否被占用及系统凭据存储。';
+
+  @override
+  String get prefMcpStarting => '正在启动…';
+
+  @override
+  String get prefMcpStopping => '正在停止…';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
 class AppLocalizationsZhHant extends AppLocalizationsZh {
   AppLocalizationsZhHant() : super('zh_Hant');
+
+  @override
+  String get documentAuxiliary => '文件輔助';
+
+  @override
+  String get articleInfo => '文章資訊';
+
+  @override
+  String get chapterDetails => '章節詳情';
+
+  @override
+  String get revealSection => '定位至內文';
+
+  @override
+  String get selectChapter => '選擇一個章節';
+
+  @override
+  String get selectChapterHint => '在心智圖中選擇節點，即可檢視及編輯章節內文。';
+
+  @override
+  String get chapterBodyAutosaveHint => '修改會同步到文章，子章節獨立保留。可使用復原還原。';
 
   @override
   String get updateDownload => '下載更新';
@@ -2423,7 +2623,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get layoutDropdown => '版面配置';
 
   @override
-  String get findTooltip => '尋找 · Ctrl+F';
+  String get findTooltip => '搜尋目前內文 · Ctrl+F';
 
   @override
   String get saveTooltip => '儲存 · Ctrl+S';
@@ -2471,7 +2671,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get moreFormatting => '更多格式';
 
   @override
-  String get findText => '尋找文字';
+  String get findText => '搜尋目前內文…';
 
   @override
   String get matchCase => '區分大小寫';
@@ -2565,7 +2765,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get outlineHint => '使用 # 標題來組織內容。';
 
   @override
-  String get searchDocuments => '搜尋文件…';
+  String get searchDocuments => '依檔名搜尋…';
 
   @override
   String get notes => '筆記';
@@ -2793,7 +2993,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
         intl.NumberFormat.decimalPattern(localeName);
     final String countString = countNumberFormat.format(count);
 
-    return '$countString 詞';
+    return '$countString 字詞';
   }
 
   @override
@@ -2919,7 +3119,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get mcpIntro => '允許 AI 用戶端透過本機 MCP 介面讀取和操作目前文件。';
 
   @override
-  String get mcpEnable => '啟用 MCP Server';
+  String get mcpEnable => '啟用 MCP 服務';
 
   @override
   String get mcpAddress => '監聽位址';
@@ -2928,7 +3128,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get mcpPort => '連接埠';
 
   @override
-  String get mcpToken => '授權 Token';
+  String get mcpToken => '存取權杖';
 
   @override
   String get mcpGenerate => '重新產生';
@@ -2955,7 +3155,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get mcpRunning => '服務執行中';
 
   @override
-  String get mcpStopped => '未啟動';
+  String get mcpStopped => '服務已停止';
 
   @override
   String get mcpConfirmTitle => '確認 MCP 操作';
@@ -3126,7 +3326,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get showWordCount => '顯示詞數';
 
   @override
-  String get searchOutline => '尋找標題…';
+  String get searchOutline => '篩選目前文章標題…';
 
   @override
   String get clearSearch => '清除搜尋';
@@ -3601,4 +3801,162 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get mapNavigationHint => 'Enter 同級 · Tab 子級 · 拖動章節調整結構';
+
+  @override
+  String get savingDocument => '正在儲存…';
+
+  @override
+  String get saveFailedRetry => '儲存失敗 · 點擊重試';
+
+  @override
+  String get newUnsaved => '新文件 · 尚未儲存至磁碟';
+
+  @override
+  String get unsavedChanges => '有尚未儲存的修改';
+
+  @override
+  String savedAt(String time) {
+    return '已儲存 · $time';
+  }
+
+  @override
+  String get diskVersion => '已載入磁碟版本';
+
+  @override
+  String get recoveredNeedsSave => '已復原草稿 · 仍需儲存';
+
+  @override
+  String get saveDetails => '儲存與復原狀態';
+
+  @override
+  String get lastSaved => '最近儲存';
+
+  @override
+  String get noSaveYet => '本次開啟後尚未儲存';
+
+  @override
+  String get draftStatus => '復原草稿';
+
+  @override
+  String get draftProtected => '目前修改已寫入復原草稿';
+
+  @override
+  String get draftPending => '等待寫入復原草稿';
+
+  @override
+  String get draftDisabled => '草稿復原已關閉';
+
+  @override
+  String get draftNone => '目前沒有待復原的修改';
+
+  @override
+  String get draftReview => '檢視復原草稿';
+
+  @override
+  String get draftCompareHint => '左側為上次儲存內容，右側為復原草稿。復原後仍需儲存，寫入時會檢查磁碟衝突。';
+
+  @override
+  String get draftSource => '草稿來源';
+
+  @override
+  String get savedContent => '上次儲存內容';
+
+  @override
+  String get recoveryContent => '復原草稿內容';
+
+  @override
+  String get linkedViews => '視圖連動';
+
+  @override
+  String get freeBrowse => '自由瀏覽';
+
+  @override
+  String followSource(String pane) {
+    return '跟隨：$pane';
+  }
+
+  @override
+  String get returnToEditing => '回到編輯位置';
+
+  @override
+  String get activePaneLabel => '目前操作';
+
+  @override
+  String get switchToSource => '切換至原始碼編輯';
+
+  @override
+  String get switchToInstant => '切換至即時編輯';
+
+  @override
+  String get showFiles => '顯示檔案欄';
+
+  @override
+  String get hideFiles => '收起檔案欄';
+
+  @override
+  String get showOutline => '顯示標題大綱';
+
+  @override
+  String get hideOutline => '收起標題大綱';
+
+  @override
+  String get wordCountRules => '中文按字、英文按詞；不計 Markdown 標記和空白。';
+
+  @override
+  String selectedWords(int count) {
+    return '選取 $count 字詞';
+  }
+
+  @override
+  String get visibleWords => '正文字詞';
+
+  @override
+  String get currentArticle => '目前文章';
+
+  @override
+  String get sampleArticle => '完整範例文章';
+
+  @override
+  String get emptyPreviewHint => '目前文章為空，可切換範例檢視排版。';
+
+  @override
+  String get layoutPurpose => '單一視圖用於專注寫作、閱讀或導圖；組合配置用於對照。檔案欄與大綱在底欄開關。';
+
+  @override
+  String get noFilenameResults => '沒有相符的檔名；此處不搜尋內文。';
+
+  @override
+  String get findInContent => '切換至目前內文搜尋';
+
+  @override
+  String get mapEmptyHint => '新增 Markdown 標題即可產生章節心智圖。';
+
+  @override
+  String get undoChapter => '復原剛才的章節修改';
+
+  @override
+  String mapMovePreview(String title, int level, int children, int characters) {
+    return '移到「$title」末尾，作為 H$level 子章節；內文及 $children 個子章節共 $characters 字元一起移動。';
+  }
+
+  @override
+  String get guidePractice => '導覽練習 · 不寫入原檔案';
+
+  @override
+  String get emptyWorkspaceTitle => '從一篇文章開始';
+
+  @override
+  String get emptyWorkspaceHint => '新增文件開始寫作，或開啟現有 Markdown 檔案。';
+
+  @override
+  String get prefMcpSaveFailed => '設定儲存失敗，請檢查系統憑證儲存後重試。';
+
+  @override
+  String get prefMcpStartFailed => '啟動失敗，請檢查連接埠及系統憑證儲存。';
+
+  @override
+  String get prefMcpStarting => '正在啟動…';
+
+  @override
+  String get prefMcpStopping => '正在停止…';
 }
