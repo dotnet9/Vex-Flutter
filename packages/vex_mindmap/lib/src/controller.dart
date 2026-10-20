@@ -12,12 +12,14 @@ final class MindMapViewState {
       selectedId = controller.selectedId,
       collapsed = Set.unmodifiable(controller.collapsed),
       _transformation = Matrix4.copy(controller.transformation.value),
+      viewportSize = controller.viewportSize,
       fitRequested = controller.fitRequested;
   final MindMapLayoutMode mode;
   final MindMapStyle style;
   final String? selectedId;
   final Set<String> collapsed;
   final Matrix4 _transformation;
+  final Size? viewportSize;
   final bool fitRequested;
 }
 
@@ -29,6 +31,7 @@ final class MindMapController extends ChangeNotifier {
   MindMapNode _root;
   late MindMapLayout _layout;
   final transformation = TransformationController();
+  Size? viewportSize;
   final _collapsed = <String>{};
   MindMapLayoutMode _mode = MindMapLayoutMode.right;
   MindMapLayoutMode get mode => _mode;
@@ -63,6 +66,16 @@ final class MindMapController extends ChangeNotifier {
   }
 
   String? _selected;
+  String? followRequestedId;
+
+  /// Called on a chapter change, so scrolling inside a chapter preserves pan.
+  void follow(String? id) {
+    if (_selected == id) return;
+    _selected = id;
+    followRequestedId = id;
+    notifyListeners();
+  }
+
   bool fitRequested = true;
   MindMapNode get root => _root;
   MindMapLayout get layout => _layout;
@@ -78,6 +91,7 @@ final class MindMapController extends ChangeNotifier {
       ..addAll(state.collapsed);
     _layout = MindMapLayout.compute(root, collapsed: _collapsed, mode: _mode);
     fitRequested = state.fitRequested;
+    viewportSize = state.viewportSize;
     // 恢复矩阵不再触发一次多余的监听广播，统一由末尾的单次 notify 通知。
     _suppressTransformNotify = true;
     transformation.value = Matrix4.copy(state._transformation);
@@ -152,6 +166,7 @@ final class MindMapController extends ChangeNotifier {
 
   void fit(Size viewport) {
     if (viewport.isEmpty) return;
+    viewportSize = viewport;
     final factor = _fitScale(viewport);
     transformation.value = Matrix4.diagonal3Values(factor, factor, 1)
       ..setTranslationRaw(
@@ -165,6 +180,7 @@ final class MindMapController extends ChangeNotifier {
   /// Reveal collapsed ancestors and center a node at a readable scale.
   void focusNode(String id, Size viewport, {double scale = 1}) {
     if (viewport.isEmpty) return;
+    viewportSize = viewport;
     final path = <String>[];
     bool locate(MindMapNode node) {
       path.add(node.id);
@@ -198,6 +214,7 @@ final class MindMapController extends ChangeNotifier {
   }
 
   void zoom(double factor, Size viewport) {
+    viewportSize = viewport;
     final nextScale = (scale * factor).clamp(minimumScaleFor(viewport), 3.0),
         ratio = nextScale / scale;
     final position = transformation.value.getTranslation();
@@ -207,6 +224,18 @@ final class MindMapController extends ChangeNotifier {
         viewport.height / 2 + (position.y - viewport.height / 2) * ratio,
         0,
       );
+  }
+
+  /// Keep the same scene point at the center when a workspace pane resizes.
+  void resizeViewport(Size viewport) {
+    if (viewport.isEmpty || viewport == viewportSize) return;
+    final previous = viewportSize;
+    viewportSize = viewport;
+    if (previous == null || fitRequested) return;
+    final matrix = Matrix4.copy(transformation.value);
+    matrix[12] += (viewport.width - previous.width) / 2;
+    matrix[13] += (viewport.height - previous.height) / 2;
+    transformation.value = matrix;
   }
 
   @override

@@ -16,6 +16,8 @@ export 'src/math_formula.dart';
 export 'src/mermaid_block.dart';
 export 'src/mermaid_catalog.dart';
 export 'src/reader.dart';
+export 'src/search_highlight.dart';
 export 'src/table_commands.dart';
 export 'src/table_model.dart';
 export 'src/typing_formatter.dart';
+export 'src/viewport_sync.dart';

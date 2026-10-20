@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/services.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:re_editor/re_editor.dart';
 
 import 'controller.dart';
@@ -68,7 +69,13 @@ final class MarkdownSourceEditingController
   }
 
   void _writeSource() {
-    if (_syncing) return;
+    // Mounting Re-Editor's viewport delegates emits synthetic selection events.
+    // Widget layout must not write back to the authoritative document.
+    if (_syncing ||
+        SchedulerBinding.instance.schedulerPhase ==
+            SchedulerPhase.persistentCallbacks) {
+      return;
+    }
     _syncing = true;
     try {
       if (!identical(_lastLines, codeLines)) {

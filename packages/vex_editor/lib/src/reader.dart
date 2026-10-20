@@ -105,7 +105,9 @@ class MarkdownReader extends StatefulWidget {
   final WrapAlignment inlineAlignment;
   MarkdownStyleSheet styleSheet(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final accent = typography.accent(colors.brightness);
+    final accent = typography == MarkdownTypography.simple
+        ? colors.onSurface
+        : colors.primary;
     final fonts = MarkdownFontFamilies.of(context);
     final font = editingPreferences?.font ?? MarkdownBodyFont.system;
     final book =
@@ -208,7 +210,7 @@ class MarkdownReader extends StatefulWidget {
       ),
       blockquoteDecoration: BoxDecoration(
         color: colors.surfaceContainerLow,
-        border: Border(left: BorderSide(color: accent, width: 3)),
+        border: Border(left: BorderSide(color: colors.primary, width: 3)),
         borderRadius: const BorderRadius.horizontal(right: Radius.circular(5)),
       ),
       code: TextStyle(
@@ -792,7 +794,9 @@ class MarkdownHeadingFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final accent = typography.accent(colors.brightness);
+    final accent = typography == MarkdownTypography.simple
+        ? colors.onSurface
+        : colors.primary;
     final size = style.fontSize!;
     final decorated =
         level == 2 &&

@@ -3,6 +3,86 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vex_mindmap/vex_mindmap.dart';
 
 void main() {
+  testWidgets('resizing a pane preserves its scene center and user zoom', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1000, 700));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final controller = MindMapController(
+      const MindMapNode(
+        id: 'root',
+        title: 'Root',
+        children: [MindMapNode(id: 'chapter', title: 'Chapter')],
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: MindMapView(controller: controller)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    controller.focusNode('chapter', const Size(1000, 700), scale: 1.6);
+    final center = controller.transformation.toScene(const Offset(500, 350));
+    await tester.binding.setSurfaceSize(const Size(500, 300));
+    await tester.pumpAndSettle();
+    final resized = controller.transformation.toScene(const Offset(250, 150));
+    expect(resized.dx, closeTo(center.dx, .01));
+    expect(resized.dy, closeTo(center.dy, .01));
+    expect(controller.scale, 1.6);
+    expect(controller.selectedId, 'chapter');
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
+  });
+  testWidgets(
+    'chapter following reveals a collapsed node and preserves manual pan',
+    (tester) async {
+      final controller = MindMapController(
+        const MindMapNode(
+          id: 'root',
+          title: 'Root',
+          children: [
+            MindMapNode(
+              id: 'branch',
+              title: 'Branch',
+              children: [MindMapNode(id: 'leaf', title: 'Leaf')],
+            ),
+            MindMapNode(id: 'other', title: 'Other'),
+          ],
+        ),
+      );
+      controller.toggle('branch');
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MindMapView(controller: controller, showControls: false),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final scale = controller.scale;
+      controller.follow('leaf');
+      await tester.pumpAndSettle();
+      expect(controller.collapsed, isNot(contains('branch')));
+      expect(find.text('Leaf').hitTestable(), findsOneWidget);
+      expect(controller.scale, scale);
+      controller.transformation.value = controller.transformation.value.clone()
+        ..translateByDouble(30, 40, 0, 1);
+      final manual = controller.transformation.value.clone();
+      controller.follow('leaf');
+      await tester.pumpAndSettle();
+      expect(controller.transformation.value, manual);
+      controller.follow('other');
+      await tester.pumpAndSettle();
+      expect(controller.transformation.value, isNot(manual));
+      expect(find.text('Other').hitTestable(), findsOneWidget);
+      expect(controller.scale, scale);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      controller.dispose();
+    },
+  );
+
   test(
     'view snapshots restore independent transform, collapse and selection',
     () {

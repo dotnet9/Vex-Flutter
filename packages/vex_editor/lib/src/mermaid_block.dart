@@ -11,9 +11,19 @@ import 'labels.dart';
 /// Shared renderer for inline diagrams and self-contained exports. Never
 /// executes Mermaid click links, scripts, or external resource requests.
 abstract final class MarkdownMermaidRenderer {
+  // Visible panes commonly render the same diagram. Keep a bounded cache so
+  // returning to a palette reuses its measured scene as well as parsed source.
+  static final _scenes = <(String, ColorScheme), core.RenderScene>{};
+
   static core.RenderScene scene(String source, ColorScheme colors) {
     if (source.length > 65536 || '\n'.allMatches(source).length > 1000) {
       throw const FormatException('Mermaid source exceeds the rendering limit');
+    }
+    final key = (source, colors);
+    final cached = _scenes.remove(key);
+    if (cached != null) {
+      _scenes[key] = cached;
+      return cached;
     }
     final result = core.Mermaid(
       measurer: const FlutterTextMeasurer(),
@@ -41,11 +51,14 @@ abstract final class MarkdownMermaidRenderer {
             edge: node.edge,
           )
         : node;
-    return core.RenderScene(
+    final scene = core.RenderScene(
       size: result.size,
       background: result.background,
       nodes: result.nodes.map(stripLinks).toList(),
     );
+    _scenes[key] = scene;
+    if (_scenes.length > 24) _scenes.remove(_scenes.keys.first);
+    return scene;
   }
 
   static String svg(String source, ColorScheme colors) =>

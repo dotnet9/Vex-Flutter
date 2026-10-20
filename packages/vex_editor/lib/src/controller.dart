@@ -10,6 +10,19 @@ final class MarkdownRevealRequest {
   final TextSelection selection;
 }
 
+/// A continuous source coordinate, independent of the caret and selection.
+final class MarkdownViewportPosition {
+  const MarkdownViewportPosition(this.offset, this.origin);
+  final double offset;
+  final Object origin;
+}
+
+final class MarkdownSearchMatch {
+  const MarkdownSearchMatch(this.text, this.occurrence);
+  final String text;
+  final int occurrence;
+}
+
 final class MarkdownEditorController extends ChangeNotifier {
   MarkdownEditorController({MarkdownSession? session, String text = ''})
     : session = session ?? MarkdownSession(text) {
@@ -22,6 +35,35 @@ final class MarkdownEditorController extends ChangeNotifier {
   late final TextEditingController source;
   final sourceFocus = FocusNode();
   final navigation = ValueNotifier<MarkdownRevealRequest?>(null);
+  final viewport = ValueNotifier<MarkdownViewportPosition?>(null);
+  Object? viewportOwner;
+  TextSelection? _searchMatch;
+  MarkdownSearchMatch? searchMatchFor(SourceRange range) {
+    final match = _searchMatch;
+    if (match == null ||
+        match.start < range.start ||
+        match.end > range.end ||
+        match.end > text.length) {
+      return null;
+    }
+    final term = text.substring(match.start, match.end);
+    if (term.isEmpty) return null;
+    var occurrence = 0, from = range.start;
+    while (from < match.start) {
+      final previous = text.indexOf(term, from);
+      if (previous < 0 || previous >= match.start) break;
+      occurrence++;
+      from = previous + term.length;
+    }
+    return MarkdownSearchMatch(term, occurrence);
+  }
+
+  void clearSearchMatch() {
+    if (_searchMatch == null) return;
+    _searchMatch = null;
+    notifyListeners();
+  }
+
   bool _syncing = false;
   late int _documentRevision;
   String get text =>
@@ -46,7 +88,10 @@ final class MarkdownEditorController extends ChangeNotifier {
   void _documentChanged() {
     final textChanged = _documentRevision != session.revision;
     _documentRevision = session.revision;
-    if (textChanged) navigation.value = null;
+    if (textChanged) {
+      navigation.value = null;
+      _searchMatch = null;
+    }
     // Saving changes the disk baseline, not an in-progress IME candidate.
     if (textChanged && source.text != session.text) {
       final selection = source.selection;
@@ -71,8 +116,11 @@ final class MarkdownEditorController extends ChangeNotifier {
   }
 
   /// Explicit navigation is separate from selections changed while typing.
-  void reveal(int start, {int? end}) {
+  void reveal(int start, {int? end, bool search = false}) {
+    viewportOwner = null;
+    viewport.value = null;
     select(start, end);
+    _searchMatch = search ? selection : null;
     navigation.value = MarkdownRevealRequest(selection);
     notifyListeners();
   }
@@ -384,11 +432,16 @@ final class MarkdownEditorController extends ChangeNotifier {
       regularExpression: regularExpression,
       wholeWord: wholeWord,
     );
-    var updated = text;
-    for (final range in ranges.reversed) {
-      updated = updated.replaceRange(range.start, range.end, replacement);
+    if (ranges.isEmpty) return;
+    final source = text, updated = StringBuffer();
+    var end = 0;
+    for (final range in ranges) {
+      updated.write(source.substring(end, range.start));
+      updated.write(replacement);
+      end = range.end;
     }
-    session.replace(updated, label: '全部替换');
+    updated.write(source.substring(end));
+    session.replace(updated.toString(), label: '全部替换');
   }
 
   @override
@@ -398,6 +451,7 @@ final class MarkdownEditorController extends ChangeNotifier {
     source.dispose();
     sourceFocus.dispose();
     navigation.dispose();
+    viewport.dispose();
     super.dispose();
   }
 }

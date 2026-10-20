@@ -59,6 +59,7 @@ class _MindMapViewState extends State<MindMapView> {
   final _title = TextEditingController();
   final _titleFocus = FocusNode(), _canvasFocus = FocusNode();
   MindMapNode? _editing;
+  Size? _viewport;
 
   void _activate(MindMapNode node) {
     controller.select(node.id);
@@ -108,6 +109,13 @@ class _MindMapViewState extends State<MindMapView> {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final viewport = constraints.biggest;
+      _viewport = viewport;
+      if (controller.viewportSize != viewport) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _viewport == viewport)
+            controller.resizeViewport(viewport);
+        });
+      }
       return ListenableBuilder(
         listenable: controller,
         builder: (context, _) {
@@ -118,6 +126,21 @@ class _MindMapViewState extends State<MindMapView> {
               if (context.mounted && controller.fitRequested) {
                 controller.fit(viewport);
               }
+            });
+          }
+          final following = controller.followRequestedId;
+          if (following != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!context.mounted ||
+                  controller.followRequestedId != following) {
+                return;
+              }
+              controller.followRequestedId = null;
+              controller.focusNode(
+                following,
+                viewport,
+                scale: controller.scale,
+              );
             });
           }
           return Focus(

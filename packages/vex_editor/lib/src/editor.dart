@@ -21,9 +21,11 @@ import 'list_navigation.dart';
 import 'markdown_preferences.dart';
 import 'mermaid_block.dart';
 import 'reader.dart';
+import 'search_highlight.dart';
 import 'selection_geometry.dart';
 import 'table_editor.dart';
 import 'typing_formatter.dart';
+import 'viewport_sync.dart';
 
 export 'source_editor.dart';
 
@@ -213,7 +215,12 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
   }
 
   Widget _contextBlock(MarkdownBlock block, String source) {
-    final child = _selectionBlock(block, source, _displayBlock(block, source));
+    final match = widget.controller.searchMatchFor(block.range);
+    final child = MarkdownSearchHighlight(
+      key: match == null ? null : _searchMatchKey,
+      match: match,
+      child: _selectionBlock(block, source, _displayBlock(block, source)),
+    );
     if (block.kind == MarkdownBlockKind.table) {
       return child;
     }
@@ -343,7 +350,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
     widget.controller.source.addListener(_observeDocumentSelection);
     widget.controller.session.addListener(_externalChange);
     widget.controller.navigation.addListener(_revealNavigation);
-    _revealNavigation();
+    if (widget.controller.viewport.value == null) _revealNavigation();
   }
 
   @override
@@ -359,7 +366,7 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
       _clearDocumentSelection();
       _selectionGeometries.clear();
       _checkpoint = null;
-      _revealNavigation();
+      if (widget.controller.viewport.value == null) _revealNavigation();
     }
     if (oldWidget.typewriter != widget.typewriter) _scheduleCenter();
   }
@@ -400,6 +407,8 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
     });
   }
 
+  final _searchMatchKey = GlobalKey();
+
   void _revealNavigation() {
     final controller = widget.controller;
     final request = controller.navigation.value;
@@ -428,7 +437,34 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
         (b) => b.range.end > request.selection.start,
       );
       final target = index < 0 ? blocks.length - 1 : index;
-      _navigation.reveal(target);
+      if (request.selection.start <= blocks[target].range.start) {
+        _navigation.reveal(target);
+      } else {
+        void reveal() => MarkdownListViewport.write(
+          request.selection.start.toDouble(),
+          _list,
+          _scroll,
+          _visibleBlocks,
+          alignment: .08,
+        );
+        reveal();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted &&
+              controller.navigation.value == request &&
+              controller.viewport.value == null) {
+            reveal();
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted &&
+                  controller.navigation.value == request &&
+                  controller.viewport.value == null) {
+                MarkdownSearchHighlight.reveal(_searchMatchKey);
+              }
+            });
+            WidgetsBinding.instance.ensureVisualUpdate();
+          }
+        });
+        WidgetsBinding.instance.ensureVisualUpdate();
+      }
     });
   }
 
@@ -1098,91 +1134,109 @@ class _MarkdownInstantEditorState extends State<MarkdownInstantEditor>
         final visibleBlocks = _visibleBlocks;
         return Stack(
           children: [
-            Listener(
-              onPointerDown: _documentPointerDown,
-              onPointerSignal: (_) => _navigation.cancel(),
-              onPointerMove: _dragSelection,
-              onPointerUp: (_) => _endDocumentDrag(),
-              onPointerCancel: (_) => _endDocumentDrag(),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  _navigation.preservePosition((
-                    constraints.biggest,
-                    widget.typography,
-                    widget.compact,
-                    widget.fontSize,
-                    widget.editingPreferences,
-                    widget.preferences,
-                    MediaQuery.textScalerOf(context),
-                  ), contentKey: widget.controller.document);
-                  return Align(
-                    key: _viewportRegion,
-                    alignment: Alignment.topCenter,
-                    // 正文随内容区铺满（Typora 参照）：即时编辑不再按排版
-                    // 主题限制居中栏宽，导出仍保留每主题栏宽。
-                    child: SuperListView.builder(
-                      key: PageStorageKey(widget.controller),
-                      controller: _scroll,
-                      listController: _list,
-                      cacheExtent: constraints.maxHeight,
-                      padding: widget.padding.copyWith(
-                        top: widget.typewriter
-                            ? constraints.maxHeight / 2
-                            : widget.padding.top,
-                        bottom: widget.typewriter
-                            ? constraints.maxHeight / 2
-                            : widget.padding.bottom,
-                      ),
-                      itemCount:
-                          visibleBlocks.length + (_checkpoint == null ? 1 : 0),
-                      findChildIndexCallback: (key) =>
-                          key == const ValueKey('instant-new-paragraph')
-                          ? (_checkpoint == null ? visibleBlocks.length : null)
-                          : _blockIndices[key],
-                      itemBuilder: (context, index) {
-                        if (index < visibleBlocks.length) {
-                          final block = visibleBlocks[index];
-                          return KeyedSubtree(
-                            key: ValueKey(block.range.start),
-                            child:
-                                _checkpoint != null &&
-                                    block.range.start == _start
-                                ? _selectionBlock(
-                                    block,
-                                    source,
-                                    _field(colors),
-                                    active: true,
-                                  )
-                                : _contextBlock(block, source),
-                          );
-                        }
-                        return GestureDetector(
-                          key: const ValueKey('instant-new-paragraph'),
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            final current = widget.controller.session.text;
-                            final newline = widget.controller.document.newline;
-                            if (current.isNotEmpty &&
-                                !current.endsWith('$newline$newline')) {
-                              widget.controller.session.replace(
-                                '$current${current.endsWith(newline) ? '' : newline}$newline',
-                                label: widget.labels.newParagraph,
-                              );
-                            }
-                            _begin(null);
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 24),
-                            child: Text(
-                              blocks.isEmpty ? widget.labels.placeholder : '',
-                              style: TextStyle(color: colors.onSurfaceVariant),
+            MarkdownViewportSync(
+              controller: widget.controller,
+              scroll: _scroll,
+              readPosition: () =>
+                  MarkdownListViewport.read(_list, _scroll, _visibleBlocks),
+              writePosition: (offset) => MarkdownListViewport.write(
+                offset,
+                _list,
+                _scroll,
+                _visibleBlocks,
+              ),
+              child: Listener(
+                onPointerDown: _documentPointerDown,
+                onPointerSignal: (_) => _navigation.cancel(),
+                onPointerMove: _dragSelection,
+                onPointerUp: (_) => _endDocumentDrag(),
+                onPointerCancel: (_) => _endDocumentDrag(),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    _navigation.preservePosition((
+                      constraints.biggest,
+                      widget.typography,
+                      widget.compact,
+                      widget.fontSize,
+                      widget.editingPreferences,
+                      widget.preferences,
+                      MediaQuery.textScalerOf(context),
+                    ), contentKey: widget.controller.document);
+                    return Align(
+                      key: _viewportRegion,
+                      alignment: Alignment.topCenter,
+                      // 正文随内容区铺满（Typora 参照）：即时编辑不再按排版
+                      // 主题限制居中栏宽，导出仍保留每主题栏宽。
+                      child: SuperListView.builder(
+                        key: PageStorageKey(widget.controller),
+                        controller: _scroll,
+                        listController: _list,
+                        cacheExtent: constraints.maxHeight,
+                        padding: widget.padding.copyWith(
+                          top: widget.typewriter
+                              ? constraints.maxHeight / 2
+                              : widget.padding.top,
+                          bottom: widget.typewriter
+                              ? constraints.maxHeight / 2
+                              : widget.padding.bottom,
+                        ),
+                        itemCount:
+                            visibleBlocks.length +
+                            (_checkpoint == null ? 1 : 0),
+                        findChildIndexCallback: (key) =>
+                            key == const ValueKey('instant-new-paragraph')
+                            ? (_checkpoint == null
+                                  ? visibleBlocks.length
+                                  : null)
+                            : _blockIndices[key],
+                        itemBuilder: (context, index) {
+                          if (index < visibleBlocks.length) {
+                            final block = visibleBlocks[index];
+                            return KeyedSubtree(
+                              key: ValueKey(block.range.start),
+                              child:
+                                  _checkpoint != null &&
+                                      block.range.start == _start
+                                  ? _selectionBlock(
+                                      block,
+                                      source,
+                                      _field(colors),
+                                      active: true,
+                                    )
+                                  : _contextBlock(block, source),
+                            );
+                          }
+                          return GestureDetector(
+                            key: const ValueKey('instant-new-paragraph'),
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              final current = widget.controller.session.text;
+                              final newline =
+                                  widget.controller.document.newline;
+                              if (current.isNotEmpty &&
+                                  !current.endsWith('$newline$newline')) {
+                                widget.controller.session.replace(
+                                  '$current${current.endsWith(newline) ? '' : newline}$newline',
+                                  label: widget.labels.newParagraph,
+                                );
+                              }
+                              _begin(null);
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              child: Text(
+                                blocks.isEmpty ? widget.labels.placeholder : '',
+                                style: TextStyle(
+                                  color: colors.onSurfaceVariant,
+                                ),
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
             if (_documentSelection) _documentSelectionInput(colors),
