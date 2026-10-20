@@ -51,6 +51,42 @@ function Find-Flutter {
     throw 'Install the pinned Flutter SDK and add its bin to PATH, or pass -Flutter C:\tools\flutter\bin\flutter.bat.'
 }
 
+function Initialize-BuildProxy {
+    if ($env:HTTPS_PROXY -or $env:HTTP_PROXY -or $env:ALL_PROXY) { return }
+    $destination = [Uri]'https://github.com'
+    $systemProxy = [Net.WebRequest]::DefaultWebProxy
+    if (-not $systemProxy -or $systemProxy.IsBypassed($destination)) { return }
+    $address = $systemProxy.GetProxy($destination)
+    if ($address -and $address -ne $destination) {
+        $env:HTTPS_PROXY = $address.AbsoluteUri
+        $env:HTTP_PROXY = $address.AbsoluteUri
+        Write-Host 'Using the Windows system proxy for build tools in this process.'
+    }
+}
+
+function Initialize-PluginLinks {
+    $manifest = Join-Path $root 'apps/vex/.flutter-plugins-dependencies'
+    if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) { return }
+    $configuration = Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json
+    foreach ($platform in @('windows', 'linux')) {
+        $platformDirectory = Join-Path $root "apps/vex/$platform"
+        if (-not (Test-Path -LiteralPath $platformDirectory -PathType Container)) { continue }
+        $linkDirectory = Join-Path $platformDirectory 'flutter/ephemeral/.plugin_symlinks'
+        foreach ($plugin in $configuration.plugins.$platform) {
+            if ($plugin.name -notmatch '^[a-z][a-z0-9_]*$') { throw 'Invalid Flutter plugin name.' }
+            $link = Join-Path $linkDirectory $plugin.name
+            if (Test-Path -LiteralPath $link) { continue }
+            if (-not (Test-Path -LiteralPath $plugin.path -PathType Container)) {
+                throw "Flutter plugin directory was not found: $($plugin.path)"
+            }
+            New-Item -ItemType Directory -Path $linkDirectory -Force | Out-Null
+            # NTFS junctions work without elevation or Developer Mode. Existing
+            # Flutter-created links stay in place; package sources are unchanged.
+            New-Item -ItemType Junction -Path $link -Target $plugin.path | Out-Null
+        }
+    }
+}
+
 $exitCode = 0
 $transcribing = $false
 Push-Location $root
@@ -103,6 +139,7 @@ try {
         if (-not $env:CL) { $env:CL = '/MP1' }
         Invoke-Checked -Executable $python -Arguments @((Join-Path $root 'scripts/sync_builtin_documents.py'))
         Invoke-Checked -Executable $flutterPath -Arguments @('pub', 'get', '--enforce-lockfile')
+        Initialize-PluginLinks
         if ($SkipTests) {
             Write-Warning 'Tests were explicitly skipped. This local installer is not a substitute for CI validation.'
         } else {
@@ -116,9 +153,10 @@ try {
             Invoke-Checked -Executable $python -Arguments @('-m', 'unittest', 'discover', '-s', 'scripts/tests', '-v')
         }
         if (-not $Compiler) { $Compiler = & (Join-Path $PSScriptRoot 'install_inno.ps1') }
+        Initialize-BuildProxy
         Push-Location (Join-Path $root 'apps/vex')
         try {
-            Invoke-Checked -Executable $flutterPath -Arguments @('build', 'windows', '--release', '--target', 'lib/main.dart')
+            Invoke-Checked -Executable $flutterPath -Arguments @('build', 'windows', '--release', '--no-pub', '--target', 'lib/main.dart')
         } finally { Pop-Location }
 
         $output = Join-Path $root "artifacts/local/win-x64/v$($metadata.version)-build$($metadata.build)"

@@ -1,5 +1,6 @@
 """Keep the double-click entry local, reproducible and separate from installation."""
 from pathlib import Path
+import json
 import os
 import re
 import shutil
@@ -88,6 +89,48 @@ class LocalWindowsBuildTest(unittest.TestCase):
                 result = subprocess.run([str(shell), '-NoLogo', '-NoProfile', '-Command', command],
                                         env=environment, capture_output=True, text=True)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows NTFS junction behavior')
+    def test_plugin_links_are_idempotent_and_leave_packages_and_metadata_unchanged(self):
+        shell = Path(os.environ['SystemRoot']) / 'System32/WindowsPowerShell/v1.0/powershell.exe'
+        script = ROOT / 'scripts/packaging/win-x64/build.ps1'
+        with tempfile.TemporaryDirectory(prefix='vex plugin paths ') as temporary:
+            root = Path(temporary)
+            package = root / 'pub cache/plugin source'
+            package.mkdir(parents=True)
+            (package / 'marker.txt').write_text('package remains intact', encoding='ascii')
+            for platform in ('windows', 'linux'):
+                (root / f'apps/vex/{platform}').mkdir(parents=True)
+            manifest = root / 'apps/vex/.flutter-plugins-dependencies'
+            metadata = json.dumps({'plugins': {
+                platform: [{'name': 'test_plugin', 'path': str(package)}]
+                for platform in ('windows', 'linux')
+            }})
+            manifest.write_text(metadata, encoding='utf-8')
+            root_literal = str(root).replace("'", "''")
+            script_literal = str(script).replace("'", "''")
+            command = (
+                "$ErrorActionPreference = 'Stop'; "
+                f"$root = '{root_literal}'; "
+                f"$source = [IO.File]::ReadAllText('{script_literal}'); "
+                "$tree = [System.Management.Automation.Language.Parser]::ParseInput($source, [ref]$null, [ref]$null); "
+                "$function = $tree.Find({ param($node) "
+                "$node -is [System.Management.Automation.Language.FunctionDefinitionAst] "
+                "-and $node.Name -eq 'Initialize-PluginLinks' }, $true); "
+                ". ([ScriptBlock]::Create($function.Extent.Text)); "
+                "Initialize-PluginLinks; Initialize-PluginLinks"
+            )
+            environment = dict(os.environ, PSModulePath=str(shell.parent / 'Modules'))
+            result = subprocess.run([str(shell), '-NoLogo', '-NoProfile', '-Command', command],
+                                    env=environment, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            for platform in ('windows', 'linux'):
+                link = root / f'apps/vex/{platform}/flutter/ephemeral/.plugin_symlinks/test_plugin'
+                self.assertTrue(link.is_dir())
+                self.assertEqual(link.resolve(), package.resolve())
+                self.assertEqual((link / 'marker.txt').read_text(encoding='ascii'), 'package remains intact')
+            self.assertEqual(manifest.read_text(encoding='utf-8'), metadata)
+            self.assertEqual((package / 'marker.txt').read_text(encoding='ascii'), 'package remains intact')
 
 
 if __name__ == '__main__':
