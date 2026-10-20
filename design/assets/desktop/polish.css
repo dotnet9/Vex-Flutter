@@ -1,10 +1,12 @@
 /* Vex design polish: coherent theme surfaces, quiet depth, and readable Markdown samples. */
+:root[data-theme][data-palette] {
+  --title-grad: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 62%, var(--bg)));
+}
 :root {
   --surface: var(--paper, var(--bg));
   --document-bg: var(--paper, var(--bg));
   --menu-bg: var(--surface, var(--panel));
   --menu-shadow: var(--shadow-pop, 0 12px 32px #18251f20);
-  --title-grad: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 62%, var(--bg)));
 }
 :root.theme-switching *,
 :root.theme-switching *::before,
