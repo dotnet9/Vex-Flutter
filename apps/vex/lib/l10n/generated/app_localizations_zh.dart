@@ -1796,6 +1796,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String mapSummaryLabel(int count) {
     return '摘要 $count 字';
   }
+
+  @override
+  String get mapContentSummary => '内容摘要';
+
+  @override
+  String get mapNavigationHint => 'Enter 同级 · Tab 子级 · 拖动章节调整结构';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -3589,4 +3595,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String mapSummaryLabel(int count) {
     return '摘要 $count 字';
   }
+
+  @override
+  String get mapContentSummary => '內容摘要';
+
+  @override
+  String get mapNavigationHint => 'Enter 同級 · Tab 子級 · 拖動章節調整結構';
 }

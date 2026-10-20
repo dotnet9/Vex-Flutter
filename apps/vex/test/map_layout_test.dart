@@ -11,6 +11,30 @@ import 'package:vex_mindmap/vex_mindmap.dart';
 import 'support/fakes.dart';
 
 void main() {
+  testWidgets('a newly opened map centers the current document root', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final vm = fakeWorkspace();
+    vm.editor.session.replace('# Root\n\n## First\n\nBody\n\n## Second\n');
+    await tester.pumpWidget(VexApp(viewModel: vm));
+    await tester.pumpAndSettle();
+    vm.setLayout(WorkspaceLayout.map);
+    await tester.pumpAndSettle();
+    final map = find.byType(MindMapView);
+    final root = find.descendant(of: map, matching: find.text('Root'));
+    final rootNode = find.ancestor(
+      of: root,
+      matching: find.byType(DragTarget<String>),
+    );
+    expect(tester.getCenter(rootNode).dx, closeTo(tester.getCenter(map).dx, 4));
+    expect(find.text(vm.strings.mapContentSummary), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    vm.dispose();
+  });
+
   for (final source in ['', '# Root\n\n## Existing\n\nBody']) {
     testWidgets('new map nodes are selected and ready to rename: $source', (
       tester,

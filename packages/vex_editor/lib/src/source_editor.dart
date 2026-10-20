@@ -269,7 +269,7 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
     final lineHeight =
         MediaQuery.textScalerOf(context).scale(widget.fontSize) * 1.9;
     double topPadding() =>
-        widget.typewriter ? (_viewportHeight - lineHeight) / 2 : 26;
+        widget.typewriter ? (_viewportHeight - lineHeight) / 2 : 22;
     return MarkdownViewportSync(
       controller: widget.controller,
       scroll: _vertical,
@@ -334,9 +334,9 @@ class _MarkdownSourceEditorState extends State<MarkdownSourceEditor> {
                 ),
               ),
               padding: EdgeInsets.fromLTRB(
-                widget.lineNumbers ? 4 : 28,
-                inset ?? 26,
-                28,
+                widget.lineNumbers ? 16 : 24,
+                inset ?? 22,
+                24,
                 inset ?? 70,
               ),
               indicatorBuilder: (context, editing, chunks, notifier) {

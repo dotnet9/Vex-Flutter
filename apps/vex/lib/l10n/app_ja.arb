@@ -573,5 +573,7 @@
   "mapHeadingsOnly": "見出しのみ",
   "mapCompareSource": "ソースと比較",
   "mapSummaryLabel": "要約 {count} 文字",
-  "@mapSummaryLabel": {"placeholders": {"count": {"type": "int"}}}
+  "@mapSummaryLabel": {"placeholders": {"count": {"type": "int"}}},
+  "mapContentSummary": "本文の要約",
+  "mapNavigationHint": "Enter：同階層 · Tab：子階層 · ドラッグで構成を変更"
 }

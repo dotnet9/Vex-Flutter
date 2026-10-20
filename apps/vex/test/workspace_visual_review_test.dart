@@ -10,6 +10,9 @@ import 'package:super_sliver_list/super_sliver_list.dart';
 import 'package:vex/app.dart';
 import 'package:vex/domain/workspace.dart';
 import 'package:vex/ui/core/palette_tokens.dart';
+import 'package:vex/ui/workspace/workspace_outline.dart';
+import 'package:vex/ui/workspace/workspace_panes.dart';
+import 'package:vex/ui/workspace/workspace_sidebar.dart';
 import 'package:vex_editor/vex_editor.dart';
 
 import 'support/fakes.dart';
@@ -45,10 +48,6 @@ void main() {
             ('Segoe UI', 'C:/Windows/Fonts/segoeui.ttf'),
             ('Microsoft YaHei UI', 'C:/Windows/Fonts/msyh.ttc'),
             ('SimSun', 'C:/Windows/Fonts/simsun.ttc'),
-            (
-              'MaterialIcons',
-              'E:/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
-            ),
           ]) {
             if (!File(path).existsSync()) continue;
             final loader = FontLoader(family)
@@ -63,12 +62,31 @@ void main() {
                 rootBundle.load('assets/fonts/CascadiaCode-Regular.ttf'),
               ))
               .load();
+          await (FontLoader('MaterialIcons')
+                ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf')))
+              .load();
           await Directory(output).create(recursive: true);
         });
       }
       final boundary = GlobalKey();
       Future<void> capture(String name) async {
         if (output == null) return;
+        List<double>? bounds(Finder finder) {
+          if (finder.evaluate().isEmpty) return null;
+          final rect = tester.getRect(finder.first);
+          return [rect.left, rect.top, rect.width, rect.height];
+        }
+
+        final geometry = {
+          'size': [1440, 900],
+          'scale': 1,
+          'language': 'zh',
+          'sidebar': bounds(find.byType(WorkspaceSidebar)),
+          'outline': bounds(find.byType(WorkspaceOutline)),
+          'panes': bounds(find.byType(WorkspacePanes)),
+          'document': bounds(find.byKey(const ValueKey('document-surface'))),
+          'words': bounds(find.byKey(const ValueKey('document-word-count'))),
+        };
         await tester.runAsync(() async {
           final render =
               boundary.currentContext!.findRenderObject()!
@@ -77,6 +95,9 @@ void main() {
           final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
           await File('$output/$name.png')
               .writeAsBytes(bytes!.buffer.asUint8List());
+          await File(
+            '$output/$name.json',
+          ).writeAsString(const JsonEncoder.withIndent('  ').convert(geometry));
           image.dispose();
         });
       }

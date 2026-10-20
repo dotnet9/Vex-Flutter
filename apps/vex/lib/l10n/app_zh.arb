@@ -743,5 +743,7 @@
   "mapHeadingsOnly": "仅标题",
   "mapCompareSource": "对照源码",
   "mapSummaryLabel": "摘要 {count} 字",
-  "@mapSummaryLabel": {"placeholders": {"count": {"type": "int"}}}
+  "@mapSummaryLabel": {"placeholders": {"count": {"type": "int"}}},
+  "mapContentSummary": "内容摘要",
+  "mapNavigationHint": "Enter 同级 · Tab 子级 · 拖动章节调整结构"
 }

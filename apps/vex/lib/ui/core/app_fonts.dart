@@ -18,13 +18,13 @@ abstract final class AppFonts {
     if (defaultTargetPlatform == TargetPlatform.windows) {
       if (language == 'ja') return 'Yu Gothic UI';
       if (language == 'zh_Hant') return 'Microsoft JhengHei UI';
+      if (language == 'zh') return 'Microsoft YaHei UI';
     }
     return interface;
   }
 
   static String get interface => switch (defaultTargetPlatform) {
-    // Typora-style Windows stack: Segoe UI takes Latin, Microsoft YaHei UI
-    // covers CJK via the fallback list — both hinted for small UI sizes.
+    // The default Windows face covers Latin; interfaceFor selects CJK faces.
     TargetPlatform.windows => 'Segoe UI',
     TargetPlatform.iOS || TargetPlatform.macOS => '.SF UI Text',
     TargetPlatform.android => 'Roboto',

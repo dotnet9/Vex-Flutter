@@ -445,6 +445,7 @@ class _MindMapViewState extends State<MindMapView> {
                   maxLines: 1,
                   style: TextStyle(
                     fontSize: 9,
+                    height: 14 / 9,
                     color: tokens.foreground.withValues(alpha: .75),
                   ),
                 ),
@@ -465,7 +466,7 @@ class _MindMapViewState extends State<MindMapView> {
                     onTapOutside: (_) => _commit(),
                     onSubmitted: (_) => _commit(),
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: tokens.foreground,
                     ),
@@ -485,7 +486,8 @@ class _MindMapViewState extends State<MindMapView> {
                   maxLines: node.summary ? 2 : 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: node.summary ? 12 : 14,
+                    fontSize: node.summary ? 12 : 13,
+                    height: node.summary ? 20 / 12 : 20 / 13,
                     fontWeight: node.summary
                         ? FontWeight.normal
                         : FontWeight.w600,
@@ -543,20 +545,17 @@ class _MindMapViewState extends State<MindMapView> {
                 ),
               if (node.children.isNotEmpty)
                 Positioned(
-                  right: -11,
-                  top: 23,
+                  right: -9.5,
+                  top: (controller.layout.rects[node.id]!.height - 19) / 2,
                   child: SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: IconButton.filledTonal(
+                    width: 19,
+                    height: 19,
+                    child: IconButton.outlined(
                       padding: EdgeInsets.zero,
                       style: IconButton.styleFrom(
-                        backgroundColor: MindMapEdgeStyle.resolve(
-                          controller.style,
-                          color,
-                          branch: controller.layout.branchIndices[node.id] ?? 0,
-                        ).color.withValues(alpha: 1),
-                        foregroundColor: color.surface,
+                        backgroundColor: color.surfaceContainerLow,
+                        foregroundColor: color.onSurfaceVariant,
+                        side: BorderSide(color: color.outlineVariant),
                       ),
                       tooltip: controller.collapsed.contains(node.id)
                           ? labels.expand

@@ -573,5 +573,7 @@
   "mapHeadingsOnly": "Headings only",
   "mapCompareSource": "Compare source",
   "mapSummaryLabel": "Summary: {count} characters",
-  "@mapSummaryLabel": {"placeholders": {"count": {"type": "int"}}}
+  "@mapSummaryLabel": {"placeholders": {"count": {"type": "int"}}},
+  "mapContentSummary": "Content summary",
+  "mapNavigationHint": "Enter: sibling · Tab: child · Drag chapters to rearrange"
 }

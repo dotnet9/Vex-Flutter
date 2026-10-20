@@ -31,10 +31,10 @@ final class MindMapLayout {
   factory MindMapLayout.compute(
     MindMapNode root, {
     Set<String> collapsed = const {},
-    double nodeWidth = 176,
-    double nodeHeight = 66,
-    double horizontalGap = 58,
-    double verticalGap = 18,
+    double nodeWidth = 224,
+    double nodeHeight = 64,
+    double horizontalGap = 72,
+    double verticalGap = 24,
     MindMapLayoutMode mode = MindMapLayoutMode.right,
   }) {
     final rects = <String, Rect>{};

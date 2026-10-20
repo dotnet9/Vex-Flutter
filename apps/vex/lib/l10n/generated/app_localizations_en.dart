@@ -1862,4 +1862,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String mapSummaryLabel(int count) {
     return 'Summary: $count characters';
   }
+
+  @override
+  String get mapContentSummary => 'Content summary';
+
+  @override
+  String get mapNavigationHint =>
+      'Enter: sibling · Tab: child · Drag chapters to rearrange';
 }

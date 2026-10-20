@@ -3460,6 +3460,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'摘要 {count} 字'**
   String mapSummaryLabel(int count);
+
+  /// No description provided for @mapContentSummary.
+  ///
+  /// In zh, this message translates to:
+  /// **'内容摘要'**
+  String get mapContentSummary;
+
+  /// No description provided for @mapNavigationHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'Enter 同级 · Tab 子级 · 拖动章节调整结构'**
+  String get mapNavigationHint;
 }
 
 class _AppLocalizationsDelegate

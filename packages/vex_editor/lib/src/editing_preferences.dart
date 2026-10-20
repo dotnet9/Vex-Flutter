@@ -6,7 +6,7 @@ enum MarkdownBodyFont { system, serif, mono }
 final class MarkdownEditingPreferences {
   const MarkdownEditingPreferences({
     this.font = MarkdownBodyFont.system,
-    this.codeSize = 13,
+    this.codeSize = 12,
     this.indent = 2,
     this.autoPair = true,
     this.codeWrap = false,

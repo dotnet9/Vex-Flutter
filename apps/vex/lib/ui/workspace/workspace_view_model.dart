@@ -633,7 +633,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
     if (layout.panes.contains('map')) {
       _ensureMapCurrent();
       if (!hadMap) {
-        _map.followRequestedId = _mapNodeForHeading(selectedHeadingId);
+        _map.followRequestedId =
+            _mapNodeForHeading(selectedHeadingId) ?? _map.root.id;
       }
     }
     _notify();

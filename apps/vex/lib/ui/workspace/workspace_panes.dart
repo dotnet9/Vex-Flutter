@@ -426,6 +426,56 @@ class _WorkspacePanesState extends State<WorkspacePanes> {
                   ),
                 ),
               ),
+              Positioned(
+                left: 16,
+                top: 13,
+                child: IgnorePointer(
+                  child: Row(
+                    children: [
+                      for (final label in [
+                        context.l10n.heading,
+                        context.l10n.mapContentSummary,
+                      ]) ...[
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              if (constraints.maxWidth >= 680)
+                Positioned(
+                  left: 116,
+                  bottom: 14,
+                  child: IgnorePointer(
+                    child: Text(
+                      context.l10n.mapNavigationHint,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
               if (_inspector && vm.selectedHeading != null)
                 Positioned(
                   right: 10,

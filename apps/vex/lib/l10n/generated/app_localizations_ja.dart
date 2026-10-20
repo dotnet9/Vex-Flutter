@@ -1808,4 +1808,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String mapSummaryLabel(int count) {
     return '要約 $count 文字';
   }
+
+  @override
+  String get mapContentSummary => '本文の要約';
+
+  @override
+  String get mapNavigationHint => 'Enter：同階層 · Tab：子階層 · ドラッグで構成を変更';
 }
