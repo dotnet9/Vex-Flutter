@@ -119,7 +119,7 @@
         setProgress(null); showChanges(true);
         break;
       case 'installing':
-        setHero('正在安装更新...', '请稍候...', 'refresh', true);
+        setHero('正在启动安装程序…', '更新包已下载并校验完成。启动后 Vex 将退出，安装将在独立安装程序中继续。', 'refresh', true);
         setActions([]);
         break;
       case 'installed':
@@ -146,6 +146,27 @@
   }
 
   function closeLayer() { $('layer-update').hidden = true; }
+
+  // Browser prototype cannot launch a local installer or close the desktop process.
+  // Model the hand-off and app-exit screen without falsely claiming installation succeeded.
+  function showInstallerHandoff() {
+    closeLayer();
+    const app = document.querySelector('.app-window') || document.body;
+    app.querySelector('.prototype-window-closed')?.remove();
+    const overlay = document.createElement('section');
+    overlay.className = 'prototype-window-closed installer-handoff';
+    overlay.setAttribute('role', 'status');
+    overlay.setAttribute('aria-live', 'polite');
+    overlay.innerHTML = '<img src="assets/vex-logo.svg" alt=""><span class="handoff-kicker">VEX UPDATE</span><h2>正在启动安装程序…</h2><p>更新包已准备就绪。Vex 即将退出，后续步骤将在安装程序中完成。</p><div class="handoff-progress" aria-hidden="true"><span></span></div>';
+    app.appendChild(overlay);
+    // Use a separate hand-off timer: hiding the update dialog triggers its observer,
+    // which intentionally invalidates update-operation timers.
+    setTimeout(() => {
+      if (!overlay.isConnected) return;
+      overlay.innerHTML = '<img src="assets/vex-logo.svg" alt=""><span class="handoff-kicker">VEX UPDATE</span><h2>安装程序已启动</h2><p>在真实桌面应用中，Vex 会在此时关闭。请在独立安装程序中完成更新。</p><p class="handoff-note">原型预览无法启动本机安装包或关闭浏览器标签页，此处仅演示交接与退出状态。</p><button type="button" class="handoff-return">返回原型预览</button>';
+      overlay.querySelector('.handoff-return').addEventListener('click', () => overlay.remove());
+    }, 850);
+  }
   function cancelDownload() {
     generation++; clearTimeout(timer); clearInterval(progressTimer);
     state = 'canceled';
@@ -215,10 +236,14 @@
       const id = ++generation;
       timer = setTimeout(() => {
         if (id !== generation) return;
-        if (scenario === 'install-failed' && !failures.has(scenario)) { failures.add(scenario); state = 'failed'; render(); return; }
-        state = 'installed'; render();
-        VexProto.toast(VexL.get('更新已安装。'));
-      }, 250);
+        if (scenario === 'install-failed' && !failures.has(scenario)) {
+          failures.add(scenario);
+          state = 'failed';
+          render();
+          return;
+        }
+        showInstallerHandoff();
+      }, 500);
     }
   }
 
