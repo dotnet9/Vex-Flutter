@@ -1,0 +1,71 @@
+/* Soft Sage visual refinement — keeps the existing workspace structure and interactions. */
+:root[data-palette="weft"] {
+  --shadow-window: 0 18px 52px color-mix(in srgb, var(--fg) 8%, transparent), 0 2px 8px color-mix(in srgb, var(--fg) 4%, transparent);
+  --shadow-pop: 0 14px 38px color-mix(in srgb, var(--fg) 13%, transparent), 0 2px 8px color-mix(in srgb, var(--fg) 5%, transparent);
+}
+:root[data-theme="light"][data-palette="weft"] body { background: var(--stage); }
+:root[data-palette="weft"] .app-window { border-radius: 12px; }
+:root[data-palette="weft"] .titlebar,
+:root[data-palette="weft"] .workbar,
+:root[data-palette="weft"] .pane-head,
+:root[data-palette="weft"] .view-heading,
+:root[data-palette="weft"] .structure-head,
+:root[data-palette="weft"] .statusbar { border-color: color-mix(in srgb, var(--border) 78%, transparent); }
+:root[data-palette="weft"] .titlebar { background: color-mix(in srgb, var(--panel) 82%, var(--surface)); }
+:root[data-palette="weft"] .sidebar,
+:root[data-palette="weft"] .structure-sidebar { background: color-mix(in srgb, var(--panel) 78%, var(--bg)); }
+:root[data-palette="weft"] .sidebar-search,
+:root[data-palette="weft"] .structure-search input,
+:root[data-palette="weft"] .search-input { border-radius: 9px; }
+:root[data-palette="weft"] .file-row,
+:root[data-palette="weft"] .outline-item,
+:root[data-palette="weft"] .structure-item { border-radius: 7px; }
+:root[data-palette="weft"] .file-row { min-height: 34px; }
+:root[data-palette="weft"] .file-row.selected,
+:root[data-palette="weft"] .file-row.on,
+:root[data-palette="weft"] .outline-item.active,
+:root[data-palette="weft"] .outline-item.on,
+:root[data-palette="weft"] .structure-item.on { background: color-mix(in srgb, var(--accent) 11%, var(--surface)); color: var(--accent); }
+:root[data-palette="weft"] .formatbar,
+:root[data-palette="weft"] .edit-options,
+:root[data-palette="weft"] .format-toolbar { background: var(--surface); }
+:root[data-palette="weft"] .format-button,
+:root[data-palette="weft"] .toolbar-button,
+:root[data-palette="weft"] .icon-button { border-radius: 7px; }
+:root[data-palette="weft"] .format-button:hover,
+:root[data-palette="weft"] .toolbar-button:hover,
+:root[data-palette="weft"] .icon-button:hover { color: var(--accent); background: var(--accent-soft); }
+:root[data-palette="weft"] .view-switch { border-radius: 10px; background: color-mix(in srgb, var(--panel) 76%, var(--bg)); }
+:root[data-palette="weft"] .view-switch::before { border-radius: 7px; }
+:root[data-palette="weft"] .btn,
+:root[data-palette="weft"] .save-button { border-radius: 8px; }
+:root[data-palette="weft"] .btn.primary,
+:root[data-palette="weft"] .save-button.primary { box-shadow: 0 2px 5px color-mix(in srgb, var(--accent) 18%, transparent); }
+:root[data-palette="weft"] .md-body,
+:root[data-palette="weft"] .markdown-body { letter-spacing: 0; line-height: 1.88; }
+:root[data-palette="weft"] .md-body h1,
+:root[data-palette="weft"] .markdown-body h1 { font-weight: 680; letter-spacing: -.035em; line-height: 1.34; }
+:root[data-palette="weft"] .md-body h2,
+:root[data-palette="weft"] .markdown-body h2 { font-weight: 640; letter-spacing: -.018em; line-height: 1.48; margin-top: 1.9em; margin-bottom: .72em; }
+:root[data-palette="weft"] .md-body h3,
+:root[data-palette="weft"] .markdown-body h3 { font-weight: 620; line-height: 1.5; }
+:root[data-palette="weft"] .md-body blockquote,
+:root[data-palette="weft"] .markdown-body blockquote { border-left-width: 3px; border-radius: 0 9px 9px 0; background: color-mix(in srgb, var(--accent-soft) 72%, var(--surface)); padding: 12px 17px; }
+:root[data-palette="weft"] .md-body pre,
+:root[data-palette="weft"] .markdown-body pre { border-radius: 10px; }
+:root[data-palette="weft"] .md-body table,
+:root[data-palette="weft"] .markdown-body table { border-collapse: separate; border-spacing: 0; border-radius: 9px; overflow: hidden; }
+:root[data-palette="weft"] .md-body th,
+:root[data-palette="weft"] .markdown-body th { background: color-mix(in srgb, var(--accent-soft) 58%, var(--panel)); }
+:root[data-palette="weft"] .md-body td,
+:root[data-palette="weft"] .md-body th,
+:root[data-palette="weft"] .markdown-body td,
+:root[data-palette="weft"] .markdown-body th { border-color: var(--border); padding: .68em .9em; }
+:root[data-palette="weft"] :is(.popover,.menu-popover,.menu-flyout > .flyout,.submenu,.settings-popover,.typography-popover,.workspace-layout-menu) { border-radius: 10px; box-shadow: var(--shadow-pop); }
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-palette="weft"] .file-row,
+  :root[data-palette="weft"] .outline-item,
+  :root[data-palette="weft"] .structure-item,
+  :root[data-palette="weft"] .format-button,
+  :root[data-palette="weft"] .toolbar-button { transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease; }
+}
