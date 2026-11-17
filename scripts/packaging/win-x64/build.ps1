@@ -113,7 +113,7 @@ try {
     $metadata = $metadataJson | ConvertFrom-Json
     $sdkRaw = & $flutterPath --suppress-analytics --version --machine
     if ($LASTEXITCODE -ne 0) { throw 'Flutter SDK could not start.' }
-    # 全新 SDK 首次运行会把 tool 构建进度文本混入 stdout，只解析机器可读的 JSON 行
+    # A fresh SDK prints tool bootstrap progress into stdout; parse only the machine JSON line.
     $sdkLine = $sdkRaw | Where-Object { $_ -is [string] -and $_.TrimStart().StartsWith('{') } | Select-Object -Last 1
     if (-not $sdkLine) { throw 'Flutter SDK did not report machine-readable version information.' }
     $sdk = $sdkLine | ConvertFrom-Json
