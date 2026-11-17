@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import unittest
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location('verify_jni', ROOT / 'scripts/packaging/android/verify_jni.py')
@@ -15,7 +16,7 @@ class AndroidJniTests(unittest.TestCase):
                f'<class name="SharedPreferencesAsyncApiRegistrar">'
                f'<method name="getString" return="java.lang.Object" static="false">{parameters}'
                '</method></class></package></api>')
-        self.assertEqual(jni.signatures(xml), {'getString'})
+        self.assertEqual(jni.signatures(ET.fromstring(xml)), {'getString'})
         self.assertEqual(jni.signatures(xml.replace('kotlin.coroutines.Continuation', 'a.b')), set())
         self.assertEqual(jni.signatures(xml.replace('name="getString"', 'name="a"')), set())
 
@@ -28,7 +29,7 @@ class AndroidJniTests(unittest.TestCase):
                f'<class name="SharedPreferencesAsyncApiRegistrar">'
                f'<method name="getString" return="Ljava/lang/Object;" static="0"><parameters>{parameters}'
                f'</parameters></method></class></package></api>')
-        self.assertEqual(jni.signatures(xml), {'getString'})
+        self.assertEqual(jni.signatures(ET.fromstring(xml)), {'getString'})
         self.assertEqual(
             jni.signatures(xml.replace('Lio/flutter/plugins/sharedpreferences/SharedPreferencesPigeonOptions;',
                                        'Lreplaced/Options;')),
@@ -46,7 +47,7 @@ class AndroidJniTests(unittest.TestCase):
     def test_runtime_requires_exact_unobfuscated_coroutine_class_names(self):
         xml = ('<api><package name="kotlin.coroutines.intrinsics">'
                '<class name="CoroutineSingletons"/></package></api>')
-        self.assertEqual(jni.runtime_classes(xml), {'kotlin.coroutines.intrinsics.CoroutineSingletons'})
+        self.assertEqual(jni.runtime_classes(ET.fromstring(xml)), {'kotlin.coroutines.intrinsics.CoroutineSingletons'})
         self.assertEqual(jni.runtime_classes(xml.replace('CoroutineSingletons', 'a')), set())
 
 

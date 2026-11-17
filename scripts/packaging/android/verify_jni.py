@@ -23,8 +23,7 @@ RUNTIME = {
 }
 
 
-def runtime_classes(xml):
-    root = ET.fromstring(xml)
+def runtime_classes(root):
     return {f'{package.get("name")}.{cls.get("name")}'
             for package in root.iter('package') for cls in package.findall('class')} & RUNTIME
 
@@ -44,8 +43,7 @@ def descriptor(type_name):
     return 'L' + type_name.replace('.', '/') + ';'
 
 
-def signatures(xml):
-    root = ET.fromstring(xml)
+def signatures(root):
     found = set()
     for package in root.iter('package'):
         for cls in package.findall('class'):
@@ -62,9 +60,33 @@ def signatures(xml):
     return found
 
 
+def diagnose(roots):
+    """校验失败时输出 dexdump 解析诊断，定位输出结构或 R8 处理的变化"""
+    related = set()
+    registrar = None
+    for root in roots:
+        for package in root.iter('package'):
+            for cls in package.findall('class'):
+                full = f'{package.get("name")}.{cls.get("name")}'
+                if 'sharedpreferences' in full.lower():
+                    related.add(full)
+                if full == REGISTRAR:
+                    registrar = cls
+    print(f'DIAG dex files parsed: {len(roots)}')
+    print('DIAG sharedpreferences classes: ' + (', '.join(sorted(related)) or '(none)'))
+    if registrar is None:
+        print(f'DIAG registrar class {REGISTRAR} not found in any dex')
+        return
+    for method in registrar.findall('method'):
+        params = [p.get('type') or '(no-type)' for p in method.iter('parameter')]
+        print(f"DIAG registrar method {method.get('name')} return={method.get('return')} "
+              f"static={method.get('static')} params={params if params else '(no <parameter> children)'}")
+
+
 def verify(apk, dexdump):
     found = set()
     runtime = set()
+    roots = []
     with tempfile.TemporaryDirectory(prefix='vex-jni-') as directory:
         with zipfile.ZipFile(apk) as archive:
             for name in archive.namelist():
@@ -73,10 +95,13 @@ def verify(apk, dexdump):
                 dex = Path(directory) / name
                 dex.write_bytes(archive.read(name))
                 output = subprocess.check_output([str(dexdump), '-l', 'xml', str(dex)])
-                found.update(signatures(output))
-                runtime.update(runtime_classes(output))
+                root = ET.fromstring(output)
+                roots.append(root)
+                found.update(signatures(root))
+                runtime.update(runtime_classes(root))
     missing = set(PARAMETERS) - found
     if missing:
+        diagnose(roots)
         raise ValueError('Release APK lost JNI preferences methods: ' + ', '.join(sorted(missing)))
     if RUNTIME - runtime:
         raise ValueError('Release APK lost JNI Kotlin runtime types: ' + ', '.join(sorted(RUNTIME - runtime)))
