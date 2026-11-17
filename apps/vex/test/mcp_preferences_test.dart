@@ -160,10 +160,12 @@ void main() {
       );
       await tester.pumpAndSettle();
       Future<void> open() async {
-        showPreferences(
-          tester.element(find.byType(Scaffold).first),
-          vm,
-          category: PreferenceCategory.mcp,
+        unawaited(
+          showPreferences(
+            tester.element(find.byType(Scaffold).first),
+            vm,
+            category: PreferenceCategory.mcp,
+          ),
         );
         await tester.pumpAndSettle();
       }

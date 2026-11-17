@@ -43,7 +43,15 @@ final class WorkspaceMcp extends ChangeNotifier {
       scope = 'document',
       customFolder = '',
       error = '';
+  /// 基础 MCP 工具执行确认回调（仅工具名称，保留供兼容）
   Future<bool> Function(String name)? confirm;
+
+  /// 详细 MCP 工具执行确认回调（包含工具名称、目标文档名与操作参数）
+  Future<bool> Function(
+    String name, {
+    String? documentName,
+    Map<String, Object?>? arguments,
+  })? detailedConfirm;
   final audit = <Map<String, String>>[];
   int _configurationRevision = 0;
   int _settingsRevision = 0;
@@ -412,7 +420,14 @@ final class WorkspaceMcp extends ChangeNotifier {
       _mutating = true;
       final revision = vm.editor.session.revision;
       try {
-        if (requireConfirmation && !(await confirm?.call(name) ?? false)) {
+        final approved = detailedConfirm != null
+            ? await detailedConfirm!(
+                name,
+                documentName: document.name,
+                arguments: args,
+              )
+            : await confirm?.call(name) ?? false;
+        if (requireConfirmation && !approved) {
           throw StateError('Operation declined');
         }
         checkConfiguration();
@@ -1096,6 +1111,7 @@ final class WorkspaceMcp extends ChangeNotifier {
     _disposed = true;
     _configurationRevision++;
     confirm = null;
+    detailedConfirm = null;
     server.stop();
     super.dispose();
   }

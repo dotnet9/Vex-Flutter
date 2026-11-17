@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ui' as ui;
 
@@ -184,10 +185,12 @@ A --> B
       await tester.pumpWidget(VexApp(viewModel: vm));
       await tester.pumpAndSettle();
       expect(find.byType(MarkdownMathFormula), findsOneWidget);
-      showPreferences(
-        tester.element(find.byType(Scaffold).first),
-        vm,
-        category: PreferenceCategory.markdown,
+      unawaited(
+        showPreferences(
+          tester.element(find.byType(Scaffold).first),
+          vm,
+          category: PreferenceCategory.markdown,
+        ),
       );
       await tester.pumpAndSettle();
       expect(find.byType(Switch), findsNWidgets(7));

@@ -192,7 +192,7 @@ void main() {
   ) async {
     final vm = fakeWorkspace();
     await tester.pumpWidget(VexApp(viewModel: vm));
-    showAbout(tester.element(find.byType(Scaffold).first));
+    unawaited(showAbout(tester.element(find.byType(Scaffold).first)));
     await tester.pumpAndSettle();
     expect(
       tester.getSize(find.byKey(const ValueKey('dialog-titlebar'))).width,

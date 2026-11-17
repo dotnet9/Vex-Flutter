@@ -149,6 +149,33 @@ final class NativeDocumentFileService implements DocumentFileService {
   @override
   Future<OpenedDocument> read(String path) async {
     if (isSystemDocument(path)) return _systemRead(path);
+    final target = File(path);
+    if (!await target.exists()) {
+      // 检查是否因进程意外中断遗留了未完成写入的 .bak 文件
+      final parent = target.parent;
+      if (await parent.exists()) {
+        final base = p.basename(path);
+        final pattern = RegExp('^${RegExp.escape(base)}\\.vex-\\d+\\.bak\$');
+        File? candidate;
+        DateTime? candidateTime;
+        try {
+          await for (final entity in parent.list(followLinks: false)) {
+            if (entity is File && pattern.hasMatch(p.basename(entity.path))) {
+              final stat = await entity.stat();
+              if (candidateTime == null || stat.modified.isAfter(candidateTime)) {
+                candidateTime = stat.modified;
+                candidate = entity;
+              }
+            }
+          }
+          if (candidate != null) {
+            await candidate.rename(path);
+          }
+        } catch (_) {
+          // 恢复失败时继续交由标准流程处理
+        }
+      }
+    }
     final decoded = await decodeDocument(await File(path).readAsBytes());
     return OpenedDocument(
       p.basename(path),
@@ -164,8 +191,11 @@ final class NativeDocumentFileService implements DocumentFileService {
     void Function(OpenedFolder)? onProgress,
     bool Function()? cancelled,
   }) async {
-    final path = await FilePicker.getDirectoryPath();
-    if (path == null) return null;
+    final uri = await FilePicker.pickDirectory();
+    if (uri == null) return null;
+    final path = (!uri.hasScheme || uri.isScheme('file'))
+        ? uri.toFilePath()
+        : uri.path;
     return readFolder(
       path,
       excludedDirectories: excludedDirectories,
@@ -240,8 +270,6 @@ final class NativeDocumentFileService implements DocumentFileService {
       dialogTitle: dialogTitle,
       initialDirectory: initialDirectory,
       fileName: name,
-      type: FileType.custom,
-      allowedExtensions: [p.extension(name).replaceFirst('.', '')],
       bytes: bytes,
     );
     if (destination == null) return null;
@@ -277,6 +305,20 @@ final class NativeDocumentFileService implements DocumentFileService {
     await _atomicWrite(path, bytes);
   }
 
+  /// 带退避重试机制的文件重命名，缓解 Windows 系统上由杀毒软件或搜索索引器瞬时锁定导致的重命名失败
+  Future<void> _retryRename(File source, String destination) async {
+    for (var i = 0; i < 3; i++) {
+      try {
+        await source.rename(destination);
+        return;
+      } on FileSystemException catch (_) {
+        if (i == 2 || !Platform.isWindows) rethrow;
+        await Future<void>.delayed(Duration(milliseconds: 30 * (i + 1)));
+      }
+    }
+  }
+
+  /// 原子写入文件，通过临时文件（.tmp）与备份文件（.bak）双重机制保障写入完整性
   Future<void> _atomicWrite(String path, List<int> bytes) async {
     final target = File(path), stamp = DateTime.now().microsecondsSinceEpoch;
     final pending = File('$path.vex-$stamp.tmp');
@@ -285,16 +327,28 @@ final class NativeDocumentFileService implements DocumentFileService {
     var backedUp = false;
     try {
       if (await target.exists()) {
-        await target.rename(backup.path);
+        await _retryRename(target, backup.path);
         backedUp = true;
       }
-      await pending.rename(path);
+      await _retryRename(pending, path);
     } catch (_) {
-      if (backedUp && !await target.exists()) await backup.rename(path);
+      if (backedUp && !await target.exists()) {
+        try {
+          await _retryRename(backup, path);
+        } catch (_) {}
+      }
       rethrow;
     } finally {
-      if (await pending.exists()) await pending.delete();
+      if (await pending.exists()) {
+        try {
+          await pending.delete();
+        } catch (_) {}
+      }
     }
-    if (backedUp && await backup.exists()) await backup.delete();
+    if (backedUp && await backup.exists()) {
+      try {
+        await backup.delete();
+      } catch (_) {}
+    }
   }
 }

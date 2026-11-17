@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -144,7 +145,7 @@ void main() {
     (tester) async {
       final vm = fakeWorkspace();
       await tester.pumpWidget(VexApp(viewModel: vm));
-      showAppearance(tester.element(find.byType(Scaffold).first), vm);
+      unawaited(showAppearance(tester.element(find.byType(Scaffold).first), vm));
       await tester.pumpAndSettle();
       final preview = find.text(vm.strings.watermarkPreview);
       await tester.ensureVisible(preview);
@@ -169,7 +170,7 @@ void main() {
       vm.editor.session.replace('# Export');
       vm.updateExportPreferences(folder: '/exports', openAfterExport: false);
       await tester.pumpWidget(VexApp(viewModel: vm));
-      showExportDialog(tester.element(find.byType(Scaffold).first), vm);
+      unawaited(showExportDialog(tester.element(find.byType(Scaffold).first), vm));
       await tester.pumpAndSettle();
       await tester.tap(find.text(vm.strings.watermarkExport));
       await tester.pumpAndSettle();

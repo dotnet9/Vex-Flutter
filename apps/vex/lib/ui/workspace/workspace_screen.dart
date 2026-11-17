@@ -139,6 +139,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   @override
   void dispose() {
     _boundVm?.mcp.confirm = null;
+    _boundVm?.mcp.detailedConfirm = null;
     WidgetsBinding.instance.removeObserver(this);
     if (widget.windowIntegration && _desktop) {
       windowManager.removeListener(this);
@@ -176,15 +177,21 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   void didChangeDependencies() {
     super.didChangeDependencies();
     _boundVm = vm;
-    vm.mcp.confirm = _confirmMcp;
+    vm.mcp.detailedConfirm = _confirmMcp;
     final title = '${context.l10n.appTitle}${AppFonts.buildLabel}';
     if (widget.windowIntegration && _desktop) {
       unawaited(windowManager.setTitle(title));
     }
   }
 
-  Future<bool> _confirmMcp(String name) async {
+  /// 弹出包含操作摘要与目标文档的 MCP 执行确认对话框
+  Future<bool> _confirmMcp(
+    String name, {
+    String? documentName,
+    Map<String, Object?>? arguments,
+  }) async {
     if (!mounted || _closing) return false;
+    final summary = _mcpActionSummary(name, arguments);
     return await showDialog<bool>(
           context: context,
           builder: (context) => AppDialog(
@@ -208,19 +215,82 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                   context.l10n.mcpConfirmBody,
                   style: const TextStyle(fontSize: 14, height: 1.8),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+                if (documentName != null) ...[
+                  Text(
+                    '${context.l10n.files}: $documentName',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                ],
                 SelectableText(
                   name,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
+                    fontFamily: 'CascadiaCode',
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+                if (summary != null && summary.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest
+                          .withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      summary,
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12, height: 1.4),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
         ) ??
         false;
+  }
+
+  /// 解析 MCP 工具参数生成人类可读的操作摘要信息（如章节标题或改动预览）
+  String? _mcpActionSummary(String name, Map<String, Object?>? args) {
+    if (args == null || args.isEmpty) return null;
+    final action = name.replaceFirst('vex_', '');
+    switch (action) {
+      case 'replace_document':
+      case 'insert_text':
+      case 'replace_selection':
+      case 'replace_text':
+        final text = args['text'] as String?;
+        if (text != null && text.isNotEmpty) {
+          final preview =
+              text.length > 120 ? '${text.substring(0, 120)}…' : text;
+          return '内容预览: $preview';
+        }
+      case 'apply_text_edit':
+        final text = args['text'] as String?;
+        final start = args['start'], end = args['end'];
+        return '范围: [$start, $end] -> ${text?.length ?? 0} 字符';
+      case 'rename_section':
+      case 'add_section':
+        final title = args['title'] as String?;
+        if (title != null) return '章节: $title';
+      case 'delete_section':
+      case 'move_section':
+      case 'change_section_level':
+        final section = args['section'] ?? args['heading_id'];
+        if (section != null) return '目标章节: $section';
+    }
+    return null;
   }
 
   void _error(Object error) {
