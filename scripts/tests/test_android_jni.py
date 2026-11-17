@@ -17,8 +17,10 @@ class AndroidJniTests(unittest.TestCase):
                f'<method name="getString" return="java.lang.Object" static="false">{parameters}'
                '</method></class></package></api>')
         self.assertEqual(jni.signatures(ET.fromstring(xml)), {'getString'})
-        self.assertEqual(jni.signatures(xml.replace('kotlin.coroutines.Continuation', 'a.b')), set())
-        self.assertEqual(jni.signatures(xml.replace('name="getString"', 'name="a"')), set())
+        self.assertEqual(
+            jni.signatures(ET.fromstring(xml.replace('kotlin.coroutines.Continuation', 'a.b'))), set())
+        self.assertEqual(
+            jni.signatures(ET.fromstring(xml.replace('name="getString"', 'name="a"'))), set())
 
     def test_descriptor_and_nested_parameter_outputs_are_accepted(self):
         # 新版 dexdump 可能输出 JVM 描述符形式的参数类型，并嵌套 <parameters> 容器
@@ -31,8 +33,9 @@ class AndroidJniTests(unittest.TestCase):
                f'</parameters></method></class></package></api>')
         self.assertEqual(jni.signatures(ET.fromstring(xml)), {'getString'})
         self.assertEqual(
-            jni.signatures(xml.replace('Lio/flutter/plugins/sharedpreferences/SharedPreferencesPigeonOptions;',
-                                       'Lreplaced/Options;')),
+            jni.signatures(ET.fromstring(xml.replace(
+                'Lio/flutter/plugins/sharedpreferences/SharedPreferencesPigeonOptions;',
+                'Lreplaced/Options;'))),
             set())
 
     def test_release_keeps_classes_and_descriptor_types_without_disabling_r8(self):
@@ -47,8 +50,10 @@ class AndroidJniTests(unittest.TestCase):
     def test_runtime_requires_exact_unobfuscated_coroutine_class_names(self):
         xml = ('<api><package name="kotlin.coroutines.intrinsics">'
                '<class name="CoroutineSingletons"/></package></api>')
-        self.assertEqual(jni.runtime_classes(ET.fromstring(xml)), {'kotlin.coroutines.intrinsics.CoroutineSingletons'})
-        self.assertEqual(jni.runtime_classes(xml.replace('CoroutineSingletons', 'a')), set())
+        self.assertEqual(jni.runtime_classes(ET.fromstring(xml)),
+                         {'kotlin.coroutines.intrinsics.CoroutineSingletons'})
+        self.assertEqual(
+            jni.runtime_classes(ET.fromstring(xml.replace('CoroutineSingletons', 'a'))), set())
 
 
 if __name__ == '__main__':
