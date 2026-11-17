@@ -272,8 +272,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       case 'replace_text':
         final text = args['text'] as String?;
         if (text != null && text.isNotEmpty) {
-          final preview =
-              text.length > 120 ? '${text.substring(0, 120)}…' : text;
+          final preview = text.length > 120
+              ? '${text.substring(0, 120)}…'
+              : text;
           return '内容预览: $preview';
         }
       case 'apply_text_edit':

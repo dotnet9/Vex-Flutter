@@ -162,7 +162,8 @@ final class NativeDocumentFileService implements DocumentFileService {
           await for (final entity in parent.list(followLinks: false)) {
             if (entity is File && pattern.hasMatch(p.basename(entity.path))) {
               final stat = await entity.stat();
-              if (candidateTime == null || stat.modified.isAfter(candidateTime)) {
+              if (candidateTime == null ||
+                  stat.modified.isAfter(candidateTime)) {
                 candidateTime = stat.modified;
                 candidate = entity;
               }

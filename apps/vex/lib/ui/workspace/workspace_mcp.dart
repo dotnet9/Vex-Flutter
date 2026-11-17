@@ -43,6 +43,7 @@ final class WorkspaceMcp extends ChangeNotifier {
       scope = 'document',
       customFolder = '',
       error = '';
+
   /// 基础 MCP 工具执行确认回调（仅工具名称，保留供兼容）
   Future<bool> Function(String name)? confirm;
 
@@ -51,7 +52,8 @@ final class WorkspaceMcp extends ChangeNotifier {
     String name, {
     String? documentName,
     Map<String, Object?>? arguments,
-  })? detailedConfirm;
+  })?
+  detailedConfirm;
   final audit = <Map<String, String>>[];
   int _configurationRevision = 0;
   int _settingsRevision = 0;

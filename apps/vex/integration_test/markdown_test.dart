@@ -111,7 +111,9 @@ void main() {
         await tester.pumpAndSettle();
         await capture('${size.width.toInt()}-${theme.name}-editing');
         final scaffold = tester.element(find.byType(Scaffold).first);
-        unawaited(showPreferences(scaffold, vm, category: PreferenceCategory.markdown));
+        unawaited(
+          showPreferences(scaffold, vm, category: PreferenceCategory.markdown),
+        );
         await tester.pumpAndSettle();
         await capture('${size.width.toInt()}-${theme.name}-preferences');
         await tester.tap(find.text(vm.strings.done));

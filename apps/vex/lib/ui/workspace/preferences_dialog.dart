@@ -702,8 +702,8 @@ class _PreferencesDialogState extends State<PreferencesDialog> {
                 final uri = await FilePicker.pickDirectory();
                 final directory = uri != null
                     ? ((!uri.hasScheme || uri.isScheme('file'))
-                        ? uri.toFilePath()
-                        : uri.path)
+                          ? uri.toFilePath()
+                          : uri.path)
                     : null;
                 if (mounted && directory != null) {
                   setState(() {

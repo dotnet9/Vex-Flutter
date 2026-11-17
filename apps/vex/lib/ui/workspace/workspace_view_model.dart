@@ -169,6 +169,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
   int _preferencesRevision = 0;
   Future<void>? _preferencesWrite;
   Timer? _recoveryTimer, _externalTimer;
+
   /// 文件变更监听状态与订阅控制
   bool _watchFiles = false;
   StreamSubscription<FileSystemEvent>? _fileWatcherSubscription;
