@@ -146,7 +146,7 @@ jobs:
             architecture: arm64
             container: ubuntu:20.04
           - target: macos-universal
-            os: macos-15
+            os: macos-14
             architecture: arm64
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
@@ -310,7 +310,7 @@ jobs:
     name: iOS 无签名编译检查（无 IPA 分发）
     if: inputs.artifact_run_id == ''
     needs: [metadata, checks]
-    runs-on: macos-15
+    runs-on: macos-14
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
