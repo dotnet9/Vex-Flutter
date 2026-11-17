@@ -29,6 +29,21 @@ def runtime_classes(xml):
             for package in root.iter('package') for cls in package.findall('class')} & RUNTIME
 
 
+PRIMITIVES = {
+    'boolean': 'Z', 'byte': 'B', 'char': 'C', 'short': 'S',
+    'int': 'I', 'long': 'J', 'float': 'F', 'double': 'D',
+}
+
+
+def descriptor(type_name):
+    """把 Java 点分类型名规范到 JVM 描述符形式，兼容不同 dexdump 版本的输出表示"""
+    if type_name.startswith('[') or (type_name.startswith('L') and type_name.endswith(';')):
+        return type_name
+    if type_name in PRIMITIVES:
+        return PRIMITIVES[type_name]
+    return 'L' + type_name.replace('.', '/') + ';'
+
+
 def signatures(xml):
     root = ET.fromstring(xml)
     found = set()
@@ -38,9 +53,11 @@ def signatures(xml):
                 continue
             for method in cls.findall('method'):
                 name = method.get('name')
-                if (name in PARAMETERS and method.get('return') == 'java.lang.Object'
-                        and method.get('static') != 'true'
-                        and [p.get('type') for p in method.findall('parameter')] == PARAMETERS[name]):
+                if (name in PARAMETERS
+                        and descriptor(method.get('return')) == descriptor('java.lang.Object')
+                        and method.get('static') not in ('true', '1')
+                        and [descriptor(p.get('type')) for p in method.iter('parameter')]
+                        == [descriptor(t) for t in PARAMETERS[name]]):
                     found.add(name)
     return found
 
