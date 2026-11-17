@@ -113,10 +113,14 @@ try {
     $metadata = $metadataJson | ConvertFrom-Json
     $sdkRaw = & $flutterPath --suppress-analytics --version --machine
     if ($LASTEXITCODE -ne 0) { throw 'Flutter SDK could not start.' }
-    # A fresh SDK prints tool bootstrap progress into stdout; parse only the machine JSON line.
-    $sdkLine = $sdkRaw | Where-Object { $_ -is [string] -and $_.TrimStart().StartsWith('{') } | Select-Object -Last 1
-    if (-not $sdkLine) { throw 'Flutter SDK did not report machine-readable version information.' }
-    $sdk = $sdkLine | ConvertFrom-Json
+    # A fresh SDK prints tool bootstrap progress before the pretty-printed JSON payload.
+    $sdkLines = @($sdkRaw | Where-Object { $_ -is [string] })
+    $firstJson = $null
+    for ($i = 0; $i -lt $sdkLines.Count; $i++) {
+        if ($sdkLines[$i].TrimStart().StartsWith('{')) { $firstJson = $i; break }
+    }
+    if ($null -eq $firstJson) { throw 'Flutter SDK did not report machine-readable version information.' }
+    $sdk = ($sdkLines[$firstJson..($sdkLines.Count - 1)] -join "`n") | ConvertFrom-Json
     if ($sdk.frameworkVersion -ne $metadata.flutter) {
         throw "Flutter $($metadata.flutter) is required; found $($sdk.frameworkVersion). This script does not upgrade the SDK."
     }
