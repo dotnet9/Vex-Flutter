@@ -33,7 +33,7 @@ void main() {
       recovery: MemoryRecovery(),
     );
     await tester.pumpWidget(VexApp(viewModel: vm));
-    showPreferences(tester.element(find.byType(Scaffold).first), vm);
+    unawaited(showPreferences(tester.element(find.byType(Scaffold).first), vm));
     await tester.pumpAndSettle();
     vm.updateAppearance(fontSize: 18);
     await tester.pumpAndSettle();
@@ -128,10 +128,12 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       final vm = fakeWorkspace();
       await tester.pumpWidget(VexApp(viewModel: vm));
-      showPreferences(
-        tester.element(find.byType(Scaffold).first),
-        vm,
-        category: PreferenceCategory.mcp,
+      unawaited(
+        showPreferences(
+          tester.element(find.byType(Scaffold).first),
+          vm,
+          category: PreferenceCategory.mcp,
+        ),
       );
       await tester.pumpAndSettle();
       final fields = find.descendant(

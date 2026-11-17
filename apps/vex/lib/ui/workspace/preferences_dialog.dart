@@ -699,7 +699,12 @@ class _PreferencesDialogState extends State<PreferencesDialog> {
               height: 28,
               padding: 5,
               onPressed: () async {
-                final directory = await FilePicker.getDirectoryPath();
+                final uri = await FilePicker.pickDirectory();
+                final directory = uri != null
+                    ? ((!uri.hasScheme || uri.isScheme('file'))
+                        ? uri.toFilePath()
+                        : uri.path)
+                    : null;
                 if (mounted && directory != null) {
                   setState(() {
                     _exportFolder = directory;

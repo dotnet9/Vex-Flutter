@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vex/app.dart';
@@ -85,9 +87,11 @@ void main() {
       await tester.pumpAndSettle();
       final guide = tester.widget<WorkspaceGuide>(find.byType(WorkspaceGuide));
       final root = tester.element(find.byType(Scaffold).first);
-      showDialog<void>(
-        context: root,
-        builder: (_) => const AlertDialog(content: Text('Other dialog')),
+      unawaited(
+        showDialog<void>(
+          context: root,
+          builder: (_) => const AlertDialog(content: Text('Other dialog')),
+        ),
       );
       await tester.pumpAndSettle();
       guide.onClose();

@@ -169,6 +169,11 @@ final class WorkspaceViewModel extends ChangeNotifier {
   int _preferencesRevision = 0;
   Future<void>? _preferencesWrite;
   Timer? _recoveryTimer, _externalTimer;
+  /// 文件变更监听状态与订阅控制
+  bool _watchFiles = false;
+  StreamSubscription<FileSystemEvent>? _fileWatcherSubscription;
+  Timer? _fileWatcherDebounceTimer;
+  String? _watchedPath;
   final _saveTimers = <WorkspaceDocument, Timer>{};
   final _saveQueues = <WorkspaceDocument, Future<bool>>{};
   final _closingDocuments = <WorkspaceDocument>{};
@@ -363,6 +368,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
     _refreshMap();
     _notify();
     if (watchFiles) {
+      _watchFiles = true;
+      _updateFileWatcher();
       _externalTimer = Timer.periodic(
         const Duration(seconds: 3),
         (_) => unawaited(checkExternal()),
@@ -1217,6 +1224,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
     externalChange = null;
     _refreshMap();
     search(findQuery);
+    _updateFileWatcher();
     _notify();
     persist();
   }
@@ -1638,7 +1646,10 @@ final class WorkspaceViewModel extends ChangeNotifier {
     doc.recovered = false;
     if (!documents.contains(doc)) documents.add(doc);
     doc.editor.session.markSaved(savedText: text);
-    if (identical(doc, current)) externalChange = null;
+    if (identical(doc, current)) {
+      externalChange = null;
+      _updateFileWatcher();
+    }
     final savedName = doc.name;
     _setStatus((l) => l.savedFile(savedName), announce: false);
     persist();
@@ -1751,8 +1762,48 @@ final class WorkspaceViewModel extends ChangeNotifier {
     externalChange = null;
     _refreshMap();
     search(findQuery);
+    _updateFileWatcher();
     _notify();
     persist();
+  }
+
+  /// 监听当前文档在操作系统层面的外部文件修改事件，并做 250ms 防抖
+  void _updateFileWatcher() {
+    if (!_watchFiles || _disposed) return;
+    final path = current.path;
+    if (path == _watchedPath) return;
+    _fileWatcherSubscription?.cancel();
+    _fileWatcherSubscription = null;
+    _fileWatcherDebounceTimer?.cancel();
+    _watchedPath = path;
+
+    if (path == null || isSystemDocument(path)) return;
+
+    try {
+      final file = File(path);
+      if (file.existsSync()) {
+        _fileWatcherSubscription = file.watch().listen(
+          (_) {
+            if (_disposed) return;
+            _fileWatcherDebounceTimer?.cancel();
+            _fileWatcherDebounceTimer = Timer(
+              const Duration(milliseconds: 250),
+              () {
+                if (!_disposed && current.path == path) {
+                  unawaited(checkExternal());
+                }
+              },
+            );
+          },
+          onError: (Object _) {
+            _fileWatcherSubscription?.cancel();
+            _fileWatcherSubscription = null;
+          },
+        );
+      }
+    } catch (_) {
+      // 当操作系统文件监听不支持或权限受限时，静默降级依赖定时器轮询
+    }
   }
 
   Future<void> checkExternal() async {
@@ -1828,6 +1879,7 @@ final class WorkspaceViewModel extends ChangeNotifier {
         newline: current.format.newline,
       );
       externalChange = null;
+      _updateFileWatcher();
       _notify();
       return true;
     } catch (error) {
@@ -2132,6 +2184,8 @@ final class WorkspaceViewModel extends ChangeNotifier {
       timer.cancel();
     }
     _externalTimer?.cancel();
+    _fileWatcherSubscription?.cancel();
+    _fileWatcherDebounceTimer?.cancel();
     for (final doc in documents) {
       doc.editor.removeListener(_changed);
       doc.editor.viewport.removeListener(_viewportChanged);
