@@ -7,13 +7,10 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 REGISTRAR = 'io.flutter.plugins.sharedpreferences.SharedPreferencesAsyncApiRegistrar'
+# shared_preferences_android 2.5.5 起注册器参数由 SharedPreferencesPigeonOptions 变为 byte[] 实例句柄
 PARAMETERS = {
-    'getString': ['java.lang.String',
-                  'io.flutter.plugins.sharedpreferences.SharedPreferencesPigeonOptions',
-                  'kotlin.coroutines.Continuation'],
-    'setString': ['java.lang.String', 'java.lang.String',
-                  'io.flutter.plugins.sharedpreferences.SharedPreferencesPigeonOptions',
-                  'kotlin.coroutines.Continuation'],
+    'getString': ['java.lang.String', 'byte[]', 'kotlin.coroutines.Continuation'],
+    'setString': ['java.lang.String', 'java.lang.String', 'byte[]', 'kotlin.coroutines.Continuation'],
 }
 RUNTIME = {
     'kotlin.Unit', 'kotlin.Result', 'kotlin.Result$Failure',
@@ -38,6 +35,8 @@ def descriptor(type_name):
     """把 Java 点分类型名规范到 JVM 描述符形式，兼容不同 dexdump 版本的输出表示"""
     if type_name.startswith('[') or (type_name.startswith('L') and type_name.endswith(';')):
         return type_name
+    if type_name.endswith('[]'):
+        return '[' + descriptor(type_name[:-2])
     if type_name in PRIMITIVES:
         return PRIMITIVES[type_name]
     return 'L' + type_name.replace('.', '/') + ';'

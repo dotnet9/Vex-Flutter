@@ -24,8 +24,7 @@ class AndroidJniTests(unittest.TestCase):
 
     def test_descriptor_and_nested_parameter_outputs_are_accepted(self):
         # 新版 dexdump 可能输出 JVM 描述符形式的参数类型，并嵌套 <parameters> 容器
-        descriptor_types = ['Ljava/lang/String;', 'Lio/flutter/plugins/sharedpreferences/SharedPreferencesPigeonOptions;',
-                            'Lkotlin/coroutines/Continuation;']
+        descriptor_types = ['Ljava/lang/String;', '[B', 'Lkotlin/coroutines/Continuation;']
         parameters = ''.join(f'<parameter type="{value}"/>' for value in descriptor_types)
         xml = (f'<api><package name="io.flutter.plugins.sharedpreferences">'
                f'<class name="SharedPreferencesAsyncApiRegistrar">'
@@ -33,9 +32,7 @@ class AndroidJniTests(unittest.TestCase):
                f'</parameters></method></class></package></api>')
         self.assertEqual(jni.signatures(ET.fromstring(xml)), {'getString'})
         self.assertEqual(
-            jni.signatures(ET.fromstring(xml.replace(
-                'Lio/flutter/plugins/sharedpreferences/SharedPreferencesPigeonOptions;',
-                'Lreplaced/Options;'))),
+            jni.signatures(ET.fromstring(xml.replace('[B', '[V'))),
             set())
 
     def test_release_keeps_classes_and_descriptor_types_without_disabling_r8(self):
