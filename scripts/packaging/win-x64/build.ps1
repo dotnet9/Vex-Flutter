@@ -111,9 +111,12 @@ try {
     $metadataJson = & $python $releaseTools metadata
     if ($LASTEXITCODE -ne 0) { throw 'Unable to read application version metadata.' }
     $metadata = $metadataJson | ConvertFrom-Json
-    $sdkJson = & $flutterPath --suppress-analytics --version --machine
+    $sdkRaw = & $flutterPath --suppress-analytics --version --machine
     if ($LASTEXITCODE -ne 0) { throw 'Flutter SDK could not start.' }
-    $sdk = $sdkJson | ConvertFrom-Json
+    # 全新 SDK 首次运行会把 tool 构建进度文本混入 stdout，只解析机器可读的 JSON 行
+    $sdkLine = $sdkRaw | Where-Object { $_ -is [string] -and $_.TrimStart().StartsWith('{') } | Select-Object -Last 1
+    if (-not $sdkLine) { throw 'Flutter SDK did not report machine-readable version information.' }
+    $sdk = $sdkLine | ConvertFrom-Json
     if ($sdk.frameworkVersion -ne $metadata.flutter) {
         throw "Flutter $($metadata.flutter) is required; found $($sdk.frameworkVersion). This script does not upgrade the SDK."
     }
